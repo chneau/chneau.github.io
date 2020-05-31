@@ -13,6 +13,10 @@
       color: red;
       direction: rtl;
     }
+
+    h3 {
+      margin: 0;
+    }
   </style>
 </head>
 
@@ -179,8 +183,8 @@
     ];
     familleAnniversaire.sort((a, b) => joursVersAnniversaire(a.anniversaire) - joursVersAnniversaire(b.anniversaire));
     familleAnniversaireMariage.sort((a, b) => joursVersAnniversaire(a.anniversaire) - joursVersAnniversaire(b.anniversaire));
-    document.write(`${dateEnTexte(aujourdhui)}<br><br>`);
-    document.write(`Les prochains anniversaires cosmiques:<br>`)
+    document.write(`<h2>${dateEnTexte(aujourdhui)}</h2>`);
+    document.write(`<h3>Les prochains anniversaires cosmiques:</h3>`)
     document.write(`<br>`);
     familleAnniversaire.forEach(entite => {
       var jVA = joursVersAnniversaire(entite.anniversaire);
@@ -192,7 +196,7 @@
       document.write(`${texte} <br>`);
     });
     document.write(`<br>`);
-    document.write(`Les prochains anniversaires de Mariage:<br>`);
+    document.write(`<h3>Les prochains anniversaires de Mariage:</h3>`);
     document.write(`<br>`);
     familleAnniversaireMariage.forEach(entite => {
       var jVA = joursVersAnniversaire(entite.anniversaire);
