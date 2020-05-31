@@ -1,229 +1,211 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html class="gr__force_cosmique_pagesperso-orange_fr">
+<html>
 
 <head>
+  <title>Anniversaire</title>
+  <style>
+    .date {
+      text-transform: capitalize;
+    }
 
-  <!-- saved from url=(0022)http://internet.e-mail -->
-  <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
-  <title>Aniversaire</title>
-
-
-  <script type="text/javascript">
-    //<![CDATA[
-    var gs_d = new Date, DoW = gs_d.getDay(); gs_d.setDate(gs_d.getDate() - (DoW + 6) % 7 + 3);
-    var ms = gs_d.valueOf(); gs_d.setMonth(0); gs_d.setDate(4);
-    var gs_r = (Math.round((ms - gs_d.valueOf()) / 6048E5) + 1) * gs_d.getFullYear();
-    var gs_p = (("https:" == document.location.protocol) ? "https://" : "http://");
-    document.write(unescape("%3Cscript src='" + gs_p + "s.gstat.orange.fr/lib/gs.js?" + gs_r + "' type='text/javascript'%3E%3C/script%3E"));
-//]]>
-  </script>
-  <script src="./Aniversaire_files/gs.js.download" type="text/javascript"></script>
+    .reverse {
+      display: inline-block;
+      transform: scale(-1, 1);
+      color: red;
+      direction: rtl;
+    }
+  </style>
 </head>
 
 
-<body style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);" data-gr-c-s-loaded="true" alink="#000099"
-  link="#000099" vlink="#990099">
-
-  <div style="text-align: left; font-style: italic; font-weight: bold; color: rgb(0, 0, 0);"><big>
-      <script language="javascript">
-        var _MS_PAR_JOUR, age, aujourdhui, dateAnniversaire, dateEnTexte, entite, familleAnniversaire, familleAnniversaireMariage, i, j, jour, joursVersAnniversaire, len, len1, mois, prochainAnniversaire, texte, texteMariage, trierDates;
-        jour = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-        mois = ['Janvier', 'Fevrier', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Aout', 'Septembre', 'Octobre', 'Novembre', 'Decembre'];
-        _MS_PAR_JOUR = 1000 * 60 * 60 * 24;
-        aujourdhui = new Date();
-        dateAnniversaire = function (jour, mois, annee) {
-          return new Date(annee, mois - 1, jour);
-        };
-        dateEnTexte = function (date) {
-          return jour[date.getDay()] + " " + (date.getDate()) + " " + mois[date.getMonth()];
-        };
-        age = function (date) {
-          var utc1, utc2;
-          utc1 = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate());
-          utc2 = new Date(aujourdhui.getFullYear(), date.getMonth(), date.getDate());
-          if (utc1 > utc2) {
-            utc2.setFullYear(utc2.getFullYear() + 1);
-          }
-          return utc2.getYear() - date.getYear();
-        };
-        prochainAnniversaire = function (date) {
-          var utc1, utc2;
-          utc1 = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate());
-          utc2 = new Date(aujourdhui.getFullYear(), date.getMonth(), date.getDate());
-          if (utc1 > utc2) {
-            utc2.setFullYear(utc2.getFullYear() + 1);
-          }
-          return utc2;
-        };
-        joursVersAnniversaire = function (date) {
-          var utc1, utc2;
-          utc1 = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate());
-          utc2 = prochainAnniversaire(date);
-          return Math.floor((utc2 - utc1) / _MS_PAR_JOUR);
-        };
-        trierDates = function (a, b) {
-          var aa, bb;
-          aa = a.anniversaire.getMonth() * 100 + a.anniversaire.getDate();
-          bb = b.anniversaire.getMonth() * 100 + b.anniversaire.getDate();
-          return aa - bb;
-        };
-        texte = function (entite) {
-          var jVA, jourS, pA;
-          jVA = joursVersAnniversaire(entite.anniversaire);
-          pA = prochainAnniversaire(entite.anniversaire);
-          if (jVA === 0) {
-            return "Joyeux Anniversaire " + entite.nom + " pour tes " + (age(entite.anniversaire)) + " ans ce " + (dateEnTexte(pA)) + " " + (pA.getFullYear()) + ".";
-          } else {
-            jourS = '';
-            if (jVA === 1) {
-              jourS = '';
-            }
-            return "J- " + jVA + " " + jourS + " " + entite.nom + " aura " + (age(entite.anniversaire)) + " ans le " + (dateEnTexte(pA)) + " " + (pA.getFullYear()) + ".";
-          }
-        };
-        texteMariage = function (entite) {
-          var jVA, jourS, pA;
-          jVA = joursVersAnniversaire(entite.anniversaire);
-          pA = prochainAnniversaire(entite.anniversaire);
-          if (jVA === 0) {
-            return "Joyeux Anniversaire de mariage " + entite.nom + " " + (age(entite.anniversaire)) + " ans ce " + (dateEnTexte(pA)) + " " + (pA.getFullYear()) + ".";
-          } else {
-            jourS = ' ';
-            if (jVA === 1) {
-              jourS = '';
-            }
-            return "J- " + jVA + " " + jourS + " " + entite.nom + " auront " + (age(entite.anniversaire)) + " ans de mariage le " + (dateEnTexte(pA)) + " " + (pA.getFullYear()) + ".";
-          }
-        };
-        familleAnniversaire = [
-          {
-            nom: '<font color=#000000>Martin de 1973 "Capricorne et Rat"</font>',
-            anniversaire: dateAnniversaire(4, 1, 1973)
-          }, {
-            nom: '<font color=#000000>Sarah de 1991 "Capricorne et Cheval"</font>',
-            anniversaire: dateAnniversaire(9, 1, 1991)
-          }, {
-            nom: '<font color=#000000>Nicolas de 2019 "Verseau et Chien"</font>',
-            anniversaire: dateAnniversaire(30, 1, 2019)
-          }, {
-            nom: '<font color=#000000>Nadia de 1979 "Verseau et Dragon"</font>',
-            anniversaire: dateAnniversaire(5, 2, 1979)
-          }, {
-            nom: '<font color=#000000>Christopher de 1982 "Verseau et Chien"</font>',
-            anniversaire: dateAnniversaire(12, 2, 1982)
-          }, {
-            nom: '<font color=#000000>Dorothee de 1951 "poisson et Li�vre"</font>',
-            anniversaire: dateAnniversaire(9, 3, 1951)
-          }, {
-            nom: '<font color=#000000>Brigitte de 1982 "poisson et Chien"</font>',
-            anniversaire: dateAnniversaire(12, 3, 1982)
-          }, {
-            nom: '<font color=#000000>Simon de 2005 "B�lier et Coq"</font>',
-            anniversaire: dateAnniversaire(24, 3, 2005)
-          }, {
-            nom: '<font color=#000000>Georges de 2017 "B�lier et Coq"</font>',
-            anniversaire: dateAnniversaire(3, 4, 2017)
-          }, {
-            nom: '<font color=#000000>Moanaragi de 2018 "B�lier et Chien"</font>',
-            anniversaire: dateAnniversaire(11, 4, 2018)
-          }, {
-            nom: '<font color=#000000>Vaimoana de 2005"B�lier et Coq"</font>',
-            anniversaire: dateAnniversaire(13, 4, 2005)
-          }, {
-            nom: '<font color=#000000>Sandra de 1977 "B�lier et Serpent"</font>',
-            anniversaire: dateAnniversaire(13, 4, 1977)
-          }, {
-            nom: '<font color=#000000>Vadim de 2014 "B�lier et Cheval"</font>',
-            anniversaire: dateAnniversaire(15, 4, 2014)
-          }, {
-            nom: '<font color=#000000>Christian de 1951 "Taureau et Li�vre"</font>',
-            anniversaire: dateAnniversaire(8, 5, 1951)
-          }, {
-            nom: '<font color=#000000>Edouard de 2014 "Taureau et Cheval"</font>',
-            anniversaire: dateAnniversaire(16, 5, 2014)
-          }, {
-            nom: '<font color=#000000>Ravahere de 1982 "G�meaux et Chien"</font>',
-            anniversaire: dateAnniversaire(8, 6, 1982)
-          }, {
-            nom: '<font color=#000000>Justin de 2007 "G�meaux et Cochon"</font>',
-            anniversaire: dateAnniversaire(18, 6, 2007)
-          }, {
-            nom: '<font color=#000000>Ariimoana de 2013 "Cancer et Serpent"</font>',
-            anniversaire: dateAnniversaire(11, 7, 2013)
-          }, {
-            nom: '<font color=#000000>Victor de 2008 "Cancer et Rat"</font>',
-            anniversaire: dateAnniversaire(21, 7, 2008)
-          }, {
-            nom: '<font color=#000000>Elena de 2016 "Lion et Singe"</font>',
-            anniversaire: dateAnniversaire(30, 7, 2016)
-          }, {
-            nom: '<font color=#000000>Charles de 1992 "Lion et Singe"</font>',
-            anniversaire: dateAnniversaire(13, 8, 1992)
-          }, {
-            nom: '<font color=#000000>Marie de 1945 "Vierge et Coq"</font>',
-            anniversaire: dateAnniversaire(1, 9, 1945)
-          }, {
-            nom: '<font color=#000000>Maximin de 1978 "Balance et Cheval"</font>',
-            anniversaire: dateAnniversaire(4, 10, 1978)
-          }, {
-            nom: '<font color=#000000>Cecile de 1977 "Balance et Serpent"</font>',
-            anniversaire: dateAnniversaire(5, 10, 1977)
-          }, {
-            nom: '<font color=#000000>Christian de 1975 "Scorpion et Li�vre"</font>',
-            anniversaire: dateAnniversaire(23, 10, 1975)
-          }, {
-            nom: '<font color=#000000>Julien de 1970 "Sagitaire et Chien"</font>',
-            anniversaire: dateAnniversaire(27, 11, 1970)
-          }, {
-            nom: '<font color=#000000>Lucia de 2014 "Sagitaire et Rat"</font>',
-            anniversaire: dateAnniversaire(17, 12, 2014)
-          }
-        ];
-        familleAnniversaireMariage = [
-          {
-            nom: '<font color=#000000>Christian & Cecile de 2005 </font>',
-            anniversaire: dateAnniversaire(26, 2, 2005)
-          }, {
-            nom: '<font color=#000000>Christian et Dorotheede de 1977 </font>',
-            anniversaire: dateAnniversaire(25, 3, 1977)
-          }, {
-            nom: '<font color=#000000>Martin et Ravahere de 2005 </font>',
-            anniversaire: dateAnniversaire(26, 3, 2005)
-          }, {
-            nom: '<font color=#000000>Christopher et Nadia de 2010 </font>',
-            anniversaire: dateAnniversaire(4, 9, 2010)
-          }, {
-            nom: '<font color=#000000>Sandra et Maximin de 2014 </font>',
-            anniversaire: dateAnniversaire(3, 10, 2014)
-          }, {
-            nom: '<font color=#000000>Brigitte et Julien de 2016</font>',
-            anniversaire: dateAnniversaire(19, 2, 2016)
-          }
-        ];
-        familleAnniversaire.sort(trierDates);
-        familleAnniversaireMariage.sort(trierDates);
-        document.write((dateEnTexte(aujourdhui)) + " " + (aujourdhui.getFullYear()) + " Les prochains anniversaires cosmiques:<br>");
-        document.write('<br>');
-        for (i = 0, len = familleAnniversaire.length; i < len; i++) {
-          entite = familleAnniversaire[i];
-          document.write((texte(entite)) + "<br>");
-        }
-        document.write('<br>');
-        document.write('Les prochains Anniversaires de Mariage:<br>');
-        document.write('<br>');
-        for (j = 0, len1 = familleAnniversaireMariage.length; j < len1; j++) {
-          entite = familleAnniversaireMariage[j];
-          document.write((texteMariage(entite)) + "<br>");
-        }
-        document.write('<br>');
-        document.write('Remerciements Charles a grandement simplifi� le code. <font color=#000000>Maj 30 f�vrier 2019</font> <br>');
-        document.write('<br>');
-      </script></big></div>
-
-  <script type="text/javascript">
-    //<![CDATA[
-    if (typeof _gstat != "undefined") _gstat.audience('', 'pagesperso-orange.fr');
-//]]>
+<body>
+  <script>
+    const aujourdhui = new Date();
+    var dateEnTexte = function (date) {
+      return `<u class="date">${date.toLocaleTimeString(`fr`, { weekday: `long`, year: `numeric`, month: `long`, day: `numeric` }).split(` `).slice(0, 4).join(` `)}</u>`;
+    };
+    var age = function (date) {
+      var utc1 = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate());
+      var utc2 = new Date(aujourdhui.getFullYear(), date.getMonth(), date.getDate());
+      if (utc1 > utc2) {
+        utc2.setFullYear(utc2.getFullYear() + 1);
+      }
+      return utc2.getYear() - date.getYear();
+    };
+    var prochainAnniversaire = function (date) {
+      var utc1 = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate());
+      var utc2 = new Date(aujourdhui.getFullYear(), date.getMonth(), date.getDate());
+      if (utc1 > utc2) {
+        utc2.setFullYear(utc2.getFullYear() + 1);
+      }
+      return utc2;
+    };
+    var joursVersAnniversaire = function (date) {
+      const _MS_PAR_JOUR = 1000 * 60 * 60 * 24;
+      var utc1 = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate());
+      var utc2 = prochainAnniversaire(date);
+      return Math.floor((utc2 - utc1) / _MS_PAR_JOUR);
+    };
+    var familleAnniversaire = [
+      {
+        nom: `Martin`,
+        signe: `Capricorne et Rat`,
+        anniversaire: new Date(1973, 1 - 1, 4)
+      }, {
+        nom: `Sarah`,
+        signe: `Capricorne et Cheval`,
+        anniversaire: new Date(1991, 1 - 1, 9)
+      }, {
+        nom: `Nicolas`,
+        signe: `Verseau et Chien`,
+        anniversaire: new Date(2019, 1 - 1, 30)
+      }, {
+        nom: `Nadia`,
+        signe: `Verseau et Dragon`,
+        anniversaire: new Date(1979, 2 - 1, 5)
+      }, {
+        nom: `Christopher`,
+        signe: `Verseau et Chien`,
+        anniversaire: new Date(1982, 2 - 1, 12)
+      }, {
+        nom: `Dorothee`,
+        signe: `Poisson et Lievre`,
+        anniversaire: new Date(1951, 3 - 1, 9)
+      }, {
+        nom: `Brigitte`,
+        signe: `Poisson et Chien`,
+        anniversaire: new Date(1982, 3 - 1, 12)
+      }, {
+        nom: `Simon`,
+        signe: `Belier et Coq`,
+        anniversaire: new Date(2005, 3 - 1, 24)
+      }, {
+        nom: `Georges`,
+        signe: `Belier et Coq`,
+        anniversaire: new Date(2017, 4 - 1, 3)
+      }, {
+        nom: `Moanaragi`,
+        signe: `Belier et Chien`,
+        anniversaire: new Date(2018, 4 - 1, 11)
+      }, {
+        nom: `Vaimoana`,
+        signe: `Belier et Coq`,
+        anniversaire: new Date(2005, 4 - 1, 13)
+      }, {
+        nom: `Sandra`,
+        signe: `Belier et Serpent`,
+        anniversaire: new Date(1977, 4 - 1, 13)
+      }, {
+        nom: `Vadim`,
+        signe: `Belier et Cheval`,
+        anniversaire: new Date(2014, 4 - 1, 15)
+      }, {
+        nom: `Christian`,
+        signe: `Taureau et Lievre`,
+        anniversaire: new Date(1951, 5 - 1, 8)
+      }, {
+        nom: `Edouard`,
+        signe: `Taureau et Cheval`,
+        anniversaire: new Date(2014, 5 - 1, 16)
+      }, {
+        nom: `Ravahere`,
+        signe: `Gemeaux et Chien`,
+        anniversaire: new Date(1982, 6 - 1, 8)
+      }, {
+        nom: `Justin`,
+        signe: `Gemeaux et Cochon`,
+        anniversaire: new Date(2007, 6 - 1, 18)
+      }, {
+        nom: `Ariimoana`,
+        signe: `Cancer et Serpent`,
+        anniversaire: new Date(2013, 7 - 1, 11)
+      }, {
+        nom: `Victor`,
+        signe: `Cancer et Rat`,
+        anniversaire: new Date(2008, 7 - 1, 21)
+      }, {
+        nom: `Elena`,
+        signe: `Lion et Singe`,
+        anniversaire: new Date(2016, 7 - 1, 30)
+      }, {
+        nom: `Charles`,
+        signe: `Lion et Singe`,
+        anniversaire: new Date(1992, 8 - 1, 13)
+      }, {
+        nom: `Marie`,
+        signe: `Vierge et Coq`,
+        anniversaire: new Date(1945, 9 - 1, 1)
+      }, {
+        nom: `Maximin`,
+        signe: `Balance et Cheval`,
+        anniversaire: new Date(1978, 10 - 1, 4)
+      }, {
+        nom: `Cecile`,
+        signe: `Balance et Serpent`,
+        anniversaire: new Date(1977, 10 - 1, 5)
+      }, {
+        nom: `Christian`,
+        signe: `Scorpion et Lievre`,
+        anniversaire: new Date(1975, 10 - 1, 23)
+      }, {
+        nom: `Julien`,
+        signe: `Sagittaire et Chien`,
+        anniversaire: new Date(1970, 11 - 1, 27)
+      }, {
+        nom: `Lucia`,
+        signe: `Sagittaire et Rat`,
+        anniversaire: new Date(2014, 12 - 1, 17)
+      }
+    ];
+    var familleAnniversaireMariage = [
+      {
+        nom: `Christian & Cecile`,
+        anniversaire: new Date(2005, 2 - 1, 26)
+      }, {
+        nom: `Christian et Dorothee`,
+        anniversaire: new Date(1977, 3 - 1, 25)
+      }, {
+        nom: `Martin et Ravahere`,
+        anniversaire: new Date(2005, 3 - 1, 26)
+      }, {
+        nom: `Christopher et Nadia`,
+        anniversaire: new Date(2010, 9 - 1, 4)
+      }, {
+        nom: `Sandra et Maximin`,
+        anniversaire: new Date(2014, 10 - 1, 3)
+      }, {
+        nom: `Brigitte et Julien`,
+        anniversaire: new Date(2016, 2 - 1, 19)
+      }
+    ];
+    familleAnniversaire.sort((a, b) => joursVersAnniversaire(a.anniversaire) - joursVersAnniversaire(b.anniversaire));
+    familleAnniversaireMariage.sort((a, b) => joursVersAnniversaire(a.anniversaire) - joursVersAnniversaire(b.anniversaire));
+    document.write(`${dateEnTexte(aujourdhui)}<br><br>`);
+    document.write(`Les prochains anniversaires cosmiques:<br>`)
+    document.write(`<br>`);
+    familleAnniversaire.forEach(entite => {
+      var jVA = joursVersAnniversaire(entite.anniversaire);
+      var pA = prochainAnniversaire(entite.anniversaire);
+      var texte = `J-${jVA} <b>${entite.nom}</b> (${entite.anniversaire.getFullYear()}, ${entite.signe}) aura <b>${age(entite.anniversaire)} ans</b> le ${dateEnTexte(pA)}.`;
+      if (jVA === 0) {
+        texte = `🎉🥳 Joyeux anniversaire <b>${entite.nom}</b> (${entite.anniversaire.getFullYear()}, ${entite.signe}) pour tes <b>${age(entite.anniversaire)} ans</b>! <span class="reverse">🥳🎉</span>`;
+      }
+      document.write(`${texte} <br>`);
+    });
+    document.write(`<br>`);
+    document.write(`Les prochains anniversaires de Mariage:<br>`);
+    document.write(`<br>`);
+    familleAnniversaireMariage.forEach(entite => {
+      var jVA = joursVersAnniversaire(entite.anniversaire);
+      var pA = prochainAnniversaire(entite.anniversaire);
+      var texte = `J-${jVA} <b>${entite.nom}</b> (${entite.anniversaire.getFullYear()}) auront <b>${age(entite.anniversaire)} ans</b> de mariage le ${dateEnTexte(pA)}.`;
+      if (jVA === 0) {
+        texte = `🎉💍 Joyeux anniversaire <b>${entite.nom}</b> (${entite.anniversaire.getFullYear()}) pour ces <b>${age(entite.anniversaire)} ans</b> de mariage! <span class="reverse">💍🎉</span>`;
+      }
+      document.write(`${texte} <br>`);
+    });
+    document.write(`<br>`);
+    document.write(`Remerciements a Charles qui a grandement simplifie le code. Maj 30 fevrier 2019 <br>`);
+    document.write(`<br>`);
   </script>
 </body>
 
