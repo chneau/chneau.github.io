@@ -17,6 +17,7 @@ const columns = [
   {
     title: "Month",
     dataIndex: "month",
+    render: (_: unknown, x: Birthday) => x.monthString,
     sorter: (a: Birthday, b: Birthday) => a.month - b.month,
   },
   {
@@ -27,24 +28,25 @@ const columns = [
   {
     title: "Age",
     dataIndex: "age",
+    sorter: (a: Birthday, b: Birthday) => a.age - b.age,
+  },
+  {
+    title: "Next",
+    dataIndex: "daysBeforeBirthday",
+    sorter: (a: Birthday, b: Birthday) => a.daysBeforeBirthday - b.daysBeforeBirthday,
   },
 ];
 
 export const App = () => {
   const [search, setSearch] = useState("");
-  const filteredBirthdays = useMemo(() => birthdays.filter((bday) => bday.name.toLowerCase().includes(search.toLowerCase())), [search]);
-  const data = useMemo(() => {
-    return filteredBirthdays.map((bday, idx) => ({
-      key: idx,
-      ...bday,
-    }));
-  }, [filteredBirthdays]);
+  const filteredBirthdays = useMemo(() => birthdays.filter((x) => JSON.stringify(x).toLowerCase().includes(search)), [search]);
+  const data = useMemo(() => filteredBirthdays.map((x, i) => ({ key: i, ...x })), [filteredBirthdays]);
   return (
     <StyledLayout>
       <Layout.Header></Layout.Header>
       <Layout.Content>
         <Card title="Birthdays">
-          <Input.Search placeholder="Search..." style={{ marginBottom: 8 }} onChange={(e) => setSearch(e.target.value)} value={search} />
+          <Input.Search placeholder="Search..." style={{ marginBottom: 8 }} onChange={(e) => setSearch(e.target.value.toLowerCase())} value={search} />
           <Table columns={columns} dataSource={data} pagination={false} size="small" />
         </Card>
       </Layout.Content>

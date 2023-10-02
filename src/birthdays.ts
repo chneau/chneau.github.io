@@ -1,12 +1,20 @@
+import { getBirthgem, getSign } from "./zodiac";
+
 export interface Birthday {
+  isWedding?: boolean | null | undefined;
   name: string;
-  isWedding?: boolean;
+  age: number;
+  nextBirthday: Date;
+  sign: string;
+  birthgem: string;
   year: number;
   month: number;
+  monthString: string;
   day: number;
+  daysBeforeBirthday: number;
 }
 
-export const birthdays: Birthday[] = [
+const _birthdays = [
   { name: `Ariimoana`, year: 2013, month: 7, day: 11 },
   { name: `Brigitte`, year: 1982, month: 3, day: 12 },
   { name: `Cécile`, year: 1977, month: 10, day: 5 },
@@ -41,3 +49,39 @@ export const birthdays: Birthday[] = [
   { name: `Ravahere & Martin`, year: 2005, month: 3, day: 26, isWedding: true },
   { name: `Sandra & Maximin`, year: 2014, month: 10, day: 3, isWedding: true },
 ];
+
+const getNextBirthday = (birthday: Pick<Birthday, "month" | "day">): Date => {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), birthday.month - 1, birthday.day);
+  if (next < now) next.setFullYear(next.getFullYear() + 1);
+  return next;
+};
+
+const getCurrentAge = (birthday: Pick<Birthday, "year" | "month" | "day">): number => {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), birthday.month - 1, birthday.day);
+  if (next > now) return now.getFullYear() - birthday.year - 1;
+  return now.getFullYear() - birthday.year;
+};
+
+const getDaysBeforeBirthday = (nextBirthday: Date): number => {
+  const now = new Date();
+  const next = new Date(now.getFullYear(), nextBirthday.getMonth(), nextBirthday.getDate());
+  if (next < now) next.setFullYear(next.getFullYear() + 1);
+  return Math.ceil((next.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+};
+
+export const birthdays: Birthday[] = _birthdays.map((x) => {
+  const nextBirthday = getNextBirthday(x);
+  const sign = getSign(nextBirthday).name;
+  const birthgem = getBirthgem(nextBirthday);
+  return {
+    ...x,
+    nextBirthday,
+    sign,
+    birthgem,
+    monthString: nextBirthday.toLocaleString("en-GB", { month: "long" }),
+    daysBeforeBirthday: getDaysBeforeBirthday(nextBirthday),
+    age: getCurrentAge(x),
+  };
+});
