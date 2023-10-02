@@ -1,110 +1,14 @@
-<html>
+<!doctype html>
+<html lang="en">
   <head>
-    <title>Anniversaires</title>
-    <style>
-      .date {
-        text-decoration: underline;
-      }
-      .reverse {
-        display: inline-block;
-        transform: scale(-1, 1);
-        color: red;
-        direction: rtl;
-      }
-      h3 {
-        margin: 0;
-      }
-    </style>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React + TS</title>
+    <script type="module" crossorigin src="/assets/index-d6e80494.js"></script>
   </head>
-
   <body>
-    <script>
-      const aujourdhui = new Date();
-      const dateEnTexte = function (date) {
-        return `<span class="date">${date.toLocaleTimeString(`fr`, { weekday: `long`, year: `numeric`, month: `long`, day: `numeric` }).split(` `).slice(0, 4).join(` `)}</span>`;
-      };
-      const age = function (date) {
-        const utc1 = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate());
-        const utc2 = new Date(aujourdhui.getFullYear(), date.getMonth(), date.getDate());
-        if (utc1 > utc2) utc2.setFullYear(utc2.getFullYear() + 1);
-        return utc2.getYear() - date.getYear();
-      };
-      const prochainAnniversaire = function (date) {
-        const utc1 = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate());
-        const utc2 = new Date(aujourdhui.getFullYear(), date.getMonth(), date.getDate());
-        if (utc1 > utc2) utc2.setFullYear(utc2.getFullYear() + 1);
-        return utc2;
-      };
-      const joursVersAnniversaire = function (date) {
-        const _MS_PAR_JOUR = 1000 * 60 * 60 * 24;
-        const utc1 = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate());
-        const utc2 = prochainAnniversaire(date);
-        return Math.floor((utc2 - utc1) / _MS_PAR_JOUR);
-      };
-      const familleAnniversaire = [
-        { nom: `Ariimoana`, signe: `Cancer et Serpent`, anniversaire: new Date(2013, 7 - 1, 11) },
-        { nom: `Brigitte`, signe: `Poisson et Chien`, anniversaire: new Date(1982, 3 - 1, 12) },
-        { nom: `Cécile`, signe: `Balance et Serpent`, anniversaire: new Date(1977, 10 - 1, 5) },
-        { nom: `Charles`, signe: `Lion et Singe`, anniversaire: new Date(1992, 8 - 1, 13) },
-        { nom: `Christian`, signe: `Scorpion et Lièvre`, anniversaire: new Date(1975, 10 - 1, 23) },
-        { nom: `Christian`, signe: `Taureau et Lièvre`, anniversaire: new Date(1951, 5 - 1, 8) },
-        { nom: `Christopher`, signe: `Verseau et Chien`, anniversaire: new Date(1982, 2 - 1, 12) },
-        { nom: `Dorothée`, signe: `Poisson et Lièvre`, anniversaire: new Date(1951, 3 - 1, 9) },
-        { nom: `Edouard`, signe: `Taureau et Cheval`, anniversaire: new Date(2014, 5 - 1, 16) },
-        { nom: `Elena`, signe: `Lion et Singe`, anniversaire: new Date(2016, 7 - 1, 30) },
-        { nom: `Georges`, signe: `Bélier et Coq`, anniversaire: new Date(2017, 4 - 1, 3) },
-        { nom: `Julien`, signe: `Sagittaire et Chien`, anniversaire: new Date(1970, 11 - 1, 27) },
-        { nom: `Justin`, signe: `Gémeaux et Cochon`, anniversaire: new Date(2007, 6 - 1, 18) },
-        { nom: `Lucia`, signe: `Sagittaire et Rat`, anniversaire: new Date(2014, 12 - 1, 17) },
-        { nom: `Marie`, signe: `Vierge et Coq`, anniversaire: new Date(1945, 9 - 1, 1) },
-        { nom: `Martin`, signe: `Capricorne et Rat`, anniversaire: new Date(1973, 1 - 1, 4) },
-        { nom: `Maximin`, signe: `Balance et Cheval`, anniversaire: new Date(1978, 10 - 1, 4) },
-        { nom: `Moanaragi`, signe: `Bélier et Chien`, anniversaire: new Date(2018, 4 - 1, 11) },
-        { nom: `Nadia`, signe: `Verseau et Dragon`, anniversaire: new Date(1979, 2 - 1, 5) },
-        { nom: `Nicolas`, signe: `Verseau et Chien`, anniversaire: new Date(2019, 1 - 1, 30) },
-        { nom: `Ravahere`, signe: `Gémeaux et Chien`, anniversaire: new Date(1982, 6 - 1, 8) },
-        { nom: `Sandra`, signe: `Bélier et Serpent`, anniversaire: new Date(1977, 4 - 1, 13) },
-        { nom: `Simon`, signe: `Bélier et Coq`, anniversaire: new Date(2005, 3 - 1, 24) },
-        { nom: `Vadim`, signe: `Bélier et Cheval`, anniversaire: new Date(2014, 4 - 1, 15) },
-        { nom: `Vaimoana`, signe: `Bélier et Coq`, anniversaire: new Date(2005, 4 - 1, 13) },
-        { nom: `Victor`, signe: `Cancer et Rat`, anniversaire: new Date(2008, 7 - 1, 21) },
-        { nom: `Sophie`, signe: `Balance et Buffle`, anniversaire: new Date(1997, 10 - 1, 11) },
-      ];
-      const familleAnniversaireMariage = [
-        { nom: `Brigitte & Julien`, anniversaire: new Date(2016, 2 - 1, 19) },
-        { nom: `Christian & Cécile`, anniversaire: new Date(2005, 2 - 1, 26) },
-        { nom: `Christian & Dorothée`, anniversaire: new Date(1977, 3 - 1, 25) },
-        { nom: `Christopher & Nadia`, anniversaire: new Date(2010, 9 - 1, 4) },
-        { nom: `Martin & Ravahere`, anniversaire: new Date(2005, 3 - 1, 26) },
-        { nom: `Sandra & Maximin`, anniversaire: new Date(2014, 10 - 1, 3) },
-      ];
-      familleAnniversaire.sort((a, b) => joursVersAnniversaire(a.anniversaire) - joursVersAnniversaire(b.anniversaire));
-      familleAnniversaireMariage.sort((a, b) => joursVersAnniversaire(a.anniversaire) - joursVersAnniversaire(b.anniversaire));
-      document.write(`<h2>${dateEnTexte(aujourdhui)}</h2>`);
-      document.write(`<h3>Les prochains anniversaires cosmiques:</h3>`);
-      document.write(`<br>`);
-      familleAnniversaire.forEach((entite) => {
-        const jVA = joursVersAnniversaire(entite.anniversaire);
-        const pA = prochainAnniversaire(entite.anniversaire);
-        const texte = `J-${jVA} <b>${entite.nom}</b> (${entite.anniversaire.getFullYear()}, ${entite.signe}) aura <b>${age(entite.anniversaire)} ans</b> le ${dateEnTexte(pA)}.`;
-        if (jVA === 0) texte = `🎉🥳 Joyeux anniversaire <b>${entite.nom}</b> (${entite.anniversaire.getFullYear()}, ${entite.signe}) pour tes <b>${age(entite.anniversaire)} ans</b>! <span class="reverse">🥳🎉</span>`;
-        document.write(`${texte} <br>`);
-      });
-      document.write(`<br>`);
-      document.write(`<h3>Les prochains anniversaires de mariage:</h3>`);
-      document.write(`<br>`);
-      familleAnniversaireMariage.forEach((entite) => {
-        const jVA = joursVersAnniversaire(entite.anniversaire);
-        const pA = prochainAnniversaire(entite.anniversaire);
-        const texte = `J-${jVA} <b>${entite.nom}</b> (${entite.anniversaire.getFullYear()}) auront <b>${age(entite.anniversaire)} ans</b> de mariage le ${dateEnTexte(pA)}.`;
-        if (jVA === 0) texte = `🎉💍 Joyeux anniversaire <b>${entite.nom}</b> (${entite.anniversaire.getFullYear()}) pour ces <b>${age(entite.anniversaire)} ans</b> de mariage! <span class="reverse">💍🎉</span>`;
-        document.write(`${texte} <br>`);
-      });
-      document.write(`<br>`);
-      document.write(`Remerciements à Charles qui a grandement simplifié le code.<br>`);
-      document.write(`Maj 30 février 2019.<br>`);
-      document.write(`Et le 31 mai 2020 😎.<br>`);
-      document.write(`<br>`);
-    </script>
+    <div id="root"></div>
+    
   </body>
 </html>
