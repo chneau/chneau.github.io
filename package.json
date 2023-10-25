@@ -13,25 +13,25 @@
     "deploy": "gh-pages --dist dist --branch master"
   },
   "dependencies": {
-    "antd": "^5.9.4",
+    "antd": "^5.10.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "styled-components": "^6.0.8"
+    "styled-components": "^6.1.0"
   },
   "devDependencies": {
-    "@types/react": "^18.2.24",
-    "@types/react-dom": "^18.2.8",
-    "@typescript-eslint/eslint-plugin": "^6.7.3",
-    "@typescript-eslint/parser": "^6.7.3",
+    "@types/react": "^18.2.32",
+    "@types/react-dom": "^18.2.14",
+    "@typescript-eslint/eslint-plugin": "^6.9.0",
+    "@typescript-eslint/parser": "^6.9.0",
     "@vitejs/plugin-react-swc": "^3.4.0",
-    "eslint": "^8.50.0",
+    "eslint": "^8.52.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.3",
     "gh-pages": "^6.0.0",
-    "npm-check-updates": "^16.14.4",
+    "npm-check-updates": "^16.14.6",
     "prettier": "^3.0.3",
     "typescript": "^5.2.2",
-    "vite": "^4.4.9"
+    "vite": "^4.5.0"
   },
   "prettier": {
     "printWidth": 9e+99
