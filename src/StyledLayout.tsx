@@ -13,7 +13,18 @@ export const StyledLayout = styled(Layout)`
     grid-area: "content";
     padding: 25px 50px;
     background-color: white;
-    overflow: auto;
+    overflow: hidden;
+    > .ant-card {
+      max-height: 100%;
+      overflow: hidden;
+      > .ant-card-body {
+        max-height: 100%;
+        overflow: hidden;
+        > .ant-table-wrapper {
+          overflow: auto;
+        }
+      }
+    }
   }
   > .ant-layout-footer {
     grid-area: "footer";
