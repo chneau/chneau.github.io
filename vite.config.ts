@@ -9,7 +9,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       injectRegister: "inline",
       devOptions: { enabled: true },
-      includeAssets: ["favicon.svg"],
+      includeAssets: ["**.*"],
+      workbox: { globPatterns: ["**/*"] },
       manifest: {
         name: "Birthdays",
         short_name: "Birthdays",
