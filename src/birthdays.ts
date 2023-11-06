@@ -4,6 +4,8 @@ export interface Birthday {
   isWedding?: boolean | null | undefined;
   name: string;
   age: number;
+  birthday: Date;
+  birthdayString: string;
   nextBirthday: Date;
   sign: string;
   birthgem: string;
@@ -72,12 +74,16 @@ const getDaysBeforeBirthday = (nextBirthday: Date): number => {
 };
 
 export const birthdays: Birthday[] = _birthdays.map((x) => {
+  const birthday = new Date(x.year, x.month - 1, x.day);
+  const birthdayString = birthday.toLocaleString("en-GB", { day: "numeric", month: "numeric", year: "numeric" });
   const nextBirthday = getNextBirthday(x);
   const sign = getSign(nextBirthday).name;
   const birthgem = getBirthgem(nextBirthday);
   return {
     ...x,
     nextBirthday,
+    birthday,
+    birthdayString,
     sign,
     birthgem,
     monthString: nextBirthday.toLocaleString("en-GB", { month: "long" }),

@@ -1,6 +1,5 @@
 import { Card, Input, Layout, Table } from "antd";
 import { useMemo, useState } from "react";
-import { StyledLayout } from "./StyledLayout";
 import { Birthday, birthdays } from "./birthdays";
 
 const columns = [
@@ -10,30 +9,15 @@ const columns = [
     sorter: (a: Birthday, b: Birthday) => a.name.localeCompare(b.name),
   },
   {
-    title: "Year",
-    dataIndex: "year",
-    sorter: (a: Birthday, b: Birthday) => a.year - b.year,
-  },
-  {
-    title: "Month",
-    dataIndex: "month",
-    render: (_: unknown, x: Birthday) => x.monthString,
-    sorter: (a: Birthday, b: Birthday) => a.month - b.month,
-  },
-  {
-    title: "Day",
-    dataIndex: "day",
-    sorter: (a: Birthday, b: Birthday) => a.day - b.day,
+    title: "Birthday",
+    dataIndex: "birthdayString",
+    render: (_: unknown, x: Birthday) => x.birthdayString,
+    sorter: (a: Birthday, b: Birthday) => a.birthday.getTime() - b.birthday.getTime(),
   },
   {
     title: "Age",
     dataIndex: "age",
-    sorter: (a: Birthday, b: Birthday) => a.age - b.age,
-  },
-  {
-    title: "Next",
-    dataIndex: "daysBeforeBirthday",
-    sorter: (a: Birthday, b: Birthday) => a.daysBeforeBirthday - b.daysBeforeBirthday,
+    sorter: (a: Birthday, b: Birthday) => a.birthday.getTime() - b.birthday.getTime(),
   },
 ];
 
@@ -42,15 +26,15 @@ export const App = () => {
   const filteredBirthdays = useMemo(() => birthdays.filter((x) => JSON.stringify(x).toLowerCase().includes(search)), [search]);
   const data = useMemo(() => filteredBirthdays.map((x, i) => ({ key: i, ...x })), [filteredBirthdays]);
   return (
-    <StyledLayout>
+    <Layout>
       <Layout.Header></Layout.Header>
       <Layout.Content>
         <Card title="Birthdays">
           <Input.Search placeholder="Search..." style={{ marginBottom: 8 }} onChange={(e) => setSearch(e.target.value.toLowerCase())} value={search} />
-          <Table columns={columns} dataSource={data} pagination={false} size="small" />
+          <Table columns={columns} dataSource={data} pagination={false} size="small" style={{ overflow: "auto" }} />
         </Card>
       </Layout.Content>
       <Layout.Footer>Charles ©2023</Layout.Footer>
-    </StyledLayout>
+    </Layout>
   );
 };
