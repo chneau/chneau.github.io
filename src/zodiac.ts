@@ -29,7 +29,6 @@ export const getSign = (date: Date) => {
   const day = date.getDate();
   const point = month * 100 + day;
   const sign = signs.find((x) => x.point <= point);
-  console.log(month, day, sign);
   if (!sign) throw new Error(`No sign found for ${date}`);
   return { name: sign.name, symbol: sign.symbol };
 };
