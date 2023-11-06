@@ -2,6 +2,7 @@ import { Card, Input, Layout, Table } from "antd";
 import { useMemo, useState } from "react";
 import { Birthday, birthdays } from "./birthdays";
 
+const sorter = (a: Birthday, b: Birthday) => a.birthday.getTime() - b.birthday.getTime();
 const columns = [
   {
     title: "Name",
@@ -12,12 +13,22 @@ const columns = [
     title: "Birthday",
     dataIndex: "birthdayString",
     render: (_: unknown, x: Birthday) => x.birthdayString,
-    sorter: (a: Birthday, b: Birthday) => a.birthday.getTime() - b.birthday.getTime(),
+    sorter,
   },
   {
     title: "Age",
     dataIndex: "age",
-    sorter: (a: Birthday, b: Birthday) => a.birthday.getTime() - b.birthday.getTime(),
+    sorter,
+  },
+  {
+    title: "Sign",
+    dataIndex: "sign",
+    sorter,
+  },
+  {
+    title: "Birthgem",
+    dataIndex: "birthgem",
+    sorter,
   },
 ];
 

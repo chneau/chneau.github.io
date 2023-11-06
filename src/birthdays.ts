@@ -73,21 +73,23 @@ const getDaysBeforeBirthday = (nextBirthday: Date): number => {
   return Math.ceil((next.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 };
 
-export const birthdays: Birthday[] = _birthdays.map((x) => {
-  const birthday = new Date(x.year, x.month - 1, x.day);
-  const birthdayString = birthday.toLocaleString("en-GB", { day: "numeric", month: "numeric", year: "numeric" });
-  const nextBirthday = getNextBirthday(x);
-  const sign = getSign(nextBirthday).name;
-  const birthgem = getBirthgem(nextBirthday);
-  return {
-    ...x,
-    nextBirthday,
-    birthday,
-    birthdayString,
-    sign,
-    birthgem,
-    monthString: nextBirthday.toLocaleString("en-GB", { month: "long" }),
-    daysBeforeBirthday: getDaysBeforeBirthday(nextBirthday),
-    age: getCurrentAge(x),
-  };
-});
+export const birthdays: Birthday[] = _birthdays
+  .map((x) => {
+    const birthday = new Date(x.year, x.month - 1, x.day);
+    const birthdayString = birthday.toLocaleString("en-GB", { day: "numeric", month: "numeric", year: "numeric" });
+    const nextBirthday = getNextBirthday(x);
+    const sign = getSign(birthday).name;
+    const birthgem = getBirthgem(nextBirthday);
+    return {
+      ...x,
+      nextBirthday,
+      birthday,
+      birthdayString,
+      sign,
+      birthgem,
+      monthString: nextBirthday.toLocaleString("en-GB", { month: "long" }),
+      daysBeforeBirthday: getDaysBeforeBirthday(nextBirthday),
+      age: getCurrentAge(x),
+    };
+  })
+  .sort((a, b) => a.nextBirthday.getTime() - b.nextBirthday.getTime());
