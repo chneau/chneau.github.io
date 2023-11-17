@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react-swc";
-import { defineConfig } from "vite";
+import { PluginOption, defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
@@ -29,7 +29,7 @@ export default defineConfig({
           },
         ],
       },
-    }),
+    }) as PluginOption,
   ],
   clearScreen: false,
 });
