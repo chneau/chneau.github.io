@@ -8,6 +8,7 @@ export interface Birthday {
 	birthdayString: string;
 	nextBirthday: Date;
 	sign: string;
+	signSymbol: string;
 	birthgem: string;
 	year: number;
 	month: number;
@@ -87,7 +88,7 @@ const getCurrentAge = (
 };
 
 const getDaysBeforeBirthday = (nextBirthday: Date): number => {
-	const now = new Date();
+	const now = new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 1);
 	const next = new Date(
 		now.getFullYear(),
 		nextBirthday.getMonth(),
@@ -106,18 +107,19 @@ export const birthdays: Birthday[] = _birthdays
 			year: "numeric",
 		});
 		const nextBirthday = getNextBirthday(x);
-		const sign = getSign(birthday).name;
+		const sign = getSign(birthday);
 		const birthgem = getBirthgem(nextBirthday);
 		return {
 			...x,
 			nextBirthday,
 			birthday,
 			birthdayString,
-			sign,
+			sign: sign.name,
+			signSymbol: sign.symbol,
 			birthgem,
 			monthString: nextBirthday.toLocaleString("en-GB", { month: "long" }),
 			daysBeforeBirthday: getDaysBeforeBirthday(nextBirthday),
 			age: getCurrentAge(x),
 		};
 	})
-	.sort((a, b) => a.nextBirthday.getTime() - b.nextBirthday.getTime());
+	.sort((a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday);

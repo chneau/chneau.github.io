@@ -20,17 +20,19 @@ const columns: ColumnsType<Birthday> = [
 	{
 		title: "Age",
 		dataIndex: "age",
-		sorter,
+		sorter: (a, b) => a.age - b.age,
 	},
 	{
 		title: "Sign",
 		dataIndex: "sign",
-		sorter,
+		render: (_, x) => `${x.signSymbol}${x.sign}`,
+		sorter: (a, b) => a.sign.localeCompare(b.sign),
 	},
 	{
 		title: "Birthgem",
 		dataIndex: "birthgem",
-		sorter,
+		render: (_, x) => `${x.birthgem} (${x.monthString})`,
+		sorter: (a, b) => a.birthgem.localeCompare(b.birthgem),
 	},
 ];
 
@@ -47,9 +49,8 @@ export const App = () => {
 	);
 	return (
 		<Layout>
-			<Layout.Header />
 			<Layout.Content>
-				<Card title="Birthdays">
+				<Card title="Birthdays" size="small">
 					<Input.Search
 						placeholder="Search..."
 						style={{ marginBottom: 8 }}
@@ -65,7 +66,6 @@ export const App = () => {
 					/>
 				</Card>
 			</Layout.Content>
-			<Layout.Footer>Charles ©2023</Layout.Footer>
 		</Layout>
 	);
 };
