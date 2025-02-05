@@ -1,19 +1,20 @@
 import { Card, Input, Layout, Table } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
 import { type Birthday, birthdays } from "./birthdays";
 
 const sorter = (a: Birthday, b: Birthday) =>
 	a.birthday.getTime() - b.birthday.getTime();
-const columns = [
+const columns: ColumnsType<Birthday> = [
 	{
 		title: "Name",
 		dataIndex: "name",
-		sorter: (a: Birthday, b: Birthday) => a.name.localeCompare(b.name),
+		sorter: (a, b) => a.name.localeCompare(b.name),
 	},
 	{
 		title: "Birthday",
 		dataIndex: "birthdayString",
-		render: (_: unknown, x: Birthday) => x.birthdayString,
+		render: (_, x) => x.birthdayString,
 		sorter,
 	},
 	{
