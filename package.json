@@ -3,7 +3,7 @@
 	"scripts": {
 		"start": "rsbuild dev",
 		"build": "rsbuild build",
-		"deploy": "bun run build && gh-pages --dist dist; rm -rf dist",
+		"deploy": "bun run build && gh-pages --dist dist --branch master; rm -rf dist",
 		"upgrade": "bun update --latest",
 		"check": "deno fmt --use-tabs --quiet; oxlint --fix-dangerously --quiet; timeout 3s biome check --write --unsafe .",
 		"lint": "tsc --noEmit",
