@@ -88,7 +88,7 @@ const getCurrentAge = (
 };
 
 const getDaysBeforeBirthday = (nextBirthday: Date): number => {
-	const now = new Date(new Date().getTime() - 1000 * 60 * 60 * 24 * 1);
+	const now = new Date(Date.now() - 1000 * 60 * 60 * 24 * 1);
 	const next = new Date(
 		now.getFullYear(),
 		nextBirthday.getMonth(),

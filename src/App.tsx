@@ -9,6 +9,7 @@ const columns: ColumnsType<Birthday> = [
 	{
 		title: "Name",
 		dataIndex: "name",
+		render: (_, x) => (x.isWedding ? <Tag color="gold">{x.name}</Tag> : x.name),
 		sorter: (a, b) => a.name.localeCompare(b.name),
 	},
 	{
@@ -31,7 +32,9 @@ const columns: ColumnsType<Birthday> = [
 	{
 		title: "Birthgem",
 		dataIndex: "birthgem",
-		render: (_, x) => <Tag color="blue">{`${x.birthgem} (${x.monthString})`}</Tag>,
+		render: (_, x) => (
+			<Tag color="blue">{`${x.birthgem} (${x.monthString})`}</Tag>
+		),
 		sorter: (a, b) => a.birthgem.localeCompare(b.birthgem),
 		responsive: ["md"],
 	},
@@ -60,7 +63,7 @@ export const App = () => {
 					Birthday Tracker
 				</Typography.Title>
 			</Layout.Header>
-			<Layout.Content style={{ padding: "24px 50px" }}>
+			<Layout.Content>
 				<Card title="Birthdays" size="small">
 					<Input.Search
 						placeholder="Search..."
@@ -73,12 +76,11 @@ export const App = () => {
 						dataSource={data}
 						pagination={false}
 						size="small"
-						style={{ overflow: "auto" }}
 					/>
 				</Card>
 			</Layout.Content>
 			<Layout.Footer style={{ textAlign: "center" }}>
-				Birthday Tracker ©{new Date().getFullYear()} Created by Jules
+				Birthday Tracker ©{new Date().getFullYear()}
 			</Layout.Footer>
 		</Layout>
 	);
