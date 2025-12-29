@@ -10,7 +10,7 @@ const columns: ColumnsType<Birthday> = [
 		title: "Name",
 		dataIndex: "name",
 		render: (_, x) => {
-			let color = undefined;
+			let color: string | undefined;
 			if (x.kind === "💒") color = "gold";
 			if (x.kind === "♂️") color = "blue";
 			if (x.kind === "♀️") color = "magenta";
