@@ -1,4 +1,12 @@
-import { Card, Input, Layout, Table, Tag, Typography } from "antd";
+import {
+	Card,
+	Checkbox,
+	Input,
+	Layout,
+	Table,
+	Tag,
+	Typography,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
 import { type Birthday, birthdays } from "./birthdays";
@@ -60,15 +68,27 @@ const columns: ColumnsType<Birthday> = [
 
 export const App = () => {
 	const [search, setSearch] = useState("");
+	const [showBoys, setShowBoys] = useState(true);
+	const [showGirls, setShowGirls] = useState(true);
+	const [showWeddings, setShowWeddings] = useState(false);
+
 	const filteredBirthdays = useMemo(
 		() =>
-			birthdays.filter(
-				(x) =>
+			birthdays.filter((x) => {
+				const matchesSearch =
 					x.name.toLowerCase().includes(search) ||
 					x.sign.toLowerCase().includes(search) ||
-					x.birthgem.toLowerCase().includes(search),
-			),
-		[search],
+					x.birthgem.toLowerCase().includes(search);
+
+				if (!matchesSearch) return false;
+
+				if (x.kind === "♂️" && !showBoys) return false;
+				if (x.kind === "♀️" && !showGirls) return false;
+				if (x.kind === "💒" && !showWeddings) return false;
+
+				return true;
+			}),
+		[search, showBoys, showGirls, showWeddings],
 	);
 	const data = useMemo(
 		() => filteredBirthdays.map((x, i) => ({ key: i, ...x })),
@@ -83,6 +103,26 @@ export const App = () => {
 			</Layout.Header>
 			<Layout.Content>
 				<Card title="Birthdays" size="small">
+					<div style={{ marginBottom: 8 }}>
+						<Checkbox
+							checked={showBoys}
+							onChange={(e) => setShowBoys(e.target.checked)}
+						>
+							Boys ♂️
+						</Checkbox>
+						<Checkbox
+							checked={showGirls}
+							onChange={(e) => setShowGirls(e.target.checked)}
+						>
+							Girls ♀️
+						</Checkbox>
+						<Checkbox
+							checked={showWeddings}
+							onChange={(e) => setShowWeddings(e.target.checked)}
+						>
+							Weddings 💒
+						</Checkbox>
+					</div>
 					<Input.Search
 						placeholder="Search..."
 						style={{ marginBottom: 8 }}
