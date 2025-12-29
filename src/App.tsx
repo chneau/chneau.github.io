@@ -9,16 +9,17 @@ const columns: ColumnsType<Birthday> = [
 	{
 		title: "Name",
 		dataIndex: "name",
-		render: (_, x) =>
-			x.isWedding ? (
-				<Tag color="gold">
+		render: (_, x) => {
+			let color = undefined;
+			if (x.kind === "💒") color = "gold";
+			if (x.kind === "♂️") color = "blue";
+			if (x.kind === "♀️") color = "magenta";
+			return (
+				<Tag color={color}>
 					{x.name} {x.kind}
 				</Tag>
-			) : (
-				<>
-					{x.name} {x.kind}
-				</>
-			),
+			);
+		},
 		sorter: (a, b) => a.name.localeCompare(b.name),
 	},
 	{
