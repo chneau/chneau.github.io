@@ -31,6 +31,14 @@ const columns: ColumnsType<Birthday> = [
 	{
 		title: "Age",
 		dataIndex: "age",
+		render: (age, x) => {
+			let emoji = "🧑";
+			if (x.kind === "💒") emoji = "💍";
+			else if (age < 3) emoji = "👶";
+			else if (age < 13) emoji = "🧒";
+			else if (age >= 60) emoji = "🧓";
+			return `${age} ${emoji}`;
+		},
 		sorter: (a, b) => a.age - b.age,
 	},
 	{
