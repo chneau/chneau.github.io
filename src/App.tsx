@@ -1,12 +1,4 @@
-import {
-	Card,
-	Checkbox,
-	Input,
-	Layout,
-	Table,
-	Tag,
-	Typography,
-} from "antd";
+import { Card, Checkbox, Input, Layout, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
 import { type Birthday, birthdays } from "./birthdays";
