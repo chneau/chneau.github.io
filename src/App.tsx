@@ -9,7 +9,16 @@ const columns: ColumnsType<Birthday> = [
 	{
 		title: "Name",
 		dataIndex: "name",
-		render: (_, x) => (x.isWedding ? <Tag color="gold">{x.name}</Tag> : x.name),
+		render: (_, x) =>
+			x.isWedding ? (
+				<Tag color="gold">
+					{x.name} {x.kind}
+				</Tag>
+			) : (
+				<>
+					{x.name} {x.kind}
+				</>
+			),
 		sorter: (a, b) => a.name.localeCompare(b.name),
 	},
 	{
