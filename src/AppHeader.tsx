@@ -85,6 +85,14 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 				>
 					{storeSnap.darkMode ? "☀️ Light" : "🌙 Dark"}
 				</Button>
+				<Button
+					href="https://github.com/chneau/chneau.github.io"
+					target="_blank"
+					rel="noreferrer"
+					title="View on GitHub"
+				>
+					GitHub 🐙
+				</Button>
 			</Space>
 		</Layout.Header>
 	);
