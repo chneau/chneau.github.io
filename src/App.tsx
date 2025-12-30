@@ -8,10 +8,12 @@ import {
 	Typography,
 	theme,
 } from "antd";
+import { useEffect } from "react";
 import { useSnapshot } from "valtio";
 import { BirthdayTable } from "./BirthdayTable";
 import { FilterButtons, FilterSearch } from "./Filter";
 import { downloadICS } from "./ics";
+import { checkAndNotify, requestNotificationPermission } from "./notifications";
 import { Statistics } from "./Statistics";
 import { dataStore, store } from "./store";
 import { TimelineView } from "./TimelineView";
@@ -20,6 +22,10 @@ export const App = () => {
 	const dataSnap = useSnapshot(dataStore);
 	const storeSnap = useSnapshot(store);
 	const data = dataSnap.filtered;
+
+	useEffect(() => {
+		checkAndNotify(data);
+	}, [data]);
 
 	return (
 		<ConfigProvider
@@ -41,13 +47,24 @@ export const App = () => {
 					<Typography.Title level={3} style={{ color: "white", margin: 0 }}>
 						Birthday Tracker
 					</Typography.Title>
-					<Button
-						onClick={() => {
-							store.darkMode = !store.darkMode;
-						}}
-					>
-						{storeSnap.darkMode ? "☀️ Light" : "🌙 Dark"}
-					</Button>
+					<Space>
+						<Button
+							onClick={async () => {
+								await requestNotificationPermission();
+								checkAndNotify(data);
+							}}
+							title="Enable Notifications"
+						>
+							🔔
+						</Button>
+						<Button
+							onClick={() => {
+								store.darkMode = !store.darkMode;
+							}}
+						>
+							{storeSnap.darkMode ? "☀️ Light" : "🌙 Dark"}
+						</Button>
+					</Space>
 				</Layout.Header>
 				<Layout.Content style={{ padding: 16 }}>
 					<Card
