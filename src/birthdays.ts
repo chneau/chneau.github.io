@@ -43,6 +43,7 @@ export type Birthday = {
 	milestoneStatus?: string;
 	traits: string;
 	compatible: string;
+	progress: number;
 };
 
 const BIG_BIRTHDAYS = [
@@ -239,6 +240,12 @@ export const birthdays: Birthday[] = validatedBirthdays
 			x.isWedding,
 		);
 
+		const totalDaysInYear = nextBirthday.diff(
+			nextBirthday.subtract(1, "year"),
+			"day",
+		);
+		const progress = ((totalDaysInYear - daysBefore) / totalDaysInYear) * 100;
+
 		return {
 			...x,
 			year,
@@ -264,6 +271,7 @@ export const birthdays: Birthday[] = validatedBirthdays
 			milestoneStatus: milestoneInfo.status,
 			traits: sign.traits,
 			compatible: sign.compatible,
+			progress,
 		};
 	})
 	.sort((a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday);

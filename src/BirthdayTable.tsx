@@ -1,4 +1,4 @@
-import { Table, Tag } from "antd";
+import { Progress, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo } from "react";
 import { useSnapshot } from "valtio";
@@ -62,6 +62,21 @@ const getColumns = (search: string): ColumnsType<Birthday> => [
 		sorter: (a, b) => a.age - b.age,
 	},
 	{
+		title: "Progress",
+		dataIndex: "progress",
+		render: (progress) => (
+			<Progress
+				percent={Math.round(progress)}
+				size="small"
+				status={progress === 100 ? "success" : "active"}
+				strokeColor={progress > 90 ? "#f5222d" : undefined}
+			/>
+		),
+		sorter: (a, b) => a.progress - b.progress,
+		width: 150,
+		responsive: ["sm"],
+	},
+	{
 		title: "In",
 		dataIndex: "daysBeforeBirthday",
 		render: (days) => (
@@ -121,6 +136,9 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 			pagination={false}
 			size="small"
 			scroll={{ y: 500 }}
+			rowClassName={(record) =>
+				record.daysBeforeBirthday === 0 ? "birthday-today-row" : ""
+			}
 			expandable={{
 				expandedRowRender: (record) => (
 					<div style={{ padding: "8px 16px" }}>
