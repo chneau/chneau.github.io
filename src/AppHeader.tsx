@@ -37,6 +37,23 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 				</small>
 			</Typography.Title>
 			<Space wrap>
+				{storeSnap.installPrompt && (
+					<Button
+						onClick={async () => {
+							const prompt = store.installPrompt;
+							if (prompt) {
+								prompt.prompt();
+								const { outcome } = await prompt.userChoice;
+								if (outcome === "accepted") {
+									store.installPrompt = null;
+								}
+							}
+						}}
+						title="Install App"
+					>
+						📲 Install
+					</Button>
+				)}
 				<Button
 					onClick={() => sendTestNotification()}
 					title="Test Notification"
