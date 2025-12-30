@@ -64,7 +64,7 @@ export const App = () => {
 	const dataSnap = useSnapshot(dataStore);
 
 	const data = useMemo(
-		() => dataSnap.filtered.slice(0, 20).map((x, i) => ({ key: i, ...x })),
+		() => dataSnap.filtered.map((x, i) => ({ key: i, ...x })),
 		[dataSnap.filtered],
 	);
 	return (
