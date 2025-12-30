@@ -73,7 +73,6 @@ const getColumns = (search: string): ColumnsType<Birthday> => [
 			/>
 		),
 		sorter: (a, b) => a.progress - b.progress,
-		width: 150,
 		responsive: ["sm"],
 	},
 	{
