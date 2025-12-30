@@ -87,28 +87,30 @@ const Statistics = () => {
 	);
 
 	const letters = useMemo(() => {
-		const counts: Record<string, number> = {};
+		const counts: Record<string, string[]> = {};
 		for (const x of data) {
 			const l = (x.name[0] || "?").toUpperCase();
-			counts[l] = (counts[l] || 0) + 1;
+			if (!counts[l]) counts[l] = [];
+			counts[l]?.push(x.name);
 		}
 		return Object.entries(counts)
-			.map(([type, value]) => ({ type, value }))
+			.map(([type, names]) => ({ type, value: names.length, names }))
 			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const signs = useMemo(() => {
-		const counts: Record<string, number> = {};
+		const counts: Record<string, string[]> = {};
 		for (const x of data) {
-			counts[x.sign] = (counts[x.sign] || 0) + 1;
+			if (!counts[x.sign]) counts[x.sign] = [];
+			counts[x.sign]?.push(x.name);
 		}
 		return Object.entries(counts)
-			.map(([type, value]) => ({ type, value }))
+			.map(([type, names]) => ({ type, value: names.length, names }))
 			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const months = useMemo(() => {
-		const counts: Record<string, number> = {};
+		const counts: Record<string, string[]> = {};
 		const monthNames = [
 			"Jan",
 			"Feb",
@@ -126,85 +128,97 @@ const Statistics = () => {
 		for (const x of data) {
 			const m = monthNames[x.month - 1];
 			if (m) {
-				counts[m] = (counts[m] || 0) + 1;
+				if (!counts[m]) counts[m] = [];
+				counts[m]?.push(x.name);
 			}
 		}
 		return monthNames
-			.map((m) => ({ type: m, value: counts[m] || 0 }))
+			.map((m) => ({
+				type: m,
+				value: (counts[m] || []).length,
+				names: counts[m] || [],
+			}))
 			.filter((x) => x.value > 0)
 			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const ageGroups = useMemo(() => {
-		const counts = {
-			"Babies 👶 (<3)": 0,
-			"Children 🧒 (<13)": 0,
-			"Adults 🧑 (<60)": 0,
-			"Seniors 🧓 (60+)": 0,
-		};
+		const counts: Record<string, string[]> = {};
 		for (const x of data) {
-			if (x.age < 3) counts["Babies 👶 (<3)"]++;
-			else if (x.age < 13) counts["Children 🧒 (<13)"]++;
-			else if (x.age < 60) counts["Adults 🧑 (<60)"]++;
-			else counts["Seniors 🧓 (60+)"]++;
+			if (!counts[x.ageGroup]) counts[x.ageGroup] = [];
+			counts[x.ageGroup]?.push(x.name);
 		}
 		return Object.entries(counts)
-			.map(([type, value]) => ({ type, value }))
-			.filter((x) => x.value > 0)
+			.map(([type, names]) => ({ type, value: names.length, names }))
 			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const days = useMemo(() => {
-		const counts: Record<string, number> = {};
+		const counts: Record<string, string[]> = {};
 		for (const x of data) {
-			counts[x.dayOfWeek] = (counts[x.dayOfWeek] || 0) + 1;
+			if (!counts[x.dayOfWeek]) counts[x.dayOfWeek] = [];
+			counts[x.dayOfWeek]?.push(x.name);
 		}
 		return Object.entries(counts)
-			.map(([type, value]) => ({ type, value }))
+			.map(([type, names]) => ({ type, value: names.length, names }))
 			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const decades = useMemo(() => {
-		const counts: Record<string, number> = {};
+		const counts: Record<string, string[]> = {};
 		for (const x of data) {
-			const d = Math.floor(x.year / 10) * 10;
-			const label = `${d}s`;
-			counts[label] = (counts[label] || 0) + 1;
+			if (!counts[x.decade]) counts[x.decade] = [];
+			counts[x.decade]?.push(x.name);
 		}
 		return Object.entries(counts)
-			.map(([type, value]) => ({ type, value }))
+			.map(([type, names]) => ({ type, value: names.length, names }))
 			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const generations = useMemo(() => {
-		const counts: Record<string, number> = {};
+		const counts: Record<string, string[]> = {};
 		for (const x of data) {
-			counts[x.generation] = (counts[x.generation] || 0) + 1;
+			if (!counts[x.generation]) counts[x.generation] = [];
+			counts[x.generation]?.push(x.name);
 		}
 		return Object.entries(counts)
-			.map(([type, value]) => ({ type, value }))
+			.map(([type, names]) => ({ type, value: names.length, names }))
 			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const seasons = useMemo(() => {
-		const counts: Record<string, number> = {};
+		const counts: Record<string, string[]> = {};
 		for (const x of data) {
-			counts[x.season] = (counts[x.season] || 0) + 1;
+			if (!counts[x.season]) counts[x.season] = [];
+			counts[x.season]?.push(x.name);
 		}
 		return Object.entries(counts)
-			.map(([type, value]) => ({ type, value }))
+			.map(([type, names]) => ({ type, value: names.length, names }))
 			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const chineseZodiac = useMemo(() => {
-		const counts: Record<string, number> = {};
+		const counts: Record<string, string[]> = {};
 		for (const x of data) {
-			counts[x.chineseZodiac] = (counts[x.chineseZodiac] || 0) + 1;
+			if (!counts[x.chineseZodiac]) counts[x.chineseZodiac] = [];
+			counts[x.chineseZodiac]?.push(x.name);
 		}
 		return Object.entries(counts)
-			.map(([type, value]) => ({ type, value }))
+			.map(([type, names]) => ({ type, value: names.length, names }))
 			.sort((a, b) => b.value - a.value);
 	}, [data]);
+
+	const tooltip = {
+		title: (d: { type: string; value: number; names: string[] }) => d.type,
+		items: [
+			{ field: "value", channel: "y" },
+			{
+				field: "names",
+				channel: "color", // Dummy channel
+				valueFormatter: (v: string[]) => v.join(", "),
+			},
+		],
+	};
 
 	return (
 		<Card
@@ -222,6 +236,7 @@ const Statistics = () => {
 						height={200}
 						axis={{ y: { grid: false } }}
 						label={{ text: "value" }}
+						tooltip={tooltip}
 					/>
 				</Col>
 				<Col xs={24} sm={12} md={8}>
@@ -233,6 +248,7 @@ const Statistics = () => {
 						height={200}
 						legend={false}
 						label={{ text: "type" }}
+						tooltip={tooltip}
 					/>
 				</Col>
 				<Col xs={24} sm={12} md={8}>
@@ -244,6 +260,7 @@ const Statistics = () => {
 						height={200}
 						axis={{ y: { grid: false } }}
 						label={{ text: "value" }}
+						tooltip={tooltip}
 					/>
 				</Col>
 				<Col xs={24} sm={12} md={8}>
@@ -255,6 +272,7 @@ const Statistics = () => {
 						height={200}
 						legend={false}
 						label={{ text: "type" }}
+						tooltip={tooltip}
 					/>
 				</Col>
 				<Col xs={24} sm={12} md={8}>
@@ -266,6 +284,7 @@ const Statistics = () => {
 						height={200}
 						axis={{ y: { grid: false } }}
 						label={{ text: "value" }}
+						tooltip={tooltip}
 					/>
 				</Col>
 				<Col xs={24} sm={12} md={8}>
@@ -277,6 +296,7 @@ const Statistics = () => {
 						height={200}
 						axis={{ y: { grid: false } }}
 						label={{ text: "value" }}
+						tooltip={tooltip}
 					/>
 				</Col>
 				<Col xs={24} sm={12} md={8}>
@@ -288,6 +308,7 @@ const Statistics = () => {
 						height={200}
 						legend={false}
 						label={{ text: "type" }}
+						tooltip={tooltip}
 					/>
 				</Col>
 				<Col xs={24} sm={12} md={8}>
@@ -299,6 +320,7 @@ const Statistics = () => {
 						height={200}
 						legend={false}
 						label={{ text: "type" }}
+						tooltip={tooltip}
 					/>
 				</Col>
 				<Col xs={24} sm={12} md={8}>
@@ -310,6 +332,7 @@ const Statistics = () => {
 						height={200}
 						axis={{ y: { grid: false } }}
 						label={{ text: "value" }}
+						tooltip={tooltip}
 					/>
 				</Col>
 			</Row>
