@@ -1,9 +1,13 @@
+import dayjs from "dayjs";
+import { type Kind, rawBirthdays } from "./rawBirthdays";
 import { getBirthgem, getSign } from "./zodiac";
+
+export type { Kind };
 
 export type Birthday = {
 	isWedding?: boolean | null | undefined;
 	name: string;
-	kind: string;
+	kind: Kind;
 	age: number;
 	birthday: Date;
 	birthdayString: string;
@@ -40,14 +44,14 @@ export const monthNames = [
 	"Dec",
 ];
 
-export const getKindColor = (kind: string) => {
+export const getKindColor = (kind: Kind) => {
 	if (kind === "💒") return "gold";
 	if (kind === "♂️") return "blue";
 	if (kind === "♀️") return "magenta";
 	return undefined;
 };
 
-export const getAgeEmoji = (age: number, kind?: string) => {
+export const getAgeEmoji = (age: number, kind?: Kind | string) => {
 	if (kind === "💒") return "💍";
 	if (age < 3) return "👶";
 	if (age < 13) return "🧒";
@@ -107,125 +111,46 @@ const getDayOfWeek = (date: Date): string => {
 	return dayNames[date.getDay()] || "?";
 };
 
-const _birthdays = [
-	{ name: "Ariimoana", year: 2013, month: 7, day: 11, kind: "♂️" },
-	{ name: "Brigitte", year: 1982, month: 3, day: 12, kind: "♀️" },
-	{ name: "Cécile", year: 1977, month: 10, day: 5, kind: "♀️" },
-	{ name: "Charles", year: 1992, month: 8, day: 13, kind: "♂️" },
-	{ name: "Christian", year: 1951, month: 5, day: 8, kind: "♂️" },
-	{ name: "Christian", year: 1975, month: 10, day: 23, kind: "♂️" },
-	{ name: "Christopher", year: 1982, month: 2, day: 12, kind: "♂️" },
-	{ name: "Dorothée", year: 1951, month: 3, day: 9, kind: "♀️" },
-	{ name: "Edouard", year: 2014, month: 5, day: 16, kind: "♂️" },
-	{ name: "Elena", year: 2016, month: 7, day: 30, kind: "♀️" },
-	{ name: "Georges", year: 2017, month: 4, day: 3, kind: "♂️" },
-	{ name: "Julien", year: 1970, month: 11, day: 27, kind: "♂️" },
-	{ name: "Justin", year: 2007, month: 6, day: 18, kind: "♂️" },
-	{ name: "Lucia", year: 2014, month: 12, day: 17, kind: "♀️" },
-	{ name: "Marie", year: 1945, month: 9, day: 1, kind: "♀️" },
-	{ name: "Martin", year: 1973, month: 1, day: 4, kind: "♂️" },
-	{ name: "Maximin", year: 1978, month: 10, day: 4, kind: "♂️" },
-	{ name: "Moanaragi", year: 2018, month: 4, day: 11, kind: "♀️" },
-	{ name: "Nadia", year: 1979, month: 2, day: 5, kind: "♀️" },
-	{ name: "Nicolas", year: 2019, month: 1, day: 30, kind: "♂️" },
-	{ name: "Ravahere", year: 1982, month: 6, day: 8, kind: "♀️" },
-	{ name: "Sandra", year: 1977, month: 4, day: 13, kind: "♀️" },
-	{ name: "Simon", year: 2005, month: 3, day: 24, kind: "♂️" },
-	{ name: "Sophie", year: 1997, month: 10, day: 11, kind: "♀️" },
-	{ name: "Vadim", year: 2014, month: 4, day: 15, kind: "♂️" },
-	{ name: "Vaimoana", year: 2005, month: 4, day: 13, kind: "♀️" },
-	{ name: "Victor", year: 2008, month: 7, day: 21, kind: "♂️" },
-	{
-		name: "Brigitte & Julien",
-		year: 2016,
-		month: 2,
-		day: 19,
-		isWedding: true,
-		kind: "💒",
-	},
-	{
-		name: "Cécile & Christian",
-		year: 2005,
-		month: 2,
-		day: 26,
-		isWedding: true,
-		kind: "💒",
-	},
-	{
-		name: "Dorothée & Christian",
-		year: 1977,
-		month: 3,
-		day: 25,
-		isWedding: true,
-		kind: "💒",
-	},
-	{
-		name: "Nadia & Christopher",
-		year: 2010,
-		month: 9,
-		day: 4,
-		isWedding: true,
-		kind: "💒",
-	},
-	{
-		name: "Ravahere & Martin",
-		year: 2005,
-		month: 3,
-		day: 26,
-		isWedding: true,
-		kind: "💒",
-	},
-	{
-		name: "Sandra & Maximin",
-		year: 2014,
-		month: 10,
-		day: 3,
-		isWedding: true,
-		kind: "💒",
-	},
-];
-
-const getNextBirthday = (birthday: Pick<Birthday, "month" | "day">): Date => {
-	const now = new Date();
-	const next = new Date(now.getFullYear(), birthday.month - 1, birthday.day);
-	if (next < now) next.setFullYear(next.getFullYear() + 1);
-	return next;
-};
-
-const getCurrentAge = (
-	birthday: Pick<Birthday, "year" | "month" | "day">,
-): number => {
-	const now = new Date();
-	const next = new Date(now.getFullYear(), birthday.month - 1, birthday.day);
-	if (next > now) return now.getFullYear() - birthday.year - 1;
-	return now.getFullYear() - birthday.year;
-};
-
-const getDaysBeforeBirthday = (nextBirthday: Date): number => {
-	const now = new Date(Date.now() - 1000 * 60 * 60 * 24 * 1);
-	const next = new Date(
-		now.getFullYear(),
-		nextBirthday.getMonth(),
-		nextBirthday.getDate(),
-	);
-	if (next < now) next.setFullYear(next.getFullYear() + 1);
-	return Math.ceil((next.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-};
-
-export const birthdays: Birthday[] = _birthdays
+export const birthdays: Birthday[] = rawBirthdays
 	.map((x) => {
-		const birthday = new Date(x.year, x.month - 1, x.day);
-		const birthdayString = `${x.year}-${String(x.month).padStart(2, "0")}-${String(
-			x.day,
-		).padStart(2, "0")}`;
-		const sign = getSign(birthday);
-		const birthgem = getBirthgem(getNextBirthday(x));
-		const age = getCurrentAge(x);
+		const birthday = dayjs(new Date(x.year, x.month - 1, x.day));
+		const now = dayjs();
+
+		let nextBirthday = dayjs(new Date(now.year(), x.month - 1, x.day));
+		if (nextBirthday.isBefore(now, "day")) {
+			nextBirthday = nextBirthday.add(1, "year");
+		}
+
+		// Calculate age
+		// If birthday hasn't happened yet this year, age is year - birthYear - 1
+		// dayjs.diff does this automatically correctly usually
+		const age = now.diff(birthday, "year");
+
+		// Days before birthday
+		// NOTE: dayjs diff in 'day' truncates.
+		// If nextBirthday is tomorrow, diff might be 0 or 1 depending on time.
+		// The original logic stripped time or set specific time.
+		// Let's normalize to start of day to be safe.
+		const todayStart = dayjs().startOf("day");
+
+		// recalculate nextBirthday if it was based on 'now' which has time
+		let nextB = birthday.year(todayStart.year()).startOf("day");
+		if (nextB.isBefore(todayStart)) {
+			nextB = nextB.add(1, "year");
+		}
+		const daysBefore = nextB.diff(todayStart, "day");
+
+		const birthdayDate = birthday.toDate();
+		const nextBirthdayDate = nextB.toDate();
+
+		const sign = getSign(birthdayDate);
+		const birthgem = getBirthgem(nextBirthdayDate);
+
 		return {
 			...x,
-			nextBirthday: getNextBirthday(x),
-			birthday,
-			birthdayString,
+			nextBirthday: nextBirthdayDate,
+			birthday: birthdayDate,
+			birthdayString: birthday.format("YYYY-MM-DD"),
 			sign: sign.name,
 			signSymbol: sign.symbol,
 			birthgem,
@@ -233,13 +158,11 @@ export const birthdays: Birthday[] = _birthdays
 			element: sign.element,
 			generation: getGeneration(x.year),
 			season: getSeason(x.month),
-			dayOfWeek: getDayOfWeek(birthday),
+			dayOfWeek: getDayOfWeek(birthdayDate),
 			ageGroup: getAgeGroup(age),
 			decade: getDecade(x.year),
-			monthString: getNextBirthday(x).toLocaleString("en-GB", {
-				month: "long",
-			}),
-			daysBeforeBirthday: getDaysBeforeBirthday(getNextBirthday(x)),
+			monthString: dayjs(nextBirthdayDate).format("MMMM"), // "long" month
+			daysBeforeBirthday: daysBefore,
 			age,
 		};
 	})
