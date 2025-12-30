@@ -1,7 +1,19 @@
-import { Button, Input, Space } from "antd";
+import { Button, Input, Space, Tag } from "antd";
 import type { CSSProperties } from "react";
 import { useSnapshot } from "valtio";
+import { monthNames } from "./birthdays";
 import { store } from "./store";
+
+const SHORTCUTS = [
+	{ label: "This Month", query: monthNames[new Date().getMonth()] },
+	{
+		label: "Next Month",
+		query: monthNames[(new Date().getMonth() + 1) % 12],
+	},
+	{ label: "Gen Z", query: "Gen Z" },
+	{ label: "Teens", query: "Teens" },
+	{ label: "Seniors", query: "Seniors" },
+];
 
 export const FilterButtons = () => {
 	const snap = useSnapshot(store);
@@ -41,14 +53,30 @@ export const FilterButtons = () => {
 export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 	const snap = useSnapshot(store);
 	return (
-		<Input.Search
-			placeholder="Search..."
-			allowClear
-			style={style}
-			onChange={(e) => {
-				store.search = e.target.value;
-			}}
-			value={snap.search}
-		/>
+		<Space direction="vertical" style={{ width: "100%" }}>
+			<Input.Search
+				placeholder="Search..."
+				allowClear
+				style={style}
+				onChange={(e) => {
+					store.search = e.target.value;
+				}}
+				value={snap.search}
+			/>
+			<Space wrap style={{ marginTop: -8 }}>
+				{SHORTCUTS.map((s) => (
+					<Tag.CheckableTag
+						key={s.label}
+						checked={snap.search.toLowerCase() === s.query?.toLowerCase()}
+						onChange={(checked) => {
+							store.search = checked ? s.query || "" : "";
+						}}
+						style={{ cursor: "pointer" }}
+					>
+						{s.label}
+					</Tag.CheckableTag>
+				))}
+			</Space>
+		</Space>
 	);
 };

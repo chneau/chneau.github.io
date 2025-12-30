@@ -2,7 +2,12 @@ import { Progress, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo } from "react";
 import { useSnapshot } from "valtio";
-import { type Birthday, getAgeEmoji, getKindColor } from "./birthdays";
+import {
+	type Birthday,
+	birthdays,
+	getAgeEmoji,
+	getKindColor,
+} from "./birthdays";
 import { store } from "./store";
 
 const Highlight = ({ text, search }: { text: string; search: string }) => {
@@ -139,30 +144,54 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 				record.daysBeforeBirthday === 0 ? "birthday-today-row" : ""
 			}
 			expandable={{
-				expandedRowRender: (record) => (
-					<div style={{ padding: "8px 16px" }}>
-						{record.milestone && (
+				expandedRowRender: (record) => {
+					const sameBirthday = birthdays.filter(
+						(b) =>
+							b.name !== record.name &&
+							b.month === record.month &&
+							b.day === record.day,
+					);
+					const sameYear = birthdays.filter(
+						(b) => b.name !== record.name && b.year === record.year,
+					);
+					return (
+						<div style={{ padding: "8px 16px" }}>
+							{record.milestone && (
+								<p>
+									<strong>Milestone Alert:</strong> {record.milestone}
+								</p>
+							)}
 							<p>
-								<strong>Milestone Alert:</strong> {record.milestone}
+								<strong>Milestone Status:</strong> {record.milestoneStatus}
 							</p>
-						)}
-						<p>
-							<strong>Milestone Status:</strong> {record.milestoneStatus}
-						</p>
-						<p>
-							<strong>Traits:</strong> {record.traits}
-						</p>
-						<p>
-							<strong>Compatible with:</strong> {record.compatible}
-						</p>
-						<p>
-							<strong>Generation:</strong> {record.generation} ({record.decade})
-						</p>
-						<p>
-							<strong>Season:</strong> {record.season}
-						</p>
-					</div>
-				),
+							{sameBirthday.length > 0 && (
+								<p>
+									<strong>Shared Birthday:</strong>{" "}
+									{sameBirthday.map((b) => b.name).join(", ")}
+								</p>
+							)}
+							{sameYear.length > 0 && (
+								<p>
+									<strong>Shared Birth Year ({record.year}):</strong>{" "}
+									{sameYear.map((b) => b.name).join(", ")}
+								</p>
+							)}
+							<p>
+								<strong>Traits:</strong> {record.traits}
+							</p>
+							<p>
+								<strong>Compatible with:</strong> {record.compatible}
+							</p>
+							<p>
+								<strong>Generation:</strong> {record.generation} (
+								{record.decade})
+							</p>
+							<p>
+								<strong>Season:</strong> {record.season}
+							</p>
+						</div>
+					);
+				},
 			}}
 		/>
 	);
