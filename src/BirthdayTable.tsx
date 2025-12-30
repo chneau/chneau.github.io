@@ -65,15 +65,6 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 			pagination={false}
 			size="small"
 			scroll={{ y: 500 }}
-			onRow={(record) => {
-				const style: React.CSSProperties = {};
-				if (record.daysBeforeBirthday <= 7) {
-					style.backgroundColor = "#f6ffed"; // light green
-				} else if (record.daysBeforeBirthday <= 30) {
-					style.backgroundColor = "#e6f7ff"; // light blue
-				}
-				return { style };
-			}}
 		/>
 	);
 };
