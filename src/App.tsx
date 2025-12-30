@@ -73,7 +73,7 @@ export const App = () => {
 						extra={
 							<Space>
 								<Button onClick={() => downloadICS(data)}>
-									📅 Export .ics
+									📅 Import to Calendar
 								</Button>
 								<FilterButtons />
 							</Space>

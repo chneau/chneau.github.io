@@ -29,13 +29,32 @@ ${events.join("\n")}
 END:VCALENDAR`;
 };
 
-export const downloadICS = (birthdays: readonly Birthday[]) => {
+export const downloadICS = async (birthdays: readonly Birthday[]) => {
 	const content = generateICS(birthdays);
-	const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
+	const filename = "birthdays.ics";
+	const type = "text/calendar;charset=utf-8";
+
+	if (navigator.share) {
+		const file = new File([content], filename, { type });
+		if (navigator.canShare?.({ files: [file] })) {
+			try {
+				await navigator.share({
+					files: [file],
+					title: "Birthdays Tracker",
+					text: "Import birthdays to your calendar",
+				});
+				return;
+			} catch (err) {
+				console.error("Error sharing ICS:", err);
+			}
+		}
+	}
+
+	const blob = new Blob([content], { type });
 	const url = URL.createObjectURL(blob);
 	const link = document.createElement("a");
 	link.href = url;
-	link.setAttribute("download", "birthdays.ics");
+	link.setAttribute("download", filename);
 	document.body.appendChild(link);
 	link.click();
 	document.body.removeChild(link);
