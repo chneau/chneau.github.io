@@ -111,7 +111,7 @@ const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
 
 	return (
 		<Col xs={24} md={12}>
-			<Typography.Title level={5}>Age Pyramid</Typography.Title>
+			<Typography.Title level={5}>Age & Gender Distribution</Typography.Title>
 			<Bar
 				data={pyramidData}
 				xField="group"
@@ -194,19 +194,19 @@ export const Statistics = () => {
 				`}
 				</style>
 				<Row gutter={[16, 16]}>
+					<StatPie title="Zodiac Signs" data={stats.signs} />
+					<StatPie title="Chinese Zodiac" data={stats.chineseZodiac} />
+					<StatPie title="Astrological Elements" data={stats.elements} />
+					<StatPie title="Gender Distribution" data={stats.kinds} />
+					<StatPie title="Age Groups" data={stats.ageGroups} />
+					<StatPie title="Generations" data={stats.generations} />
+					<StatPie title="Birth Seasons" data={stats.seasons} />
+					<StatColumn title="Name First Letter" data={stats.letters} />
+					<StatColumn title="Birth Month" data={stats.months} />
+					<StatColumn title="Birthstones" data={stats.birthgems} />
+					<StatColumn title="Birth Day of Week" data={stats.days} />
+					<StatColumn title="Birth Decades" data={stats.decades} />
 					<AgePyramid data={data} />
-					<StatPie title="By Sign" data={stats.signs} />
-					<StatPie title="By Chinese Zodiac" data={stats.chineseZodiac} />
-					<StatPie title="By Element" data={stats.elements} />
-					<StatColumn title="By First Letter" data={stats.letters} />
-					<StatPie title="By Gender" data={stats.kinds} />
-					<StatColumn title="By Month" data={stats.months} />
-					<StatColumn title="By Birthgem" data={stats.birthgems} />
-					<StatPie title="By Age Group" data={stats.ageGroups} />
-					<StatColumn title="By Day" data={stats.days} />
-					<StatColumn title="By Decade" data={stats.decades} />
-					<StatPie title="By Generation" data={stats.generations} />
-					<StatPie title="By Season" data={stats.seasons} />
 				</Row>
 			</Card>
 		</ConfigProvider>
