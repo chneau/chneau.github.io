@@ -25,6 +25,36 @@ export type Birthday = {
 	decade: string;
 };
 
+export const monthNames = [
+	"Jan",
+	"Feb",
+	"Mar",
+	"Apr",
+	"May",
+	"Jun",
+	"Jul",
+	"Aug",
+	"Sep",
+	"Oct",
+	"Nov",
+	"Dec",
+];
+
+export const getKindColor = (kind: string) => {
+	if (kind === "💒") return "gold";
+	if (kind === "♂️") return "blue";
+	if (kind === "♀️") return "magenta";
+	return undefined;
+};
+
+export const getAgeEmoji = (age: number, kind?: string) => {
+	if (kind === "💒") return "💍";
+	if (age < 3) return "👶";
+	if (age < 13) return "🧒";
+	if (age >= 60) return "🧓";
+	return "🧑";
+};
+
 const getChineseZodiac = (year: number): string => {
 	const animals = [
 		"Rat 🐀",
@@ -44,10 +74,10 @@ const getChineseZodiac = (year: number): string => {
 };
 
 const getAgeGroup = (age: number): string => {
-	if (age < 3) return "Babies 👶 (<3)";
-	if (age < 13) return "Children 🧒 (<13)";
-	if (age < 60) return "Adults 🧑 (<60)";
-	return "Seniors 🧓 (60+)";
+	if (age < 3) return `Babies ${getAgeEmoji(age)} (<3)`;
+	if (age < 13) return `Children ${getAgeEmoji(age)} (<13)`;
+	if (age < 60) return `Adults ${getAgeEmoji(age)} (<60)`;
+	return `Seniors ${getAgeEmoji(age)} (60+)`;
 };
 
 const getDecade = (year: number): string => {
