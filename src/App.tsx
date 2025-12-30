@@ -454,29 +454,35 @@ export const App = () => {
 				</Typography.Title>
 			</Layout.Header>
 			<Layout.Content style={{ padding: 16 }}>
-				<Card title="Birthdays" size="small">
-					<div style={{ marginBottom: 8 }}>
+				<Card
+					title="Birthdays"
+					size="small"
+					extra={
 						<Space>
 							<Button
+								size="small"
 								type={showBoys ? "primary" : "default"}
 								onClick={() => setShowBoys(!showBoys)}
 							>
 								Boys ♂️
 							</Button>
 							<Button
+								size="small"
 								type={showGirls ? "primary" : "default"}
 								onClick={() => setShowGirls(!showGirls)}
 							>
 								Girls ♀️
 							</Button>
 							<Button
+								size="small"
 								type={showWeddings ? "primary" : "default"}
 								onClick={() => setShowWeddings(!showWeddings)}
 							>
 								Weddings 💒
 							</Button>
 						</Space>
-					</div>
+					}
+				>
 					<Input.Search
 						placeholder="Search..."
 						allowClear
