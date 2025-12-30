@@ -1,3 +1,4 @@
+import Fuse from "fuse.js";
 import { proxy, subscribe } from "valtio";
 import { type Birthday, birthdays } from "./birthdays";
 
@@ -35,26 +36,37 @@ export const dataStore = proxy<{ filtered: Birthday[] }>({
 	filtered: [],
 });
 
+const fuse = new Fuse(birthdays, {
+	keys: [
+		"name",
+		"sign",
+		"birthgem",
+		"birthdayString",
+		"age",
+		"chineseZodiac",
+		"monthString",
+		"kind",
+		"generation",
+		"decade",
+	],
+	threshold: 0.3,
+});
+
 const compute = () => {
 	const { search, showBoys, showGirls, showWeddings } = store;
 	const lowerSearch = search.toLowerCase().trim();
-	dataStore.filtered = birthdays.filter((x) => {
+
+	let filtered = birthdays;
+
+	if (lowerSearch) {
+		filtered = fuse.search(lowerSearch).map((result) => result.item);
+	}
+
+	dataStore.filtered = filtered.filter((x) => {
 		if (x.kind === "♂️" && !showBoys) return false;
 		if (x.kind === "♀️" && !showGirls) return false;
 		if (x.kind === "💒" && !showWeddings) return false;
-
-		if (!lowerSearch) return true;
-
-		return (
-			x.name.toLowerCase().includes(lowerSearch) ||
-			x.sign.toLowerCase().includes(lowerSearch) ||
-			x.birthgem.toLowerCase().includes(lowerSearch) ||
-			x.birthdayString.includes(lowerSearch) ||
-			x.age.toString().includes(lowerSearch) ||
-			x.chineseZodiac.toLowerCase().includes(lowerSearch) ||
-			x.monthString.toLowerCase().includes(lowerSearch) ||
-			x.kind.includes(lowerSearch)
-		);
+		return true;
 	});
 };
 

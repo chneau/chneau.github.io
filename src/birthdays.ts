@@ -1,6 +1,18 @@
 import dayjs from "dayjs";
+import { z } from "zod";
 import rawBirthdaysJson from "./birthdays.json";
 import { getBirthgem, getSign } from "./zodiac";
+
+const birthdaySchema = z.object({
+	name: z.string().min(1),
+	date: z.string().refine((val) => dayjs(val).isValid(), {
+		message: "Invalid date format",
+	}),
+	kind: z.enum(["♂️", "♀️", "💒"]),
+	isWedding: z.boolean().optional(),
+});
+
+const birthdaysArraySchema = z.array(birthdaySchema);
 
 export type Kind = "♂️" | "♀️" | "💒";
 
@@ -28,34 +40,64 @@ export type Birthday = {
 	ageGroup: string;
 	decade: string;
 	milestone?: string;
+	milestoneStatus?: string;
 	traits: string;
 	compatible: string;
 };
 
-const getMilestone = (age: number, isWedding?: boolean): string | undefined => {
-	if (isWedding) {
-		const weddingMilestones: Record<number, string> = {
-			1: "1st Anniversary (Paper) 📄",
-			5: "5th Anniversary (Wood) 🪵",
-			10: "10th Anniversary (Tin) 🥫",
-			15: "15th Anniversary (Crystal) 💎",
-			20: "20th Anniversary (China) 🏺",
-			25: "25th Anniversary (Silver) 🥈",
-			30: "30th Anniversary (Pearl) ⚪",
-			40: "40th Anniversary (Ruby) 🔴",
-			50: "50th Anniversary (Gold) 🥇",
-			60: "60th Anniversary (Diamond) 💎",
-		};
-		return weddingMilestones[age];
+const BIG_BIRTHDAYS = [
+	1, 5, 10, 13, 15, 16, 18, 20, 21, 25, 30, 40, 50, 60, 70, 75, 80, 85, 90, 95,
+	100,
+];
+
+const WEDDING_MILESTONES: Record<number, string> = {
+	1: "1st Anniversary (Paper) 📄",
+	5: "5th Anniversary (Wood) 🪵",
+	10: "10th Anniversary (Tin) 🥫",
+	15: "15th Anniversary (Crystal) 💎",
+	20: "20th Anniversary (China) 🏺",
+	25: "25th Anniversary (Silver) 🥈",
+	30: "30th Anniversary (Pearl) ⚪",
+	40: "40th Anniversary (Ruby) 🔴",
+	50: "50th Anniversary (Gold) 🥇",
+	60: "60th Anniversary (Diamond) 💎",
+};
+
+const getMilestoneInfo = (age: number, isWedding?: boolean) => {
+	const milestones = isWedding
+		? Object.keys(WEDDING_MILESTONES).map(Number)
+		: BIG_BIRTHDAYS;
+	const milestoneNames = isWedding ? WEDDING_MILESTONES : null;
+
+	const currentMilestone = milestones.includes(age)
+		? isWedding
+			? milestoneNames?.[age]
+			: `Big ${age}! 🎉`
+		: undefined;
+
+	const prevMilestone = [...milestones].reverse().find((m) => m < age);
+	const nextMilestone = milestones.find((m) => m > age);
+
+	let status = "";
+	if (currentMilestone) {
+		status = "Today is the milestone!";
+	} else {
+		if (prevMilestone !== undefined) {
+			const diff = age - prevMilestone;
+			status = `${diff} year${diff > 1 ? "s" : ""} since ${
+				isWedding ? milestoneNames?.[prevMilestone] : `age ${prevMilestone}`
+			}`;
+		}
+		if (nextMilestone !== undefined) {
+			const diff = nextMilestone - age;
+			const nextStatus = `${diff} year${diff > 1 ? "s" : ""} until ${
+				isWedding ? milestoneNames?.[nextMilestone] : `age ${nextMilestone}`
+			}`;
+			status = status ? `${status}. ${nextStatus}` : nextStatus;
+		}
 	}
-	const bigBirthdays = [
-		1, 5, 10, 13, 15, 16, 18, 20, 21, 25, 30, 40, 50, 60, 70, 75, 80, 85, 90,
-		95, 100,
-	];
-	if (bigBirthdays.includes(age)) {
-		return `Big ${age}! 🎉`;
-	}
-	return undefined;
+
+	return { milestone: currentMilestone, status };
 };
 
 export const monthNames = [
@@ -150,7 +192,9 @@ const getSeason = (month: number): string => {
 	return "Winter ❄️";
 };
 
-export const birthdays: Birthday[] = rawBirthdaysJson
+const validatedBirthdays = birthdaysArraySchema.parse(rawBirthdaysJson);
+
+export const birthdays: Birthday[] = validatedBirthdays
 	.map((x) => {
 		const birthday = dayjs(x.date).startOf("day");
 		const today = dayjs().startOf("day");
@@ -169,8 +213,10 @@ export const birthdays: Birthday[] = rawBirthdaysJson
 
 		const birthdayDate = birthday.toDate();
 		const sign = getSign(birthdayDate);
+		const milestoneInfo = getMilestoneInfo(age, x.isWedding);
 
 		return {
+			...x,
 			year,
 			month,
 			day,
@@ -185,18 +231,15 @@ export const birthdays: Birthday[] = rawBirthdaysJson
 			generation: getGeneration(year),
 			season: getSeason(month),
 			dayOfWeek: birthday.format("ddd"),
-			ageGroup: getAgeGroup(age, x.kind as Kind),
+			ageGroup: getAgeGroup(age, x.kind),
 			decade: getDecade(year),
 			monthString: birthday.format("MMMM"),
 			daysBeforeBirthday: daysBefore,
 			age,
-			milestone: getMilestone(age, x.isWedding),
+			milestone: milestoneInfo.milestone,
+			milestoneStatus: milestoneInfo.status,
 			traits: sign.traits,
 			compatible: sign.compatible,
-			isWedding: x.isWedding || false,
-			kind: x.kind as Kind,
-			name: x.name,
-			date: x.date,
 		};
 	})
 	.sort((a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday);

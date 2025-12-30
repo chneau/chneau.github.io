@@ -1,4 +1,10 @@
-import { Column, ConfigProvider, type Datum, Pie } from "@ant-design/charts";
+import {
+	Bar,
+	Column,
+	ConfigProvider,
+	type Datum,
+	Pie,
+} from "@ant-design/charts";
 import { Card, Col, Row, Typography } from "antd";
 import { useMemo } from "react";
 import { useSnapshot } from "valtio";
@@ -51,13 +57,91 @@ const StatPie = <T extends Datum>({
 			data={data}
 			angleField="value"
 			colorField="type"
-			height={200}
-			legend={false}
-			label={{ text: "type" }}
+			height={250}
+			legend={{ layout: "horizontal", position: "bottom" }}
+			label={{ text: "value", position: "outside" }}
 			tooltip={tooltip}
 		/>
 	</Col>
 );
+
+const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
+	const pyramidData = useMemo(() => {
+		const groups = [
+			"0-9",
+			"10-19",
+			"20-29",
+			"30-39",
+			"40-49",
+			"50-59",
+			"60-69",
+			"70-79",
+			"80-89",
+			"90+",
+		];
+		const result: Datum[] = [];
+
+		groups.forEach((group) => {
+			const range = group === "90+" ? [90, 200] : group.split("-").map(Number);
+			const range0 = range[0] as number;
+			const range1 = range[1] as number;
+			const boys = data.filter(
+				(b) => b.kind === "♂️" && b.age >= range0 && b.age <= range1,
+			);
+			const girls = data.filter(
+				(b) => b.kind === "♀️" && b.age >= range0 && b.age <= range1,
+			);
+
+			result.push({
+				group,
+				gender: "♂️",
+				value: -boys.length,
+				names: boys.map((b) => b.name),
+			});
+			result.push({
+				group,
+				gender: "♀️",
+				value: girls.length,
+				names: girls.map((b) => b.name),
+			});
+		});
+
+		return result;
+	}, [data]);
+
+	return (
+		<Col xs={24} md={12}>
+			<Typography.Title level={5}>Age Pyramid</Typography.Title>
+			<Bar
+				data={pyramidData}
+				xField="group"
+				yField="value"
+				seriesField="gender"
+				stack={true}
+				height={300}
+				coordinate={{ transform: [{ type: "transpose" }] }}
+				axis={{
+					y: {
+						labelFormatter: (v: number) => Math.abs(v),
+					},
+				}}
+				tooltip={{
+					title: (d) => d.group,
+					items: [
+						{
+							channel: "y",
+							valueFormatter: (v: number) => Math.abs(v),
+						},
+						{
+							field: "names",
+							valueFormatter: (v: string[]) => v.join(", "),
+						},
+					],
+				}}
+			/>
+		</Col>
+	);
+};
 
 const getDistribution = (
 	data: readonly Birthday[],
@@ -110,10 +194,12 @@ export const Statistics = () => {
 				`}
 				</style>
 				<Row gutter={[16, 16]}>
+					<AgePyramid data={data} />
+					<StatPie title="By Sign" data={stats.signs} />
+					<StatPie title="By Chinese Zodiac" data={stats.chineseZodiac} />
+					<StatPie title="By Element" data={stats.elements} />
 					<StatColumn title="By First Letter" data={stats.letters} />
 					<StatPie title="By Gender" data={stats.kinds} />
-					<StatPie title="By Sign" data={stats.signs} />
-					<StatPie title="By Element" data={stats.elements} />
 					<StatColumn title="By Month" data={stats.months} />
 					<StatColumn title="By Birthgem" data={stats.birthgems} />
 					<StatPie title="By Age Group" data={stats.ageGroups} />
@@ -121,7 +207,6 @@ export const Statistics = () => {
 					<StatColumn title="By Decade" data={stats.decades} />
 					<StatPie title="By Generation" data={stats.generations} />
 					<StatPie title="By Season" data={stats.seasons} />
-					<StatColumn title="By Chinese Zodiac" data={stats.chineseZodiac} />
 				</Row>
 			</Card>
 		</ConfigProvider>

@@ -1,8 +1,11 @@
 import { Button, Layout, Space, Typography } from "antd";
 import { useSnapshot } from "valtio";
-import type { Birthday } from "./birthdays";
-import { checkAndNotify, requestNotificationPermission } from "./notifications";
-import { store } from "./store";
+import type { Birthday } from "../../birthdays";
+import {
+	checkAndNotify,
+	requestNotificationPermission,
+} from "../../notifications";
+import { store } from "../../store";
 
 interface AppHeaderProps {
 	data: readonly Birthday[];
