@@ -1,4 +1,5 @@
 import {
+	Area,
 	Bar,
 	Column,
 	ConfigProvider,
@@ -22,6 +23,50 @@ const tooltip = {
 			valueFormatter: (v: string[]) => v.join(", "),
 		},
 	],
+};
+
+const AgeDistribution = ({ data }: { data: readonly Birthday[] }) => {
+	const distributionData = useMemo(() => {
+		const ages = data.map((b) => b.age);
+		if (ages.length === 0) return [];
+		const minAge = Math.min(...ages);
+		const maxAge = Math.max(...ages);
+		const result = [];
+		for (let i = minAge; i <= maxAge; i++) {
+			const count = data.filter((b) => b.age === i);
+			result.push({
+				age: i.toString(),
+				value: count.length,
+				names: count.map((b) => b.name),
+			});
+		}
+		return result;
+	}, [data]);
+
+	return (
+		<Col xs={24} md={12}>
+			<Typography.Title level={5}>Age Distribution</Typography.Title>
+			<Area
+				data={distributionData}
+				xField="age"
+				yField="value"
+				height={300}
+				shapeField="smooth"
+				style={{ fill: "linear-gradient(-90deg, white 0%, #1890ff 100%)" }}
+				tooltip={{
+					title: (d) => `Age ${d.age}`,
+					items: [
+						{ field: "value", name: "Count" },
+						{
+							field: "names",
+							name: "People",
+							valueFormatter: (v: string[]) => v.join(", "),
+						},
+					],
+				}}
+			/>
+		</Col>
+	);
 };
 
 const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
@@ -285,6 +330,7 @@ export const Statistics = () => {
 					<StatColumn title="Birthstones" data={stats.birthgems} />
 					<StatColumn title="Birth Day of Week" data={stats.days} />
 					<StatColumn title="Birth Decades" data={stats.decades} />
+					<AgeDistribution data={data} />
 					<AgePyramid data={data} />
 					<BirthHeatmap data={data} />
 				</Row>
