@@ -8,6 +8,7 @@ const getInitialState = () => {
 			showBoys: true,
 			showGirls: true,
 			showWeddings: false,
+			darkMode: true,
 		};
 	}
 	const saved = localStorage.getItem("store");
@@ -18,6 +19,7 @@ const getInitialState = () => {
 				showBoys: true,
 				showGirls: true,
 				showWeddings: false,
+				darkMode: true,
 			};
 };
 
