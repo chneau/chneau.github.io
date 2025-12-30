@@ -2,15 +2,10 @@ import { Card, Layout, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo } from "react";
 import { useSnapshot } from "valtio";
-import {
-	type Birthday,
-	birthdays,
-	getAgeEmoji,
-	getKindColor,
-} from "./birthdays";
+import { type Birthday, getAgeEmoji, getKindColor } from "./birthdays";
 import { FilterButtons, FilterSearch } from "./Filter";
 import { Statistics } from "./Statistics";
-import { store } from "./store";
+import { dataStore } from "./store";
 
 const columns: ColumnsType<Birthday> = [
 	{
@@ -66,29 +61,11 @@ const columns: ColumnsType<Birthday> = [
 ];
 
 export const App = () => {
-	const snap = useSnapshot(store);
+	const dataSnap = useSnapshot(dataStore);
 
-	const filteredBirthdays = useMemo(
-		() =>
-			birthdays.filter((x) => {
-				const matchesSearch =
-					x.name.toLowerCase().includes(snap.search) ||
-					x.sign.toLowerCase().includes(snap.search) ||
-					x.birthgem.toLowerCase().includes(snap.search);
-
-				if (!matchesSearch) return false;
-
-				if (x.kind === "♂️" && !snap.showBoys) return false;
-				if (x.kind === "♀️" && !snap.showGirls) return false;
-				if (x.kind === "💒" && !snap.showWeddings) return false;
-
-				return true;
-			}),
-		[snap.search, snap.showBoys, snap.showGirls, snap.showWeddings],
-	);
 	const data = useMemo(
-		() => filteredBirthdays.slice(0, 20).map((x, i) => ({ key: i, ...x })),
-		[filteredBirthdays],
+		() => dataSnap.filtered.slice(0, 20).map((x, i) => ({ key: i, ...x })),
+		[dataSnap.filtered],
 	);
 	return (
 		<Layout style={{ minHeight: "100vh" }}>
