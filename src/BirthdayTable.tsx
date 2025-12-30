@@ -1,5 +1,6 @@
 import { Button, Divider, Progress, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import html2canvas from "html2canvas";
 import { useMemo } from "react";
 import { useSnapshot } from "valtio";
 import {
@@ -9,7 +10,6 @@ import {
 	getKindColor,
 } from "./birthdays";
 import { store } from "./store";
-import html2canvas from "html2canvas";
 
 const Highlight = ({ text, search }: { text: string; search: string }) => {
 	const term = search.trim();
@@ -195,7 +195,13 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 								</a>
 							</Space>
 
-							<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+							<div
+								style={{
+									display: "grid",
+									gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+									gap: "16px",
+								}}
+							>
 								<div>
 									<p>
 										<strong>Life Progress:</strong>
@@ -264,7 +270,13 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 							</div>
 
 							{/* Hidden card for capture */}
-							<div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
+							<div
+								style={{
+									position: "absolute",
+									left: "-9999px",
+									top: "-9999px",
+								}}
+							>
 								<div
 									id={`card-${record.name}`}
 									style={{
@@ -276,28 +288,54 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 										color: store.darkMode ? "white" : "black",
 										textAlign: "center",
 										borderRadius: "16px",
-										border: `2px solid ${getKindColor(record.kind) || "#1890ff"}`,
+										border: `2px solid ${
+											getKindColor(record.kind) || "#1890ff"
+										}`,
 									}}
 								>
 									<div style={{ fontSize: "48px", marginBottom: "16px" }}>
 										{getAgeEmoji(record.age, record.kind)}
 									</div>
-									<h1 style={{ margin: 0, color: store.darkMode ? "white" : "black" }}>
+									<h1
+										style={{
+											margin: 0,
+											color: store.darkMode ? "white" : "black",
+										}}
+									>
 										Happy Birthday, {record.name}!
 									</h1>
-									<h2 style={{ opacity: 0.8, color: store.darkMode ? "white" : "black" }}>
+									<h2
+										style={{
+											opacity: 0.8,
+											color: store.darkMode ? "white" : "black",
+										}}
+									>
 										Turning {record.age + 1}
 									</h2>
 									<div style={{ marginTop: "24px", fontSize: "18px" }}>
-										<p>{record.signSymbol} {record.sign.toUpperCase()}</p>
+										<p>
+											{record.signSymbol} {record.sign.toUpperCase()}
+										</p>
 										<p>💎 {record.birthgem}</p>
 										<p>🐉 {record.chineseZodiac}</p>
 									</div>
 									<Divider style={{ borderColor: "rgba(128,128,128,0.3)" }} />
-									<p style={{ fontStyle: "italic", fontSize: "14px", opacity: 0.7 }}>
+									<p
+										style={{
+											fontStyle: "italic",
+											fontSize: "14px",
+											opacity: 0.7,
+										}}
+									>
 										{record.traits}
 									</p>
-									<div style={{ marginTop: "24px", fontSize: "12px", opacity: 0.5 }}>
+									<div
+										style={{
+											marginTop: "24px",
+											fontSize: "12px",
+											opacity: 0.5,
+										}}
+									>
 										Birthday Tracker
 									</div>
 								</div>
