@@ -116,6 +116,7 @@ export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 				<Tag color="#bfbfbf">Challenging (40%)</Tag>
 			</div>
 			<Table
+				key={people.map((p) => p.name).join(",")}
 				dataSource={[...people]}
 				columns={columns}
 				pagination={false}
