@@ -1,9 +1,9 @@
-import { Column, type Datum, Pie } from "@ant-design/charts";
+import { Column, ConfigProvider, type Datum, Pie } from "@ant-design/charts";
 import { Card, Col, Row, Typography } from "antd";
 import { useMemo } from "react";
 import { useSnapshot } from "valtio";
 import { type Birthday, monthNames } from "./birthdays";
-import { dataStore } from "./store";
+import { dataStore, store } from "./store";
 
 const tooltip = {
 	title: (d: Datum) => d.type,
@@ -78,6 +78,7 @@ const getDistribution = (
 
 export const Statistics = () => {
 	const dataSnap = useSnapshot(dataStore);
+	const storeSnap = useSnapshot(store);
 	const data = dataSnap.filtered;
 
 	const stats = useMemo(() => {
@@ -98,29 +99,31 @@ export const Statistics = () => {
 	}, [data]);
 
 	return (
-		<Card title="Statistics" size="small" style={{ marginTop: 16 }}>
-			<style>
-				{`
+		<ConfigProvider common={{ theme: storeSnap.darkMode ? "dark" : "light" }}>
+			<Card title="Statistics" size="small" style={{ marginTop: 16 }}>
+				<style>
+					{`
 				.g2-tooltip-list-item-value {
 					max-width: unset !important;
 					white-space: pre-wrap !important;
 				}
 				`}
-			</style>
-			<Row gutter={[16, 16]}>
-				<StatColumn title="By First Letter" data={stats.letters} />
-				<StatPie title="By Gender" data={stats.kinds} />
-				<StatPie title="By Sign" data={stats.signs} />
-				<StatPie title="By Element" data={stats.elements} />
-				<StatColumn title="By Month" data={stats.months} />
-				<StatColumn title="By Birthgem" data={stats.birthgems} />
-				<StatPie title="By Age Group" data={stats.ageGroups} />
-				<StatColumn title="By Day" data={stats.days} />
-				<StatColumn title="By Decade" data={stats.decades} />
-				<StatPie title="By Generation" data={stats.generations} />
-				<StatPie title="By Season" data={stats.seasons} />
-				<StatColumn title="By Chinese Zodiac" data={stats.chineseZodiac} />
-			</Row>
-		</Card>
+				</style>
+				<Row gutter={[16, 16]}>
+					<StatColumn title="By First Letter" data={stats.letters} />
+					<StatPie title="By Gender" data={stats.kinds} />
+					<StatPie title="By Sign" data={stats.signs} />
+					<StatPie title="By Element" data={stats.elements} />
+					<StatColumn title="By Month" data={stats.months} />
+					<StatColumn title="By Birthgem" data={stats.birthgems} />
+					<StatPie title="By Age Group" data={stats.ageGroups} />
+					<StatColumn title="By Day" data={stats.days} />
+					<StatColumn title="By Decade" data={stats.decades} />
+					<StatPie title="By Generation" data={stats.generations} />
+					<StatPie title="By Season" data={stats.seasons} />
+					<StatColumn title="By Chinese Zodiac" data={stats.chineseZodiac} />
+				</Row>
+			</Card>
+		</ConfigProvider>
 	);
 };
