@@ -87,7 +87,7 @@ export const App = () => {
 		[snap.search, snap.showBoys, snap.showGirls, snap.showWeddings],
 	);
 	const data = useMemo(
-		() => filteredBirthdays.map((x, i) => ({ key: i, ...x })),
+		() => filteredBirthdays.slice(0, 20).map((x, i) => ({ key: i, ...x })),
 		[filteredBirthdays],
 	);
 	return (
@@ -105,6 +105,7 @@ export const App = () => {
 						dataSource={data}
 						pagination={false}
 						size="small"
+						scroll={{ y: 500 }}
 					/>
 				</Card>
 				<Statistics />
