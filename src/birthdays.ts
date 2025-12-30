@@ -17,6 +17,7 @@ export type Birthday = {
 	day: number;
 	daysBeforeBirthday: number;
 	chineseZodiac: string;
+	element: string;
 	generation: string;
 	season: string;
 	dayOfWeek: string;
@@ -206,6 +207,7 @@ export const birthdays: Birthday[] = _birthdays
 			signSymbol: sign.symbol,
 			birthgem,
 			chineseZodiac,
+			element: sign.element,
 			generation,
 			season,
 			dayOfWeek,
