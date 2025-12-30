@@ -37,11 +37,17 @@ export const dataStore = proxy<{ filtered: Birthday[] }>({
 
 const compute = () => {
 	const { search, showBoys, showGirls, showWeddings } = store;
+	const lowerSearch = search.toLowerCase();
 	dataStore.filtered = birthdays.filter((x) => {
 		const matchesSearch =
-			x.name.toLowerCase().includes(search) ||
-			x.sign.toLowerCase().includes(search) ||
-			x.birthgem.toLowerCase().includes(search);
+			x.name.toLowerCase().includes(lowerSearch) ||
+			x.sign.toLowerCase().includes(lowerSearch) ||
+			x.birthgem.toLowerCase().includes(lowerSearch) ||
+			x.birthdayString.includes(lowerSearch) ||
+			x.age.toString().includes(lowerSearch) ||
+			x.chineseZodiac.toLowerCase().includes(lowerSearch) ||
+			x.monthString.toLowerCase().includes(lowerSearch) ||
+			x.kind.includes(lowerSearch);
 
 		if (!matchesSearch) return false;
 
