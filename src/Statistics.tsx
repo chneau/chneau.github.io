@@ -2,8 +2,8 @@ import { Column, type Datum, Pie } from "@ant-design/charts";
 import { Card, Col, Row, Typography } from "antd";
 import { useMemo } from "react";
 import { useSnapshot } from "valtio";
-import { type Birthday, birthdays, monthNames } from "./birthdays";
-import { store } from "./store";
+import { type Birthday, monthNames } from "./birthdays";
+import { dataStore } from "./store";
 
 const tooltip = {
 	title: (d: Datum) => d.type,
@@ -60,7 +60,7 @@ const StatPie = <T extends Datum>({
 );
 
 const getDistribution = (
-	data: Birthday[],
+	data: readonly Birthday[],
 	getValue: (b: Birthday) => string | undefined,
 ): Datum[] => {
 	const counts: Record<string, string[]> = {};
@@ -77,25 +77,8 @@ const getDistribution = (
 };
 
 export const Statistics = () => {
-	const snap = useSnapshot(store);
-	const data = useMemo(
-		() =>
-			birthdays.filter((x) => {
-				const matchesSearch =
-					x.name.toLowerCase().includes(snap.search) ||
-					x.sign.toLowerCase().includes(snap.search) ||
-					x.birthgem.toLowerCase().includes(snap.search);
-
-				if (!matchesSearch) return false;
-
-				if (x.kind === "♂️" && !snap.showBoys) return false;
-				if (x.kind === "♀️" && !snap.showGirls) return false;
-				if (x.kind === "💒" && !snap.showWeddings) return false;
-
-				return true;
-			}),
-		[snap.search, snap.showBoys, snap.showGirls, snap.showWeddings],
-	);
+	const dataSnap = useSnapshot(dataStore);
+	const data = dataSnap.filtered;
 
 	const stats = useMemo(() => {
 		return {
