@@ -114,10 +114,13 @@ const getDayOfWeek = (date: Date): string => {
 export const birthdays: Birthday[] = rawBirthdays
 	.map((x) => {
 		// Use dayjs for the birth date, normalized to start of day
-		const birthday = dayjs(new Date(x.year, x.month - 1, x.day)).startOf(
-			"day",
-		);
+		const birthday = x.date.startOf("day");
 		const today = dayjs().startOf("day");
+
+		// Extract parts for compatibility
+		const year = birthday.year();
+		const month = birthday.month() + 1; // 0-indexed in dayjs, we need 1-indexed
+		const day = birthday.date();
 
 		// Calculate next birthday
 		// dayjs.year(y) automatically handles leap years (Feb 29 -> Feb 28)
@@ -143,19 +146,22 @@ export const birthdays: Birthday[] = rawBirthdays
 
 		return {
 			...x,
+			year,
+			month,
+			day,
 			nextBirthday: nextBirthdayDate,
 			birthday: birthdayDate,
 			birthdayString: birthday.format("YYYY-MM-DD"),
 			sign: sign.name,
 			signSymbol: sign.symbol,
 			birthgem,
-			chineseZodiac: getChineseZodiac(x.year),
+			chineseZodiac: getChineseZodiac(year),
 			element: sign.element,
-			generation: getGeneration(x.year),
-			season: getSeason(x.month),
+			generation: getGeneration(year),
+			season: getSeason(month),
 			dayOfWeek: getDayOfWeek(birthdayDate),
 			ageGroup: getAgeGroup(age),
-			decade: getDecade(x.year),
+			decade: getDecade(year),
 			monthString: dayjs(nextBirthdayDate).format("MMMM"), // "long" month
 			daysBeforeBirthday: daysBefore,
 			age,
