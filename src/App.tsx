@@ -40,6 +40,17 @@ export const App = () => {
 					: theme.defaultAlgorithm,
 			}}
 		>
+			<style>
+				{`
+					.birthday-today-row {
+						background-color: rgba(255, 77, 79, 0.15) !important;
+						font-weight: bold;
+					}
+					.birthday-today-row:hover > td {
+						background-color: rgba(255, 77, 79, 0.25) !important;
+					}
+				`}
+			</style>
 			<Layout style={{ minHeight: "100vh" }}>
 				<AppHeader data={data} />
 				<Layout.Content style={{ padding: 16 }}>
