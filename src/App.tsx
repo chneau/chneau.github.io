@@ -1,11 +1,12 @@
 import { Column, Pie } from "@ant-design/charts";
 import {
+	Button,
 	Card,
-	Checkbox,
 	Col,
 	Input,
 	Layout,
 	Row,
+	Space,
 	Table,
 	Tag,
 	Typography,
@@ -455,24 +456,26 @@ export const App = () => {
 			<Layout.Content style={{ padding: 16 }}>
 				<Card title="Birthdays" size="small">
 					<div style={{ marginBottom: 8 }}>
-						<Checkbox
-							checked={showBoys}
-							onChange={(e) => setShowBoys(e.target.checked)}
-						>
-							Boys ♂️
-						</Checkbox>
-						<Checkbox
-							checked={showGirls}
-							onChange={(e) => setShowGirls(e.target.checked)}
-						>
-							Girls ♀️
-						</Checkbox>
-						<Checkbox
-							checked={showWeddings}
-							onChange={(e) => setShowWeddings(e.target.checked)}
-						>
-							Weddings 💒
-						</Checkbox>
+						<Space>
+							<Button
+								type={showBoys ? "primary" : "default"}
+								onClick={() => setShowBoys(!showBoys)}
+							>
+								Boys ♂️
+							</Button>
+							<Button
+								type={showGirls ? "primary" : "default"}
+								onClick={() => setShowGirls(!showGirls)}
+							>
+								Girls ♀️
+							</Button>
+							<Button
+								type={showWeddings ? "primary" : "default"}
+								onClick={() => setShowWeddings(!showWeddings)}
+							>
+								Weddings 💒
+							</Button>
+						</Space>
 					</div>
 					<Input.Search
 						placeholder="Search..."
