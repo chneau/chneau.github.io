@@ -126,11 +126,7 @@ const getDaysBeforeBirthday = (nextBirthday: Date): number => {
 export const birthdays: Birthday[] = _birthdays
 	.map((x) => {
 		const birthday = new Date(x.year, x.month - 1, x.day);
-		const birthdayString = birthday.toLocaleString("en-GB", {
-			day: "numeric",
-			month: "numeric",
-			year: "numeric",
-		});
+		const birthdayString = `${x.year}-${String(x.month).padStart(2, "0")}-${String(x.day).padStart(2, "0")}`;
 		const nextBirthday = getNextBirthday(x);
 		const sign = getSign(birthday);
 		const birthgem = getBirthgem(nextBirthday);
