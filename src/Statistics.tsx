@@ -1,7 +1,9 @@
 import { Column, type Datum, Pie } from "@ant-design/charts";
 import { Card, Col, Row, Typography } from "antd";
 import { useMemo } from "react";
+import { useSnapshot } from "valtio";
 import { type Birthday, birthdays, monthNames } from "./birthdays";
+import { store } from "./store";
 
 const tooltip = {
 	title: (d: Datum) => d.type,
@@ -75,9 +77,24 @@ const getDistribution = (
 };
 
 export const Statistics = () => {
+	const snap = useSnapshot(store);
 	const data = useMemo(
-		() => birthdays.filter((x) => !x.isWedding && x.kind !== "💒"),
-		[],
+		() =>
+			birthdays.filter((x) => {
+				const matchesSearch =
+					x.name.toLowerCase().includes(snap.search) ||
+					x.sign.toLowerCase().includes(snap.search) ||
+					x.birthgem.toLowerCase().includes(snap.search);
+
+				if (!matchesSearch) return false;
+
+				if (x.kind === "♂️" && !snap.showBoys) return false;
+				if (x.kind === "♀️" && !snap.showGirls) return false;
+				if (x.kind === "💒" && !snap.showWeddings) return false;
+
+				return true;
+			}),
+		[snap.search, snap.showBoys, snap.showGirls, snap.showWeddings],
 	);
 
 	const stats = useMemo(() => {
@@ -98,11 +115,7 @@ export const Statistics = () => {
 	}, [data]);
 
 	return (
-		<Card
-			title="Statistics (Excluding Weddings)"
-			size="small"
-			style={{ marginTop: 16 }}
-		>
+		<Card title="Statistics" size="small" style={{ marginTop: 16 }}>
 			<style>
 				{`
 				.g2-tooltip-list-item-value {

@@ -1,22 +1,16 @@
-import {
-	Button,
-	Card,
-	Input,
-	Layout,
-	Space,
-	Table,
-	Tag,
-	Typography,
-} from "antd";
+import { Card, Layout, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useSnapshot } from "valtio";
 import {
 	type Birthday,
 	birthdays,
 	getAgeEmoji,
 	getKindColor,
 } from "./birthdays";
+import { FilterButtons, FilterSearch } from "./Filter";
 import { Statistics } from "./Statistics";
+import { store } from "./store";
 
 const columns: ColumnsType<Birthday> = [
 	{
@@ -72,28 +66,25 @@ const columns: ColumnsType<Birthday> = [
 ];
 
 export const App = () => {
-	const [search, setSearch] = useState("");
-	const [showBoys, setShowBoys] = useState(true);
-	const [showGirls, setShowGirls] = useState(true);
-	const [showWeddings, setShowWeddings] = useState(false);
+	const snap = useSnapshot(store);
 
 	const filteredBirthdays = useMemo(
 		() =>
 			birthdays.filter((x) => {
 				const matchesSearch =
-					x.name.toLowerCase().includes(search) ||
-					x.sign.toLowerCase().includes(search) ||
-					x.birthgem.toLowerCase().includes(search);
+					x.name.toLowerCase().includes(snap.search) ||
+					x.sign.toLowerCase().includes(snap.search) ||
+					x.birthgem.toLowerCase().includes(snap.search);
 
 				if (!matchesSearch) return false;
 
-				if (x.kind === "♂️" && !showBoys) return false;
-				if (x.kind === "♀️" && !showGirls) return false;
-				if (x.kind === "💒" && !showWeddings) return false;
+				if (x.kind === "♂️" && !snap.showBoys) return false;
+				if (x.kind === "♀️" && !snap.showGirls) return false;
+				if (x.kind === "💒" && !snap.showWeddings) return false;
 
 				return true;
 			}),
-		[search, showBoys, showGirls, showWeddings],
+		[snap.search, snap.showBoys, snap.showGirls, snap.showWeddings],
 	);
 	const data = useMemo(
 		() => filteredBirthdays.map((x, i) => ({ key: i, ...x })),
@@ -107,42 +98,8 @@ export const App = () => {
 				</Typography.Title>
 			</Layout.Header>
 			<Layout.Content style={{ padding: 16 }}>
-				<Card
-					title="Birthdays"
-					size="small"
-					extra={
-						<Space>
-							<Button
-								size="small"
-								type={showBoys ? "primary" : "default"}
-								onClick={() => setShowBoys(!showBoys)}
-							>
-								Boys ♂️
-							</Button>
-							<Button
-								size="small"
-								type={showGirls ? "primary" : "default"}
-								onClick={() => setShowGirls(!showGirls)}
-							>
-								Girls ♀️
-							</Button>
-							<Button
-								size="small"
-								type={showWeddings ? "primary" : "default"}
-								onClick={() => setShowWeddings(!showWeddings)}
-							>
-								Weddings 💒
-							</Button>
-						</Space>
-					}
-				>
-					<Input.Search
-						placeholder="Search..."
-						allowClear
-						style={{ marginBottom: 8 }}
-						onChange={(e) => setSearch(e.target.value.toLowerCase())}
-						value={search}
-					/>
+				<Card title="Birthdays" size="small" extra={<FilterButtons />}>
+					<FilterSearch />
 					<Table
 						columns={columns}
 						dataSource={data}
