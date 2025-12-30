@@ -2,51 +2,59 @@ import dayjs from "dayjs";
 import type { Birthday } from "./birthdays";
 
 const generateICS = (birthdays: readonly Birthday[]) => {
+	const now = dayjs().format("YYYYMMDDTHHmmssZ");
 	const events = birthdays.map((b) => {
 		const dtstart = dayjs(b.birthday).format("YYYYMMDD");
 		const summary = b.isWedding
 			? `${b.name} Wedding Anniversary`
 			: `${b.name}'s Birthday`;
-		const uid = `${b.name.replace(/\s+/g, "_")}_${dtstart}@birthday-tracker`;
+		const uid = `${Date.now()}_${Math.random()
+			.toString(36)
+			.slice(2)}@chneau.github.io`;
 
-		return `BEGIN:VEVENT
-UID:${uid}
-DTSTART;VALUE=DATE:${dtstart}
-RRULE:FREQ=YEARLY
-SUMMARY:${summary}
-TRANSP:TRANSPARENT
-CATEGORIES:Birthdays
-END:VEVENT`;
+		return [
+			"BEGIN:VEVENT",
+			`UID:${uid}`,
+			`DTSTAMP:${now.replace(/[-:]/g, "")}`,
+			`DTSTART;VALUE=DATE:${dtstart}`,
+			"RRULE:FREQ=YEARLY",
+			`SUMMARY:${summary}`,
+			"TRANSP:TRANSPARENT",
+			"END:VEVENT",
+		].join("\r\n");
 	});
 
-	return `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Birthday Tracker//EN
-X-WR-CALNAME:Birthdays Tracker
-X-WR-TIMEZONE:UTC
-METHOD:PUBLISH
-${events.join("\n")}
-END:VCALENDAR`;
+	return [
+		"BEGIN:VCALENDAR",
+		"VERSION:2.0",
+		"PRODID:-//chneau//Birthday Tracker//EN",
+		"X-WR-CALNAME:Birthdays",
+		"METHOD:PUBLISH",
+		...events,
+		"END:VCALENDAR",
+	].join("\r\n");
 };
 
 export const downloadICS = async (birthdays: readonly Birthday[]) => {
 	const content = generateICS(birthdays);
 	const filename = "birthdays.ics";
-	const type = "text/calendar;charset=utf-8";
+	const type = "text/calendar";
 
-	if (navigator.share) {
-		const file = new File([content], filename, { type });
-		if (navigator.canShare?.({ files: [file] })) {
-			try {
+	if (
+		navigator.share &&
+		/android|iphone|ipad|ipod/i.test(navigator.userAgent)
+	) {
+		try {
+			const file = new File([content], filename, { type });
+			if (navigator.canShare?.({ files: [file] })) {
 				await navigator.share({
 					files: [file],
-					title: "Birthdays Tracker",
-					text: "Import birthdays to your calendar",
+					title: "Birthdays",
 				});
 				return;
-			} catch (err) {
-				console.error("Error sharing ICS:", err);
 			}
+		} catch (err) {
+			console.error("Share failed", err);
 		}
 	}
 
@@ -58,4 +66,5 @@ export const downloadICS = async (birthdays: readonly Birthday[]) => {
 	document.body.appendChild(link);
 	link.click();
 	document.body.removeChild(link);
+	URL.revokeObjectURL(url);
 };

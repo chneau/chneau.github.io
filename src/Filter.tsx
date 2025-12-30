@@ -1,11 +1,12 @@
 import { Button, Input, Space } from "antd";
+import type { CSSProperties } from "react";
 import { useSnapshot } from "valtio";
 import { store } from "./store";
 
 export const FilterButtons = () => {
 	const snap = useSnapshot(store);
 	return (
-		<Space>
+		<Space wrap>
 			<Button
 				size="small"
 				type={snap.showBoys ? "primary" : "default"}
@@ -37,13 +38,13 @@ export const FilterButtons = () => {
 	);
 };
 
-export const FilterSearch = () => {
+export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 	const snap = useSnapshot(store);
 	return (
 		<Input.Search
 			placeholder="Search..."
 			allowClear
-			style={{ marginBottom: 16 }}
+			style={style}
 			onChange={(e) => {
 				store.search = e.target.value;
 			}}

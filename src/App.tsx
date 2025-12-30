@@ -42,6 +42,11 @@ export const App = () => {
 						alignItems: "center",
 						justifyContent: "space-between",
 						padding: "0 16px",
+						flexWrap: "wrap",
+						height: "auto",
+						lineHeight: "normal",
+						paddingBottom: 8,
+						paddingTop: 8,
 					}}
 				>
 					<Typography.Title level={3} style={{ color: "white", margin: 0 }}>
@@ -67,19 +72,23 @@ export const App = () => {
 					</Space>
 				</Layout.Header>
 				<Layout.Content style={{ padding: 16 }}>
-					<Card
-						title="Birthdays"
-						size="small"
-						extra={
-							<Space>
+					<Card title="Birthdays" size="small">
+						<Space
+							direction="vertical"
+							style={{ width: "100%", marginBottom: 16 }}
+							size="middle"
+						>
+							<Space
+								wrap
+								style={{ justifyContent: "space-between", width: "100%" }}
+							>
 								<Button onClick={() => downloadICS(data)}>
 									📅 Import to Calendar
 								</Button>
 								<FilterButtons />
 							</Space>
-						}
-					>
-						<FilterSearch />
+							<FilterSearch style={{ width: "100%" }} />
+						</Space>
 						<Tabs
 							defaultActiveKey="table"
 							items={[
