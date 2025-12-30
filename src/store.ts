@@ -55,6 +55,7 @@ const fuse = new Fuse(birthdays, {
 	keys: [
 		"name",
 		"sign",
+		"signSymbol",
 		"birthgem",
 		"birthdayString",
 		"age",
@@ -64,18 +65,23 @@ const fuse = new Fuse(birthdays, {
 		"generation",
 		"decade",
 		"ageGroup",
+		"element",
+		"traits",
+		"compatible",
 	],
-	threshold: 0.3,
+	threshold: 0.4,
+	ignoreLocation: true,
+	useExtendedSearch: true,
 });
 
 const compute = () => {
 	const { search, showBoys, showGirls, showWeddings } = store;
-	const lowerSearch = search.toLowerCase().trim();
+	const trimmedSearch = search.trim();
 
 	let filtered = birthdays;
 
-	if (lowerSearch) {
-		filtered = fuse.search(lowerSearch).map((result) => result.item);
+	if (trimmedSearch) {
+		filtered = fuse.search(trimmedSearch).map((result) => result.item);
 	}
 
 	dataStore.filtered = filtered.filter((x) => {

@@ -180,7 +180,22 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 								<strong>Traits:</strong> {record.traits}
 							</p>
 							<p>
-								<strong>Compatible with:</strong> {record.compatible}
+								<strong>Compatible with:</strong> {record.compatible}{" "}
+								{record.compatible.split("&").map((el) => {
+									const element = el.trim();
+									return (
+										<Tag
+											key={element}
+											style={{ cursor: "pointer" }}
+											onClick={() => {
+												store.search = element;
+												window.scrollTo({ top: 0, behavior: "smooth" });
+											}}
+										>
+											Find matches for {element}
+										</Tag>
+									);
+								})}
 							</p>
 							<p>
 								<strong>Generation:</strong> {record.generation} (
