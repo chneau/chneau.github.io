@@ -63,6 +63,7 @@ const fuse = new Fuse(birthdays, {
 		"kind",
 		"generation",
 		"decade",
+		"ageGroup",
 	],
 	threshold: 0.3,
 });

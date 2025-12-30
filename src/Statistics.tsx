@@ -99,8 +99,16 @@ const StatColumn = <T extends Datum>({
 			yField="value"
 			height={200}
 			axis={{ y: { grid: false } }}
-			label={{ text: "value" }}
 			tooltip={tooltip}
+			onEvent={(_, event) => {
+				if (event.type === "element:click") {
+					const datum = event.data?.data;
+					if (datum?.type) {
+						store.search = datum.type;
+						window.scrollTo({ top: 0, behavior: "smooth" });
+					}
+				}
+			}}
 		/>
 	</Col>
 );
@@ -122,6 +130,15 @@ const StatPie = <T extends Datum>({
 			legend={{ layout: "horizontal", position: "bottom" }}
 			label={{ text: "value", position: "outside" }}
 			tooltip={tooltip}
+			onEvent={(_, event) => {
+				if (event.type === "element:click") {
+					const datum = event.data?.data;
+					if (datum?.type) {
+						store.search = datum.type;
+						window.scrollTo({ top: 0, behavior: "smooth" });
+					}
+				}
+			}}
 		/>
 	</Col>
 );

@@ -9,6 +9,7 @@ import { CalendarActions } from "./CalendarActions";
 import { Countdown } from "./Countdown";
 import { triggerConfetti } from "./celebration";
 import { FilterButtons, FilterSearch } from "./Filter";
+import { MilestonesWidget } from "./MilestonesWidget";
 import { checkAndNotify } from "./notifications";
 import { Statistics } from "./Statistics";
 import { dataStore, store } from "./store";
@@ -88,6 +89,7 @@ export const App = () => {
 							]}
 						/>
 					</Card>
+					<MilestonesWidget />
 					<Statistics />
 				</Layout.Content>
 				<AppFooter />
