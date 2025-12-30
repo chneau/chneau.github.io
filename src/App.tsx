@@ -1,8 +1,11 @@
+import type { MenuProps } from "antd";
 import {
 	Button,
 	Card,
 	ConfigProvider,
+	Dropdown,
 	Layout,
+	message,
 	Space,
 	Tabs,
 	Typography,
@@ -12,11 +15,73 @@ import { useEffect } from "react";
 import { useSnapshot } from "valtio";
 import { BirthdayTable } from "./BirthdayTable";
 import { FilterButtons, FilterSearch } from "./Filter";
-import { downloadICS } from "./ics";
 import { checkAndNotify, requestNotificationPermission } from "./notifications";
 import { Statistics } from "./Statistics";
 import { dataStore, store } from "./store";
 import { TimelineView } from "./TimelineView";
+
+const downloadICS = () => {
+	const filename = "birthdays.ics";
+	const url = "/birthdays.ics";
+
+	const link = document.createElement("a");
+	link.href = url;
+	link.setAttribute("download", filename);
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+};
+
+const subscribeICS = () => {
+	const url =
+		`${window.location.host}${window.location.pathname}/birthdays.ics`.replace(
+			/\/+/g,
+			"/",
+		);
+	window.location.assign(`webcal://${url}`);
+};
+
+const addToGoogleCalendar = () => {
+	const url = `${window.location.origin}/birthdays.ics`;
+	const googleUrl = `https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(
+		url,
+	)}`;
+	window.open(googleUrl, "_blank");
+};
+
+const calendarItems: MenuProps["items"] = [
+	{
+		key: "subscribe",
+		label: "Subscribe to Calendar (webcal)",
+		icon: "📅",
+		onClick: subscribeICS,
+	},
+	{
+		key: "google",
+		label: "Add to Google Calendar",
+		icon: "🌐",
+		onClick: addToGoogleCalendar,
+	},
+	{
+		key: "copy",
+		label: "Copy ICS Link",
+		icon: "🔗",
+		onClick: () => {
+			const url = `${window.location.origin}/birthdays.ics`;
+			navigator.clipboard.writeText(url);
+			message.success("ICS link copied to clipboard!");
+		},
+	},
+	{
+		type: "divider",
+	},
+	{
+		key: "download",
+		label: "Download ICS File",
+		icon: "📥",
+		onClick: downloadICS,
+	},
+];
 
 export const App = () => {
 	const dataSnap = useSnapshot(dataStore);
@@ -35,6 +100,7 @@ export const App = () => {
 					: theme.defaultAlgorithm,
 			}}
 		>
+			<title>{import.meta.env.BUILD_DATE}</title>
 			<Layout style={{ minHeight: "100vh" }}>
 				<Layout.Header
 					style={{
@@ -50,7 +116,10 @@ export const App = () => {
 					}}
 				>
 					<Typography.Title level={3} style={{ color: "white", margin: 0 }}>
-						Birthday Tracker
+						Birthday Tracker{" "}
+						<small style={{ fontSize: "0.5em", opacity: 0.8 }}>
+							({import.meta.env.BUILD_DATE})
+						</small>
 					</Typography.Title>
 					<Space>
 						<Button
@@ -82,9 +151,11 @@ export const App = () => {
 								wrap
 								style={{ justifyContent: "space-between", width: "100%" }}
 							>
-								<Button onClick={() => downloadICS(data)}>
-									📅 Import to Calendar
-								</Button>
+								<Space wrap>
+									<Dropdown menu={{ items: calendarItems }}>
+										<Button type="primary">📅 Calendar Actions</Button>
+									</Dropdown>
+								</Space>
 								<FilterButtons />
 							</Space>
 							<FilterSearch style={{ width: "100%" }} />

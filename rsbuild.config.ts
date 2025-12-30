@@ -2,11 +2,14 @@ import { defineConfig } from "@rsbuild/core";
 import { pluginReact } from "@rsbuild/plugin-react";
 import dayjs from "dayjs";
 
+const nowStr = dayjs().format("MMM D, HH:mm");
+
 export default defineConfig({
 	plugins: [pluginReact()],
 	server: { host: "localhost" },
+	source: { define: { "import.meta.env.BUILD_DATE": JSON.stringify(nowStr) } },
 	html: {
-		title: dayjs().format("MM-DD HH:mm"),
+		title: nowStr,
 		tags: [
 			{
 				tag: "link",
