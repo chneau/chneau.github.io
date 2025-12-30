@@ -3,6 +3,7 @@ import type { ColumnsType } from "antd/es/table";
 import html2canvas from "html2canvas";
 import { useMemo } from "react";
 import { useSnapshot } from "valtio";
+import { BiorhythmsChart } from "./BiorhythmsChart";
 import {
 	type Birthday,
 	birthdays,
@@ -278,7 +279,22 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 										<strong>Season:</strong> {record.season}
 									</p>
 								</div>
+								<div>
+									<p>
+										<strong>Life in Numbers:</strong>
+									</p>
+									<ul>
+										<li>💓 {record.heartbeats.toLocaleString()} heartbeats</li>
+										<li>🫁 {record.breaths.toLocaleString()} breaths</li>
+										<li>😴 {record.sleepYears.toFixed(1)} years sleeping</li>
+										<li>
+											🚀 {record.distanceTraveled.toLocaleString()} km in orbit
+										</li>
+									</ul>
+								</div>
 							</div>
+
+							<BiorhythmsChart birthday={record.birthday} />
 
 							{/* Hidden card for capture */}
 							<div
@@ -330,6 +346,10 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 										<p>💎 {record.birthgem}</p>
 										<p>🐉 {record.chineseZodiac}</p>
 										<p>🔢 Life Path {record.lifePathNumber}</p>
+										<p>
+											🚀 {record.distanceTraveled.toLocaleString()} km in orbit
+										</p>
+										<p>💓 {record.heartbeats.toLocaleString()} heartbeats</p>
 									</div>
 									<Divider style={{ borderColor: "rgba(128,128,128,0.3)" }} />
 									<p
