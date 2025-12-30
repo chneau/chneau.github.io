@@ -226,6 +226,14 @@ const Statistics = () => {
 			size="small"
 			style={{ marginTop: 16 }}
 		>
+			<style>
+				{`
+				.g2-tooltip-list-item-value {
+					max-width: unset !important;
+					white-space: pre-wrap !important;
+				}
+				`}
+			</style>
 			<Row gutter={[16, 16]}>
 				<Col xs={24} sm={12} md={8}>
 					<Typography.Title level={5}>By First Letter</Typography.Title>
