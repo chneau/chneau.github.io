@@ -218,33 +218,28 @@ export const birthdays: Birthday[] = _birthdays
 		const birthdayString = `${x.year}-${String(x.month).padStart(2, "0")}-${String(
 			x.day,
 		).padStart(2, "0")}`;
-		const nextBirthday = getNextBirthday(x);
 		const sign = getSign(birthday);
-		const birthgem = getBirthgem(nextBirthday);
-		const chineseZodiac = getChineseZodiac(x.year);
-		const generation = getGeneration(x.year);
-		const season = getSeason(x.month);
-		const dayOfWeek = getDayOfWeek(birthday);
+		const birthgem = getBirthgem(getNextBirthday(x));
 		const age = getCurrentAge(x);
-		const ageGroup = getAgeGroup(age);
-		const decade = getDecade(x.year);
 		return {
 			...x,
-			nextBirthday,
+			nextBirthday: getNextBirthday(x),
 			birthday,
 			birthdayString,
 			sign: sign.name,
 			signSymbol: sign.symbol,
 			birthgem,
-			chineseZodiac,
+			chineseZodiac: getChineseZodiac(x.year),
 			element: sign.element,
-			generation,
-			season,
-			dayOfWeek,
-			ageGroup,
-			decade,
-			monthString: nextBirthday.toLocaleString("en-GB", { month: "long" }),
-			daysBeforeBirthday: getDaysBeforeBirthday(nextBirthday),
+			generation: getGeneration(x.year),
+			season: getSeason(x.month),
+			dayOfWeek: getDayOfWeek(birthday),
+			ageGroup: getAgeGroup(age),
+			decade: getDecade(x.year),
+			monthString: getNextBirthday(x).toLocaleString("en-GB", {
+				month: "long",
+			}),
+			daysBeforeBirthday: getDaysBeforeBirthday(getNextBirthday(x)),
 			age,
 		};
 	})
