@@ -1,11 +1,32 @@
 import { proxy, subscribe } from "valtio";
 import { type Birthday, birthdays } from "./birthdays";
 
-export const store = proxy({
-	search: "",
-	showBoys: true,
-	showGirls: true,
-	showWeddings: false,
+const getInitialState = () => {
+	if (typeof localStorage === "undefined") {
+		return {
+			search: "",
+			showBoys: true,
+			showGirls: true,
+			showWeddings: false,
+		};
+	}
+	const saved = localStorage.getItem("store");
+	return saved
+		? JSON.parse(saved)
+		: {
+				search: "",
+				showBoys: true,
+				showGirls: true,
+				showWeddings: false,
+			};
+};
+
+export const store = proxy(getInitialState());
+
+subscribe(store, () => {
+	if (typeof localStorage !== "undefined") {
+		localStorage.setItem("store", JSON.stringify(store));
+	}
 });
 
 export const dataStore = proxy<{ filtered: Birthday[] }>({

@@ -1,72 +1,15 @@
-import { Card, Layout, Table, Tag, Typography } from "antd";
-import type { ColumnsType } from "antd/es/table";
-import { useMemo } from "react";
+import { Card, Layout, Tabs, Typography } from "antd";
 import { useSnapshot } from "valtio";
-import { type Birthday, getAgeEmoji, getKindColor } from "./birthdays";
+import { BirthdayTable } from "./BirthdayTable";
 import { FilterButtons, FilterSearch } from "./Filter";
 import { Statistics } from "./Statistics";
 import { dataStore } from "./store";
-
-const columns: ColumnsType<Birthday> = [
-	{
-		title: "Name",
-		dataIndex: "name",
-		render: (_, x) => {
-			return (
-				<Tag color={getKindColor(x.kind)}>
-					{x.name} {x.kind}
-				</Tag>
-			);
-		},
-		sorter: (a, b) => a.name.localeCompare(b.name),
-	},
-	{
-		title: "Birthday",
-		dataIndex: "birthdayString",
-		render: (_, x) => x.birthdayString,
-		sorter: (a, b) => a.birthday.getTime() - b.birthday.getTime(),
-	},
-	{
-		title: "Age",
-		dataIndex: "age",
-		render: (age, x) => `${age} ${getAgeEmoji(age, x.kind)}`,
-		sorter: (a, b) => a.age - b.age,
-	},
-	{
-		title: "Sign",
-		dataIndex: "sign",
-		render: (_, x) => (
-			<Tag>
-				{x.signSymbol} {x.sign}
-			</Tag>
-		),
-		sorter: (a, b) => a.sign.localeCompare(b.sign),
-	},
-	{
-		title: "Birthgem",
-		dataIndex: "birthgem",
-		render: (_, x) => (
-			<Tag color="blue">{`${x.birthgem} (${x.monthString})`}</Tag>
-		),
-		sorter: (a, b) => a.birthgem.localeCompare(b.birthgem),
-		responsive: ["md"],
-	},
-	{
-		title: "Chinese",
-		dataIndex: "chineseZodiac",
-		render: (_, x) => <Tag>{x.chineseZodiac}</Tag>,
-		sorter: (a, b) => a.chineseZodiac.localeCompare(b.chineseZodiac),
-		responsive: ["lg"],
-	},
-];
+import { TimelineView } from "./TimelineView";
 
 export const App = () => {
 	const dataSnap = useSnapshot(dataStore);
+	const data = dataSnap.filtered;
 
-	const data = useMemo(
-		() => dataSnap.filtered.map((x, i) => ({ key: i, ...x })),
-		[dataSnap.filtered],
-	);
 	return (
 		<Layout style={{ minHeight: "100vh" }}>
 			<Layout.Header style={{ display: "flex", alignItems: "center" }}>
@@ -77,12 +20,20 @@ export const App = () => {
 			<Layout.Content style={{ padding: 16 }}>
 				<Card title="Birthdays" size="small" extra={<FilterButtons />}>
 					<FilterSearch />
-					<Table
-						columns={columns}
-						dataSource={data}
-						pagination={false}
-						size="small"
-						scroll={{ y: 500 }}
+					<Tabs
+						defaultActiveKey="table"
+						items={[
+							{
+								key: "table",
+								label: "Table",
+								children: <BirthdayTable data={data} />,
+							},
+							{
+								key: "timeline",
+								label: "Timeline",
+								children: <TimelineView data={data} />,
+							},
+						]}
 					/>
 				</Card>
 				<Statistics />
