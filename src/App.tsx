@@ -476,6 +476,7 @@ export const App = () => {
 					</div>
 					<Input.Search
 						placeholder="Search..."
+						allowClear
 						style={{ marginBottom: 8 }}
 						onChange={(e) => setSearch(e.target.value.toLowerCase())}
 						value={search}
