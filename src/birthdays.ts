@@ -5,7 +5,7 @@ import { getBirthgem, getSign } from "./zodiac";
 export type { Kind };
 
 export type Birthday = {
-	isWedding?: boolean | null | undefined;
+	isWedding?: boolean;
 	name: string;
 	kind: Kind;
 	age: number;
@@ -45,13 +45,19 @@ export const monthNames = [
 ];
 
 export const getKindColor = (kind: Kind) => {
-	if (kind === "💒") return "gold";
-	if (kind === "♂️") return "blue";
-	if (kind === "♀️") return "magenta";
-	return undefined;
+	switch (kind) {
+		case "💒":
+			return "gold";
+		case "♂️":
+			return "blue";
+		case "♀️":
+			return "magenta";
+		default:
+			return undefined;
+	}
 };
 
-export const getAgeEmoji = (age: number, kind?: Kind | string) => {
+export const getAgeEmoji = (age: number, kind?: Kind) => {
 	if (kind === "💒") return "💍";
 	if (age < 3) return "👶";
 	if (age < 13) return "🧒";
@@ -84,10 +90,7 @@ const getAgeGroup = (age: number): string => {
 	return `Seniors ${getAgeEmoji(age)} (60+)`;
 };
 
-const getDecade = (year: number): string => {
-	const d = Math.floor(year / 10) * 10;
-	return `${d}s`;
-};
+const getDecade = (year: number): string => `${Math.floor(year / 10) * 10}s`;
 
 const getGeneration = (year: number): string => {
 	if (year >= 2013) return "Gen Alpha";
@@ -106,63 +109,45 @@ const getSeason = (month: number): string => {
 	return "Winter ❄️";
 };
 
-const getDayOfWeek = (date: Date): string => {
-	const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-	return dayNames[date.getDay()] || "?";
-};
-
 export const birthdays: Birthday[] = rawBirthdays
 	.map((x) => {
-		// Use dayjs for the birth date, normalized to start of day
 		const birthday = x.date.startOf("day");
 		const today = dayjs().startOf("day");
 
-		// Extract parts for compatibility
 		const year = birthday.year();
-		const month = birthday.month() + 1; // 0-indexed in dayjs, we need 1-indexed
+		const month = birthday.month() + 1;
 		const day = birthday.date();
 
-		// Calculate next birthday
-		// dayjs.year(y) automatically handles leap years (Feb 29 -> Feb 28)
 		let nextBirthday = birthday.year(today.year());
-
-		// If the birthday has already occurred this year, move to next year
 		if (nextBirthday.isBefore(today)) {
 			nextBirthday = nextBirthday.add(1, "year");
 		}
 
-		// Calculate age
-		// We calculate age based on the *next* birthday minus 1 year if it hasn't happened yet?
-		// Actually, standard age is diff in years from birth to now.
 		const age = today.diff(birthday, "year");
-
 		const daysBefore = nextBirthday.diff(today, "day");
 
 		const birthdayDate = birthday.toDate();
-		const nextBirthdayDate = nextBirthday.toDate();
-
 		const sign = getSign(birthdayDate);
-		const birthgem = getBirthgem(nextBirthdayDate);
 
 		return {
 			...x,
 			year,
 			month,
 			day,
-			nextBirthday: nextBirthdayDate,
+			nextBirthday: nextBirthday.toDate(),
 			birthday: birthdayDate,
 			birthdayString: birthday.format("YYYY-MM-DD"),
 			sign: sign.name,
 			signSymbol: sign.symbol,
-			birthgem,
+			birthgem: getBirthgem(birthdayDate),
 			chineseZodiac: getChineseZodiac(year),
 			element: sign.element,
 			generation: getGeneration(year),
 			season: getSeason(month),
-			dayOfWeek: getDayOfWeek(birthdayDate),
+			dayOfWeek: birthday.format("ddd"),
 			ageGroup: getAgeGroup(age),
 			decade: getDecade(year),
-			monthString: dayjs(nextBirthdayDate).format("MMMM"), // "long" month
+			monthString: birthday.format("MMMM"),
 			daysBeforeBirthday: daysBefore,
 			age,
 		};
