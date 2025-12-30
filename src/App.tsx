@@ -1,4 +1,4 @@
-import { Column, Pie } from "@ant-design/charts";
+import { Column, Pie, type Datum } from "@ant-design/charts";
 import {
 	Button,
 	Card,
@@ -21,8 +21,6 @@ import {
 	monthNames,
 } from "./birthdays";
 
-const sorter = (a: Birthday, b: Birthday) =>
-	a.birthday.getTime() - b.birthday.getTime();
 const columns: ColumnsType<Birthday> = [
 	{
 		title: "Name",
@@ -40,7 +38,7 @@ const columns: ColumnsType<Birthday> = [
 		title: "Birthday",
 		dataIndex: "birthdayString",
 		render: (_, x) => x.birthdayString,
-		sorter,
+		sorter: (a, b) => a.birthday.getTime() - b.birthday.getTime(),
 	},
 	{
 		title: "Age",
@@ -76,14 +74,8 @@ const columns: ColumnsType<Birthday> = [
 	},
 ];
 
-interface StatItem {
-	type: string;
-	value: number;
-	names: string[];
-}
-
 const tooltip = {
-	title: (d: StatItem) => d.type,
+	title: (d: Datum) => d.type,
 	items: [
 		{ field: "value", channel: "y" },
 		{
@@ -94,7 +86,7 @@ const tooltip = {
 	],
 };
 
-const StatColumn = <T extends StatItem>({
+const StatColumn = <T extends Datum>({
 	title,
 	data,
 }: {
@@ -115,7 +107,7 @@ const StatColumn = <T extends StatItem>({
 	</Col>
 );
 
-const StatPie = <T extends StatItem>({
+const StatPie = <T extends Datum>({
 	title,
 	data,
 }: {
@@ -139,7 +131,7 @@ const StatPie = <T extends StatItem>({
 const getDistribution = (
 	data: Birthday[],
 	getValue: (b: Birthday) => string | undefined,
-): StatItem[] => {
+): Datum[] => {
 	const counts: Record<string, string[]> = {};
 	for (const x of data) {
 		const val = getValue(x);
