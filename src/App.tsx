@@ -55,7 +55,11 @@ const columns: ColumnsType<Birthday> = [
 	{
 		title: "Sign",
 		dataIndex: "sign",
-		render: (_, x) => <Tag>{`${x.signSymbol} ${x.sign}`}</Tag>,
+		render: (_, x) => (
+			<Tag>
+				{x.signSymbol} {x.sign}
+			</Tag>
+		),
 		sorter: (a, b) => a.sign.localeCompare(b.sign),
 	},
 	{
@@ -66,6 +70,13 @@ const columns: ColumnsType<Birthday> = [
 		),
 		sorter: (a, b) => a.birthgem.localeCompare(b.birthgem),
 		responsive: ["md"],
+	},
+	{
+		title: "Chinese",
+		dataIndex: "chineseZodiac",
+		render: (_, x) => <Tag>{x.chineseZodiac}</Tag>,
+		sorter: (a, b) => a.chineseZodiac.localeCompare(b.chineseZodiac),
+		responsive: ["lg"],
 	},
 ];
 
@@ -201,23 +212,8 @@ const Statistics = () => {
 
 	const chineseZodiac = useMemo(() => {
 		const counts: Record<string, number> = {};
-		const animals = [
-			"Rat 🐀",
-			"Ox 🐂",
-			"Tiger 🐅",
-			"Rabbit 🐇",
-			"Dragon 🐉",
-			"Snake 🐍",
-			"Horse 🐎",
-			"Goat 🐐",
-			"Monkey 🐒",
-			"Rooster 🐓",
-			"Dog 🐕",
-			"Pig 🐖",
-		];
 		for (const x of data) {
-			const animal = animals[(x.year - 4) % 12];
-			if (animal) counts[animal] = (counts[animal] || 0) + 1;
+			counts[x.chineseZodiac] = (counts[x.chineseZodiac] || 0) + 1;
 		}
 		return Object.entries(counts)
 			.map(([type, value]) => ({ type, value }))
