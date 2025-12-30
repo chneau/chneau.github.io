@@ -1,4 +1,14 @@
-import { Card, Checkbox, Input, Layout, Table, Tag, Typography } from "antd";
+import {
+	Card,
+	Checkbox,
+	Col,
+	Input,
+	Layout,
+	Row,
+	Table,
+	Tag,
+	Typography,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
 import { type Birthday, birthdays } from "./birthdays";
@@ -58,6 +68,116 @@ const columns: ColumnsType<Birthday> = [
 	},
 ];
 
+const Statistics = () => {
+	const data = useMemo(
+		() => birthdays.filter((x) => !x.isWedding && x.kind !== "💒"),
+		[],
+	);
+
+	const letters = useMemo(() => {
+		const counts: Record<string, number> = {};
+		for (const x of data) {
+			const l = (x.name[0] || "?").toUpperCase();
+			counts[l] = (counts[l] || 0) + 1;
+		}
+		return Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0]));
+	}, [data]);
+
+	const signs = useMemo(() => {
+		const counts: Record<string, number> = {};
+		for (const x of data) {
+			counts[x.sign] = (counts[x.sign] || 0) + 1;
+		}
+		return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+	}, [data]);
+
+	const months = useMemo(() => {
+		const counts: Record<string, number> = {};
+		const monthNames = [
+			"Jan",
+			"Feb",
+			"Mar",
+			"Apr",
+			"May",
+			"Jun",
+			"Jul",
+			"Aug",
+			"Sep",
+			"Oct",
+			"Nov",
+			"Dec",
+		];
+		for (const x of data) {
+			const m = monthNames[x.month - 1];
+			if (m) {
+				counts[m] = (counts[m] || 0) + 1;
+			}
+		}
+		return monthNames
+			.map((m) => [m, counts[m] || 0] as const)
+			.filter((x) => x[1] > 0);
+	}, [data]);
+
+	const ageGroups = useMemo(() => {
+		const counts = {
+			"Babies 👶 (<3)": 0,
+			"Children 🧒 (<13)": 0,
+			"Adults 🧑 (<60)": 0,
+			"Seniors 🧓 (60+)": 0,
+		};
+		for (const x of data) {
+			if (x.age < 3) counts["Babies 👶 (<3)"]++;
+			else if (x.age < 13) counts["Children 🧒 (<13)"]++;
+			else if (x.age < 60) counts["Adults 🧑 (<60)"]++;
+			else counts["Seniors 🧓 (60+)"]++;
+		}
+		return Object.entries(counts);
+	}, [data]);
+
+	return (
+		<Card
+			title="Statistics (Excluding Weddings)"
+			size="small"
+			style={{ marginTop: 16 }}
+		>
+			<Row gutter={[16, 16]}>
+				<Col xs={24} sm={12} md={6}>
+					<Typography.Title level={5}>By First Letter</Typography.Title>
+					{letters.map(([l, c]) => (
+						<div key={l}>
+							{l}: {c}
+						</div>
+					))}
+				</Col>
+				<Col xs={24} sm={12} md={6}>
+					<Typography.Title level={5}>By Sign</Typography.Title>
+					{signs.map(([s, c]) => (
+						<div key={s}>
+							{s}: {c}
+						</div>
+					))}
+				</Col>
+				<Col xs={24} sm={12} md={6}>
+					<Typography.Title level={5}>By Month</Typography.Title>
+					{months.map(([m, c]) => (
+						<div key={m}>
+							{m}: {c}
+						</div>
+					))}
+				</Col>
+				<Col xs={24} sm={12} md={6}>
+					<Typography.Title level={5}>By Age Group</Typography.Title>
+					{ageGroups.map(([g, c]) => (
+						<div key={g}>
+							{g}: {c}
+						</div>
+					))}
+				</Col>
+			</Row>
+		</Card>
+	);
+};
+
 export const App = () => {
 	const [search, setSearch] = useState("");
 	const [showBoys, setShowBoys] = useState(true);
@@ -93,7 +213,7 @@ export const App = () => {
 					Birthday Tracker
 				</Typography.Title>
 			</Layout.Header>
-			<Layout.Content>
+			<Layout.Content style={{ padding: 16 }}>
 				<Card title="Birthdays" size="small">
 					<div style={{ marginBottom: 8 }}>
 						<Checkbox
@@ -128,6 +248,7 @@ export const App = () => {
 						size="small"
 					/>
 				</Card>
+				<Statistics />
 			</Layout.Content>
 			<Layout.Footer style={{ textAlign: "center" }}>
 				Birthday Tracker ©{new Date().getFullYear()}
