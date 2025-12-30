@@ -20,8 +20,5 @@ export default defineConfig({
 	output: {
 		overrideBrowserslist: [">0%, defaults"],
 		polyfill: "usage",
-		inlineScripts: true,
-		inlineStyles: true,
-		legalComments: "none",
 	},
 });
