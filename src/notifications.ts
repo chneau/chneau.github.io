@@ -58,3 +58,20 @@ export const checkAndNotify = (birthdays: readonly Birthday[]) => {
 		localStorage.setItem("lastNotifiedDate", today);
 	}
 };
+
+export const sendTestNotification = () => {
+	if (!("Notification" in window)) {
+		alert("This browser does not support desktop notification");
+		return;
+	}
+
+	if (Notification.permission !== "granted") {
+		alert("Notification permission not granted. Please click the bell icon.");
+		return;
+	}
+
+	new Notification("🎉 Test Notification", {
+		body: "This is a test notification from Birthday Tracker!",
+		icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>",
+	});
+};

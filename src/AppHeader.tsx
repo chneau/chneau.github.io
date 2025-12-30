@@ -1,7 +1,12 @@
 import { Button, Layout, Space, Typography } from "antd";
 import { useSnapshot } from "valtio";
 import type { Birthday } from "./birthdays";
-import { checkAndNotify, requestNotificationPermission } from "./notifications";
+import { triggerConfetti } from "./celebration";
+import {
+	checkAndNotify,
+	requestNotificationPermission,
+	sendTestNotification,
+} from "./notifications";
 import { store } from "./store";
 
 interface AppHeaderProps {
@@ -31,7 +36,22 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 					({document.title})
 				</small>
 			</Typography.Title>
-			<Space>
+			<Space wrap>
+				<Button
+					onClick={() => sendTestNotification()}
+					title="Test Notification"
+				>
+					🧪🔔
+				</Button>
+				<Button
+					onClick={() => {
+						sendTestNotification();
+						triggerConfetti();
+					}}
+					title="Simulate Birthday"
+				>
+					🧪🎂
+				</Button>
 				<Button
 					onClick={async () => {
 						await requestNotificationPermission();
