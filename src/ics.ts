@@ -1,11 +1,9 @@
+import dayjs from "dayjs";
 import type { Birthday } from "./birthdays";
 
 export const generateICS = (birthdays: readonly Birthday[]) => {
 	const events = birthdays.map((b) => {
-		const year = b.year;
-		const month = b.month.toString().padStart(2, "0");
-		const day = b.day.toString().padStart(2, "0");
-		const dtstart = `${year}${month}${day}`;
+		const dtstart = dayjs(b.birthday).format("YYYYMMDD");
 		const summary = b.isWedding
 			? `${b.name} Wedding Anniversary`
 			: `${b.name}'s Birthday`;

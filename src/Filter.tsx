@@ -43,9 +43,9 @@ export const FilterSearch = () => {
 		<Input.Search
 			placeholder="Search..."
 			allowClear
-			style={{ marginBottom: 8 }}
+			style={{ marginBottom: 16 }}
 			onChange={(e) => {
-				store.search = e.target.value.toLowerCase();
+				store.search = e.target.value;
 			}}
 			value={snap.search}
 		/>
