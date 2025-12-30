@@ -1,4 +1,4 @@
-import { Progress, Table, Tag } from "antd";
+import { Button, Divider, Progress, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo } from "react";
 import { useSnapshot } from "valtio";
@@ -9,6 +9,7 @@ import {
 	getKindColor,
 } from "./birthdays";
 import { store } from "./store";
+import html2canvas from "html2canvas";
 
 const Highlight = ({ text, search }: { text: string; search: string }) => {
 	const term = search.trim();
@@ -154,56 +155,153 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 					const sameYear = birthdays.filter(
 						(b) => b.name !== record.name && b.year === record.year,
 					);
+
+					const handleDownloadCard = async () => {
+						const element = document.getElementById(`card-${record.name}`);
+						if (element) {
+							// Temporarily show the card if it's hidden or just capture it if it's rendered off-screen
+							const canvas = await html2canvas(element, {
+								backgroundColor: store.darkMode ? "#141414" : "#ffffff",
+								scale: 2,
+							});
+							const link = document.createElement("a");
+							link.download = `birthday-card-${record.name}.png`;
+							link.href = canvas.toDataURL("image/png");
+							link.click();
+						}
+					};
+
 					return (
 						<div style={{ padding: "8px 16px" }}>
-							{record.milestone && (
-								<p>
-									<strong>Milestone Alert:</strong> {record.milestone}
-								</p>
-							)}
-							<p>
-								<strong>Milestone Status:</strong> {record.milestoneStatus}
-							</p>
-							{sameBirthday.length > 0 && (
-								<p>
-									<strong>Shared Birthday:</strong>{" "}
-									{sameBirthday.map((b) => b.name).join(", ")}
-								</p>
-							)}
-							{sameYear.length > 0 && (
-								<p>
-									<strong>Shared Birth Year ({record.year}):</strong>{" "}
-									{sameYear.map((b) => b.name).join(", ")}
-								</p>
-							)}
-							<p>
-								<strong>Traits:</strong> {record.traits}
-							</p>
-							<p>
-								<strong>Compatible with:</strong> {record.compatible}{" "}
-								{record.compatible.split("&").map((el) => {
-									const element = el.trim();
-									return (
-										<Tag
-											key={element}
-											style={{ cursor: "pointer" }}
-											onClick={() => {
-												store.search = element;
-												window.scrollTo({ top: 0, behavior: "smooth" });
-											}}
-										>
-											Find matches for {element}
-										</Tag>
-									);
-								})}
-							</p>
-							<p>
-								<strong>Generation:</strong> {record.generation} (
-								{record.decade})
-							</p>
-							<p>
-								<strong>Season:</strong> {record.season}
-							</p>
+							<Space
+								wrap
+								split={<Divider type="vertical" />}
+								style={{ marginBottom: 16 }}
+							>
+								<Button
+									type="primary"
+									size="small"
+									onClick={handleDownloadCard}
+									icon="📸"
+								>
+									Download Share Card
+								</Button>
+								<a
+									href={`https://en.wikipedia.org/wiki/${record.year}`}
+									target="_blank"
+									rel="noreferrer"
+								>
+									📜 What happened in {record.year}?
+								</a>
+							</Space>
+
+							<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px" }}>
+								<div>
+									<p>
+										<strong>Life Progress:</strong>
+									</p>
+									<ul>
+										<li>{record.ageInDays.toLocaleString()} days lived</li>
+										<li>{record.ageInWeeks.toLocaleString()} weeks lived</li>
+										<li>{record.ageInMonths.toLocaleString()} months lived</li>
+										<li>Next Half-Birthday: {record.halfBirthday}</li>
+									</ul>
+								</div>
+								<div>
+									{record.milestone && (
+										<p>
+											<strong>Milestone Alert:</strong> {record.milestone}
+										</p>
+									)}
+									<p>
+										<strong>Milestone Status:</strong> {record.milestoneStatus}
+									</p>
+									{sameBirthday.length > 0 && (
+										<p>
+											<strong>Shared Birthday:</strong>{" "}
+											{sameBirthday.map((b) => b.name).join(", ")}
+										</p>
+									)}
+									{sameYear.length > 0 && (
+										<p>
+											<strong>Shared Birth Year ({record.year}):</strong>{" "}
+											{sameYear.map((b) => b.name).join(", ")}
+										</p>
+									)}
+								</div>
+								<div>
+									<p>
+										<strong>Traits:</strong> {record.traits}
+									</p>
+									<p>
+										<strong>Compatible with:</strong> {record.compatible}{" "}
+										{record.compatible.split("&").map((el) => {
+											const element = el.trim();
+											return (
+												<Tag
+													key={element}
+													style={{ cursor: "pointer" }}
+													onClick={() => {
+														store.search = element;
+														window.scrollTo({ top: 0, behavior: "smooth" });
+													}}
+												>
+													Find matches for {element}
+												</Tag>
+											);
+										})}
+									</p>
+								</div>
+								<div>
+									<p>
+										<strong>Generation:</strong> {record.generation} (
+										{record.decade})
+									</p>
+									<p>
+										<strong>Season:</strong> {record.season}
+									</p>
+								</div>
+							</div>
+
+							{/* Hidden card for capture */}
+							<div style={{ position: "absolute", left: "-9999px", top: "-9999px" }}>
+								<div
+									id={`card-${record.name}`}
+									style={{
+										width: "400px",
+										padding: "40px",
+										background: store.darkMode
+											? "linear-gradient(135deg, #141414 0%, #262626 100%)"
+											: "linear-gradient(135deg, #f0f2f5 0%, #ffffff 100%)",
+										color: store.darkMode ? "white" : "black",
+										textAlign: "center",
+										borderRadius: "16px",
+										border: `2px solid ${getKindColor(record.kind) || "#1890ff"}`,
+									}}
+								>
+									<div style={{ fontSize: "48px", marginBottom: "16px" }}>
+										{getAgeEmoji(record.age, record.kind)}
+									</div>
+									<h1 style={{ margin: 0, color: store.darkMode ? "white" : "black" }}>
+										Happy Birthday, {record.name}!
+									</h1>
+									<h2 style={{ opacity: 0.8, color: store.darkMode ? "white" : "black" }}>
+										Turning {record.age + 1}
+									</h2>
+									<div style={{ marginTop: "24px", fontSize: "18px" }}>
+										<p>{record.signSymbol} {record.sign.toUpperCase()}</p>
+										<p>💎 {record.birthgem}</p>
+										<p>🐉 {record.chineseZodiac}</p>
+									</div>
+									<Divider style={{ borderColor: "rgba(128,128,128,0.3)" }} />
+									<p style={{ fontStyle: "italic", fontSize: "14px", opacity: 0.7 }}>
+										{record.traits}
+									</p>
+									<div style={{ marginTop: "24px", fontSize: "12px", opacity: 0.5 }}>
+										Birthday Tracker
+									</div>
+								</div>
+							</div>
 						</div>
 					);
 				},

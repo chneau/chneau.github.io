@@ -44,6 +44,10 @@ export type Birthday = {
 	traits: string;
 	compatible: string;
 	progress: number;
+	ageInDays: number;
+	ageInWeeks: number;
+	ageInMonths: number;
+	halfBirthday: string;
 };
 
 const BIG_BIRTHDAYS = [
@@ -246,6 +250,11 @@ export const birthdays: Birthday[] = validatedBirthdays
 		);
 		const progress = ((totalDaysInYear - daysBefore) / totalDaysInYear) * 100;
 
+		const ageInDays = today.diff(birthday, "day");
+		const ageInWeeks = today.diff(birthday, "week");
+		const ageInMonths = today.diff(birthday, "month");
+		const halfBirthday = birthday.add(6, "month").format("MMMM DD");
+
 		return {
 			...x,
 			year,
@@ -272,6 +281,10 @@ export const birthdays: Birthday[] = validatedBirthdays
 			traits: sign.traits,
 			compatible: sign.compatible,
 			progress,
+			ageInDays,
+			ageInWeeks,
+			ageInMonths,
+			halfBirthday,
 		};
 	})
 	.sort((a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday);
