@@ -2,8 +2,6 @@ import dayjs from "dayjs";
 import { type Kind, rawBirthdays } from "./rawBirthdays";
 import { getBirthgem, getSign } from "./zodiac";
 
-export type { Kind };
-
 export type Birthday = {
 	isWedding?: boolean;
 	name: string;
