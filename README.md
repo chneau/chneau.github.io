@@ -78,11 +78,15 @@ To add or edit birthdays, modify the `src/birthdays.json` file. The format is:
 ```
 
 - **name**: The name of the person.
+
 - **date**: Birthday in `YYYY-MM-DD` format.
+
 - **kind**: `♂️` (Boy), `♀️` (Girl), or `💒` (Wedding).
-- **isWedding**: (Optional) Set to `true` for anniversaries to enable
-  wedding-specific milestones.
+
+
 
 ## 📄 License
+
+
 
 MIT © [chneau](https://github.com/chneau)
