@@ -216,15 +216,17 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 							>
 								<div>
 									<p>
-										<strong>Life Progress:</strong>
+										<strong>📈 Life Progress:</strong>
 									</p>
 									<ul>
-										<li>{record.ageInDays.toLocaleString()} days lived</li>
-										<li>{record.ageInWeeks.toLocaleString()} weeks lived</li>
-										<li>{record.ageInMonths.toLocaleString()} months lived</li>
-										<li>Next Half-Birthday: {record.halfBirthday}</li>
+										<li>🗓️ {record.ageInDays.toLocaleString()} days lived</li>
+										<li>🗓️ {record.ageInWeeks.toLocaleString()} weeks lived</li>
 										<li>
-											Life Path {record.lifePathNumber}:{" "}
+											🗓️ {record.ageInMonths.toLocaleString()} months lived
+										</li>
+										<li>🌓 Next Half-Birthday: {record.halfBirthday}</li>
+										<li>
+											🔢 Life Path {record.lifePathNumber}:{" "}
 											{record.lifePathMeaning}
 										</li>
 									</ul>
@@ -232,31 +234,32 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 								<div>
 									{record.milestone && (
 										<p>
-											<strong>Milestone Alert:</strong> {record.milestone}
+											<strong>🎯 Milestone Alert:</strong> {record.milestone}
 										</p>
 									)}
 									<p>
-										<strong>Milestone Status:</strong> {record.milestoneStatus}
+										<strong>📊 Milestone Status:</strong>{" "}
+										{record.milestoneStatus}
 									</p>
 									{sameBirthday.length > 0 && (
 										<p>
-											<strong>Shared Birthday:</strong>{" "}
+											<strong>👯 Shared Birthday:</strong>{" "}
 											{sameBirthday.map((b) => b.name).join(", ")}
 										</p>
 									)}
 									{sameYear.length > 0 && (
 										<p>
-											<strong>Shared Birth Year ({record.year}):</strong>{" "}
+											<strong>👶 Shared Birth Year ({record.year}):</strong>{" "}
 											{sameYear.map((b) => b.name).join(", ")}
 										</p>
 									)}
 								</div>
 								<div>
 									<p>
-										<strong>Traits:</strong> {record.traits}
+										<strong>✨ Traits:</strong> {record.traits}
 									</p>
 									<p>
-										<strong>Compatible with:</strong> {record.compatible}{" "}
+										<strong>🤝 Compatible with:</strong> {record.compatible}{" "}
 										{record.compatible.split("&").map((el) => {
 											const element = el.trim();
 											return (
@@ -276,16 +279,16 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 								</div>
 								<div>
 									<p>
-										<strong>Generation:</strong> {record.generation} (
+										<strong>🧬 Generation:</strong> {record.generation} (
 										{record.decade})
 									</p>
 									<p>
-										<strong>Season:</strong> {record.season}
+										<strong>🌤️ Season:</strong> {record.season}
 									</p>
 								</div>
 								<div>
 									<p>
-										<strong>Life in Numbers:</strong>
+										<strong>🔢 Life in Numbers:</strong>
 									</p>
 									<ul>
 										<li>💓 {record.heartbeats.toLocaleString()} heartbeats</li>
