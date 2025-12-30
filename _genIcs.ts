@@ -6,9 +6,10 @@ const generateICS = (birthdays: readonly Birthday[]) => {
 	const events = birthdays.map((b) => {
 		const dtstart = dayjs(b.birthday);
 		const dtend = dtstart.add(1, "day");
-		const summary = b.isWedding
-			? `${b.name} Wedding Anniversary`
-			: `${b.name}'s Birthday`;
+		const summary =
+			b.kind === "💒"
+				? `${b.name} Wedding Anniversary`
+				: `${b.name}'s Birthday`;
 		const uid = `${b.name.replace(/\s+/g, "_")}_${dtstart.format(
 			"YYYYMMDD",
 		)}@chneau.github.io`;

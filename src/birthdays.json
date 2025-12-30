@@ -29,37 +29,31 @@
 	{
 		"name": "Brigitte & Julien",
 		"date": "2016-02-19",
-		"isWedding": true,
 		"kind": "💒"
 	},
 	{
 		"name": "Cécile & Christian",
 		"date": "2005-02-26",
-		"isWedding": true,
 		"kind": "💒"
 	},
 	{
 		"name": "Dorothée & Christian",
 		"date": "1977-03-25",
-		"isWedding": true,
 		"kind": "💒"
 	},
 	{
 		"name": "Nadia & Christopher",
 		"date": "2010-09-04",
-		"isWedding": true,
 		"kind": "💒"
 	},
 	{
 		"name": "Ravahere & Martin",
 		"date": "2005-03-26",
-		"isWedding": true,
 		"kind": "💒"
 	},
 	{
 		"name": "Sandra & Maximin",
 		"date": "2014-10-03",
-		"isWedding": true,
 		"kind": "💒"
 	}
 ]

@@ -27,7 +27,7 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 							<Typography.Text strong>{x.name}</Typography.Text>
 							<br />
 							<Typography.Text type="secondary" style={{ fontSize: "0.85em" }}>
-								{x.isWedding ? "Anniversary" : `Turns ${x.age + 1}`} in{" "}
+								{x.kind === "💒" ? "Anniversary" : `Turns ${x.age + 1}`} in{" "}
 								{x.daysBeforeBirthday} days ({x.dayOfWeek})
 							</Typography.Text>
 						</div>
