@@ -3,7 +3,7 @@
 	"type": "module",
 	"scripts": {
 		"start": "rsbuild dev",
-		"build": "bun run _genIcs.ts && rsbuild build",
+		"build": "bun run _genIcs.ts && rsbuild build && cp README.md dist/",
 		"deploy": "bun run build && gh-pages --dist dist --branch master; rm -rf dist",
 		"upgrade": "bun update --latest",
 		"check": "deno fmt --use-tabs --quiet; oxlint --fix-dangerously --quiet; timeout 3s biome check --write --unsafe .",
