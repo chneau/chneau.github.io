@@ -20,6 +20,8 @@ export type Birthday = {
 	generation: string;
 	season: string;
 	dayOfWeek: string;
+	ageGroup: string;
+	decade: string;
 };
 
 const getChineseZodiac = (year: number): string => {
@@ -38,6 +40,18 @@ const getChineseZodiac = (year: number): string => {
 		"Pig 🐖",
 	];
 	return animals[(((year - 4) % 12) + 12) % 12] || "?";
+};
+
+const getAgeGroup = (age: number): string => {
+	if (age < 3) return "Babies 👶 (<3)";
+	if (age < 13) return "Children 🧒 (<13)";
+	if (age < 60) return "Adults 🧑 (<60)";
+	return "Seniors 🧓 (60+)";
+};
+
+const getDecade = (year: number): string => {
+	const d = Math.floor(year / 10) * 10;
+	return `${d}s`;
 };
 
 const getGeneration = (year: number): string => {
@@ -180,6 +194,9 @@ export const birthdays: Birthday[] = _birthdays
 		const generation = getGeneration(x.year);
 		const season = getSeason(x.month);
 		const dayOfWeek = getDayOfWeek(birthday);
+		const age = getCurrentAge(x);
+		const ageGroup = getAgeGroup(age);
+		const decade = getDecade(x.year);
 		return {
 			...x,
 			nextBirthday,
@@ -192,9 +209,11 @@ export const birthdays: Birthday[] = _birthdays
 			generation,
 			season,
 			dayOfWeek,
+			ageGroup,
+			decade,
 			monthString: nextBirthday.toLocaleString("en-GB", { month: "long" }),
 			daysBeforeBirthday: getDaysBeforeBirthday(nextBirthday),
-			age: getCurrentAge(x),
+			age,
 		};
 	})
 	.sort((a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday);
