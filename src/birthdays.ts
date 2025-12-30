@@ -1,6 +1,6 @@
 import { getBirthgem, getSign } from "./zodiac";
 
-export interface Birthday {
+export type Birthday = {
 	isWedding?: boolean | null | undefined;
 	name: string;
 	kind: string;
@@ -17,7 +17,10 @@ export interface Birthday {
 	day: number;
 	daysBeforeBirthday: number;
 	chineseZodiac: string;
-}
+	generation: string;
+	season: string;
+	dayOfWeek: string;
+};
 
 const getChineseZodiac = (year: number): string => {
 	const animals = [
@@ -35,6 +38,28 @@ const getChineseZodiac = (year: number): string => {
 		"Pig 🐖",
 	];
 	return animals[(((year - 4) % 12) + 12) % 12] || "?";
+};
+
+const getGeneration = (year: number): string => {
+	if (year >= 2013) return "Gen Alpha";
+	if (year >= 1997) return "Gen Z";
+	if (year >= 1981) return "Millennials";
+	if (year >= 1965) return "Gen X";
+	if (year >= 1946) return "Boomers";
+	if (year >= 1928) return "Silent";
+	return "Greatest";
+};
+
+const getSeason = (month: number): string => {
+	if (month >= 3 && month <= 5) return "Spring 🌸";
+	if (month >= 6 && month <= 8) return "Summer ☀️";
+	if (month >= 9 && month <= 11) return "Autumn 🍂";
+	return "Winter ❄️";
+};
+
+const getDayOfWeek = (date: Date): string => {
+	const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+	return dayNames[date.getDay()] || "?";
 };
 
 const _birthdays = [
@@ -152,6 +177,9 @@ export const birthdays: Birthday[] = _birthdays
 		const sign = getSign(birthday);
 		const birthgem = getBirthgem(nextBirthday);
 		const chineseZodiac = getChineseZodiac(x.year);
+		const generation = getGeneration(x.year);
+		const season = getSeason(x.month);
+		const dayOfWeek = getDayOfWeek(birthday);
 		return {
 			...x,
 			nextBirthday,
@@ -161,6 +189,9 @@ export const birthdays: Birthday[] = _birthdays
 			signSymbol: sign.symbol,
 			birthgem,
 			chineseZodiac,
+			generation,
+			season,
+			dayOfWeek,
 			monthString: nextBirthday.toLocaleString("en-GB", { month: "long" }),
 			daysBeforeBirthday: getDaysBeforeBirthday(nextBirthday),
 			age: getCurrentAge(x),

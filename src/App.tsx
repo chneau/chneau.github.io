@@ -156,10 +156,8 @@ const Statistics = () => {
 
 	const days = useMemo(() => {
 		const counts: Record<string, number> = {};
-		const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 		for (const x of data) {
-			const d = dayNames[x.birthday.getDay()];
-			if (d) counts[d] = (counts[d] || 0) + 1;
+			counts[x.dayOfWeek] = (counts[x.dayOfWeek] || 0) + 1;
 		}
 		return Object.entries(counts)
 			.map(([type, value]) => ({ type, value }))
@@ -181,15 +179,7 @@ const Statistics = () => {
 	const generations = useMemo(() => {
 		const counts: Record<string, number> = {};
 		for (const x of data) {
-			let gen = "Greatest";
-			if (x.year >= 2013) gen = "Gen Alpha";
-			else if (x.year >= 1997) gen = "Gen Z";
-			else if (x.year >= 1981) gen = "Millennials";
-			else if (x.year >= 1965) gen = "Gen X";
-			else if (x.year >= 1946) gen = "Boomers";
-			else if (x.year >= 1928) gen = "Silent";
-
-			counts[gen] = (counts[gen] || 0) + 1;
+			counts[x.generation] = (counts[x.generation] || 0) + 1;
 		}
 		return Object.entries(counts)
 			.map(([type, value]) => ({ type, value }))
@@ -199,11 +189,7 @@ const Statistics = () => {
 	const seasons = useMemo(() => {
 		const counts: Record<string, number> = {};
 		for (const x of data) {
-			let season = "Winter ❄️";
-			if (x.month >= 3 && x.month <= 5) season = "Spring 🌸";
-			else if (x.month >= 6 && x.month <= 8) season = "Summer ☀️";
-			else if (x.month >= 9 && x.month <= 11) season = "Autumn 🍂";
-			counts[season] = (counts[season] || 0) + 1;
+			counts[x.season] = (counts[x.season] || 0) + 1;
 		}
 		return Object.entries(counts)
 			.map(([type, value]) => ({ type, value }))
