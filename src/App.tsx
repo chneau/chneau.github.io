@@ -65,7 +65,6 @@ export const App = () => {
 					: theme.defaultAlgorithm,
 			}}
 		>
-			<title>{import.meta.env.BUILD_DATE}</title>
 			<Layout style={{ minHeight: "100vh" }}>
 				<AppHeader data={data} />
 				<Layout.Content style={{ padding: 16 }}>
