@@ -58,9 +58,28 @@ export const getKindColor = (kind: Kind) => {
 export const getAgeEmoji = (age: number, kind?: Kind) => {
 	if (kind === "💒") return "💍";
 	if (age < 3) return "👶";
-	if (age < 13) return "🧒";
-	if (age >= 60) return "🧓";
+	if (age < 20) {
+		if (kind === "♂️") return "👦";
+		if (kind === "♀️") return "👧";
+		return "🧒";
+	}
+	if (age >= 60) {
+		if (kind === "♂️") return "👴";
+		if (kind === "♀️") return "👵";
+		return "🧓";
+	}
+	if (kind === "♂️") return "👨";
+	if (kind === "♀️") return "👩";
 	return "🧑";
+};
+
+const getAgeGroup = (age: number, kind?: Kind): string => {
+	if (kind === "💒") return "Weddings 💍";
+	if (age < 3) return "Babies 👶 (<3)";
+	if (age < 13) return "Children 🧒 (<13)";
+	if (age < 20) return "Teens 🧒 (<20)";
+	if (age < 60) return "Adults 🧑 (<60)";
+	return "Seniors 🧓 (60+)";
 };
 
 const getChineseZodiac = (year: number): string => {
@@ -79,13 +98,6 @@ const getChineseZodiac = (year: number): string => {
 		"Pig 🐖",
 	];
 	return animals[(((year - 4) % 12) + 12) % 12] || "?";
-};
-
-const getAgeGroup = (age: number): string => {
-	if (age < 3) return `Babies ${getAgeEmoji(age)} (<3)`;
-	if (age < 13) return `Children ${getAgeEmoji(age)} (<13)`;
-	if (age < 60) return `Adults ${getAgeEmoji(age)} (<60)`;
-	return `Seniors ${getAgeEmoji(age)} (60+)`;
 };
 
 const getDecade = (year: number): string => `${Math.floor(year / 10) * 10}s`;
@@ -143,7 +155,7 @@ export const birthdays: Birthday[] = rawBirthdays
 			generation: getGeneration(year),
 			season: getSeason(month),
 			dayOfWeek: birthday.format("ddd"),
-			ageGroup: getAgeGroup(age),
+			ageGroup: getAgeGroup(age, x.kind),
 			decade: getDecade(year),
 			monthString: birthday.format("MMMM"),
 			daysBeforeBirthday: daysBefore,
