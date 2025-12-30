@@ -1,4 +1,4 @@
-import { Button, Divider, Progress, Space, Table, Tag } from "antd";
+import { Alert, Button, Divider, Progress, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import html2canvas from "html2canvas";
 import { useMemo } from "react";
@@ -178,6 +178,14 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 
 					return (
 						<div style={{ padding: "8px 16px" }}>
+							<Alert
+								message="Today's Insight"
+								description={record.dailyInsight}
+								type="info"
+								showIcon
+								icon="🔮"
+								style={{ marginBottom: 16 }}
+							/>
 							<Space
 								wrap
 								separator={<Divider orientation="vertical" />}
@@ -299,6 +307,18 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 										</li>
 									</ul>
 								</div>
+								<div>
+									<p>
+										<strong>🪐 Space Age:</strong>
+									</p>
+									<ul>
+										{record.planetAges.map((p) => (
+											<li key={p.name}>
+												{p.icon} {p.name}: {p.age.toFixed(2)} years
+											</li>
+										))}
+									</ul>
+								</div>
 							</div>
 
 							<BiorhythmsChart birthday={record.birthday} />
@@ -346,6 +366,18 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 									>
 										Turning {record.age + 1}
 									</h2>
+									<div
+										style={{
+											marginTop: "16px",
+											marginBottom: "16px",
+											padding: "12px",
+											background: "rgba(24, 144, 255, 0.1)",
+											borderRadius: "8px",
+											fontSize: "14px",
+										}}
+									>
+										🔮 {record.dailyInsight}
+									</div>
 									<div style={{ marginTop: "24px", fontSize: "18px" }}>
 										<p>
 											{record.signSymbol} {record.sign.toUpperCase()}
