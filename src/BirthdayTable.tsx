@@ -124,6 +124,14 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 			expandable={{
 				expandedRowRender: (record) => (
 					<div style={{ padding: "8px 16px" }}>
+						{record.milestone && (
+							<p>
+								<strong>Milestone Alert:</strong> {record.milestone}
+							</p>
+						)}
+						<p>
+							<strong>Milestone Status:</strong> {record.milestoneStatus}
+						</p>
 						<p>
 							<strong>Traits:</strong> {record.traits}
 						</p>
