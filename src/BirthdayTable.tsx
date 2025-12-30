@@ -57,7 +57,11 @@ const getColumns = (search: string): ColumnsType<Birthday> => [
 	{
 		title: "Birthday",
 		dataIndex: "birthdayString",
-		render: (_, x) => <Highlight text={x.birthdayString} search={search} />,
+		render: (_, x) => (
+			<>
+				📅 <Highlight text={x.birthdayString} search={search} />
+			</>
+		),
 		sorter: (a, b) => a.birthday.getTime() - b.birthday.getTime(),
 	},
 	{
@@ -87,7 +91,7 @@ const getColumns = (search: string): ColumnsType<Birthday> => [
 		dataIndex: "daysBeforeBirthday",
 		render: (days) => (
 			<Tag color={days === 0 ? "red" : days < 30 ? "orange" : undefined}>
-				{days} days
+				⏳ {days} days
 			</Tag>
 		),
 		sorter: (a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday,
