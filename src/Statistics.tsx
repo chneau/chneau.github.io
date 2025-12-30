@@ -3,6 +3,7 @@ import {
 	Column,
 	ConfigProvider,
 	type Datum,
+	Heatmap,
 	Pie,
 } from "@ant-design/charts";
 import { Card, Col, Row, Typography } from "antd";
@@ -21,6 +22,66 @@ const tooltip = {
 			valueFormatter: (v: string[]) => v.join(", "),
 		},
 	],
+};
+
+const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
+	const heatmapData = useMemo(() => {
+		const months = Array.from({ length: 12 }, (_, i) => i);
+		const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+		return months.flatMap((m) =>
+			days.flatMap((d) => {
+				const births = data.filter((x) => x.month === m + 1 && x.day === d);
+				if (births.length === 0) return [];
+				return [
+					{
+						month: monthNames[m],
+						day: d.toString(),
+						value: births.length,
+						names: births.map((b) => b.name),
+					},
+				];
+			}),
+		);
+	}, [data]);
+
+	return (
+		<Col xs={24}>
+			<Typography.Title level={5}>
+				Birth Heatmap (Month vs Day)
+			</Typography.Title>
+			<Heatmap
+				data={heatmapData}
+				xField="day"
+				yField="month"
+				colorField="value"
+				height={300}
+				mark="cell"
+				style={{ inset: 0.5 }}
+				scale={{
+					x: {
+						type: "band",
+						domain: Array.from({ length: 31 }, (_, i) => (i + 1).toString()),
+					},
+					y: {
+						type: "band",
+						domain: monthNames,
+					},
+				}}
+				tooltip={{
+					title: (d) => `${d.month} ${d.day}`,
+					items: [
+						{ field: "value", name: "Count" },
+						{
+							field: "names",
+							name: "People",
+							valueFormatter: (v: string[]) => v.join(", "),
+						},
+					],
+				}}
+			/>
+		</Col>
+	);
 };
 
 const StatColumn = <T extends Datum>({
@@ -79,9 +140,8 @@ const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
 			"80-89",
 			"90+",
 		];
-		const result: Datum[] = [];
 
-		groups.forEach((group) => {
+		return groups.flatMap((group) => {
 			const range = group === "90+" ? [90, 200] : group.split("-").map(Number);
 			const range0 = range[0] as number;
 			const range1 = range[1] as number;
@@ -92,21 +152,21 @@ const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
 				(b) => b.kind === "♀️" && b.age >= range0 && b.age <= range1,
 			);
 
-			result.push({
-				group,
-				gender: "♂️",
-				value: -boys.length,
-				names: boys.map((b) => b.name),
-			});
-			result.push({
-				group,
-				gender: "♀️",
-				value: girls.length,
-				names: girls.map((b) => b.name),
-			});
+			return [
+				{
+					group,
+					gender: "♂️",
+					value: -boys.length,
+					names: boys.map((b) => b.name),
+				},
+				{
+					group,
+					gender: "♀️",
+					value: girls.length,
+					names: girls.map((b) => b.name),
+				},
+			];
 		});
-
-		return result;
 	}, [data]);
 
 	return (
@@ -130,10 +190,12 @@ const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
 					items: [
 						{
 							channel: "y",
+							name: "Count",
 							valueFormatter: (v: number) => Math.abs(v),
 						},
 						{
 							field: "names",
+							name: "People",
 							valueFormatter: (v: string[]) => v.join(", "),
 						},
 					],
@@ -207,6 +269,7 @@ export const Statistics = () => {
 					<StatColumn title="Birth Day of Week" data={stats.days} />
 					<StatColumn title="Birth Decades" data={stats.decades} />
 					<AgePyramid data={data} />
+					<BirthHeatmap data={data} />
 				</Row>
 			</Card>
 		</ConfigProvider>
