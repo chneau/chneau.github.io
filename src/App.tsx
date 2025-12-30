@@ -5,6 +5,7 @@ import {
 	Input,
 	Layout,
 	Row,
+	Statistic,
 	Table,
 	Tag,
 	Typography,
@@ -80,7 +81,7 @@ const Statistics = () => {
 			const l = (x.name[0] || "?").toUpperCase();
 			counts[l] = (counts[l] || 0) + 1;
 		}
-		return Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0]));
+		return Object.entries(counts).sort((a, b) => b[1] - a[1]);
 	}, [data]);
 
 	const signs = useMemo(() => {
@@ -115,7 +116,8 @@ const Statistics = () => {
 		}
 		return monthNames
 			.map((m) => [m, counts[m] || 0] as const)
-			.filter((x) => x[1] > 0);
+			.filter((x) => x[1] > 0)
+			.sort((a, b) => b[1] - a[1]);
 	}, [data]);
 
 	const ageGroups = useMemo(() => {
@@ -131,7 +133,29 @@ const Statistics = () => {
 			else if (x.age < 60) counts["Adults 🧑 (<60)"]++;
 			else counts["Seniors 🧓 (60+)"]++;
 		}
-		return Object.entries(counts);
+		return Object.entries(counts)
+			.filter((x) => x[1] > 0)
+			.sort((a, b) => b[1] - a[1]);
+	}, [data]);
+
+	const days = useMemo(() => {
+		const counts: Record<string, number> = {};
+		const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+		for (const x of data) {
+			const d = dayNames[x.birthday.getDay()];
+			if (d) counts[d] = (counts[d] || 0) + 1;
+		}
+		return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+	}, [data]);
+
+	const decades = useMemo(() => {
+		const counts: Record<string, number> = {};
+		for (const x of data) {
+			const d = Math.floor(x.year / 10) * 10;
+			const label = `${d}s`;
+			counts[label] = (counts[label] || 0) + 1;
+		}
+		return Object.entries(counts).sort((a, b) => b[1] - a[1]);
 	}, [data]);
 
 	return (
@@ -141,36 +165,40 @@ const Statistics = () => {
 			style={{ marginTop: 16 }}
 		>
 			<Row gutter={[16, 16]}>
-				<Col xs={24} sm={12} md={6}>
+				<Col xs={24} sm={12} md={4}>
 					<Typography.Title level={5}>By First Letter</Typography.Title>
 					{letters.map(([l, c]) => (
-						<div key={l}>
-							{l}: {c}
-						</div>
+						<Statistic key={l} title={l} value={c} valueStyle={{ fontSize: 16 }} />
 					))}
 				</Col>
-				<Col xs={24} sm={12} md={6}>
+				<Col xs={24} sm={12} md={4}>
 					<Typography.Title level={5}>By Sign</Typography.Title>
 					{signs.map(([s, c]) => (
-						<div key={s}>
-							{s}: {c}
-						</div>
+						<Statistic key={s} title={s} value={c} valueStyle={{ fontSize: 16 }} />
 					))}
 				</Col>
-				<Col xs={24} sm={12} md={6}>
+				<Col xs={24} sm={12} md={4}>
 					<Typography.Title level={5}>By Month</Typography.Title>
 					{months.map(([m, c]) => (
-						<div key={m}>
-							{m}: {c}
-						</div>
+						<Statistic key={m} title={m} value={c} valueStyle={{ fontSize: 16 }} />
 					))}
 				</Col>
-				<Col xs={24} sm={12} md={6}>
+				<Col xs={24} sm={12} md={4}>
 					<Typography.Title level={5}>By Age Group</Typography.Title>
 					{ageGroups.map(([g, c]) => (
-						<div key={g}>
-							{g}: {c}
-						</div>
+						<Statistic key={g} title={g} value={c} valueStyle={{ fontSize: 16 }} />
+					))}
+				</Col>
+				<Col xs={24} sm={12} md={4}>
+					<Typography.Title level={5}>By Day</Typography.Title>
+					{days.map(([d, c]) => (
+						<Statistic key={d} title={d} value={c} valueStyle={{ fontSize: 16 }} />
+					))}
+				</Col>
+				<Col xs={24} sm={12} md={4}>
+					<Typography.Title level={5}>By Decade</Typography.Title>
+					{decades.map(([d, c]) => (
+						<Statistic key={d} title={d} value={c} valueStyle={{ fontSize: 16 }} />
 					))}
 				</Col>
 			</Row>
