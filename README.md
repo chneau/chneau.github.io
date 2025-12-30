@@ -83,10 +83,6 @@ To add or edit birthdays, modify the `src/birthdays.json` file. The format is:
 
 - **kind**: `♂️` (Boy), `♀️` (Girl), or `💒` (Wedding).
 
-
-
 ## 📄 License
-
-
 
 MIT © [chneau](https://github.com/chneau)

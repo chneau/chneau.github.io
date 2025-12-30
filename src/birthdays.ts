@@ -9,7 +9,6 @@ const birthdaySchema = z.object({
 		message: "Invalid date format",
 	}),
 	kind: z.enum(["♂️", "♀️", "💒"]),
-	isWedding: z.boolean().optional(),
 });
 
 const birthdaysArraySchema = z.array(birthdaySchema);
@@ -17,7 +16,6 @@ const birthdaysArraySchema = z.array(birthdaySchema);
 export type Kind = "♂️" | "♀️" | "💒";
 
 export type Birthday = {
-	isWedding?: boolean;
 	name: string;
 	kind: Kind;
 	age: number;
@@ -72,8 +70,9 @@ const getMilestoneInfo = (
 	age: number,
 	nextAge: number,
 	isToday: boolean,
-	isWedding?: boolean,
+	kind: Kind,
 ) => {
+	const isWedding = kind === "💒";
 	const milestones = isWedding
 		? Object.keys(WEDDING_MILESTONES).map(Number)
 		: BIG_BIRTHDAYS;
@@ -241,7 +240,7 @@ export const birthdays: Birthday[] = validatedBirthdays
 			age,
 			nextAge,
 			daysBefore === 0,
-			x.isWedding,
+			x.kind,
 		);
 
 		const totalDaysInYear = nextBirthday.diff(
