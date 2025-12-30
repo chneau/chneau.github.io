@@ -1,3 +1,4 @@
+import { Column, Pie } from "@ant-design/charts";
 import {
 	Card,
 	Checkbox,
@@ -5,7 +6,6 @@ import {
 	Input,
 	Layout,
 	Row,
-	Statistic,
 	Table,
 	Tag,
 	Typography,
@@ -81,7 +81,9 @@ const Statistics = () => {
 			const l = (x.name[0] || "?").toUpperCase();
 			counts[l] = (counts[l] || 0) + 1;
 		}
-		return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+		return Object.entries(counts)
+			.map(([type, value]) => ({ type, value }))
+			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const signs = useMemo(() => {
@@ -89,7 +91,9 @@ const Statistics = () => {
 		for (const x of data) {
 			counts[x.sign] = (counts[x.sign] || 0) + 1;
 		}
-		return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+		return Object.entries(counts)
+			.map(([type, value]) => ({ type, value }))
+			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const months = useMemo(() => {
@@ -115,9 +119,9 @@ const Statistics = () => {
 			}
 		}
 		return monthNames
-			.map((m) => [m, counts[m] || 0] as const)
-			.filter((x) => x[1] > 0)
-			.sort((a, b) => b[1] - a[1]);
+			.map((m) => ({ type: m, value: counts[m] || 0 }))
+			.filter((x) => x.value > 0)
+			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const ageGroups = useMemo(() => {
@@ -134,8 +138,9 @@ const Statistics = () => {
 			else counts["Seniors 🧓 (60+)"]++;
 		}
 		return Object.entries(counts)
-			.filter((x) => x[1] > 0)
-			.sort((a, b) => b[1] - a[1]);
+			.map(([type, value]) => ({ type, value }))
+			.filter((x) => x.value > 0)
+			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const days = useMemo(() => {
@@ -145,7 +150,9 @@ const Statistics = () => {
 			const d = dayNames[x.birthday.getDay()];
 			if (d) counts[d] = (counts[d] || 0) + 1;
 		}
-		return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+		return Object.entries(counts)
+			.map(([type, value]) => ({ type, value }))
+			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	const decades = useMemo(() => {
@@ -155,7 +162,9 @@ const Statistics = () => {
 			const label = `${d}s`;
 			counts[label] = (counts[label] || 0) + 1;
 		}
-		return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+		return Object.entries(counts)
+			.map(([type, value]) => ({ type, value }))
+			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
 	return (
@@ -165,71 +174,71 @@ const Statistics = () => {
 			style={{ marginTop: 16 }}
 		>
 			<Row gutter={[16, 16]}>
-				<Col xs={24} sm={12} md={4}>
+				<Col xs={24} sm={12} md={8}>
 					<Typography.Title level={5}>By First Letter</Typography.Title>
-					{letters.map(([l, c]) => (
-						<Statistic
-							key={l}
-							title={l}
-							value={c}
-							styles={{ content: { fontSize: 16 } }}
-						/>
-					))}
+					<Column
+						data={letters}
+						xField="type"
+						yField="value"
+						height={200}
+						axis={{ y: { grid: false } }}
+						label={{ text: "value" }}
+					/>
 				</Col>
-				<Col xs={24} sm={12} md={4}>
+				<Col xs={24} sm={12} md={8}>
 					<Typography.Title level={5}>By Sign</Typography.Title>
-					{signs.map(([s, c]) => (
-						<Statistic
-							key={s}
-							title={s}
-							value={c}
-							styles={{ content: { fontSize: 16 } }}
-						/>
-					))}
+					<Pie
+						data={signs}
+						angleField="value"
+						colorField="type"
+						height={200}
+						legend={false}
+						label={{ text: "type" }}
+					/>
 				</Col>
-				<Col xs={24} sm={12} md={4}>
+				<Col xs={24} sm={12} md={8}>
 					<Typography.Title level={5}>By Month</Typography.Title>
-					{months.map(([m, c]) => (
-						<Statistic
-							key={m}
-							title={m}
-							value={c}
-							styles={{ content: { fontSize: 16 } }}
-						/>
-					))}
+					<Column
+						data={months}
+						xField="type"
+						yField="value"
+						height={200}
+						axis={{ y: { grid: false } }}
+						label={{ text: "value" }}
+					/>
 				</Col>
-				<Col xs={24} sm={12} md={4}>
+				<Col xs={24} sm={12} md={8}>
 					<Typography.Title level={5}>By Age Group</Typography.Title>
-					{ageGroups.map(([g, c]) => (
-						<Statistic
-							key={g}
-							title={g}
-							value={c}
-							styles={{ content: { fontSize: 16 } }}
-						/>
-					))}
+					<Pie
+						data={ageGroups}
+						angleField="value"
+						colorField="type"
+						height={200}
+						legend={false}
+						label={{ text: "type" }}
+					/>
 				</Col>
-				<Col xs={24} sm={12} md={4}>
+				<Col xs={24} sm={12} md={8}>
 					<Typography.Title level={5}>By Day</Typography.Title>
-					{days.map(([d, c]) => (
-						<Statistic
-							key={d}
-							title={d}
-							value={c}
-							styles={{ content: { fontSize: 16 } }}
-						/>
-					))}
+					<Column
+						data={days}
+						xField="type"
+						yField="value"
+						height={200}
+						axis={{ y: { grid: false } }}
+						label={{ text: "value" }}
+					/>
 				</Col>
-				<Col xs={24} sm={12} md={4}>
+				<Col xs={24} sm={12} md={8}>
 					<Typography.Title level={5}>By Decade</Typography.Title>
-					{decades.map(([d, c]) => (
-						<Statistic
-							key={d}
-							title={d}
-							value={c}
-							styles={{ content: { fontSize: 16 } }}
-						/>
-					))}
+					<Column
+						data={decades}
+						xField="type"
+						yField="value"
+						height={200}
+						axis={{ y: { grid: false } }}
+						label={{ text: "value" }}
+					/>
 				</Col>
 			</Row>
 		</Card>
