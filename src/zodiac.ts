@@ -49,91 +49,91 @@ const signs = [
 		name: "capricorn",
 		symbol: "♑",
 		element: "Earth 🜃",
-		traits: "Disciplined, ambitious, and practical.",
+		traits: "Disciplined 📈, ambitious 🏔️, and practical 🛠️.",
 	},
 	{
 		point: 20,
 		name: "aquarius",
 		symbol: "♒",
 		element: "Air 🜁",
-		traits: "Innovative, independent, and humanitarian.",
+		traits: "Innovative 💡, independent 🦅, and humanitarian 🤝.",
 	},
 	{
 		point: 119,
 		name: "pisces",
 		symbol: "♓",
 		element: "Water 🜄",
-		traits: "Compassionate, artistic, and intuitive.",
+		traits: "Compassionate 💖, artistic 🎨, and intuitive 🔮.",
 	},
 	{
 		point: 221,
 		name: "aries",
 		symbol: "♈",
 		element: "Fire 🜂",
-		traits: "Eager, dynamic, and competitive.",
+		traits: "Eager ⚡, dynamic 🏃, and competitive 🏆.",
 	},
 	{
 		point: 320,
 		name: "taurus",
 		symbol: "♉",
 		element: "Earth 🜃",
-		traits: "Strong, dependable, and sensual.",
+		traits: "Strong 💪, dependable 🛡️, and sensual 🌿.",
 	},
 	{
 		point: 421,
 		name: "gemini",
 		symbol: "♊",
 		element: "Air 🜁",
-		traits: "Versatile, expressive, and curious.",
+		traits: "Versatile 🔄, expressive 🗣️, and curious 🔍.",
 	},
 	{
 		point: 522,
 		name: "cancer",
 		symbol: "♋",
 		element: "Water 🜄",
-		traits: "Intuitive, sentimental, and compassionate.",
+		traits: "Intuitive 🌙, sentimental 🧸, and compassionate 🦀.",
 	},
 	{
 		point: 623,
 		name: "leo",
 		symbol: "♌",
 		element: "Fire 🜂",
-		traits: "Dramatic, outgoing, and self-assured.",
+		traits: "Dramatic 🎭, outgoing 🌟, and self-assured 🦁.",
 	},
 	{
 		point: 723,
 		name: "virgo",
 		symbol: "♍",
 		element: "Earth 🜃",
-		traits: "Loyal, analytical, and kind-hearted.",
+		traits: "Loyal 🤝, analytical 📊, and kind-hearted ✨.",
 	},
 	{
 		point: 823,
 		name: "libra",
 		symbol: "♎",
 		element: "Air 🜁",
-		traits: "Diplomatic, artistic, and social.",
+		traits: "Diplomatic ⚖️, artistic 🖼️, and social 🥂.",
 	},
 	{
 		point: 923,
 		name: "scorpio",
 		symbol: "♏",
 		element: "Water 🜄",
-		traits: "Passionate, stubborn, and resourceful.",
+		traits: "Passionate ❤️‍🔥, stubborn 🦂, and resourceful 🛠️.",
 	},
 	{
 		point: 1022,
 		name: "sagittarius",
 		symbol: "♐",
 		element: "Fire 🜂",
-		traits: "Extroverted, optimistic, and funny.",
+		traits: "Extroverted 🏹, optimistic ☀️, and funny 😂.",
 	},
 	{
 		point: 1122,
 		name: "capricorn",
 		symbol: "♑",
 		element: "Earth 🜃",
-		traits: "Disciplined, ambitious, and practical.",
+		traits: "Disciplined 📈, ambitious 🏔️, and practical 🛠️.",
 	},
 ].reverse();
 
@@ -149,11 +149,11 @@ export const getSign = (date: Date) => {
 		element: sign.element,
 		traits: sign.traits,
 		compatible: sign.element.includes("Fire")
-			? "Air & Fire"
+			? "Air 🜁 & Fire 🜂"
 			: sign.element.includes("Air")
-				? "Fire & Air"
+				? "Fire 🜂 & Air 🜁"
 				: sign.element.includes("Earth")
-					? "Water & Earth"
-					: "Earth & Water",
+					? "Water 🜄 & Earth 🜃"
+					: "Earth 🜃 & Water 🜄",
 	};
 };
