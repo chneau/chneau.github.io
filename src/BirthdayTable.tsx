@@ -176,7 +176,7 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 						<div style={{ padding: "8px 16px" }}>
 							<Space
 								wrap
-								split={<Divider type="vertical" />}
+								separator={<Divider orientation="vertical" />}
 								style={{ marginBottom: 16 }}
 							>
 								<Button
