@@ -1,16 +1,37 @@
 const birthgems = [
-	["garnet"],
-	["amethyst"],
-	["aquamarine", "bloodstone"],
-	["diamond"],
-	["emerald"],
-	["alexandrite", "moonstone", "pearl"],
-	["ruby"],
-	["peridot", "sardonyx", "spinel"],
-	["sapphire"],
-	["opal", "tourmaline"],
-	["citrine", "topaz"],
-	["tanzanite", "turquoise", "zircon"],
+	[{ name: "garnet", emoji: "🔴" }],
+	[{ name: "amethyst", emoji: "🟣" }],
+	[
+		{ name: "aquamarine", emoji: "🔵" },
+		{ name: "bloodstone", emoji: "🔴" },
+	],
+	[{ name: "diamond", emoji: "💎" }],
+	[{ name: "emerald", emoji: "🟢" }],
+	[
+		{ name: "alexandrite", emoji: "🟣" },
+		{ name: "moonstone", emoji: "⚪" },
+		{ name: "pearl", emoji: "⚪" },
+	],
+	[{ name: "ruby", emoji: "🔴" }],
+	[
+		{ name: "peridot", emoji: "🟢" },
+		{ name: "sardonyx", emoji: "🔴" },
+		{ name: "spinel", emoji: "🔴" },
+	],
+	[{ name: "sapphire", emoji: "🔵" }],
+	[
+		{ name: "opal", emoji: "⚪" },
+		{ name: "tourmaline", emoji: "🟢" },
+	],
+	[
+		{ name: "citrine", emoji: "🟡" },
+		{ name: "topaz", emoji: "🟠" },
+	],
+	[
+		{ name: "tanzanite", emoji: "🔵" },
+		{ name: "turquoise", emoji: "🔵" },
+		{ name: "zircon", emoji: "🔵" },
+	],
 ];
 
 export const getBirthgem = (date: Date) => {
@@ -19,7 +40,7 @@ export const getBirthgem = (date: Date) => {
 	if (!gems) throw new Error(`No birthgem found for ${date}`);
 	const gem = gems[0];
 	if (!gem) throw new Error(`No birthgem found for ${date}`);
-	return gem;
+	return `${gem.name} ${gem.emoji}`;
 };
 
 const signs = [
