@@ -28,7 +28,7 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 			<Typography.Title level={3} style={{ color: "white", margin: 0 }}>
 				Birthday Tracker{" "}
 				<small style={{ fontSize: "0.5em", opacity: 0.8 }}>
-					({import.meta.env.BUILD_DATE})
+					({document.title})
 				</small>
 			</Typography.Title>
 			<Space>

@@ -7,7 +7,6 @@ const nowStr = dayjs().format("MMM D, HH:mm");
 export default defineConfig({
 	plugins: [pluginReact()],
 	server: { host: "localhost" },
-	source: { define: { "import.meta.env.BUILD_DATE": JSON.stringify(nowStr) } },
 	html: {
 		title: nowStr,
 		tags: [
