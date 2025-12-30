@@ -193,6 +193,13 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 								>
 									📜 What happened in {record.year}?
 								</a>
+								<a
+									href={`https://en.wikipedia.org/wiki/${record.monthString}_${record.day}`}
+									target="_blank"
+									rel="noreferrer"
+								>
+									📅 Events on {record.monthString} {record.day}
+								</a>
 							</Space>
 
 							<div
@@ -211,6 +218,10 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 										<li>{record.ageInWeeks.toLocaleString()} weeks lived</li>
 										<li>{record.ageInMonths.toLocaleString()} months lived</li>
 										<li>Next Half-Birthday: {record.halfBirthday}</li>
+										<li>
+											Life Path {record.lifePathNumber}:{" "}
+											{record.lifePathMeaning}
+										</li>
 									</ul>
 								</div>
 								<div>
@@ -318,6 +329,7 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 										</p>
 										<p>💎 {record.birthgem}</p>
 										<p>🐉 {record.chineseZodiac}</p>
+										<p>🔢 Life Path {record.lifePathNumber}</p>
 									</div>
 									<Divider style={{ borderColor: "rgba(128,128,128,0.3)" }} />
 									<p
@@ -327,6 +339,8 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 											opacity: 0.7,
 										}}
 									>
+										{record.lifePathMeaning}
+										<br />
 										{record.traits}
 									</p>
 									<div

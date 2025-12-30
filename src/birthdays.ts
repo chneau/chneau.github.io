@@ -46,6 +46,8 @@ export type Birthday = {
 	ageInWeeks: number;
 	ageInMonths: number;
 	halfBirthday: string;
+	lifePathNumber: number;
+	lifePathMeaning: string;
 };
 
 const BIG_BIRTHDAYS = [
@@ -214,6 +216,52 @@ const getSeason = (month: number): string => {
 	return "Winter ❄️";
 };
 
+const getLifePath = (date: Date) => {
+	const sumDigits = (n: number): number => {
+		let s = 0;
+		let temp = n;
+		while (temp > 0) {
+			s += temp % 10;
+			temp = Math.floor(temp / 10);
+		}
+		return s;
+	};
+
+	const reduce = (n: number): number => {
+		let res = sumDigits(n);
+		while (res > 9 && res !== 11 && res !== 22 && res !== 33) {
+			res = sumDigits(res);
+		}
+		return res;
+	};
+
+	const d = date.getDate();
+	const m = date.getMonth() + 1;
+	const y = date.getFullYear();
+
+	const lifePathNumber = reduce(reduce(d) + reduce(m) + reduce(y));
+
+	const meanings: Record<number, string> = {
+		1: "The Independent Leader 🦁",
+		2: "The Peacekeeper 🕊️",
+		3: "The Creative Communicator 🎨",
+		4: "The Practical Builder 🏗️",
+		5: "The Freedom Seeker 🌏",
+		6: "The Nurturer 🏠",
+		7: "The Analytical Seeker 🔍",
+		8: "The Powerhouse 💰",
+		9: "The Humanitarian 🤝",
+		11: "The Intuitive Visionary ✨",
+		22: "The Master Builder 🏛️",
+		33: "The Master Teacher 🍎",
+	};
+
+	return {
+		number: lifePathNumber,
+		meaning: meanings[lifePathNumber] || "The Mystery 🌀",
+	};
+};
+
 const validatedBirthdays = birthdaysArraySchema.parse(rawBirthdaysJson);
 
 export const birthdays: Birthday[] = validatedBirthdays
@@ -253,6 +301,7 @@ export const birthdays: Birthday[] = validatedBirthdays
 		const ageInWeeks = today.diff(birthday, "week");
 		const ageInMonths = today.diff(birthday, "month");
 		const halfBirthday = birthday.add(6, "month").format("MMMM DD");
+		const lifePath = getLifePath(birthdayDate);
 
 		return {
 			...x,
@@ -284,6 +333,8 @@ export const birthdays: Birthday[] = validatedBirthdays
 			ageInWeeks,
 			ageInMonths,
 			halfBirthday,
+			lifePathNumber: lifePath.number,
+			lifePathMeaning: lifePath.meaning,
 		};
 	})
 	.sort((a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday);

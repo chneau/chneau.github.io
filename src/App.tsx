@@ -6,6 +6,7 @@ import { AppHeader } from "./AppHeader";
 import { BirthdayTable } from "./BirthdayTable";
 import { birthdays } from "./birthdays";
 import { CalendarActions } from "./CalendarActions";
+import { CompatibilityMatrix } from "./CompatibilityMatrix";
 import { Countdown } from "./Countdown";
 import { triggerConfetti } from "./celebration";
 import { FilterButtons, FilterSearch } from "./Filter";
@@ -85,6 +86,11 @@ export const App = () => {
 									key: "timeline",
 									label: "Timeline",
 									children: <TimelineView data={data} />,
+								},
+								{
+									key: "compatibility",
+									label: "Compatibility",
+									children: <CompatibilityMatrix data={data} />,
 								},
 							]}
 						/>
