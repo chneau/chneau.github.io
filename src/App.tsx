@@ -81,37 +81,90 @@ const columns: ColumnsType<Birthday> = [
 	},
 ];
 
+interface StatItem {
+	type: string;
+	value: number;
+	names: string[];
+}
+
+const tooltip = {
+	title: (d: StatItem) => d.type,
+	items: [
+		{ field: "value", channel: "y" },
+		{
+			field: "names",
+			channel: "color", // Dummy channel
+			valueFormatter: (v: string[]) => v.join(", "),
+		},
+	],
+};
+
+const StatColumn = <T extends StatItem>({
+	title,
+	data,
+}: {
+	title: string;
+	data: T[];
+}) => (
+	<Col xs={24} sm={12} md={8}>
+		<Typography.Title level={5}>{title}</Typography.Title>
+		<Column
+			data={data}
+			xField="type"
+			yField="value"
+			height={200}
+			axis={{ y: { grid: false } }}
+			label={{ text: "value" }}
+			tooltip={tooltip}
+		/>
+	</Col>
+);
+
+const StatPie = <T extends StatItem>({
+	title,
+	data,
+}: {
+	title: string;
+	data: T[];
+}) => (
+	<Col xs={24} sm={12} md={8}>
+		<Typography.Title level={5}>{title}</Typography.Title>
+		<Pie
+			data={data}
+			angleField="value"
+			colorField="type"
+			height={200}
+			legend={false}
+			label={{ text: "type" }}
+			tooltip={tooltip}
+		/>
+	</Col>
+);
+
+const getDistribution = (
+	data: Birthday[],
+	getValue: (b: Birthday) => string | undefined,
+): StatItem[] => {
+	const counts: Record<string, string[]> = {};
+	for (const x of data) {
+		const val = getValue(x);
+		if (val) {
+			if (!counts[val]) counts[val] = [];
+			counts[val]?.push(x.name);
+		}
+	}
+	return Object.entries(counts)
+		.map(([type, names]) => ({ type, value: names.length, names }))
+		.sort((a, b) => b.value - a.value);
+};
+
 const Statistics = () => {
 	const data = useMemo(
 		() => birthdays.filter((x) => !x.isWedding && x.kind !== "💒"),
 		[],
 	);
 
-	const letters = useMemo(() => {
-		const counts: Record<string, string[]> = {};
-		for (const x of data) {
-			const l = (x.name[0] || "?").toUpperCase();
-			if (!counts[l]) counts[l] = [];
-			counts[l]?.push(x.name);
-		}
-		return Object.entries(counts)
-			.map(([type, names]) => ({ type, value: names.length, names }))
-			.sort((a, b) => b.value - a.value);
-	}, [data]);
-
-	const signs = useMemo(() => {
-		const counts: Record<string, string[]> = {};
-		for (const x of data) {
-			if (!counts[x.sign]) counts[x.sign] = [];
-			counts[x.sign]?.push(x.name);
-		}
-		return Object.entries(counts)
-			.map(([type, names]) => ({ type, value: names.length, names }))
-			.sort((a, b) => b.value - a.value);
-	}, [data]);
-
-	const months = useMemo(() => {
-		const counts: Record<string, string[]> = {};
+	const stats = useMemo(() => {
 		const monthNames = [
 			"Jan",
 			"Feb",
@@ -126,133 +179,22 @@ const Statistics = () => {
 			"Nov",
 			"Dec",
 		];
-		for (const x of data) {
-			const m = monthNames[x.month - 1];
-			if (m) {
-				if (!counts[m]) counts[m] = [];
-				counts[m]?.push(x.name);
-			}
-		}
-		return monthNames
-			.map((m) => ({
-				type: m,
-				value: (counts[m] || []).length,
-				names: counts[m] || [],
-			}))
-			.filter((x) => x.value > 0)
-			.sort((a, b) => b.value - a.value);
-	}, [data]);
 
-	const ageGroups = useMemo(() => {
-		const counts: Record<string, string[]> = {};
-		for (const x of data) {
-			if (!counts[x.ageGroup]) counts[x.ageGroup] = [];
-			counts[x.ageGroup]?.push(x.name);
-		}
-		return Object.entries(counts)
-			.map(([type, names]) => ({ type, value: names.length, names }))
-			.sort((a, b) => b.value - a.value);
+		return {
+			letters: getDistribution(data, (x) => (x.name[0] || "?").toUpperCase()),
+			signs: getDistribution(data, (x) => x.sign),
+			months: getDistribution(data, (x) => monthNames[x.month - 1]),
+			ageGroups: getDistribution(data, (x) => x.ageGroup),
+			days: getDistribution(data, (x) => x.dayOfWeek),
+			decades: getDistribution(data, (x) => x.decade),
+			generations: getDistribution(data, (x) => x.generation),
+			seasons: getDistribution(data, (x) => x.season),
+			kinds: getDistribution(data, (x) => x.kind),
+			elements: getDistribution(data, (x) => x.element),
+			birthgems: getDistribution(data, (x) => x.birthgem),
+			chineseZodiac: getDistribution(data, (x) => x.chineseZodiac),
+		};
 	}, [data]);
-
-	const days = useMemo(() => {
-		const counts: Record<string, string[]> = {};
-		for (const x of data) {
-			if (!counts[x.dayOfWeek]) counts[x.dayOfWeek] = [];
-			counts[x.dayOfWeek]?.push(x.name);
-		}
-		return Object.entries(counts)
-			.map(([type, names]) => ({ type, value: names.length, names }))
-			.sort((a, b) => b.value - a.value);
-	}, [data]);
-
-	const decades = useMemo(() => {
-		const counts: Record<string, string[]> = {};
-		for (const x of data) {
-			if (!counts[x.decade]) counts[x.decade] = [];
-			counts[x.decade]?.push(x.name);
-		}
-		return Object.entries(counts)
-			.map(([type, names]) => ({ type, value: names.length, names }))
-			.sort((a, b) => b.value - a.value);
-	}, [data]);
-
-	const generations = useMemo(() => {
-		const counts: Record<string, string[]> = {};
-		for (const x of data) {
-			if (!counts[x.generation]) counts[x.generation] = [];
-			counts[x.generation]?.push(x.name);
-		}
-		return Object.entries(counts)
-			.map(([type, names]) => ({ type, value: names.length, names }))
-			.sort((a, b) => b.value - a.value);
-	}, [data]);
-
-	const seasons = useMemo(() => {
-		const counts: Record<string, string[]> = {};
-		for (const x of data) {
-			if (!counts[x.season]) counts[x.season] = [];
-			counts[x.season]?.push(x.name);
-		}
-		return Object.entries(counts)
-			.map(([type, names]) => ({ type, value: names.length, names }))
-			.sort((a, b) => b.value - a.value);
-	}, [data]);
-
-	const kinds = useMemo(() => {
-		const counts: Record<string, string[]> = {};
-		for (const x of data) {
-			if (!counts[x.kind]) counts[x.kind] = [];
-			counts[x.kind]?.push(x.name);
-		}
-		return Object.entries(counts)
-			.map(([type, names]) => ({ type, value: names.length, names }))
-			.sort((a, b) => b.value - a.value);
-	}, [data]);
-
-	const elements = useMemo(() => {
-		const counts: Record<string, string[]> = {};
-		for (const x of data) {
-			if (!counts[x.element]) counts[x.element] = [];
-			counts[x.element]?.push(x.name);
-		}
-		return Object.entries(counts)
-			.map(([type, names]) => ({ type, value: names.length, names }))
-			.sort((a, b) => b.value - a.value);
-	}, [data]);
-
-	const birthgems = useMemo(() => {
-		const counts: Record<string, string[]> = {};
-		for (const x of data) {
-			if (!counts[x.birthgem]) counts[x.birthgem] = [];
-			counts[x.birthgem]?.push(x.name);
-		}
-		return Object.entries(counts)
-			.map(([type, names]) => ({ type, value: names.length, names }))
-			.sort((a, b) => b.value - a.value);
-	}, [data]);
-
-	const chineseZodiac = useMemo(() => {
-		const counts: Record<string, string[]> = {};
-		for (const x of data) {
-			if (!counts[x.chineseZodiac]) counts[x.chineseZodiac] = [];
-			counts[x.chineseZodiac]?.push(x.name);
-		}
-		return Object.entries(counts)
-			.map(([type, names]) => ({ type, value: names.length, names }))
-			.sort((a, b) => b.value - a.value);
-	}, [data]);
-
-	const tooltip = {
-		title: (d: { type: string; value: number; names: string[] }) => d.type,
-		items: [
-			{ field: "value", channel: "y" },
-			{
-				field: "names",
-				channel: "color", // Dummy channel
-				valueFormatter: (v: string[]) => v.join(", "),
-			},
-		],
-	};
 
 	return (
 		<Card
@@ -269,150 +211,18 @@ const Statistics = () => {
 				`}
 			</style>
 			<Row gutter={[16, 16]}>
-				<Col xs={24} sm={12} md={8}>
-					<Typography.Title level={5}>By First Letter</Typography.Title>
-					<Column
-						data={letters}
-						xField="type"
-						yField="value"
-						height={200}
-						axis={{ y: { grid: false } }}
-						label={{ text: "value" }}
-						tooltip={tooltip}
-					/>
-				</Col>
-				<Col xs={24} sm={12} md={8}>
-					<Typography.Title level={5}>By Gender</Typography.Title>
-					<Pie
-						data={kinds}
-						angleField="value"
-						colorField="type"
-						height={200}
-						legend={false}
-						label={{ text: "type" }}
-						tooltip={tooltip}
-					/>
-				</Col>
-				<Col xs={24} sm={12} md={8}>
-					<Typography.Title level={5}>By Sign</Typography.Title>
-					<Pie
-						data={signs}
-						angleField="value"
-						colorField="type"
-						height={200}
-						legend={false}
-						label={{ text: "type" }}
-						tooltip={tooltip}
-					/>
-				</Col>
-				<Col xs={24} sm={12} md={8}>
-					<Typography.Title level={5}>By Element</Typography.Title>
-					<Pie
-						data={elements}
-						angleField="value"
-						colorField="type"
-						height={200}
-						legend={false}
-						label={{ text: "type" }}
-						tooltip={tooltip}
-					/>
-				</Col>
-				<Col xs={24} sm={12} md={8}>
-					<Typography.Title level={5}>By Month</Typography.Title>
-					<Column
-						data={months}
-						xField="type"
-						yField="value"
-						height={200}
-						axis={{ y: { grid: false } }}
-						label={{ text: "value" }}
-						tooltip={tooltip}
-					/>
-				</Col>
-				<Col xs={24} sm={12} md={8}>
-					<Typography.Title level={5}>By Birthgem</Typography.Title>
-					<Column
-						data={birthgems}
-						xField="type"
-						yField="value"
-						height={200}
-						axis={{ y: { grid: false } }}
-						label={{ text: "value" }}
-						tooltip={tooltip}
-					/>
-				</Col>
-				<Col xs={24} sm={12} md={8}>
-					<Typography.Title level={5}>By Age Group</Typography.Title>
-					<Pie
-						data={ageGroups}
-						angleField="value"
-						colorField="type"
-						height={200}
-						legend={false}
-						label={{ text: "type" }}
-						tooltip={tooltip}
-					/>
-				</Col>
-				<Col xs={24} sm={12} md={8}>
-					<Typography.Title level={5}>By Day</Typography.Title>
-					<Column
-						data={days}
-						xField="type"
-						yField="value"
-						height={200}
-						axis={{ y: { grid: false } }}
-						label={{ text: "value" }}
-						tooltip={tooltip}
-					/>
-				</Col>
-				<Col xs={24} sm={12} md={8}>
-					<Typography.Title level={5}>By Decade</Typography.Title>
-					<Column
-						data={decades}
-						xField="type"
-						yField="value"
-						height={200}
-						axis={{ y: { grid: false } }}
-						label={{ text: "value" }}
-						tooltip={tooltip}
-					/>
-				</Col>
-				<Col xs={24} sm={12} md={8}>
-					<Typography.Title level={5}>By Generation</Typography.Title>
-					<Pie
-						data={generations}
-						angleField="value"
-						colorField="type"
-						height={200}
-						legend={false}
-						label={{ text: "type" }}
-						tooltip={tooltip}
-					/>
-				</Col>
-				<Col xs={24} sm={12} md={8}>
-					<Typography.Title level={5}>By Season</Typography.Title>
-					<Pie
-						data={seasons}
-						angleField="value"
-						colorField="type"
-						height={200}
-						legend={false}
-						label={{ text: "type" }}
-						tooltip={tooltip}
-					/>
-				</Col>
-				<Col xs={24} sm={12} md={8}>
-					<Typography.Title level={5}>By Chinese Zodiac</Typography.Title>
-					<Column
-						data={chineseZodiac}
-						xField="type"
-						yField="value"
-						height={200}
-						axis={{ y: { grid: false } }}
-						label={{ text: "value" }}
-						tooltip={tooltip}
-					/>
-				</Col>
+				<StatColumn title="By First Letter" data={stats.letters} />
+				<StatPie title="By Gender" data={stats.kinds} />
+				<StatPie title="By Sign" data={stats.signs} />
+				<StatPie title="By Element" data={stats.elements} />
+				<StatColumn title="By Month" data={stats.months} />
+				<StatColumn title="By Birthgem" data={stats.birthgems} />
+				<StatPie title="By Age Group" data={stats.ageGroups} />
+				<StatColumn title="By Day" data={stats.days} />
+				<StatColumn title="By Decade" data={stats.decades} />
+				<StatPie title="By Generation" data={stats.generations} />
+				<StatPie title="By Season" data={stats.seasons} />
+				<StatColumn title="By Chinese Zodiac" data={stats.chineseZodiac} />
 			</Row>
 		</Card>
 	);
