@@ -48,6 +48,10 @@ export type Birthday = {
 	halfBirthday: string;
 	lifePathNumber: number;
 	lifePathMeaning: string;
+	heartbeats: number;
+	breaths: number;
+	sleepYears: number;
+	distanceTraveled: number;
 };
 
 const BIG_BIRTHDAYS = [
@@ -303,6 +307,12 @@ export const birthdays: Birthday[] = validatedBirthdays
 		const halfBirthday = birthday.add(6, "month").format("MMMM DD");
 		const lifePath = getLifePath(birthdayDate);
 
+		// Life in numbers calculations
+		const heartbeats = ageInDays * 24 * 60 * 80;
+		const breaths = ageInDays * 24 * 60 * 16;
+		const sleepYears = age / 3;
+		const distanceTraveled = ageInDays * 2570000; // km in Earth's orbit
+
 		return {
 			...x,
 			year,
@@ -335,6 +345,10 @@ export const birthdays: Birthday[] = validatedBirthdays
 			halfBirthday,
 			lifePathNumber: lifePath.number,
 			lifePathMeaning: lifePath.meaning,
+			heartbeats,
+			breaths,
+			sleepYears,
+			distanceTraveled,
 		};
 	})
 	.sort((a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday);
