@@ -34,9 +34,16 @@ const getColumns = (search: string): ColumnsType<Birthday> => [
 		title: "Name",
 		dataIndex: "name",
 		render: (_, x) => (
-			<Tag color={getKindColor(x.kind)}>
-				<Highlight text={x.name} search={search} /> {x.kind}
-			</Tag>
+			<>
+				<Tag color={getKindColor(x.kind)}>
+					<Highlight text={x.name} search={search} /> {x.kind}
+				</Tag>
+				{x.milestone && (
+					<Tag color="gold" style={{ marginLeft: 4 }}>
+						{x.milestone}
+					</Tag>
+				)}
+			</>
 		),
 		sorter: (a, b) => a.name.localeCompare(b.name),
 	},
@@ -114,6 +121,24 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 			pagination={false}
 			size="small"
 			scroll={{ y: 500 }}
+			expandable={{
+				expandedRowRender: (record) => (
+					<div style={{ padding: "8px 16px" }}>
+						<p>
+							<strong>Traits:</strong> {record.traits}
+						</p>
+						<p>
+							<strong>Compatible with:</strong> {record.compatible}
+						</p>
+						<p>
+							<strong>Generation:</strong> {record.generation} ({record.decade})
+						</p>
+						<p>
+							<strong>Season:</strong> {record.season}
+						</p>
+					</div>
+				),
+			}}
 		/>
 	);
 };

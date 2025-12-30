@@ -1,5 +1,6 @@
 {
 	"name": "chneau.github.io",
+	"type": "module",
 	"scripts": {
 		"start": "rsbuild dev",
 		"build": "bun run _genIcs.ts && rsbuild build",
