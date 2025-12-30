@@ -13,7 +13,13 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo, useState } from "react";
-import { type Birthday, birthdays } from "./birthdays";
+import {
+	type Birthday,
+	birthdays,
+	getAgeEmoji,
+	getKindColor,
+	monthNames,
+} from "./birthdays";
 
 const sorter = (a: Birthday, b: Birthday) =>
 	a.birthday.getTime() - b.birthday.getTime();
@@ -22,12 +28,8 @@ const columns: ColumnsType<Birthday> = [
 		title: "Name",
 		dataIndex: "name",
 		render: (_, x) => {
-			let color: string | undefined;
-			if (x.kind === "💒") color = "gold";
-			if (x.kind === "♂️") color = "blue";
-			if (x.kind === "♀️") color = "magenta";
 			return (
-				<Tag color={color}>
+				<Tag color={getKindColor(x.kind)}>
 					{x.name} {x.kind}
 				</Tag>
 			);
@@ -43,14 +45,7 @@ const columns: ColumnsType<Birthday> = [
 	{
 		title: "Age",
 		dataIndex: "age",
-		render: (age, x) => {
-			let emoji = "🧑";
-			if (x.kind === "💒") emoji = "💍";
-			else if (age < 3) emoji = "👶";
-			else if (age < 13) emoji = "🧒";
-			else if (age >= 60) emoji = "🧓";
-			return `${age} ${emoji}`;
-		},
+		render: (age, x) => `${age} ${getAgeEmoji(age, x.kind)}`,
 		sorter: (a, b) => a.age - b.age,
 	},
 	{
@@ -165,21 +160,6 @@ const Statistics = () => {
 	);
 
 	const stats = useMemo(() => {
-		const monthNames = [
-			"Jan",
-			"Feb",
-			"Mar",
-			"Apr",
-			"May",
-			"Jun",
-			"Jul",
-			"Aug",
-			"Sep",
-			"Oct",
-			"Nov",
-			"Dec",
-		];
-
 		return {
 			letters: getDistribution(data, (x) => (x.name[0] || "?").toUpperCase()),
 			signs: getDistribution(data, (x) => x.sign),
