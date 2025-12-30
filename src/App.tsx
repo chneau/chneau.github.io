@@ -167,6 +167,63 @@ const Statistics = () => {
 			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
+	const generations = useMemo(() => {
+		const counts: Record<string, number> = {};
+		for (const x of data) {
+			let gen = "Greatest";
+			if (x.year >= 2013) gen = "Gen Alpha";
+			else if (x.year >= 1997) gen = "Gen Z";
+			else if (x.year >= 1981) gen = "Millennials";
+			else if (x.year >= 1965) gen = "Gen X";
+			else if (x.year >= 1946) gen = "Boomers";
+			else if (x.year >= 1928) gen = "Silent";
+
+			counts[gen] = (counts[gen] || 0) + 1;
+		}
+		return Object.entries(counts)
+			.map(([type, value]) => ({ type, value }))
+			.sort((a, b) => b.value - a.value);
+	}, [data]);
+
+	const seasons = useMemo(() => {
+		const counts: Record<string, number> = {};
+		for (const x of data) {
+			let season = "Winter ❄️";
+			if (x.month >= 3 && x.month <= 5) season = "Spring 🌸";
+			else if (x.month >= 6 && x.month <= 8) season = "Summer ☀️";
+			else if (x.month >= 9 && x.month <= 11) season = "Autumn 🍂";
+			counts[season] = (counts[season] || 0) + 1;
+		}
+		return Object.entries(counts)
+			.map(([type, value]) => ({ type, value }))
+			.sort((a, b) => b.value - a.value);
+	}, [data]);
+
+	const chineseZodiac = useMemo(() => {
+		const counts: Record<string, number> = {};
+		const animals = [
+			"Rat 🐀",
+			"Ox 🐂",
+			"Tiger 🐅",
+			"Rabbit 🐇",
+			"Dragon 🐉",
+			"Snake 🐍",
+			"Horse 🐎",
+			"Goat 🐐",
+			"Monkey 🐒",
+			"Rooster 🐓",
+			"Dog 🐕",
+			"Pig 🐖",
+		];
+		for (const x of data) {
+			const animal = animals[(x.year - 4) % 12];
+			if (animal) counts[animal] = (counts[animal] || 0) + 1;
+		}
+		return Object.entries(counts)
+			.map(([type, value]) => ({ type, value }))
+			.sort((a, b) => b.value - a.value);
+	}, [data]);
+
 	return (
 		<Card
 			title="Statistics (Excluding Weddings)"
@@ -233,6 +290,39 @@ const Statistics = () => {
 					<Typography.Title level={5}>By Decade</Typography.Title>
 					<Column
 						data={decades}
+						xField="type"
+						yField="value"
+						height={200}
+						axis={{ y: { grid: false } }}
+						label={{ text: "value" }}
+					/>
+				</Col>
+				<Col xs={24} sm={12} md={8}>
+					<Typography.Title level={5}>By Generation</Typography.Title>
+					<Pie
+						data={generations}
+						angleField="value"
+						colorField="type"
+						height={200}
+						legend={false}
+						label={{ text: "type" }}
+					/>
+				</Col>
+				<Col xs={24} sm={12} md={8}>
+					<Typography.Title level={5}>By Season</Typography.Title>
+					<Pie
+						data={seasons}
+						angleField="value"
+						colorField="type"
+						height={200}
+						legend={false}
+						label={{ text: "type" }}
+					/>
+				</Col>
+				<Col xs={24} sm={12} md={8}>
+					<Typography.Title level={5}>By Chinese Zodiac</Typography.Title>
+					<Column
+						data={chineseZodiac}
 						xField="type"
 						yField="value"
 						height={200}
