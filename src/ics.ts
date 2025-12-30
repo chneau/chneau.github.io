@@ -7,18 +7,24 @@ const generateICS = (birthdays: readonly Birthday[]) => {
 		const summary = b.isWedding
 			? `${b.name} Wedding Anniversary`
 			: `${b.name}'s Birthday`;
+		const uid = `${b.name.replace(/\s+/g, "_")}_${dtstart}@birthday-tracker`;
 
 		return `BEGIN:VEVENT
+UID:${uid}
 DTSTART;VALUE=DATE:${dtstart}
 RRULE:FREQ=YEARLY
 SUMMARY:${summary}
 TRANSP:TRANSPARENT
+CATEGORIES:Birthdays
 END:VEVENT`;
 	});
 
 	return `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Birthday Tracker//EN
+X-WR-CALNAME:Birthdays Tracker
+X-WR-TIMEZONE:UTC
+METHOD:PUBLISH
 ${events.join("\n")}
 END:VCALENDAR`;
 };
