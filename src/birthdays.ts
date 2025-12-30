@@ -113,35 +113,30 @@ const getDayOfWeek = (date: Date): string => {
 
 export const birthdays: Birthday[] = rawBirthdays
 	.map((x) => {
-		const birthday = dayjs(new Date(x.year, x.month - 1, x.day));
-		const now = dayjs();
+		// Use dayjs for the birth date, normalized to start of day
+		const birthday = dayjs(new Date(x.year, x.month - 1, x.day)).startOf(
+			"day",
+		);
+		const today = dayjs().startOf("day");
 
-		let nextBirthday = dayjs(new Date(now.year(), x.month - 1, x.day));
-		if (nextBirthday.isBefore(now, "day")) {
+		// Calculate next birthday
+		// dayjs.year(y) automatically handles leap years (Feb 29 -> Feb 28)
+		let nextBirthday = birthday.year(today.year());
+
+		// If the birthday has already occurred this year, move to next year
+		if (nextBirthday.isBefore(today)) {
 			nextBirthday = nextBirthday.add(1, "year");
 		}
 
 		// Calculate age
-		// If birthday hasn't happened yet this year, age is year - birthYear - 1
-		// dayjs.diff does this automatically correctly usually
-		const age = now.diff(birthday, "year");
+		// We calculate age based on the *next* birthday minus 1 year if it hasn't happened yet?
+		// Actually, standard age is diff in years from birth to now.
+		const age = today.diff(birthday, "year");
 
-		// Days before birthday
-		// NOTE: dayjs diff in 'day' truncates.
-		// If nextBirthday is tomorrow, diff might be 0 or 1 depending on time.
-		// The original logic stripped time or set specific time.
-		// Let's normalize to start of day to be safe.
-		const todayStart = dayjs().startOf("day");
-
-		// recalculate nextBirthday if it was based on 'now' which has time
-		let nextB = birthday.year(todayStart.year()).startOf("day");
-		if (nextB.isBefore(todayStart)) {
-			nextB = nextB.add(1, "year");
-		}
-		const daysBefore = nextB.diff(todayStart, "day");
+		const daysBefore = nextBirthday.diff(today, "day");
 
 		const birthdayDate = birthday.toDate();
-		const nextBirthdayDate = nextB.toDate();
+		const nextBirthdayDate = nextBirthday.toDate();
 
 		const sign = getSign(birthdayDate);
 		const birthgem = getBirthgem(nextBirthdayDate);
