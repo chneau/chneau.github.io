@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import type { Birthday } from "./birthdays";
 
-export const generateICS = (birthdays: readonly Birthday[]) => {
+const generateICS = (birthdays: readonly Birthday[]) => {
 	const events = birthdays.map((b) => {
 		const dtstart = dayjs(b.birthday).format("YYYYMMDD");
 		const summary = b.isWedding
