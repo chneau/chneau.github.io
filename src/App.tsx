@@ -197,6 +197,39 @@ const Statistics = () => {
 			.sort((a, b) => b.value - a.value);
 	}, [data]);
 
+	const kinds = useMemo(() => {
+		const counts: Record<string, string[]> = {};
+		for (const x of data) {
+			if (!counts[x.kind]) counts[x.kind] = [];
+			counts[x.kind]?.push(x.name);
+		}
+		return Object.entries(counts)
+			.map(([type, names]) => ({ type, value: names.length, names }))
+			.sort((a, b) => b.value - a.value);
+	}, [data]);
+
+	const elements = useMemo(() => {
+		const counts: Record<string, string[]> = {};
+		for (const x of data) {
+			if (!counts[x.element]) counts[x.element] = [];
+			counts[x.element]?.push(x.name);
+		}
+		return Object.entries(counts)
+			.map(([type, names]) => ({ type, value: names.length, names }))
+			.sort((a, b) => b.value - a.value);
+	}, [data]);
+
+	const birthgems = useMemo(() => {
+		const counts: Record<string, string[]> = {};
+		for (const x of data) {
+			if (!counts[x.birthgem]) counts[x.birthgem] = [];
+			counts[x.birthgem]?.push(x.name);
+		}
+		return Object.entries(counts)
+			.map(([type, names]) => ({ type, value: names.length, names }))
+			.sort((a, b) => b.value - a.value);
+	}, [data]);
+
 	const chineseZodiac = useMemo(() => {
 		const counts: Record<string, string[]> = {};
 		for (const x of data) {
@@ -248,6 +281,18 @@ const Statistics = () => {
 					/>
 				</Col>
 				<Col xs={24} sm={12} md={8}>
+					<Typography.Title level={5}>By Gender</Typography.Title>
+					<Pie
+						data={kinds}
+						angleField="value"
+						colorField="type"
+						height={200}
+						legend={false}
+						label={{ text: "type" }}
+						tooltip={tooltip}
+					/>
+				</Col>
+				<Col xs={24} sm={12} md={8}>
 					<Typography.Title level={5}>By Sign</Typography.Title>
 					<Pie
 						data={signs}
@@ -260,9 +305,33 @@ const Statistics = () => {
 					/>
 				</Col>
 				<Col xs={24} sm={12} md={8}>
+					<Typography.Title level={5}>By Element</Typography.Title>
+					<Pie
+						data={elements}
+						angleField="value"
+						colorField="type"
+						height={200}
+						legend={false}
+						label={{ text: "type" }}
+						tooltip={tooltip}
+					/>
+				</Col>
+				<Col xs={24} sm={12} md={8}>
 					<Typography.Title level={5}>By Month</Typography.Title>
 					<Column
 						data={months}
+						xField="type"
+						yField="value"
+						height={200}
+						axis={{ y: { grid: false } }}
+						label={{ text: "value" }}
+						tooltip={tooltip}
+					/>
+				</Col>
+				<Col xs={24} sm={12} md={8}>
+					<Typography.Title level={5}>By Birthgem</Typography.Title>
+					<Column
+						data={birthgems}
 						xField="type"
 						yField="value"
 						height={200}
