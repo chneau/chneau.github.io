@@ -9,10 +9,10 @@ interface CompatibilityMatrixProps {
 }
 
 const getScoreColor = (score: number) => {
-	if (score >= 90) return "#f5222d";
-	if (score >= 80) return "#fa8c16";
-	if (score >= 50) return "#52c41a";
-	return "#bfbfbf";
+	if (score >= 90) return "#52c41a"; // Green
+	if (score >= 80) return "#a0d911"; // Lime
+	if (score >= 50) return "#faad14"; // Gold
+	return "#f5222d"; // Red
 };
 
 export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
@@ -78,10 +78,10 @@ export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 	return (
 		<div style={{ marginTop: 16 }}>
 			<div style={{ marginBottom: 16 }}>
-				<Tag color="#f5222d">Excellent (100%)</Tag>
-				<Tag color="#fa8c16">Great (80%)</Tag>
-				<Tag color="#52c41a">Neutral (50%)</Tag>
-				<Tag color="#bfbfbf">Challenging (40%)</Tag>
+				<Tag color="#52c41a">Excellent (100%)</Tag>
+				<Tag color="#a0d911">Great (80%)</Tag>
+				<Tag color="#faad14">Neutral (50%)</Tag>
+				<Tag color="#f5222d">Challenging (40%)</Tag>
 			</div>
 			<Table
 				key={people.map((p) => p.name).join(",")}
