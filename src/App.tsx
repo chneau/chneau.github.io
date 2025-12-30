@@ -168,37 +168,67 @@ const Statistics = () => {
 				<Col xs={24} sm={12} md={4}>
 					<Typography.Title level={5}>By First Letter</Typography.Title>
 					{letters.map(([l, c]) => (
-						<Statistic key={l} title={l} value={c} valueStyle={{ fontSize: 16 }} />
+						<Statistic
+							key={l}
+							title={l}
+							value={c}
+							styles={{ content: { fontSize: 16 } }}
+						/>
 					))}
 				</Col>
 				<Col xs={24} sm={12} md={4}>
 					<Typography.Title level={5}>By Sign</Typography.Title>
 					{signs.map(([s, c]) => (
-						<Statistic key={s} title={s} value={c} valueStyle={{ fontSize: 16 }} />
+						<Statistic
+							key={s}
+							title={s}
+							value={c}
+							styles={{ content: { fontSize: 16 } }}
+						/>
 					))}
 				</Col>
 				<Col xs={24} sm={12} md={4}>
 					<Typography.Title level={5}>By Month</Typography.Title>
 					{months.map(([m, c]) => (
-						<Statistic key={m} title={m} value={c} valueStyle={{ fontSize: 16 }} />
+						<Statistic
+							key={m}
+							title={m}
+							value={c}
+							styles={{ content: { fontSize: 16 } }}
+						/>
 					))}
 				</Col>
 				<Col xs={24} sm={12} md={4}>
 					<Typography.Title level={5}>By Age Group</Typography.Title>
 					{ageGroups.map(([g, c]) => (
-						<Statistic key={g} title={g} value={c} valueStyle={{ fontSize: 16 }} />
+						<Statistic
+							key={g}
+							title={g}
+							value={c}
+							styles={{ content: { fontSize: 16 } }}
+						/>
 					))}
 				</Col>
 				<Col xs={24} sm={12} md={4}>
 					<Typography.Title level={5}>By Day</Typography.Title>
 					{days.map(([d, c]) => (
-						<Statistic key={d} title={d} value={c} valueStyle={{ fontSize: 16 }} />
+						<Statistic
+							key={d}
+							title={d}
+							value={c}
+							styles={{ content: { fontSize: 16 } }}
+						/>
 					))}
 				</Col>
 				<Col xs={24} sm={12} md={4}>
 					<Typography.Title level={5}>By Decade</Typography.Title>
 					{decades.map(([d, c]) => (
-						<Statistic key={d} title={d} value={c} valueStyle={{ fontSize: 16 }} />
+						<Statistic
+							key={d}
+							title={d}
+							value={c}
+							styles={{ content: { fontSize: 16 } }}
+						/>
 					))}
 				</Col>
 			</Row>
