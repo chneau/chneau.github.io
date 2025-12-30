@@ -63,41 +63,59 @@ const WEDDING_MILESTONES: Record<number, string> = {
 	60: "60th Anniversary (Diamond) 💎",
 };
 
-const getMilestoneInfo = (age: number, isWedding?: boolean) => {
+const getMilestoneInfo = (
+	age: number,
+	nextAge: number,
+	isToday: boolean,
+	isWedding?: boolean,
+) => {
 	const milestones = isWedding
 		? Object.keys(WEDDING_MILESTONES).map(Number)
 		: BIG_BIRTHDAYS;
+
 	const milestoneNames = isWedding ? WEDDING_MILESTONES : null;
 
-	const currentMilestone = milestones.includes(age)
-		? isWedding
-			? milestoneNames?.[age]
-			: `Big ${age}! 🎉`
-		: undefined;
+	const milestoneAge = milestones.includes(age)
+		? age
+		: milestones.includes(nextAge)
+			? nextAge
+			: undefined;
+
+	const milestone =
+		milestoneAge !== undefined
+			? isWedding
+				? milestoneNames?.[milestoneAge]
+				: `Big ${milestoneAge}! 🎉`
+			: undefined;
 
 	const prevMilestone = [...milestones].reverse().find((m) => m < age);
+
 	const nextMilestone = milestones.find((m) => m > age);
 
 	let status = "";
-	if (currentMilestone) {
+	if (isToday && milestones.includes(age)) {
 		status = "Today is the milestone!";
 	} else {
 		if (prevMilestone !== undefined) {
 			const diff = age - prevMilestone;
-			status = `${diff} year${diff > 1 ? "s" : ""} since ${
-				isWedding ? milestoneNames?.[prevMilestone] : `age ${prevMilestone}`
-			}`;
+			if (diff > 0) {
+				status = `${diff} year${diff > 1 ? "s" : ""} since ${
+					isWedding ? milestoneNames?.[prevMilestone] : `age ${prevMilestone}`
+				}`;
+			}
 		}
 		if (nextMilestone !== undefined) {
 			const diff = nextMilestone - age;
-			const nextStatus = `${diff} year${diff > 1 ? "s" : ""} until ${
-				isWedding ? milestoneNames?.[nextMilestone] : `age ${nextMilestone}`
-			}`;
-			status = status ? `${status}. ${nextStatus}` : nextStatus;
+			if (diff > 0) {
+				const nextStatus = `${diff} year${diff > 1 ? "s" : ""} until ${
+					isWedding ? milestoneNames?.[nextMilestone] : `age ${nextMilestone}`
+				}`;
+				status = status ? `${status}. ${nextStatus}` : nextStatus;
+			}
 		}
 	}
 
-	return { milestone: currentMilestone, status };
+	return { milestone, status };
 };
 
 export const monthNames = [
@@ -213,7 +231,13 @@ export const birthdays: Birthday[] = validatedBirthdays
 
 		const birthdayDate = birthday.toDate();
 		const sign = getSign(birthdayDate);
-		const milestoneInfo = getMilestoneInfo(age, x.isWedding);
+		const nextAge = nextBirthday.diff(birthday, "year");
+		const milestoneInfo = getMilestoneInfo(
+			age,
+			nextAge,
+			daysBefore === 0,
+			x.isWedding,
+		);
 
 		return {
 			...x,
