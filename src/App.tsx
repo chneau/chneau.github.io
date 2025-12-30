@@ -1,19 +1,12 @@
-import {
-	Button,
-	Card,
-	ConfigProvider,
-	Layout,
-	Space,
-	Tabs,
-	Typography,
-	theme,
-} from "antd";
+import { Card, ConfigProvider, Layout, Space, Tabs, theme } from "antd";
 import { useEffect } from "react";
 import { useSnapshot } from "valtio";
+import { AppFooter } from "./AppFooter";
+import { AppHeader } from "./AppHeader";
 import { BirthdayTable } from "./BirthdayTable";
 import { CalendarActions } from "./CalendarActions";
 import { FilterButtons, FilterSearch } from "./Filter";
-import { checkAndNotify, requestNotificationPermission } from "./notifications";
+import { checkAndNotify } from "./notifications";
 import { Statistics } from "./Statistics";
 import { dataStore, store } from "./store";
 import { TimelineView } from "./TimelineView";
@@ -37,44 +30,7 @@ export const App = () => {
 		>
 			<title>{import.meta.env.BUILD_DATE}</title>
 			<Layout style={{ minHeight: "100vh" }}>
-				<Layout.Header
-					style={{
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "space-between",
-						padding: "0 16px",
-						flexWrap: "wrap",
-						height: "auto",
-						lineHeight: "normal",
-						paddingBottom: 8,
-						paddingTop: 8,
-					}}
-				>
-					<Typography.Title level={3} style={{ color: "white", margin: 0 }}>
-						Birthday Tracker{" "}
-						<small style={{ fontSize: "0.5em", opacity: 0.8 }}>
-							({import.meta.env.BUILD_DATE})
-						</small>
-					</Typography.Title>
-					<Space>
-						<Button
-							onClick={async () => {
-								await requestNotificationPermission();
-								checkAndNotify(data);
-							}}
-							title="Enable Notifications"
-						>
-							🔔
-						</Button>
-						<Button
-							onClick={() => {
-								store.darkMode = !store.darkMode;
-							}}
-						>
-							{storeSnap.darkMode ? "☀️ Light" : "🌙 Dark"}
-						</Button>
-					</Space>
-				</Layout.Header>
+				<AppHeader data={data} />
 				<Layout.Content style={{ padding: 16 }}>
 					<Card title="Birthdays" size="small">
 						<Space
@@ -111,9 +67,7 @@ export const App = () => {
 					</Card>
 					<Statistics />
 				</Layout.Content>
-				<Layout.Footer style={{ textAlign: "center" }}>
-					Birthday Tracker ©{new Date().getFullYear()}
-				</Layout.Footer>
+				<AppFooter />
 			</Layout>
 		</ConfigProvider>
 	);
