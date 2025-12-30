@@ -12,6 +12,7 @@ import { triggerConfetti } from "./celebration";
 import { FilterButtons, FilterSearch } from "./Filter";
 import { MilestonesWidget } from "./MilestonesWidget";
 import { checkAndNotify } from "./notifications";
+import { RecordsWidget } from "./RecordsWidget";
 import { Statistics } from "./Statistics";
 import { dataStore, store } from "./store";
 import { TimelineView } from "./TimelineView";
@@ -96,6 +97,7 @@ export const App = () => {
 						/>
 					</Card>
 					<MilestonesWidget />
+					<RecordsWidget data={data} />
 					<Statistics />
 				</Layout.Content>
 				<AppFooter />

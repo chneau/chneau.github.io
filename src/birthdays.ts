@@ -52,6 +52,8 @@ export type Birthday = {
 	breaths: number;
 	sleepYears: number;
 	distanceTraveled: number;
+	dailyInsight: string;
+	planetAges: readonly { name: string; age: number; icon: string }[];
 };
 
 const BIG_BIRTHDAYS = [
@@ -266,6 +268,39 @@ const getLifePath = (date: Date) => {
 	};
 };
 
+const getDailyInsight = (name: string): string => {
+	const insights = [
+		"Today is a great day for a new beginning! ✨",
+		"Your kindness will open doors you never expected. 🚪",
+		"A small act of courage will change your trajectory today. 🚀",
+		"Listen to your intuition; it's louder than usual today. 👂",
+		"Expect a pleasant surprise from someone you haven't seen in a while. 🎁",
+		"Your creativity is at an all-time high—use it! 🎨",
+		"Take a moment to breathe; the universe has your back. 🧘",
+		"A financial opportunity might present itself soon. 💰",
+		"Your positive energy is contagious today! 🌟",
+		"Focus on gratitude, and more things to be grateful for will appear. 🙏",
+		"It's a perfect day to finish that project you started. 🏁",
+		"A conversation today will bring much-needed clarity. 💬",
+		"Trust the process; everything is unfolding as it should. 🌱",
+		"Your hard work is about to pay off in a big way. 🏆",
+		"Someone is thinking of you with a lot of love today. ❤️",
+	];
+
+	const today = new Date().toDateString();
+	const str = name + today;
+	let hash = 0;
+	for (let i = 0; i < str.length; i++) {
+		hash = (hash << 5) - hash + str.charCodeAt(i);
+		hash |= 0;
+	}
+	return (
+		insights[Math.abs(hash) % insights.length] ||
+		insights[0] ||
+		"Have a wonderful day! 🌈"
+	);
+};
+
 const validatedBirthdays = birthdaysArraySchema.parse(rawBirthdaysJson);
 
 export const birthdays: Birthday[] = validatedBirthdays
@@ -313,6 +348,16 @@ export const birthdays: Birthday[] = validatedBirthdays
 		const sleepYears = age / 3;
 		const distanceTraveled = ageInDays * 2570000; // km in Earth's orbit
 
+		const planetAges = [
+			{ name: "Mercury", age: ageInDays / 87.97, icon: "☿️" },
+			{ name: "Venus", age: ageInDays / 224.7, icon: "♀️" },
+			{ name: "Mars", age: ageInDays / 686.97, icon: "♂️" },
+			{ name: "Jupiter", age: ageInDays / 4332.59, icon: "♃" },
+			{ name: "Saturn", age: ageInDays / 10759.22, icon: "♄" },
+		];
+
+		const dailyInsight = getDailyInsight(x.name);
+
 		return {
 			...x,
 			year,
@@ -349,6 +394,8 @@ export const birthdays: Birthday[] = validatedBirthdays
 			breaths,
 			sleepYears,
 			distanceTraveled,
+			planetAges,
+			dailyInsight,
 		};
 	})
 	.sort((a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday);
