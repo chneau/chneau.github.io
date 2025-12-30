@@ -1,4 +1,4 @@
-import { Column, Pie, type Datum } from "@ant-design/charts";
+import { Column, type Datum, Pie } from "@ant-design/charts";
 import {
 	Button,
 	Card,
@@ -80,7 +80,7 @@ const tooltip = {
 		{ field: "value", channel: "y" },
 		{
 			field: "names",
-			channel: "color", // Dummy channel
+			channel: "color",
 			valueFormatter: (v: string[]) => v.join(", "),
 		},
 	],
