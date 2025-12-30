@@ -53,7 +53,7 @@ export const FilterButtons = () => {
 export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 	const snap = useSnapshot(store);
 	return (
-		<Space direction="vertical" style={{ width: "100%" }}>
+		<Space orientation="vertical" style={{ width: "100%" }}>
 			<Input.Search
 				placeholder="Search..."
 				allowClear
