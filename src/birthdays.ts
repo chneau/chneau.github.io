@@ -16,7 +16,26 @@ export interface Birthday {
 	monthString: string;
 	day: number;
 	daysBeforeBirthday: number;
+	chineseZodiac: string;
 }
+
+const getChineseZodiac = (year: number): string => {
+	const animals = [
+		"Rat 🐀",
+		"Ox 🐂",
+		"Tiger 🐅",
+		"Rabbit 🐇",
+		"Dragon 🐉",
+		"Snake 🐍",
+		"Horse 🐎",
+		"Goat 🐐",
+		"Monkey 🐒",
+		"Rooster 🐓",
+		"Dog 🐕",
+		"Pig 🐖",
+	];
+	return animals[(((year - 4) % 12) + 12) % 12] || "?";
+};
 
 const _birthdays = [
 	{ name: "Ariimoana", year: 2013, month: 7, day: 11, kind: "♂️" },
@@ -132,6 +151,7 @@ export const birthdays: Birthday[] = _birthdays
 		const nextBirthday = getNextBirthday(x);
 		const sign = getSign(birthday);
 		const birthgem = getBirthgem(nextBirthday);
+		const chineseZodiac = getChineseZodiac(x.year);
 		return {
 			...x,
 			nextBirthday,
@@ -140,6 +160,7 @@ export const birthdays: Birthday[] = _birthdays
 			sign: sign.name,
 			signSymbol: sign.symbol,
 			birthgem,
+			chineseZodiac,
 			monthString: nextBirthday.toLocaleString("en-GB", { month: "long" }),
 			daysBeforeBirthday: getDaysBeforeBirthday(nextBirthday),
 			age: getCurrentAge(x),
