@@ -1,6 +1,6 @@
 {
 	"name": "Birthday Tracker",
-	"short_name": "Birthdays",
+	"short_name": "Birthday Tracker",
 	"start_url": ".",
 	"display": "standalone",
 	"background_color": "#ffffff",
