@@ -3,9 +3,9 @@ import { useMemo } from "react";
 import type { Birthday } from "./birthdays";
 import { getCompatibilityScore } from "./compatibility";
 
-interface RecordsWidgetProps {
+type RecordsWidgetProps = {
 	data: readonly Birthday[];
-}
+};
 
 export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 	const people = useMemo(() => data.filter((x) => x.kind !== "💒"), [data]);

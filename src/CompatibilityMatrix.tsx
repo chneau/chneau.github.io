@@ -4,9 +4,9 @@ import { useMemo } from "react";
 import type { Birthday } from "./birthdays";
 import { getCompatibilityScore } from "./compatibility";
 
-interface CompatibilityMatrixProps {
+type CompatibilityMatrixProps = {
 	data: readonly Birthday[];
-}
+};
 
 const getScoreColor = (score: number) => {
 	if (score >= 90) return "#52c41a"; // Green

@@ -1,9 +1,7 @@
 import "antd/dist/reset.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ref } from "valtio";
 import { App } from "./App.tsx";
-import { type BeforeInstallPromptEvent, store } from "./store.ts";
 
 const container = document.getElementById("root");
 if (!container) throw new Error("No root element found");
@@ -13,11 +11,6 @@ root.render(
 		<App />
 	</StrictMode>,
 );
-
-window.addEventListener("beforeinstallprompt", (e) => {
-	e.preventDefault();
-	store.installPrompt = ref(e) as unknown as BeforeInstallPromptEvent;
-});
 
 if ("serviceWorker" in navigator) {
 	window.addEventListener("load", () => {

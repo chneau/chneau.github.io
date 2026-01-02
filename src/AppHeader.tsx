@@ -1,4 +1,5 @@
 import { Button, Layout, Space, Typography } from "antd";
+import { useEffect, useState } from "react";
 import { useSnapshot } from "valtio";
 import type { Birthday } from "./birthdays";
 import { triggerConfetti } from "./celebration";
@@ -9,12 +10,32 @@ import {
 } from "./notifications";
 import { store } from "./store";
 
-interface AppHeaderProps {
+type AppHeaderProps = {
 	data: readonly Birthday[];
-}
+};
+
+type BeforeInstallPromptEvent = Event & {
+	readonly platforms: string[];
+	readonly userChoice: Promise<{
+		outcome: "accepted" | "dismissed";
+		platform: string;
+	}>;
+	prompt(): Promise<void>;
+};
 
 export const AppHeader = ({ data }: AppHeaderProps) => {
 	const storeSnap = useSnapshot(store);
+	const [installPrompt, setInstallPrompt] =
+		useState<BeforeInstallPromptEvent>();
+
+	useEffect(() => {
+		const handler = (e: Event) => {
+			e.preventDefault();
+			setInstallPrompt(e as unknown as BeforeInstallPromptEvent);
+		};
+		window.addEventListener("beforeinstallprompt", handler);
+		return () => window.removeEventListener("beforeinstallprompt", handler);
+	}, []);
 
 	return (
 		<Layout.Header
@@ -37,15 +58,14 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 				</small>
 			</Typography.Title>
 			<Space wrap>
-				{storeSnap.installPrompt && (
+				{installPrompt && (
 					<Button
 						onClick={async () => {
-							const prompt = store.installPrompt;
-							if (prompt) {
-								prompt.prompt();
-								const { outcome } = await prompt.userChoice;
+							if (installPrompt) {
+								installPrompt.prompt();
+								const { outcome } = await installPrompt.userChoice;
 								if (outcome === "accepted") {
-									store.installPrompt = null;
+									setInstallPrompt(undefined);
 								}
 							}
 						}}

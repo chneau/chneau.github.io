@@ -6,9 +6,9 @@ import type { Birthday } from "./birthdays";
 
 dayjs.extend(duration);
 
-interface CountdownProps {
+type CountdownProps = {
 	nextBirthday: Birthday;
-}
+};
 
 export const Countdown = ({ nextBirthday }: CountdownProps) => {
 	const [timeLeft, setTimeLeft] = useState<{

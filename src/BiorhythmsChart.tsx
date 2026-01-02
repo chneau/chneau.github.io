@@ -3,9 +3,9 @@ import { Typography } from "antd";
 import dayjs from "dayjs";
 import { useMemo } from "react";
 
-interface BiorhythmsChartProps {
+type BiorhythmsChartProps = {
 	birthday: Date;
-}
+};
 
 export const BiorhythmsChart = ({ birthday }: BiorhythmsChartProps) => {
 	const data = useMemo(() => {
