@@ -1,6 +1,7 @@
 import "antd/dist/reset.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { ref } from "valtio";
 import { App } from "./App.tsx";
 import { type BeforeInstallPromptEvent, store } from "./store.ts";
 
@@ -15,7 +16,7 @@ root.render(
 
 window.addEventListener("beforeinstallprompt", (e) => {
 	e.preventDefault();
-	store.installPrompt = e as BeforeInstallPromptEvent;
+	store.installPrompt = ref(e) as unknown as BeforeInstallPromptEvent;
 });
 
 if ("serviceWorker" in navigator) {
