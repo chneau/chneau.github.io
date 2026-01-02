@@ -7,8 +7,13 @@ const nowStr = dayjs().format("MMM D, HH:mm");
 export default defineConfig({
 	plugins: [pluginReact()],
 	server: { host: "localhost" },
+	source: {
+		define: {
+			BUILD_DATE: JSON.stringify(nowStr),
+		},
+	},
 	html: {
-		title: nowStr,
+		title: "Birthday Tracker",
 		tags: [
 			{
 				tag: "link",

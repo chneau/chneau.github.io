@@ -10,6 +10,8 @@ import {
 } from "./notifications";
 import { store } from "./store";
 
+declare const BUILD_DATE: string;
+
 type AppHeaderProps = {
 	data: readonly Birthday[];
 };
@@ -54,7 +56,7 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 			<Typography.Title level={3} style={{ color: "white", margin: 0 }}>
 				Birthday Tracker{" "}
 				<small style={{ fontSize: "0.5em", opacity: 0.8 }}>
-					({document.title})
+					({BUILD_DATE})
 				</small>
 			</Typography.Title>
 			<Space wrap>
