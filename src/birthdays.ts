@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import { z } from "zod";
 import { getMoonPhase, type MoonPhase } from "./astronomy";
 import rawBirthdaysJson from "./birthdays.json";
+import type en from "./locales/en.json";
 import {
 	type BirthGem,
 	type Element,
@@ -25,94 +26,27 @@ const birthdaysArraySchema = z.array(birthdaySchema);
 export type Kind = "♂️" | "♀️" | "💒";
 
 export type MilestoneKey =
-	| "data.milestone.wedding"
-	| "data.milestone.birthday"
-	| "data.milestone.status.today"
-	| "data.milestone.status.since"
-	| "data.milestone.status.until";
+	| `data.milestone.${Exclude<keyof typeof en.data.milestone, "status">}`
+	| `data.milestone.status.${keyof typeof en.data.milestone.status}`;
 
 export type MilestoneData = {
 	key: MilestoneKey;
 	params?: Record<string, string | number>;
 };
 
-export type ChineseZodiac =
-	| "rat"
-	| "ox"
-	| "tiger"
-	| "rabbit"
-	| "dragon"
-	| "snake"
-	| "horse"
-	| "goat"
-	| "monkey"
-	| "rooster"
-	| "dog"
-	| "pig";
+export type ChineseZodiac = keyof typeof en.data.chinese_zodiac;
 
-export type Season = "spring" | "summer" | "autumn" | "winter";
+export type Season = keyof typeof en.data.seasons;
 
-export type AgeGroup =
-	| "weddings"
-	| "babies"
-	| "children"
-	| "teens"
-	| "adults"
-	| "seniors";
+export type AgeGroup = keyof typeof en.data.age_groups;
 
-export type Generation =
-	| "gen_alpha"
-	| "gen_z"
-	| "millennials"
-	| "gen_x"
-	| "boomers"
-	| "silent"
-	| "greatest";
+export type Generation = keyof typeof en.data.generations;
 
-export type MonthName =
-	| "jan"
-	| "feb"
-	| "mar"
-	| "apr"
-	| "may"
-	| "jun"
-	| "jul"
-	| "aug"
-	| "sep"
-	| "oct"
-	| "nov"
-	| "dec";
+export type MonthName = keyof typeof en.data.months;
 
-export type LifePathMeaning =
-	| "life_path_1"
-	| "life_path_2"
-	| "life_path_3"
-	| "life_path_4"
-	| "life_path_5"
-	| "life_path_6"
-	| "life_path_7"
-	| "life_path_8"
-	| "life_path_9"
-	| "life_path_11"
-	| "life_path_22"
-	| "life_path_33";
+export type LifePathMeaning = keyof typeof en.data.life_path;
 
-export type DailyInsight =
-	| "insight_0"
-	| "insight_1"
-	| "insight_2"
-	| "insight_3"
-	| "insight_4"
-	| "insight_5"
-	| "insight_6"
-	| "insight_7"
-	| "insight_8"
-	| "insight_9"
-	| "insight_10"
-	| "insight_11"
-	| "insight_12"
-	| "insight_13"
-	| "insight_14";
+export type DailyInsight = keyof typeof en.data.insights;
 
 export type Birthday = {
 	name: string;

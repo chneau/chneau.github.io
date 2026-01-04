@@ -1,25 +1,6 @@
-export type BirthGem =
-	| "garnet"
-	| "amethyst"
-	| "aquamarine"
-	| "bloodstone"
-	| "diamond"
-	| "emerald"
-	| "alexandrite"
-	| "moonstone"
-	| "pearl"
-	| "ruby"
-	| "peridot"
-	| "sardonyx"
-	| "spinel"
-	| "sapphire"
-	| "opal"
-	| "tourmaline"
-	| "citrine"
-	| "topaz"
-	| "tanzanite"
-	| "turquoise"
-	| "zircon";
+import type en from "./locales/en.json";
+
+export type BirthGem = keyof typeof en.data.birthgems;
 
 const birthgems: { name: BirthGem; emoji: string }[][] = [
 	[{ name: "garnet", emoji: "🔴" }],
@@ -66,21 +47,9 @@ export const getBirthgem = (date: Date): { key: BirthGem; emoji: string } => {
 	return { key: gem.name, emoji: gem.emoji };
 };
 
-export type ZodiacSign =
-	| "capricorn"
-	| "aquarius"
-	| "pisces"
-	| "aries"
-	| "taurus"
-	| "gemini"
-	| "cancer"
-	| "leo"
-	| "virgo"
-	| "libra"
-	| "scorpio"
-	| "sagittarius";
+export type ZodiacSign = keyof typeof en.data.zodiac;
 
-export type Element = "earth" | "air" | "water" | "fire";
+export type Element = keyof typeof en.data.elements;
 
 const signsList: {
 	point: number;
