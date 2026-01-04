@@ -71,9 +71,11 @@ const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
 			days.flatMap((d) => {
 				const births = data.filter((x) => x.month === m + 1 && x.day === d);
 				if (births.length === 0) return [];
+				const key = monthNames[m];
+				if (!key) throw new Error(`Invalid month index ${m}`);
 				return [
 					{
-						month: t(`data.months.${monthNames[m]}` as any),
+						month: t(`data.months.${key}`),
 						day: d.toString(),
 						value: births.length,
 						names: births.map((b) => b.name),
@@ -319,9 +321,11 @@ export const Statistics = () => {
 		return {
 			letters: getDistribution(data, (x) => (x.name[0] || "?").toUpperCase()),
 			signs: getDistribution(data, (x) => t(`data.zodiac.${x.sign}`)),
-			months: getDistribution(data, (x) =>
-				t(`data.months.${monthNames[x.month - 1]}` as any),
-			),
+			months: getDistribution(data, (x) => {
+				const key = monthNames[x.month - 1];
+				if (!key) throw new Error(`Invalid month index ${x.month - 1}`);
+				return t(`data.months.${key}`);
+			}),
 			ageGroups: getDistribution(data, (x) =>
 				t(`data.age_groups.${x.ageGroup}`),
 			),
