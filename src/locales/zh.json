@@ -130,7 +130,12 @@
 		"path": "灵数"
 	},
 	"on_this_day": "历史上的今天",
-	"biorhythms": "生物节律 (未来30天)",
+	"biorhythms": {
+		"title": "生物节律 (未来30天)",
+		"physical": "身体",
+		"emotional": "情感",
+		"intellectual": "智力"
+	},
 	"data": {
 		"planets": {
 			"mercury": "水星",

@@ -130,7 +130,12 @@
 		"path": "Camino"
 	},
 	"on_this_day": "Tal día como hoy en la Historia",
-	"biorhythms": "Biorritmos (Próximos 30 Días)",
+	"biorhythms": {
+		"title": "Biorritmos (Próximos 30 Días)",
+		"physical": "Físico",
+		"emotional": "Emocional",
+		"intellectual": "Intelectual"
+	},
 	"data": {
 		"planets": {
 			"mercury": "Mercurio",

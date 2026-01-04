@@ -130,7 +130,12 @@
 		"path": "Chemin"
 	},
 	"on_this_day": "Ce jour dans l'Histoire",
-	"biorhythms": "Biorythmes (30 prochains jours)",
+	"biorhythms": {
+		"title": "Biorythmes (30 prochains jours)",
+		"physical": "Physique",
+		"emotional": "Émotionnel",
+		"intellectual": "Intellectuel"
+	},
 	"data": {
 		"planets": {
 			"mercury": "Mercure",
