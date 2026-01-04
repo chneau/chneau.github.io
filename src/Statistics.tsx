@@ -14,18 +14,6 @@ import { useSnapshot } from "valtio";
 import { type Birthday, monthNames } from "./birthdays";
 import { dataStore, store } from "./store";
 
-const tooltip = {
-	title: (d: Datum) => d.type,
-	items: [
-		{ field: "value", channel: "y" },
-		{
-			field: "names",
-			channel: "color",
-			valueFormatter: (v: string[]) => v.join(", "),
-		},
-	],
-};
-
 const AgeDistribution = ({ data }: { data: readonly Birthday[] }) => {
 	const { t } = useTranslation();
 	const distributionData = useMemo(() => {
@@ -60,7 +48,7 @@ const AgeDistribution = ({ data }: { data: readonly Birthday[] }) => {
 				tooltip={{
 					title: (d) => `${t("table.age")} ${d.age}`,
 					items: [
-						{ field: "value", name: t("app.birthdays") },
+						{ field: "value", name: t("app.statistics.count") },
 						{
 							field: "names",
 							name: t("table.name"),
@@ -121,7 +109,7 @@ const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
 				tooltip={{
 					title: (d) => `${d.month} ${d.day}`,
 					items: [
-						{ field: "value", name: t("app.birthdays") },
+						{ field: "value", name: t("app.statistics.count") },
 						{
 							field: "names",
 							name: t("table.name"),
@@ -140,28 +128,42 @@ const StatColumn = <T extends Datum>({
 }: {
 	title: string;
 	data: T[];
-}) => (
-	<Col xs={24} sm={12} md={8}>
-		<Typography.Title level={5}>{title}</Typography.Title>
-		<Column
-			data={data}
-			xField="type"
-			yField="value"
-			height={200}
-			axis={{ y: { grid: false } }}
-			tooltip={tooltip}
-			onEvent={(_, event) => {
-				if (event.type === "element:click") {
-					const datum = event.data?.data;
-					if (datum?.type) {
-						store.search = datum.type;
-						window.scrollTo({ top: 0, behavior: "smooth" });
+}) => {
+	const { t } = useTranslation();
+	return (
+		<Col xs={24} sm={12} md={8}>
+			<Typography.Title level={5}>{title}</Typography.Title>
+			<Column
+				data={data}
+				xField="type"
+				yField="value"
+				height={200}
+				axis={{ y: { grid: false } }}
+				tooltip={{
+					title: (d) => d.type,
+					items: [
+						{ field: "value", channel: "y", name: t("app.statistics.count") },
+						{
+							field: "names",
+							channel: "color",
+							name: t("table.name"),
+							valueFormatter: (v: string[]) => v.join(", "),
+						},
+					],
+				}}
+				onEvent={(_, event) => {
+					if (event.type === "element:click") {
+						const datum = event.data?.data;
+						if (datum?.type) {
+							store.search = datum.type;
+							window.scrollTo({ top: 0, behavior: "smooth" });
+						}
 					}
-				}
-			}}
-		/>
-	</Col>
-);
+				}}
+			/>
+		</Col>
+	);
+};
 
 const StatPie = <T extends Datum>({
 	title,
@@ -169,29 +171,43 @@ const StatPie = <T extends Datum>({
 }: {
 	title: string;
 	data: T[];
-}) => (
-	<Col xs={24} sm={12} md={8}>
-		<Typography.Title level={5}>{title}</Typography.Title>
-		<Pie
-			data={data}
-			angleField="value"
-			colorField="type"
-			height={250}
-			legend={{ layout: "horizontal", position: "bottom" }}
-			label={{ text: "value", position: "outside" }}
-			tooltip={tooltip}
-			onEvent={(_, event) => {
-				if (event.type === "element:click") {
-					const datum = event.data?.data;
-					if (datum?.type) {
-						store.search = datum.type;
-						window.scrollTo({ top: 0, behavior: "smooth" });
+}) => {
+	const { t } = useTranslation();
+	return (
+		<Col xs={24} sm={12} md={8}>
+			<Typography.Title level={5}>{title}</Typography.Title>
+			<Pie
+				data={data}
+				angleField="value"
+				colorField="type"
+				height={250}
+				legend={{ layout: "horizontal", position: "bottom" }}
+				label={{ text: "value", position: "outside" }}
+				tooltip={{
+					title: (d) => d.type,
+					items: [
+						{ field: "value", channel: "y", name: t("app.statistics.count") },
+						{
+							field: "names",
+							channel: "color",
+							name: t("table.name"),
+							valueFormatter: (v: string[]) => v.join(", "),
+						},
+					],
+				}}
+				onEvent={(_, event) => {
+					if (event.type === "element:click") {
+						const datum = event.data?.data;
+						if (datum?.type) {
+							store.search = datum.type;
+							window.scrollTo({ top: 0, behavior: "smooth" });
+						}
 					}
-				}
-			}}
-		/>
-	</Col>
-);
+				}}
+			/>
+		</Col>
+	);
+};
 
 const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
 	const { t } = useTranslation();
@@ -260,7 +276,7 @@ const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
 					items: [
 						{
 							channel: "y",
-							name: t("app.birthdays"),
+							name: t("app.statistics.count"),
 							valueFormatter: (v: number) => Math.abs(v),
 						},
 						{
