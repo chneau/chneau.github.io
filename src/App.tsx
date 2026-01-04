@@ -1,11 +1,15 @@
 import { ConfigProvider as ChartConfigProvider } from "@ant-design/charts";
 import { Card, ConfigProvider, Layout, Space, Tabs, theme } from "antd";
+import deDE from "antd/locale/de_DE";
+import enUS from "antd/locale/en_US";
+import esES from "antd/locale/es_ES";
 import frFR from "antd/locale/fr_FR";
 import dayjs from "dayjs";
+import "dayjs/locale/de";
 import "dayjs/locale/en";
 import "dayjs/locale/es";
 import "dayjs/locale/fr";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 
@@ -35,6 +39,13 @@ export const App = () => {
 		dayjs.locale(i18n.language);
 	}, [i18n.language]);
 
+	const antdLocale = useMemo(() => {
+		if (i18n.language.startsWith("fr")) return frFR;
+		if (i18n.language.startsWith("es")) return esES;
+		if (i18n.language.startsWith("de")) return deDE;
+		return enUS;
+	}, [i18n.language]);
+
 	useEffect(() => {
 		checkAndNotify(birthdays);
 
@@ -50,7 +61,7 @@ export const App = () => {
 
 	return (
 		<ConfigProvider
-			locale={frFR}
+			locale={antdLocale}
 			theme={{
 				algorithm: storeSnap.darkMode
 					? theme.darkAlgorithm
