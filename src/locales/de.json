@@ -231,8 +231,10 @@
 			"wedding": "{{year}}. Jahrestag ({{material}}) 💍",
 			"status": {
 				"today": "Heute ist der Meilenstein!",
+				"since": "",
 				"since_one": "{{diff}} Jahr seit {{target}}",
 				"since_other": "{{diff}} Jahre seit {{target}}",
+				"until": "",
 				"until_one": "{{diff}} Jahr bis {{target}}",
 				"until_other": "{{diff}} Jahre bis {{target}}"
 			}

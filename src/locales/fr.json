@@ -231,8 +231,10 @@
 			"wedding": "{{year}}e Anniversaire ({{material}}) 💍",
 			"status": {
 				"today": "C'est aujourd'hui!",
+				"since": "",
 				"since_one": "{{diff}} an depuis {{target}}",
 				"since_other": "{{diff}} ans depuis {{target}}",
+				"until": "",
 				"until_one": "{{diff}} an avant {{target}}",
 				"until_other": "{{diff}} ans avant {{target}}"
 			}

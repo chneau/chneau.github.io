@@ -7,17 +7,19 @@ import es from "./locales/es.json";
 import fr from "./locales/fr.json";
 import zh from "./locales/zh.json";
 
+const resources: Record<string, { translation: typeof en }> = {
+	en: { translation: en },
+	fr: { translation: fr },
+	es: { translation: es },
+	de: { translation: de },
+	zh: { translation: zh },
+};
+
 i18n
 	.use(LanguageDetector)
 	.use(initReactI18next)
 	.init({
-		resources: {
-			en: { translation: en },
-			fr: { translation: fr },
-			es: { translation: es },
-			de: { translation: de },
-			zh: { translation: zh },
-		},
+		resources,
 		load: "languageOnly",
 		fallbackLng: "en",
 		interpolation: {

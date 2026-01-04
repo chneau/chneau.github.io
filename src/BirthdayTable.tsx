@@ -20,10 +20,10 @@ import {
 	birthdays,
 	getAgeEmoji,
 	getKindColor,
-	monthNames,
 } from "./birthdays";
 import { OnThisDay } from "./OnThisDay";
 import { store } from "./store";
+import type { Element } from "./zodiac";
 
 const Highlight = ({ text, search }: { text: string; search: string }) => {
 	const term = search.trim();
@@ -49,7 +49,7 @@ const Highlight = ({ text, search }: { text: string; search: string }) => {
 	);
 };
 
-const getCompatibleElements = (element: string): string[] => {
+const getCompatibleElements = (element: Element): Element[] => {
 	if (element === "fire" || element === "air") return ["fire", "air"];
 	if (element === "earth" || element === "water") return ["earth", "water"];
 	return [];
@@ -132,7 +132,7 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 		title: t("table.birthgem"),
 		dataIndex: "birthgem",
 		render: (_, x) => {
-			const month = t(`data.months.${monthNames[x.month - 1]}`);
+			const month = t(`data.months.${x.monthName}`);
 			const gem = t(`data.birthgems.${x.birthgem}`);
 			return (
 				<Tag color="blue">
@@ -244,7 +244,7 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 								</a>
 								<a
 									href={`https://en.wikipedia.org/wiki/${t(
-										`data.months.${monthNames[record.month - 1]}`,
+										`data.months.${record.monthName}`,
 									)}_${record.day}`}
 									target="_blank"
 									rel="noreferrer"

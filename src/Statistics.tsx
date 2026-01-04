@@ -73,7 +73,7 @@ const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
 				if (births.length === 0) return [];
 				return [
 					{
-						month: t(`data.months.${monthNames[m]}`),
+						month: t(`data.months.${monthNames[m]}` as any),
 						day: d.toString(),
 						value: births.length,
 						names: births.map((b) => b.name),
@@ -320,7 +320,7 @@ export const Statistics = () => {
 			letters: getDistribution(data, (x) => (x.name[0] || "?").toUpperCase()),
 			signs: getDistribution(data, (x) => t(`data.zodiac.${x.sign}`)),
 			months: getDistribution(data, (x) =>
-				t(`data.months.${monthNames[x.month - 1]}`),
+				t(`data.months.${monthNames[x.month - 1]}` as any),
 			),
 			ageGroups: getDistribution(data, (x) =>
 				t(`data.age_groups.${x.ageGroup}`),
