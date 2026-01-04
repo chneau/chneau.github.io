@@ -23,7 +23,7 @@ export const App = () => {
 	const data = dataSnap.filtered;
 
 	useEffect(() => {
-		checkAndNotify(data);
+		checkAndNotify(birthdays);
 
 		const todayCelebrations = birthdays.filter(
 			(b) => b.daysBeforeBirthday === 0,
@@ -31,7 +31,9 @@ export const App = () => {
 		if (todayCelebrations.length > 0) {
 			triggerConfetti();
 		}
-	}, [data]);
+	}, []);
+
+
 
 	const nextBirthday = birthdays.find((b) => b.daysBeforeBirthday >= 0);
 

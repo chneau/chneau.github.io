@@ -39,5 +39,5 @@ export const getMoonPhase = (date: Date): { phase: string; icon: string } => {
 		{ phase: "Waning Crescent", icon: "🌘" },
 	];
 
-	return phases[phaseIndex];
+	return phases[phaseIndex] as { phase: string; icon: string };
 };
