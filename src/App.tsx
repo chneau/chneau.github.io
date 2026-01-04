@@ -33,8 +33,6 @@ export const App = () => {
 		}
 	}, []);
 
-
-
 	const nextBirthday = birthdays.find((b) => b.daysBeforeBirthday >= 0);
 
 	return (
