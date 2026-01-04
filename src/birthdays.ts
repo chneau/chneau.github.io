@@ -34,6 +34,7 @@ export type Birthday = {
 	birthgemEmoji: string;
 	year: number;
 	month: number;
+	monthName: string;
 	day: number;
 	daysBeforeBirthday: number;
 	chineseZodiac: string;
@@ -339,6 +340,7 @@ export const birthdays: Birthday[] = validatedBirthdays
 			...x,
 			year,
 			month,
+			monthName: monthNames[month - 1] || "",
 			day,
 			nextBirthday: nextBirthday.toDate(),
 			birthday: birthdayDate,
