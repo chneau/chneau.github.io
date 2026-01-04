@@ -231,8 +231,8 @@
 			"wedding": "{{year}} 周年纪念 ({{material}}) 💍",
 			"status": {
 				"today": "就是今天！",
-				"since": "距离 {{target}} 已过 {{diff}} 年",
-				"until": "距离 {{target}} 还有 {{diff}} 年"
+				"since_other": "距离 {{target}} 已过 {{diff}} 年",
+				"until_other": "距离 {{target}} 还有 {{diff}} 年"
 			}
 		},
 		"life_path": {

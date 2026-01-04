@@ -231,8 +231,10 @@
 			"wedding": "{{year}}th Anniversary ({{material}}) 💍",
 			"status": {
 				"today": "Today is the milestone!",
-				"since": "{{diff}} year{{s}} since {{target}}",
-				"until": "{{diff}} year{{s}} until {{target}}"
+				"since_one": "{{diff}} year since {{target}}",
+				"since_other": "{{diff}} years since {{target}}",
+				"until_one": "{{diff}} year until {{target}}",
+				"until_other": "{{diff}} years until {{target}}"
 			}
 		},
 		"life_path": {

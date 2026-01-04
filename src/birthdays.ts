@@ -101,11 +101,14 @@ const getMilestoneInfo = (
 		if (isWedding) {
 			const material = WEDDING_MILESTONES[milestoneAge];
 			milestone = {
-				key: "milestone.wedding",
+				key: "data.milestone.wedding",
 				params: { year: milestoneAge, material: material || "" },
 			};
 		} else {
-			milestone = { key: "milestone.birthday", params: { age: milestoneAge } };
+			milestone = {
+				key: "data.milestone.birthday",
+				params: { age: milestoneAge },
+			};
 		}
 	}
 
@@ -114,16 +117,17 @@ const getMilestoneInfo = (
 	let status: MilestoneData | undefined;
 
 	if (isToday && milestones.includes(age)) {
-		status = { key: "milestone.status.today" };
+		status = { key: "data.milestone.status.today" };
 	} else {
 		// Simplified status logic for now to avoid complex key composition
 		if (nextMilestone !== undefined) {
 			const diff = nextMilestone - age;
 			if (diff > 0) {
 				status = {
-					key: "milestone.status.until",
+					key: "data.milestone.status.until",
 					params: {
 						diff,
+						count: diff,
 						target: isWedding
 							? `${nextMilestone}` // We'll handle translation in UI
 							: `${nextMilestone}`,
