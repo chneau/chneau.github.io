@@ -2,12 +2,12 @@ import { ConfigProvider as ChartConfigProvider } from "@ant-design/charts";
 import { Card, ConfigProvider, Layout, Space, Tabs, theme } from "antd";
 import frFR from "antd/locale/fr_FR";
 import dayjs from "dayjs";
+import "dayjs/locale/en";
+import "dayjs/locale/es";
 import "dayjs/locale/fr";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
-
-dayjs.locale("fr");
 
 import { AppFooter } from "./AppFooter";
 import { AppHeader } from "./AppHeader";
@@ -29,6 +29,11 @@ export const App = () => {
 	const dataSnap = useSnapshot(dataStore);
 	const storeSnap = useSnapshot(store);
 	const data = dataSnap.filtered;
+	const { t, i18n } = useTranslation();
+
+	useEffect(() => {
+		dayjs.locale(i18n.language);
+	}, [i18n.language]);
 
 	useEffect(() => {
 		checkAndNotify(birthdays);
@@ -42,8 +47,6 @@ export const App = () => {
 	}, []);
 
 	const nextBirthday = birthdays.find((b) => b.daysBeforeBirthday >= 0);
-
-	const { t } = useTranslation();
 
 	return (
 		<ConfigProvider
