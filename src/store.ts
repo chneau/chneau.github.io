@@ -52,6 +52,7 @@ const fuse = new Fuse(birthdays, {
 		"decade",
 		"ageGroup",
 		"element",
+		"monthName",
 	],
 	threshold: 0.4,
 	ignoreLocation: true,
