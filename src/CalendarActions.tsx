@@ -1,4 +1,5 @@
 import { Button, Dropdown, type MenuProps, message } from "antd";
+import { useTranslation } from "react-i18next";
 
 const downloadICS = () => {
 	const filename = "birthdays.ics";
@@ -29,44 +30,46 @@ const addToGoogleCalendar = () => {
 	window.open(googleUrl, "_blank");
 };
 
-const calendarItems: MenuProps["items"] = [
-	{
-		key: "subscribe",
-		label: "Subscribe to Calendar (webcal)",
-		icon: "📅",
-		onClick: subscribeICS,
-	},
-	{
-		key: "google",
-		label: "Add to Google Calendar",
-		icon: "🌐",
-		onClick: addToGoogleCalendar,
-	},
-	{
-		key: "copy",
-		label: "Copy ICS Link",
-		icon: "🔗",
-		onClick: () => {
-			const url = `${window.location.origin}/birthdays.ics`;
-			navigator.clipboard.writeText(url);
-			message.success("ICS link copied to clipboard!");
-		},
-	},
-	{
-		type: "divider",
-	},
-	{
-		key: "download",
-		label: "Download ICS File",
-		icon: "📥",
-		onClick: downloadICS,
-	},
-];
-
 export const CalendarActions = () => {
+	const { t } = useTranslation();
+
+	const calendarItems: MenuProps["items"] = [
+		{
+			key: "subscribe",
+			label: t("app.calendar.subscribe"),
+			icon: "📅",
+			onClick: subscribeICS,
+		},
+		{
+			key: "google",
+			label: "Google Calendar",
+			icon: "🌐",
+			onClick: addToGoogleCalendar,
+		},
+		{
+			key: "copy",
+			label: t("app.calendar.copy"),
+			icon: "🔗",
+			onClick: () => {
+				const url = `${window.location.origin}/birthdays.ics`;
+				navigator.clipboard.writeText(url);
+				message.success(t("app.calendar.copied"));
+			},
+		},
+		{
+			type: "divider",
+		},
+		{
+			key: "download",
+			label: t("app.calendar.export"),
+			icon: "📥",
+			onClick: downloadICS,
+		},
+	];
+
 	return (
 		<Dropdown menu={{ items: calendarItems }}>
-			<Button type="primary">📅 Calendar Actions</Button>
+			<Button type="primary">📅 {t("app.calendar.export")}</Button>
 		</Dropdown>
 	);
 };

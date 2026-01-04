@@ -2,6 +2,7 @@ import { Card, Statistic, Typography } from "antd";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
 
 dayjs.extend(duration);
@@ -11,6 +12,7 @@ type CountdownProps = {
 };
 
 export const Countdown = ({ nextBirthday }: CountdownProps) => {
+	const { t } = useTranslation();
 	const [timeLeft, setTimeLeft] = useState<{
 		days: number;
 		hours: number;
@@ -58,7 +60,10 @@ export const Countdown = ({ nextBirthday }: CountdownProps) => {
 			}}
 		>
 			<Typography.Text strong>
-				Next Celebration: {nextBirthday.name} ({nextBirthday.kind})
+				{t("app.countdown.next_celebration", {
+					name: nextBirthday.name,
+					kind: nextBirthday.kind,
+				})}
 			</Typography.Text>
 			<div
 				style={{
@@ -68,10 +73,10 @@ export const Countdown = ({ nextBirthday }: CountdownProps) => {
 					marginTop: "8px",
 				}}
 			>
-				<Statistic title="Days" value={timeLeft.days} />
-				<Statistic title="Hours" value={timeLeft.hours} />
-				<Statistic title="Mins" value={timeLeft.minutes} />
-				<Statistic title="Secs" value={timeLeft.seconds} />
+				<Statistic title={t("app.countdown.days")} value={timeLeft.days} />
+				<Statistic title={t("app.countdown.hours")} value={timeLeft.hours} />
+				<Statistic title={t("app.countdown.mins")} value={timeLeft.minutes} />
+				<Statistic title={t("app.countdown.secs")} value={timeLeft.seconds} />
 			</div>
 		</Card>
 	);

@@ -1,6 +1,7 @@
 import { Table, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
 import { getCompatibilityScore } from "./compatibility";
 
@@ -16,6 +17,7 @@ const getScoreColor = (score: number) => {
 };
 
 export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
+	const { t } = useTranslation();
 	// Filter out weddings for compatibility matrix to keep it clean, or keep them?
 	// Let's keep only people (♂️, ♀️)
 	const people = useMemo(() => data.filter((x) => x.kind !== "💒"), [data]);
@@ -39,7 +41,9 @@ export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 		for (const person of people) {
 			cols.push({
 				title: (
-					<Tooltip title={`${person.name} (${person.sign})`}>
+					<Tooltip
+						title={`${person.name} (${t(`data.zodiac.${person.sign}`)})`}
+					>
 						<span style={{ fontSize: "0.8em" }}>
 							{person.name.slice(0, 3)}. {person.signSymbol}
 						</span>
@@ -52,7 +56,9 @@ export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 					const score = getCompatibilityScore(record, person);
 					return (
 						<Tooltip
-							title={`${record.name} & ${person.name}: ${score}% (${record.element} + ${person.element})`}
+							title={`${record.name} & ${person.name}: ${score}% (${t(
+								`data.elements.${record.element}`,
+							)} + ${t(`data.elements.${person.element}`)})`}
 						>
 							<div
 								style={{
@@ -73,15 +79,15 @@ export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 		}
 
 		return cols;
-	}, [people]);
+	}, [people, t]);
 
 	return (
 		<div style={{ marginTop: 16 }}>
 			<div style={{ marginBottom: 16 }}>
-				<Tag color="#52c41a">Excellent (100%)</Tag>
-				<Tag color="#a0d911">Great (80%)</Tag>
-				<Tag color="#faad14">Neutral (50%)</Tag>
-				<Tag color="#f5222d">Challenging (40%)</Tag>
+				<Tag color="#52c41a">{t("app.compatibility.excellent")}</Tag>
+				<Tag color="#a0d911">{t("app.compatibility.great")}</Tag>
+				<Tag color="#faad14">{t("app.compatibility.neutral")}</Tag>
+				<Tag color="#f5222d">{t("app.compatibility.challenging")}</Tag>
 			</div>
 			<Table
 				key={people.map((p) => p.name).join(",")}

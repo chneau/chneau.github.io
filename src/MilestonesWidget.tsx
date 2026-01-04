@@ -1,8 +1,11 @@
 import { Avatar, Card, List, Typography } from "antd";
+import dayjs from "dayjs";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { birthdays } from "./birthdays";
 
 export const MilestonesWidget = () => {
+	const { t } = useTranslation();
 	const upcomingMilestones = useMemo(() => {
 		return birthdays
 			.filter((b) => b.milestone && b.daysBeforeBirthday >= 0)
@@ -13,7 +16,7 @@ export const MilestonesWidget = () => {
 
 	return (
 		<Card
-			title="Upcoming Big Milestones 🎯"
+			title={t("app.milestones.title")}
 			size="small"
 			style={{ marginTop: 16 }}
 		>
@@ -34,21 +37,27 @@ export const MilestonesWidget = () => {
 								</Avatar>
 							}
 							title={
-								<Typography.Text strong>
-									{item.name} is turning{" "}
-									{item.milestone?.replace("Big ", "").replace("! 🎉", "")}
-								</Typography.Text>
+								<span>
+									<Typography.Text strong>{item.name}</Typography.Text>
+									{" - "}
+									{item.milestone
+										? t(item.milestone.key, item.milestone.params)
+										: ""}
+								</span>
 							}
 							description={
 								<span>
 									{item.daysBeforeBirthday === 0
-										? "Today! 🎉"
-										: `In ${item.daysBeforeBirthday} days (${item.birthdayString.slice(
-												5,
-											)})`}
+										? t("app.milestones.today")
+										: t("app.milestones.in_days", {
+												days: item.daysBeforeBirthday,
+												date: dayjs(item.birthday).format("D MMM"),
+											})}
 									{" • "}
 									<Typography.Text type="secondary" italic>
-										{item.milestoneStatus}
+										{item.milestoneStatus
+											? t(item.milestoneStatus.key, item.milestoneStatus.params)
+											: ""}
 									</Typography.Text>
 								</span>
 							}

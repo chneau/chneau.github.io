@@ -1,5 +1,7 @@
 import { Collapse, List, Skeleton, Typography } from "antd";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface Event {
 	year: string;
@@ -18,24 +20,10 @@ interface OnThisDayProps {
 }
 
 export const OnThisDay = ({ month, day }: OnThisDayProps) => {
+	const { t, i18n } = useTranslation();
 	const [events, setEvents] = useState<Event[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(false);
-
-	const monthNames = [
-		"January",
-		"February",
-		"March",
-		"April",
-		"May",
-		"June",
-		"July",
-		"August",
-		"September",
-		"October",
-		"November",
-		"December",
-	];
 
 	useEffect(() => {
 		const fetchEvents = async () => {
@@ -44,8 +32,9 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 			try {
 				const mm = month.toString().padStart(2, "0");
 				const dd = day.toString().padStart(2, "0");
+				const lang = i18n.language.startsWith("fr") ? "fr" : "en";
 				const res = await fetch(
-					`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/selected/${mm}/${dd}`,
+					`https://api.wikimedia.org/feed/v1/wikipedia/${lang}/onthisday/selected/${mm}/${dd}`,
 				);
 				if (!res.ok) throw new Error("Failed to fetch");
 				const data = await res.json();
@@ -59,7 +48,7 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 		};
 
 		fetchEvents();
-	}, [month, day]);
+	}, [month, day, i18n.language]);
 
 	if (error) return null;
 
@@ -68,7 +57,11 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 			key: "1",
 			label: (
 				<Typography.Text strong>
-					📜 On This Day in History ({monthNames[month - 1]} {day})
+					📜 {t("on_this_day")} (
+					{dayjs()
+						.month(month - 1)
+						.format("MMMM")}{" "}
+					{day})
 				</Typography.Text>
 			),
 			children: loading ? (

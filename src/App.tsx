@@ -1,7 +1,14 @@
 import { ConfigProvider as ChartConfigProvider } from "@ant-design/charts";
 import { Card, ConfigProvider, Layout, Space, Tabs, theme } from "antd";
+import frFR from "antd/locale/fr_FR";
+import dayjs from "dayjs";
+import "dayjs/locale/fr";
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+
+dayjs.locale("fr");
+
 import { AppFooter } from "./AppFooter";
 import { AppHeader } from "./AppHeader";
 import { BirthdayTable } from "./BirthdayTable";
@@ -36,8 +43,11 @@ export const App = () => {
 
 	const nextBirthday = birthdays.find((b) => b.daysBeforeBirthday >= 0);
 
+	const { t } = useTranslation();
+
 	return (
 		<ConfigProvider
+			locale={frFR}
 			theme={{
 				algorithm: storeSnap.darkMode
 					? theme.darkAlgorithm
@@ -62,7 +72,7 @@ export const App = () => {
 					<AppHeader data={data} />
 					<Layout.Content style={{ padding: 16 }}>
 						{nextBirthday && <Countdown nextBirthday={nextBirthday} />}
-						<Card title="Birthdays" size="small">
+						<Card title={t("app.birthdays")} size="small">
 							<Space
 								orientation="vertical"
 								style={{ width: "100%", marginBottom: 16 }}
@@ -84,17 +94,17 @@ export const App = () => {
 								items={[
 									{
 										key: "table",
-										label: "Table",
+										label: t("app.table.title"),
 										children: <BirthdayTable data={data} />,
 									},
 									{
 										key: "timeline",
-										label: "Timeline",
+										label: t("app.timeline.title"),
 										children: <TimelineView data={data} />,
 									},
 									{
 										key: "compatibility",
-										label: "Compatibility",
+										label: t("app.compatibility.title"),
 										children: <CompatibilityMatrix data={data} />,
 									},
 								]}

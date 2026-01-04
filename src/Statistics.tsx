@@ -7,7 +7,9 @@ import {
 	Pie,
 } from "@ant-design/charts";
 import { Card, Col, Row, Typography } from "antd";
+import dayjs from "dayjs";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { type Birthday, monthNames } from "./birthdays";
 import { dataStore, store } from "./store";
@@ -25,6 +27,7 @@ const tooltip = {
 };
 
 const AgeDistribution = ({ data }: { data: readonly Birthday[] }) => {
+	const { t } = useTranslation();
 	const distributionData = useMemo(() => {
 		const ages = data.map((b) => b.age);
 		if (ages.length === 0) return [];
@@ -44,7 +47,9 @@ const AgeDistribution = ({ data }: { data: readonly Birthday[] }) => {
 
 	return (
 		<Col xs={24} md={12}>
-			<Typography.Title level={5}>Age Distribution</Typography.Title>
+			<Typography.Title level={5}>
+				{t("app.statistics.age_distribution")}
+			</Typography.Title>
 			<Area
 				data={distributionData}
 				xField="age"
@@ -53,12 +58,12 @@ const AgeDistribution = ({ data }: { data: readonly Birthday[] }) => {
 				shapeField="smooth"
 				style={{ fill: "linear-gradient(-90deg, white 0%, #1890ff 100%)" }}
 				tooltip={{
-					title: (d) => `Age ${d.age}`,
+					title: (d) => `${t("table.age")} ${d.age}`,
 					items: [
-						{ field: "value", name: "Count" },
+						{ field: "value", name: t("app.birthdays") },
 						{
 							field: "names",
-							name: "People",
+							name: t("table.name"),
 							valueFormatter: (v: string[]) => v.join(", "),
 						},
 					],
@@ -69,6 +74,7 @@ const AgeDistribution = ({ data }: { data: readonly Birthday[] }) => {
 };
 
 const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
+	const { t } = useTranslation();
 	const heatmapData = useMemo(() => {
 		const months = Array.from({ length: 12 }, (_, i) => i);
 		const days = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -79,7 +85,7 @@ const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
 				if (births.length === 0) return [];
 				return [
 					{
-						month: monthNames[m],
+						month: t(`data.months.${monthNames[m]}`),
 						day: d.toString(),
 						value: births.length,
 						names: births.map((b) => b.name),
@@ -87,12 +93,12 @@ const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
 				];
 			}),
 		);
-	}, [data]);
+	}, [data, t]);
 
 	return (
 		<Col xs={24}>
 			<Typography.Title level={5}>
-				Birth Heatmap (Month vs Day)
+				{t("app.statistics.birth_heatmap")}
 			</Typography.Title>
 			<Heatmap
 				data={heatmapData}
@@ -109,16 +115,16 @@ const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
 					},
 					y: {
 						type: "band",
-						domain: monthNames,
+						domain: monthNames.map((m) => t(`data.months.${m}`)),
 					},
 				}}
 				tooltip={{
 					title: (d) => `${d.month} ${d.day}`,
 					items: [
-						{ field: "value", name: "Count" },
+						{ field: "value", name: t("app.birthdays") },
 						{
 							field: "names",
-							name: "People",
+							name: t("table.name"),
 							valueFormatter: (v: string[]) => v.join(", "),
 						},
 					],
@@ -188,6 +194,7 @@ const StatPie = <T extends Datum>({
 );
 
 const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
+	const { t } = useTranslation();
 	const pyramidData = useMemo(() => {
 		const groups = [
 			"0-9",
@@ -232,7 +239,9 @@ const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
 
 	return (
 		<Col xs={24} md={12}>
-			<Typography.Title level={5}>Age & Gender Distribution</Typography.Title>
+			<Typography.Title level={5}>
+				{t("app.statistics.pyramid")}
+			</Typography.Title>
 			<Bar
 				data={pyramidData}
 				xField="group"
@@ -251,12 +260,12 @@ const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
 					items: [
 						{
 							channel: "y",
-							name: "Count",
+							name: t("app.birthdays"),
 							valueFormatter: (v: number) => Math.abs(v),
 						},
 						{
 							field: "names",
-							name: "People",
+							name: t("table.name"),
 							valueFormatter: (v: string[]) => v.join(", "),
 						},
 					],
@@ -284,28 +293,44 @@ const getDistribution = (
 };
 
 export const Statistics = () => {
+	const { t } = useTranslation();
 	const dataSnap = useSnapshot(dataStore);
 	const data = dataSnap.filtered;
 
 	const stats = useMemo(() => {
 		return {
 			letters: getDistribution(data, (x) => (x.name[0] || "?").toUpperCase()),
-			signs: getDistribution(data, (x) => x.sign),
-			months: getDistribution(data, (x) => monthNames[x.month - 1]),
-			ageGroups: getDistribution(data, (x) => x.ageGroup),
-			days: getDistribution(data, (x) => x.dayOfWeek),
+			signs: getDistribution(data, (x) => t(`data.zodiac.${x.sign}`)),
+			months: getDistribution(data, (x) =>
+				t(`data.months.${monthNames[x.month - 1]}`),
+			),
+			ageGroups: getDistribution(data, (x) =>
+				t(`data.age_groups.${x.ageGroup}`),
+			),
+			days: getDistribution(data, (x) => dayjs(x.birthday).format("dddd")),
 			decades: getDistribution(data, (x) => x.decade),
-			generations: getDistribution(data, (x) => x.generation),
-			seasons: getDistribution(data, (x) => x.season),
+			generations: getDistribution(data, (x) =>
+				t(`data.generations.${x.generation}`),
+			),
+			seasons: getDistribution(data, (x) => t(`data.seasons.${x.season}`)),
 			kinds: getDistribution(data, (x) => x.kind),
-			elements: getDistribution(data, (x) => x.element),
-			birthgems: getDistribution(data, (x) => x.birthgem),
-			chineseZodiac: getDistribution(data, (x) => x.chineseZodiac),
+			elements: getDistribution(data, (x) => t(`data.elements.${x.element}`)),
+			birthgems: getDistribution(
+				data,
+				(x) => `${t(`data.birthgems.${x.birthgem}`)} ${x.birthgemEmoji}`,
+			),
+			chineseZodiac: getDistribution(data, (x) =>
+				t(`data.chinese_zodiac.${x.chineseZodiac}`),
+			),
 		};
-	}, [data]);
+	}, [data, t]);
 
 	return (
-		<Card title="Statistics" size="small" style={{ marginTop: 16 }}>
+		<Card
+			title={t("app.statistics.title")}
+			size="small"
+			style={{ marginTop: 16 }}
+		>
 			<style>
 				{`
 				.g2-tooltip-list-item-value {
@@ -315,18 +340,33 @@ export const Statistics = () => {
 				`}
 			</style>
 			<Row gutter={[16, 16]}>
-				<StatPie title="Zodiac Signs" data={stats.signs} />
-				<StatPie title="Chinese Zodiac" data={stats.chineseZodiac} />
-				<StatPie title="Astrological Elements" data={stats.elements} />
-				<StatPie title="Gender Distribution" data={stats.kinds} />
-				<StatPie title="Age Groups" data={stats.ageGroups} />
-				<StatPie title="Generations" data={stats.generations} />
-				<StatPie title="Birth Seasons" data={stats.seasons} />
-				<StatColumn title="Name First Letter" data={stats.letters} />
-				<StatColumn title="Birth Month" data={stats.months} />
-				<StatColumn title="Birthstones" data={stats.birthgems} />
-				<StatColumn title="Birth Day of Week" data={stats.days} />
-				<StatColumn title="Birth Decades" data={stats.decades} />
+				<StatPie title={t("app.statistics.zodiac")} data={stats.signs} />
+				<StatPie
+					title={t("app.statistics.chinese")}
+					data={stats.chineseZodiac}
+				/>
+				<StatPie title={t("app.statistics.elements")} data={stats.elements} />
+				<StatPie title={t("app.statistics.gender")} data={stats.kinds} />
+				<StatPie
+					title={t("app.statistics.age_groups")}
+					data={stats.ageGroups}
+				/>
+				<StatPie
+					title={t("app.statistics.generations")}
+					data={stats.generations}
+				/>
+				<StatPie title={t("app.statistics.seasons")} data={stats.seasons} />
+				<StatColumn
+					title={t("app.statistics.first_letter")}
+					data={stats.letters}
+				/>
+				<StatColumn title={t("app.statistics.month")} data={stats.months} />
+				<StatColumn
+					title={t("app.statistics.birthstones")}
+					data={stats.birthgems}
+				/>
+				<StatColumn title={t("app.statistics.day_of_week")} data={stats.days} />
+				<StatColumn title={t("app.statistics.decades")} data={stats.decades} />
 				<AgeDistribution data={data} />
 				<AgePyramid data={data} />
 				<BirthHeatmap data={data} />

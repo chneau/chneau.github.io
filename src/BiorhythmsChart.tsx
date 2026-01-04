@@ -2,12 +2,14 @@ import { Line } from "@ant-design/charts";
 import { Typography } from "antd";
 import dayjs from "dayjs";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 type BiorhythmsChartProps = {
 	birthday: Date;
 };
 
 export const BiorhythmsChart = ({ birthday }: BiorhythmsChartProps) => {
+	const { t } = useTranslation();
 	const data = useMemo(() => {
 		const result = [];
 		const start = dayjs().startOf("day");
@@ -41,7 +43,7 @@ export const BiorhythmsChart = ({ birthday }: BiorhythmsChartProps) => {
 
 	return (
 		<div style={{ marginTop: 16 }}>
-			<Typography.Title level={5}>Biorhythms (Next 30 Days)</Typography.Title>
+			<Typography.Title level={5}>{t("biorhythms")}</Typography.Title>
 			<Line
 				data={data}
 				xField="day"

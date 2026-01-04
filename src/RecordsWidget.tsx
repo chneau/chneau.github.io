@@ -1,5 +1,6 @@
 import { Card, Col, Row, Statistic, Tooltip } from "antd";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
 import { getCompatibilityScore } from "./compatibility";
 
@@ -8,6 +9,7 @@ type RecordsWidgetProps = {
 };
 
 export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
+	const { t } = useTranslation();
 	const people = useMemo(() => data.filter((x) => x.kind !== "💒"), [data]);
 
 	const records = useMemo(() => {
@@ -50,21 +52,29 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 	if (!records) return null;
 
 	return (
-		<Card title="Birthday Records 🏆" size="small" style={{ marginTop: 16 }}>
+		<Card title={t("app.records.title")} size="small" style={{ marginTop: 16 }}>
 			<Row gutter={[16, 16]}>
 				<Col xs={12} sm={6}>
-					<Tooltip title={`${records.elder?.name} is the oldest member.`}>
+					<Tooltip
+						title={t("app.records.elder_tooltip", {
+							name: records.elder?.name,
+						})}
+					>
 						<Statistic
-							title="👴 The Elder"
+							title={`👴 ${t("app.records.elder")}`}
 							value={records.elder?.name}
 							valueStyle={{ fontSize: "1em" }}
 						/>
 					</Tooltip>
 				</Col>
 				<Col xs={12} sm={6}>
-					<Tooltip title={`${records.rookie?.name} is the youngest member.`}>
+					<Tooltip
+						title={t("app.records.rookie_tooltip", {
+							name: records.rookie?.name,
+						})}
+					>
 						<Statistic
-							title="👶 The Rookie"
+							title={`👶 ${t("app.records.rookie")}`}
 							value={records.rookie?.name}
 							valueStyle={{ fontSize: "1em" }}
 						/>
@@ -72,10 +82,13 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 				</Col>
 				<Col xs={12} sm={6}>
 					<Tooltip
-						title={`${records.bestSocialite?.name} has ${records.bestSocialite?.count} perfect matches!`}
+						title={t("app.records.socialite_tooltip", {
+							name: records.bestSocialite?.name,
+							count: records.bestSocialite?.count,
+						})}
 					>
 						<Statistic
-							title="🤝 The Socialite"
+							title={`🤝 ${t("app.records.socialite")}`}
 							value={records.bestSocialite?.name}
 							valueStyle={{ fontSize: "1em" }}
 						/>
@@ -85,16 +98,16 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 					<Tooltip
 						title={
 							records.twins.length > 0
-								? `Shared birthdays: ${records.twins
-										.map((t) => t.join(" & "))
-										.join(", ")}`
-								: "No exact twins found yet!"
+								? t("app.records.twins_tooltip", {
+										pairs: records.twins.map((t) => t.join(" & ")).join(", "),
+									})
+								: t("app.records.no_twins")
 						}
 					>
 						<Statistic
-							title="👯 Twins"
+							title={`👯 ${t("app.records.twins")}`}
 							value={records.twins.length}
-							suffix="pairs"
+							suffix={t("app.records.twins_suffix")}
 							valueStyle={{ fontSize: "1em" }}
 						/>
 					</Tooltip>

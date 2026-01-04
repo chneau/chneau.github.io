@@ -10,25 +10,26 @@ export const getCompatibilityScore = (a: Birthday, b: Birthday): number => {
 	if (e1 === e2) return 80;
 
 	// Complementary elements
+	// Fire & Air, Earth & Water
 	if (
-		(e1.includes("Fire") && e2.includes("Air")) ||
-		(e1.includes("Air") && e2.includes("Fire")) ||
-		(e1.includes("Earth") && e2.includes("Water")) ||
-		(e1.includes("Water") && e2.includes("Earth"))
+		(e1 === "fire" && e2 === "air") ||
+		(e1 === "air" && e2 === "fire") ||
+		(e1 === "earth" && e2 === "water") ||
+		(e1 === "water" && e2 === "earth")
 	) {
 		return 100;
 	}
 
-	// Neutral
+	// Neutral (Fire & Earth, Air & Water)
 	if (
-		(e1.includes("Fire") && e2.includes("Earth")) ||
-		(e1.includes("Earth") && e2.includes("Fire")) ||
-		(e1.includes("Air") && e2.includes("Water")) ||
-		(e1.includes("Water") && e2.includes("Air"))
+		(e1 === "fire" && e2 === "earth") ||
+		(e1 === "earth" && e2 === "fire") ||
+		(e1 === "air" && e2 === "water") ||
+		(e1 === "water" && e2 === "air")
 	) {
 		return 50;
 	}
 
-	// Challenging
+	// Challenging (everything else)
 	return 40;
 };
