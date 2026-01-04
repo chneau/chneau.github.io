@@ -18,7 +18,7 @@ i18n
 			de: { translation: de },
 			zh: { translation: zh },
 		},
-		lng: "fr", // Default to French
+		load: "languageOnly",
 		fallbackLng: "en",
 		interpolation: {
 			escapeValue: false,
