@@ -1,4 +1,13 @@
-import { Alert, Button, Divider, Progress, Space, Table, Tag } from "antd";
+import {
+	Alert,
+	Button,
+	Divider,
+	Progress,
+	Space,
+	Table,
+	Tag,
+	Typography,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import html2canvas from "html2canvas";
 import { useMemo } from "react";
@@ -178,19 +187,22 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 					};
 
 					return (
-						<div style={{ padding: "8px 16px" }}>
+						<div style={{ padding: "4px 8px" }}>
 							<Alert
 								message="Today's Insight"
 								description={record.dailyInsight}
 								type="info"
 								showIcon
 								icon="🔮"
-								style={{ marginBottom: 16 }}
+								style={{ marginBottom: 8 }}
 							/>
 							<Space
 								wrap
-								separator={<Divider orientation="vertical" />}
-								style={{ marginBottom: 16 }}
+								size="small"
+								separator={
+									<Divider orientation="vertical" style={{ margin: "0 4px" }} />
+								}
+								style={{ marginBottom: 8 }}
 							>
 								<Button
 									type="primary"
@@ -198,21 +210,23 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 									onClick={handleDownloadCard}
 									icon="📸"
 								>
-									Download Share Card
+									Card
 								</Button>
 								<a
 									href={`https://en.wikipedia.org/wiki/${record.year}`}
 									target="_blank"
 									rel="noreferrer"
+									style={{ fontSize: "12px" }}
 								>
-									📜 What happened in {record.year}?
+									📜 {record.year}
 								</a>
 								<a
 									href={`https://en.wikipedia.org/wiki/${record.monthString}_${record.day}`}
 									target="_blank"
 									rel="noreferrer"
+									style={{ fontSize: "12px" }}
 								>
-									📅 Events on {record.monthString} {record.day}
+									📅 Events
 								</a>
 							</Space>
 
@@ -221,114 +235,98 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 							<div
 								style={{
 									display: "grid",
-									gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-									gap: "16px",
-									marginTop: "16px",
+									gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+									gap: "8px",
+									marginTop: "8px",
+									fontSize: "12px",
 								}}
 							>
 								<div>
-									<p>
-										<strong>📈 Life Progress:</strong>
-									</p>
-									<ul>
-										<li>🗓️ {record.ageInDays.toLocaleString()} days lived</li>
-										<li>🗓️ {record.ageInWeeks.toLocaleString()} weeks lived</li>
+									<Typography.Text strong>📈 Progress</Typography.Text>
+									<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
+										<li>
+											🗓️ {record.ageInDays.toLocaleString()}d /{" "}
+											{record.ageInWeeks.toLocaleString()}w
+										</li>
 										<li>
 											🗓️ {record.ageInMonths.toLocaleString()} months lived
 										</li>
-										<li>🌓 Next Half-Birthday: {record.halfBirthday}</li>
+										<li>🌓 Half: {record.halfBirthday}</li>
 										<li>
-											🔢 Life Path {record.lifePathNumber}:{" "}
-											{record.lifePathMeaning}
+											🔢 Path {record.lifePathNumber}: {record.lifePathMeaning}
 										</li>
 										<li>
-											{record.moonPhaseIcon} Moon Phase: {record.moonPhase}
+											{record.moonPhaseIcon} {record.moonPhase}
 										</li>
 									</ul>
 								</div>
 								<div>
-									{record.milestone && (
-										<p>
-											<strong>🎯 Milestone Alert:</strong> {record.milestone}
-										</p>
-									)}
-									<p>
-										<strong>📊 Milestone Status:</strong>{" "}
+									<Typography.Text strong>🎯 Milestones</Typography.Text>
+									<p style={{ margin: "4px 0" }}>
+										{record.milestone && (
+											<span>
+												{record.milestone}
+												<br />
+											</span>
+										)}
 										{record.milestoneStatus}
 									</p>
 									{sameBirthday.length > 0 && (
-										<p>
-											<strong>👯 Shared Birthday:</strong>{" "}
-											{sameBirthday.map((b) => b.name).join(", ")}
-										</p>
-									)}
-									{sameYear.length > 0 && (
-										<p>
-											<strong>👶 Shared Birth Year ({record.year}):</strong>{" "}
-											{sameYear.map((b) => b.name).join(", ")}
+										<p style={{ margin: "4px 0" }}>
+											👯 Shared: {sameBirthday.map((b) => b.name).join(", ")}
 										</p>
 									)}
 								</div>
 								<div>
-									<p>
-										<strong>✨ Traits:</strong> {record.traits}
-									</p>
-									<p>
-										<strong>🤝 Compatible with:</strong> {record.compatible}{" "}
+									<Typography.Text strong>✨ Traits & Match</Typography.Text>
+									<p style={{ margin: "4px 0" }}>{record.traits}</p>
+									<div style={{ marginTop: "4px" }}>
 										{record.compatible.split("&").map((el) => {
 											const element = el.trim();
 											return (
 												<Tag
 													key={element}
-													style={{ cursor: "pointer" }}
+													style={{
+														cursor: "pointer",
+														fontSize: "10px",
+														padding: "0 4px",
+													}}
 													onClick={() => {
 														store.search = element;
 														window.scrollTo({ top: 0, behavior: "smooth" });
 													}}
 												>
-													Find matches for {element}
+													{element}
 												</Tag>
 											);
 										})}
-									</p>
+									</div>
 								</div>
 								<div>
-									<p>
-										<strong>🧬 Generation:</strong> {record.generation} (
-										{record.decade})
-									</p>
-									<p>
-										<strong>🌤️ Season:</strong> {record.season}
-									</p>
-								</div>
-								<div>
-									<p>
-										<strong>🔢 Life in Numbers:</strong>
-									</p>
-									<ul>
-										<li>💓 {record.heartbeats.toLocaleString()} heartbeats</li>
+									<Typography.Text strong>🔢 Stats</Typography.Text>
+									<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
+										<li>💓 {record.heartbeats.toLocaleString()} beats</li>
 										<li>🫁 {record.breaths.toLocaleString()} breaths</li>
-										<li>😴 {record.sleepYears.toFixed(1)} years sleeping</li>
 										<li>
-											🚀 {record.distanceTraveled.toLocaleString()} km in orbit
+											🚀 {record.distanceTraveled.toLocaleString()} km orbit
 										</li>
 									</ul>
 								</div>
 								<div>
-									<p>
-										<strong>🪐 Space Age:</strong>
-									</p>
-									<ul>
+									<Typography.Text strong>🪐 Planets</Typography.Text>
+									<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
 										{record.planetAges.map((p) => (
 											<li key={p.name}>
-												{p.icon} {p.name}: {p.age.toFixed(2)} years
+												{p.icon} {p.name}: {p.age.toFixed(1)}y
 											</li>
 										))}
 									</ul>
 								</div>
 							</div>
 
-							<BiorhythmsChart birthday={record.birthday} />
+							<div style={{ marginTop: 8 }}>
+								<BiorhythmsChart birthday={record.birthday} />
+							</div>
 
 							{/* Hidden card for capture */}
 							<div
