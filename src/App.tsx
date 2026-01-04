@@ -40,6 +40,8 @@ export const App = () => {
 	useEffect(() => {
 		if (i18n.language === "zh") {
 			dayjs.locale("zh-cn");
+		} else if (i18n.language === "ty") {
+			dayjs.locale("fr");
 		} else {
 			dayjs.locale(i18n.language);
 		}
@@ -48,6 +50,7 @@ export const App = () => {
 
 	const antdLocale = useMemo(() => {
 		if (i18n.language.startsWith("fr")) return frFR;
+		if (i18n.language.startsWith("ty")) return frFR; // Use French as fallback for Tahitian
 		if (i18n.language.startsWith("es")) return esES;
 		if (i18n.language.startsWith("de")) return deDE;
 		if (i18n.language.startsWith("zh")) return zhCN;
