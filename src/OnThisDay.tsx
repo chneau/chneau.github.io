@@ -36,6 +36,7 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 				if (i18n.language.startsWith("fr")) lang = "fr";
 				else if (i18n.language.startsWith("es")) lang = "es";
 				else if (i18n.language.startsWith("de")) lang = "de";
+				else if (i18n.language.startsWith("zh")) lang = "zh";
 
 				const res = await fetch(
 					`https://api.wikimedia.org/feed/v1/wikipedia/${lang}/onthisday/selected/${mm}/${dd}`,

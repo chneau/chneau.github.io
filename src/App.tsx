@@ -4,14 +4,17 @@ import deDE from "antd/locale/de_DE";
 import enUS from "antd/locale/en_US";
 import esES from "antd/locale/es_ES";
 import frFR from "antd/locale/fr_FR";
+import zhCN from "antd/locale/zh_CN";
 import dayjs from "dayjs";
 import "dayjs/locale/de";
 import "dayjs/locale/en";
 import "dayjs/locale/es";
 import "dayjs/locale/fr";
+import "dayjs/locale/zh-cn";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+
 import { AppFooter } from "./AppFooter";
 import { AppHeader } from "./AppHeader";
 import { BirthdayTable } from "./BirthdayTable";
@@ -42,6 +45,7 @@ export const App = () => {
 		if (i18n.language.startsWith("fr")) return frFR;
 		if (i18n.language.startsWith("es")) return esES;
 		if (i18n.language.startsWith("de")) return deDE;
+		if (i18n.language.startsWith("zh")) return zhCN;
 		return enUS;
 	}, [i18n.language]);
 

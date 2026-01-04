@@ -59,6 +59,10 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 			key: "de",
 			label: "🇩🇪 Deutsch",
 		},
+		{
+			key: "zh",
+			label: "🇨🇳 中文",
+		},
 	];
 
 	const currentLang = i18n.language.startsWith("fr")
@@ -67,7 +71,9 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 			? "🇪🇸 ES"
 			: i18n.language.startsWith("de")
 				? "🇩🇪 DE"
-				: "🇬🇧 EN";
+				: i18n.language.startsWith("zh")
+					? "🇨🇳 ZH"
+					: "🇬🇧 EN";
 
 	return (
 		<Layout.Header
