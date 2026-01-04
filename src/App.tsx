@@ -11,9 +11,10 @@ import "dayjs/locale/en";
 import "dayjs/locale/es";
 import "dayjs/locale/fr";
 import "dayjs/locale/zh-cn";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+
 import { AppFooter } from "./AppFooter";
 import { AppHeader } from "./AppHeader";
 import { BirthdayTable } from "./BirthdayTable";
@@ -35,9 +36,15 @@ export const App = () => {
 	const storeSnap = useSnapshot(store);
 	const data = dataSnap.filtered;
 	const { t, i18n } = useTranslation();
+	const [, forceUpdate] = useState({});
 
 	useEffect(() => {
-		dayjs.locale(i18n.language);
+		if (i18n.language === "zh") {
+			dayjs.locale("zh-cn");
+		} else {
+			dayjs.locale(i18n.language);
+		}
+		forceUpdate({});
 	}, [i18n.language]);
 
 	const antdLocale = useMemo(() => {
