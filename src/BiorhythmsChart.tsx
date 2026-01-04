@@ -25,25 +25,25 @@ export const BiorhythmsChart = ({ birthday }: BiorhythmsChartProps) => {
 			result.push({
 				day: current.format("MMM DD"),
 				value: calculateCycle(daysLived, 23),
-				type: "Physical",
+				type: t("biorhythms.physical"),
 			});
 			result.push({
 				day: current.format("MMM DD"),
 				value: calculateCycle(daysLived, 28),
-				type: "Emotional",
+				type: t("biorhythms.emotional"),
 			});
 			result.push({
 				day: current.format("MMM DD"),
 				value: calculateCycle(daysLived, 33),
-				type: "Intellectual",
+				type: t("biorhythms.intellectual"),
 			});
 		}
 		return result;
-	}, [birthday]);
+	}, [birthday, t]);
 
 	return (
 		<div style={{ marginTop: 16 }}>
-			<Typography.Title level={5}>{t("biorhythms")}</Typography.Title>
+			<Typography.Title level={5}>{t("biorhythms.title")}</Typography.Title>
 			<Line
 				data={data}
 				xField="day"
