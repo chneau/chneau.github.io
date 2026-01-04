@@ -2,7 +2,6 @@ import {
 	Area,
 	Bar,
 	Column,
-	ConfigProvider,
 	type Datum,
 	Heatmap,
 	Pie,
@@ -286,7 +285,6 @@ const getDistribution = (
 
 export const Statistics = () => {
 	const dataSnap = useSnapshot(dataStore);
-	const storeSnap = useSnapshot(store);
 	const data = dataSnap.filtered;
 
 	const stats = useMemo(() => {
@@ -307,34 +305,32 @@ export const Statistics = () => {
 	}, [data]);
 
 	return (
-		<ConfigProvider common={{ theme: storeSnap.darkMode ? "dark" : "light" }}>
-			<Card title="Statistics" size="small" style={{ marginTop: 16 }}>
-				<style>
-					{`
+		<Card title="Statistics" size="small" style={{ marginTop: 16 }}>
+			<style>
+				{`
 				.g2-tooltip-list-item-value {
 					max-width: unset !important;
 					white-space: pre-wrap !important;
 				}
 				`}
-				</style>
-				<Row gutter={[16, 16]}>
-					<StatPie title="Zodiac Signs" data={stats.signs} />
-					<StatPie title="Chinese Zodiac" data={stats.chineseZodiac} />
-					<StatPie title="Astrological Elements" data={stats.elements} />
-					<StatPie title="Gender Distribution" data={stats.kinds} />
-					<StatPie title="Age Groups" data={stats.ageGroups} />
-					<StatPie title="Generations" data={stats.generations} />
-					<StatPie title="Birth Seasons" data={stats.seasons} />
-					<StatColumn title="Name First Letter" data={stats.letters} />
-					<StatColumn title="Birth Month" data={stats.months} />
-					<StatColumn title="Birthstones" data={stats.birthgems} />
-					<StatColumn title="Birth Day of Week" data={stats.days} />
-					<StatColumn title="Birth Decades" data={stats.decades} />
-					<AgeDistribution data={data} />
-					<AgePyramid data={data} />
-					<BirthHeatmap data={data} />
-				</Row>
-			</Card>
-		</ConfigProvider>
+			</style>
+			<Row gutter={[16, 16]}>
+				<StatPie title="Zodiac Signs" data={stats.signs} />
+				<StatPie title="Chinese Zodiac" data={stats.chineseZodiac} />
+				<StatPie title="Astrological Elements" data={stats.elements} />
+				<StatPie title="Gender Distribution" data={stats.kinds} />
+				<StatPie title="Age Groups" data={stats.ageGroups} />
+				<StatPie title="Generations" data={stats.generations} />
+				<StatPie title="Birth Seasons" data={stats.seasons} />
+				<StatColumn title="Name First Letter" data={stats.letters} />
+				<StatColumn title="Birth Month" data={stats.months} />
+				<StatColumn title="Birthstones" data={stats.birthgems} />
+				<StatColumn title="Birth Day of Week" data={stats.days} />
+				<StatColumn title="Birth Decades" data={stats.decades} />
+				<AgeDistribution data={data} />
+				<AgePyramid data={data} />
+				<BirthHeatmap data={data} />
+			</Row>
+		</Card>
 	);
 };

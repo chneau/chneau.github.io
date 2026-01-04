@@ -167,10 +167,6 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 							b.month === record.month &&
 							b.day === record.day,
 					);
-					const sameYear = birthdays.filter(
-						(b) => b.name !== record.name && b.year === record.year,
-					);
-
 					const handleDownloadCard = async () => {
 						const element = document.getElementById(`card-${record.name}`);
 						if (element) {

@@ -1,3 +1,4 @@
+import { ConfigProvider as ChartConfigProvider } from "@ant-design/charts";
 import { Card, ConfigProvider, Layout, Space, Tabs, theme } from "antd";
 import { useEffect } from "react";
 import { useSnapshot } from "valtio";
@@ -43,8 +44,11 @@ export const App = () => {
 					: theme.defaultAlgorithm,
 			}}
 		>
-			<style>
-				{`
+			<ChartConfigProvider
+				common={{ theme: storeSnap.darkMode ? "dark" : "light" }}
+			>
+				<style>
+					{`
 					.birthday-today-row {
 						background-color: rgba(255, 77, 79, 0.15) !important;
 						font-weight: bold;
@@ -53,55 +57,56 @@ export const App = () => {
 						background-color: rgba(255, 77, 79, 0.25) !important;
 					}
 				`}
-			</style>
-			<Layout style={{ minHeight: "100vh" }}>
-				<AppHeader data={data} />
-				<Layout.Content style={{ padding: 16 }}>
-					{nextBirthday && <Countdown nextBirthday={nextBirthday} />}
-					<Card title="Birthdays" size="small">
-						<Space
-							orientation="vertical"
-							style={{ width: "100%", marginBottom: 16 }}
-							size="middle"
-						>
+				</style>
+				<Layout style={{ minHeight: "100vh" }}>
+					<AppHeader data={data} />
+					<Layout.Content style={{ padding: 16 }}>
+						{nextBirthday && <Countdown nextBirthday={nextBirthday} />}
+						<Card title="Birthdays" size="small">
 							<Space
-								wrap
-								style={{ justifyContent: "space-between", width: "100%" }}
+								orientation="vertical"
+								style={{ width: "100%", marginBottom: 16 }}
+								size="middle"
 							>
-								<Space wrap>
-									<CalendarActions />
+								<Space
+									wrap
+									style={{ justifyContent: "space-between", width: "100%" }}
+								>
+									<Space wrap>
+										<CalendarActions />
+									</Space>
+									<FilterButtons />
 								</Space>
-								<FilterButtons />
+								<FilterSearch style={{ width: "100%" }} />
 							</Space>
-							<FilterSearch style={{ width: "100%" }} />
-						</Space>
-						<Tabs
-							defaultActiveKey="table"
-							items={[
-								{
-									key: "table",
-									label: "Table",
-									children: <BirthdayTable data={data} />,
-								},
-								{
-									key: "timeline",
-									label: "Timeline",
-									children: <TimelineView data={data} />,
-								},
-								{
-									key: "compatibility",
-									label: "Compatibility",
-									children: <CompatibilityMatrix data={data} />,
-								},
-							]}
-						/>
-					</Card>
-					<MilestonesWidget />
-					<RecordsWidget data={data} />
-					<Statistics />
-				</Layout.Content>
-				<AppFooter />
-			</Layout>
+							<Tabs
+								defaultActiveKey="table"
+								items={[
+									{
+										key: "table",
+										label: "Table",
+										children: <BirthdayTable data={data} />,
+									},
+									{
+										key: "timeline",
+										label: "Timeline",
+										children: <TimelineView data={data} />,
+									},
+									{
+										key: "compatibility",
+										label: "Compatibility",
+										children: <CompatibilityMatrix data={data} />,
+									},
+								]}
+							/>
+						</Card>
+						<MilestonesWidget />
+						<RecordsWidget data={data} />
+						<Statistics />
+					</Layout.Content>
+					<AppFooter />
+				</Layout>
+			</ChartConfigProvider>
 		</ConfigProvider>
 	);
 };
