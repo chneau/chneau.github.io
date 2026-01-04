@@ -94,7 +94,9 @@
 			"hours": "Hours",
 			"mins": "Mins",
 			"secs": "Secs"
-		}
+		},
+		"card": "Card",
+		"events": "Events"
 	},
 	"table": {
 		"name": "Name",

@@ -232,7 +232,7 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 									onClick={handleDownloadCard}
 									icon="📸"
 								>
-									Card
+									{t("app.card")}
 								</Button>
 								<a
 									href={`https://en.wikipedia.org/wiki/${record.year}`}
@@ -250,7 +250,7 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 									rel="noreferrer"
 									style={{ fontSize: "12px" }}
 								>
-									📅 Events
+									📅 {t("app.events")}
 								</a>
 							</Space>
 
