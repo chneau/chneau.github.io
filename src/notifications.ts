@@ -51,11 +51,28 @@ export const checkAndNotify = (birthdays: readonly Birthday[]) => {
 	}
 
 	if (title) {
-		new Notification(title, {
+		notify(title, {
 			body,
 			icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>",
 		});
 		localStorage.setItem("lastNotifiedDate", today);
+	}
+};
+
+const notify = async (title: string, options?: NotificationOptions) => {
+	if (!("Notification" in window) || Notification.permission !== "granted") {
+		return;
+	}
+
+	if ("serviceWorker" in navigator) {
+		const registration = await navigator.serviceWorker.ready;
+		registration.showNotification(title, options);
+	} else {
+		try {
+			new Notification(title, options);
+		} catch (e) {
+			console.error("Failed to construct Notification", e);
+		}
 	}
 };
 
@@ -70,7 +87,7 @@ export const sendTestNotification = () => {
 		return;
 	}
 
-	new Notification("🎉 Test Notification", {
+	notify("🎉 Test Notification", {
 		body: "This is a test notification from Birthday Tracker!",
 		icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>",
 	});
