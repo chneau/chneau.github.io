@@ -32,7 +32,10 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 			try {
 				const mm = month.toString().padStart(2, "0");
 				const dd = day.toString().padStart(2, "0");
-				const lang = i18n.language.startsWith("fr") ? "fr" : "en";
+				let lang = "en";
+				if (i18n.language.startsWith("fr")) lang = "fr";
+				else if (i18n.language.startsWith("es")) lang = "es";
+
 				const res = await fetch(
 					`https://api.wikimedia.org/feed/v1/wikipedia/${lang}/onthisday/selected/${mm}/${dd}`,
 				);

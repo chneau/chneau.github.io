@@ -1,4 +1,4 @@
-import { Button, Layout, Space, Typography } from "antd";
+import { Button, Dropdown, Layout, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -41,6 +41,27 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 		window.addEventListener("beforeinstallprompt", handler);
 		return () => window.removeEventListener("beforeinstallprompt", handler);
 	}, []);
+
+	const languageItems = [
+		{
+			key: "en",
+			label: "🇬🇧 English",
+		},
+		{
+			key: "fr",
+			label: "🇫🇷 Français",
+		},
+		{
+			key: "es",
+			label: "🇪🇸 Español",
+		},
+	];
+
+	const currentLang = i18n.language.startsWith("fr")
+		? "🇫🇷 FR"
+		: i18n.language.startsWith("es")
+			? "🇪🇸 ES"
+			: "🇬🇧 EN";
 
 	return (
 		<Layout.Header
@@ -103,15 +124,19 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 				>
 					🔔
 				</Button>
-				<Button
-					onClick={() => {
-						const newLang = i18n.language.startsWith("fr") ? "en" : "fr";
-						i18n.changeLanguage(newLang);
-						dayjs.locale(newLang);
+				<Dropdown
+					menu={{
+						items: languageItems,
+						onClick: (e) => {
+							i18n.changeLanguage(e.key);
+							dayjs.locale(e.key);
+						},
+						selectedKeys: [i18n.language],
 					}}
+					trigger={["click"]}
 				>
-					{i18n.language.startsWith("fr") ? "🇬🇧 EN" : "🇫🇷 FR"}
-				</Button>
+					<Button>{currentLang}</Button>
+				</Dropdown>
 				<Button
 					onClick={() => {
 						store.darkMode = !store.darkMode;

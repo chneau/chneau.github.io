@@ -1,0 +1,280 @@
+{
+	"app": {
+		"title": "Rastreador de Cumpleaños",
+		"birthdays": "Cumpleaños",
+		"table": {
+			"title": "Tabla"
+		},
+		"timeline": {
+			"title": "Línea de Tiempo",
+			"anniversary": "Aniversario",
+			"turns": "Cumple {{age}}",
+			"in_days": "en {{days}} días ({{day}})"
+		},
+		"compatibility": {
+			"title": "Compatibilidad",
+			"matrix_title": "Matriz de Compatibilidad",
+			"excellent": "Excelente (100%)",
+			"great": "Genial (80%)",
+			"neutral": "Neutral (50%)",
+			"challenging": "Desafiante (40%)"
+		},
+		"statistics": {
+			"title": "Estadísticas",
+			"age_distribution": "Distribución de Edades",
+			"birth_heatmap": "Mapa de Calor de Nacimientos",
+			"zodiac": "Signos del Zodiaco",
+			"chinese": "Zodiaco Chino",
+			"elements": "Elementos Astrológicos",
+			"gender": "Distribución de Género",
+			"age_groups": "Grupos de Edad",
+			"generations": "Generaciones",
+			"seasons": "Estaciones de Nacimiento",
+			"first_letter": "Primera Letra del Nombre",
+			"month": "Mes de Nacimiento",
+			"birthstones": "Piedras de Nacimiento",
+			"day_of_week": "Día de la Semana",
+			"decades": "Décadas",
+			"pyramid": "Pirámide de Edad y Género",
+			"count": "Conteo"
+		},
+		"milestones": {
+			"title": "Hitos",
+			"widget_title": "Próximos Grandes Hitos 🎯",
+			"is_turning": "{{name}} va a cumplir {{milestone}}",
+			"today": "¡Hoy! 🎉",
+			"in_days": "En {{days}} días ({{date}})",
+			"no_upcoming": "No hay hitos próximos"
+		},
+		"records": {
+			"title": "Récords",
+			"widget_title": "Récords de Cumpleaños 🏆",
+			"elder": "El Mayor",
+			"rookie": "El Novato",
+			"socialite": "El Sociable",
+			"twins": "Gemelos",
+			"twins_suffix": "pares",
+			"elder_tooltip": "{{name}} es el miembro más antiguo.",
+			"rookie_tooltip": "{{name}} es el miembro más joven.",
+			"socialite_tooltip": "¡{{name}} tiene {{count}} coincidencias perfectas!",
+			"twins_tooltip": "Cumpleaños compartidos: {{pairs}}",
+			"no_twins": "¡Aún no se han encontrado gemelos exactos!"
+		},
+		"search": "Buscar...",
+		"filters": {
+			"boys": "Chicos",
+			"girls": "Chicas",
+			"weddings": "Bodas",
+			"shortcuts": {
+				"this_month": "Este Mes",
+				"next_month": "Próximo Mes",
+				"gen_z": "Gen Z",
+				"teens": "Adolescentes",
+				"seniors": "Mayores"
+			}
+		},
+		"calendar": {
+			"export": "Exportar Calendario",
+			"subscribe": "Suscribirse",
+			"copy": "Copiar Enlace",
+			"copied": "¡Copiado!"
+		},
+		"header": {
+			"install": "Instalar",
+			"test_notification": "Prueba de Notificación",
+			"simulate": "Simular Cumple",
+			"enable_notifications": "Activar Notificaciones",
+			"light": "Claro",
+			"dark": "Oscuro",
+			"github": "GitHub"
+		},
+		"countdown": {
+			"next_celebration": "Próxima Celebración: {{name}} ({{kind}})",
+			"days": "Días",
+			"hours": "Horas",
+			"mins": "Mins",
+			"secs": "Segs"
+		}
+	},
+	"table": {
+		"name": "Nombre",
+		"birthday": "Cumpleaños",
+		"age": "Edad",
+		"progress": "Progreso",
+		"in": "En",
+		"sign": "Signo",
+		"birthgem": "Piedra",
+		"chinese": "Chino",
+		"days": "días",
+		"today": "Hoy"
+	},
+	"headers": {
+		"life_progress": "Progreso de Vida",
+		"milestones": "Hitos",
+		"traits_match": "Rasgos y Compatibilidad",
+		"stats": "Estadísticas",
+		"planets": "Edad Planetaria"
+	},
+	"on_this_day": "Tal día como hoy en la Historia",
+	"biorhythms": "Biorritmos (Próximos 30 Días)",
+	"data": {
+		"zodiac": {
+			"aries": "Aries",
+			"taurus": "Tauro",
+			"gemini": "Géminis",
+			"cancer": "Cáncer",
+			"leo": "Leo",
+			"virgo": "Virgo",
+			"libra": "Libra",
+			"scorpio": "Escorpio",
+			"sagittarius": "Sagitario",
+			"capricorn": "Capricornio",
+			"aquarius": "Acuario",
+			"pisces": "Piscis"
+		},
+		"zodiac_traits": {
+			"aries": "Ansioso ⚡, dinámico 🏃 y competitivo 🏆.",
+			"taurus": "Fuerte 💪, confiable 🛡️ y sensual 🌿.",
+			"gemini": "Versátil 🔄, expresivo 🗣️ y curioso 🔍.",
+			"cancer": "Intuitivo 🌙, sentimental 🧸 y compasivo 🦀.",
+			"leo": "Dramático 🎭, extrovertido 🌟 y seguro de sí mismo 🦁.",
+			"virgo": "Leal 🤝, analítico 📊 y de buen corazón ✨.",
+			"libra": "Diplomático ⚖️, artístico 🖼️ y social 🥂.",
+			"scorpio": "Apasionado ❤️‍🔥, terco 🦂 y ingenioso 🛠️.",
+			"sagittarius": "Extrovertido 🏹, optimista ☀️ y divertido 😂.",
+			"capricorn": "Disciplinado 📈, ambicioso 🏔️ y práctico 🛠️.",
+			"aquarius": "Innovador 💡, independiente 🦅 y humanitario 🤝.",
+			"pisces": "Compasivo 💖, artístico 🎨 e intuitivo 🔮."
+		},
+		"chinese_zodiac": {
+			"rat": "Rata 🐀",
+			"ox": "Buey 🐂",
+			"tiger": "Tigre 🐅",
+			"rabbit": "Conejo 🐇",
+			"dragon": "Dragón 🐉",
+			"snake": "Serpiente 🐍",
+			"horse": "Caballo 🐎",
+			"goat": "Cabra 🐐",
+			"monkey": "Mono 🐒",
+			"rooster": "Gallo 🐓",
+			"dog": "Perro 🐕",
+			"pig": "Cerdo 🐖"
+		},
+		"birthgems": {
+			"garnet": "Granate",
+			"amethyst": "Amatista",
+			"aquamarine": "Aguamarina",
+			"bloodstone": "Heliotropo",
+			"diamond": "Diamante",
+			"emerald": "Esmeralda",
+			"alexandrite": "Alejandrita",
+			"moonstone": "Piedra de Luna",
+			"pearl": "Perla",
+			"ruby": "Rubí",
+			"peridot": "Peridoto",
+			"sardonyx": "Sardónice",
+			"spinel": "Espinela",
+			"sapphire": "Zafiro",
+			"opal": "Ópalo",
+			"tourmaline": "Turmalina",
+			"citrine": "Citrino",
+			"topaz": "Topacio",
+			"tanzanite": "Tanzanita",
+			"turquoise": "Turquesa",
+			"zircon": "Circón"
+		},
+		"seasons": {
+			"spring": "Primavera 🌸",
+			"summer": "Verano ☀️",
+			"autumn": "Otoño 🍂",
+			"winter": "Invierno ❄️"
+		},
+		"elements": {
+			"fire": "Fuego 🜂",
+			"earth": "Tierra 🜃",
+			"air": "Aire 🜁",
+			"water": "Agua 🜄"
+		},
+		"generations": {
+			"gen_alpha": "Gen Alpha",
+			"gen_z": "Gen Z",
+			"millennials": "Millennials",
+			"gen_x": "Gen X",
+			"boomers": "Boomers",
+			"silent": "Silenciosa",
+			"greatest": "Grandiosa"
+		},
+		"age_groups": {
+			"babies": "Bebés 👶 (<3)",
+			"children": "Niños 🧒 (<13)",
+			"teens": "Adolescentes 🧒 (<20)",
+			"adults": "Adultos 🧑 (<60)",
+			"seniors": "Mayores 🧓 (60+)",
+			"weddings": "Bodas 💍"
+		},
+		"months": {
+			"jan": "Ene",
+			"feb": "Feb",
+			"mar": "Mar",
+			"apr": "Abr",
+			"may": "May",
+			"jun": "Jun",
+			"jul": "Jul",
+			"aug": "Ago",
+			"sep": "Sep",
+			"oct": "Oct",
+			"nov": "Nov",
+			"dec": "Dic"
+		},
+		"milestone": {
+			"birthday": "¡Gran {{age}}! 🎉",
+			"wedding": "{{year}}º Aniversario ({{material}}) 💍",
+			"status": {
+				"today": "¡Hoy es el hito!",
+				"since": "{{diff}} año{{s}} desde {{target}}",
+				"until": "{{diff}} año{{s}} hasta {{target}}"
+			}
+		},
+		"life_path": {
+			"life_path_1": "El Líder Independiente 🦁",
+			"life_path_2": "El Pacificador 🕊️",
+			"life_path_3": "El Comunicador Creativo 🎨",
+			"life_path_4": "El Constructor Práctico 🏗️",
+			"life_path_5": "El Buscador de Libertad 🌏",
+			"life_path_6": "El Cuidador 🏠",
+			"life_path_7": "El Buscador Analítico 🔍",
+			"life_path_8": "La Potencia 💰",
+			"life_path_9": "El Humanitario 🤝",
+			"life_path_11": "El Visionario Intuitivo ✨",
+			"life_path_22": "El Maestro Constructor 🏛️",
+			"life_path_33": "El Maestro Maestro 🍎"
+		},
+		"insights": {
+			"insight_0": "¡Hoy es un gran día para un nuevo comienzo! ✨",
+			"insight_1": "Tu amabilidad abrirá puertas que nunca esperaste. 🚪",
+			"insight_2": "Un pequeño acto de coraje cambiará tu trayectoria hoy. 🚀",
+			"insight_3": "Escucha tu intuición; hoy es más fuerte de lo habitual. 👂",
+			"insight_4": "Espera una agradable sorpresa de alguien a quien no ves desde hace tiempo. 🎁",
+			"insight_5": "Tu creatividad está en su punto más alto: ¡úsala! 🎨",
+			"insight_6": "Tómate un momento para respirar; el universo te respalda. 🧘",
+			"insight_7": "Pronto podría presentarse una oportunidad financiera. 💰",
+			"insight_8": "¡Tu energía positiva es contagiosa hoy! 🌟",
+			"insight_9": "Concéntrate en la gratitud y aparecerán más cosas por las que estar agradecido. 🙏",
+			"insight_10": "Es un día perfecto para terminar ese proyecto que empezaste. 🏁",
+			"insight_11": "Una conversación hoy traerá la claridad muy necesaria. 💬",
+			"insight_12": "Confía en el proceso; todo se está desarrollando como debería. 🌱",
+			"insight_13": "Tu duro trabajo está a punto de dar sus frutos a lo grande. 🏆",
+			"insight_14": "Alguien está pensando en ti con mucho amor hoy. ❤️"
+		},
+		"moon_phases": {
+			"new_moon": "Luna Nueva",
+			"waxing_crescent": "Luna Creciente",
+			"first_quarter": "Cuarto Creciente",
+			"waxing_gibbous": "Gibosa Creciente",
+			"full_moon": "Luna Llena",
+			"waning_gibbous": "Gibosa Menguante",
+			"last_quarter": "Cuarto Menguante",
+			"waning_crescent": "Luna Menguante"
+		}
+	}
+}
