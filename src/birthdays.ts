@@ -91,6 +91,7 @@ export type Birthday = {
 	moonPhase: MoonPhase;
 	moonPhaseIcon: string;
 	planetAges: readonly { name: PlanetName; age: number; icon: string }[];
+	etymology?: string;
 };
 
 const BIG_BIRTHDAYS = [

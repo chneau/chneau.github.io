@@ -96,7 +96,8 @@
 			"secs": "Segs"
 		},
 		"card": "Tarjeta",
-		"events": "Eventos"
+		"events": "Eventos",
+		"no_data": "N/D"
 	},
 	"table": {
 		"name": "Nombre",
@@ -116,7 +117,8 @@
 		"traits_match": "Rasgos y Compatibilidad",
 		"stats": "Estadísticas",
 		"planets": "Edad Planetaria",
-		"life_path": "Camino de Vida"
+		"life_path": "Camino de Vida",
+		"etymology": "Etimología"
 	},
 	"units": {
 		"d": "d",
@@ -305,6 +307,34 @@
 			"waning_gibbous": "Gibosa Menguante",
 			"last_quarter": "Cuarto Menguante",
 			"waning_crescent": "Luna Menguante"
+		},
+		"names": {
+			"Ariimoana": "Tahitiano: 'Rey del océano'",
+			"Brigitte": "Gaélico: 'Fuerza' o 'Exaltada'",
+			"Cécile": "Latín: 'Ciega' (referente a la visión espiritual)",
+			"Charles": "Germánico: 'Hombre libre'",
+			"Christian": "Griego: 'Seguidor de Cristo'",
+			"Christopher": "Griego: 'Portador de Cristo'",
+			"Dorothée": "Griego: 'Regalo de Dios'",
+			"Edouard": "Inglés antiguo: 'Guardián de la riqueza'",
+			"Elena": "Griego: 'Antorcha' o 'Luz brillante'",
+			"Georges": "Griego: 'Agricultor' o 'Trabajador de la tierra'",
+			"Julien": "Latín: 'Juvenil'",
+			"Justin": "Latín: 'Justo'",
+			"Lucia": "Latín: 'Luz'",
+			"Marie": "Hebreo: 'Amarga', 'Amada' o 'Gota del mar'",
+			"Martin": "Latín: 'Guerrero' o 'Dedicado a Marte'",
+			"Maximin": "Latín: 'El más grande'",
+			"Moanaragi": "Tahitiano: 'Océano celestial'",
+			"Nadia": "Eslavo: 'Esperanza'",
+			"Nicolas": "Griego: 'Victoria del pueblo'",
+			"Ravahere": "Tahitiano: 'Gran amor'",
+			"Sandra": "Griego: 'Defensora de los hombres'",
+			"Simon": "Hebreo: 'Dios ha escuchado'",
+			"Sophie": "Griego: 'Sabiduría'",
+			"Vadim": "Eslavo: 'Poderoso' o 'Gobernante'",
+			"Vaimoana": "Tahitiano: 'Agua del océano'",
+			"Victor": "Latín: 'Vencedor' o 'Conquistador'"
 		}
 	}
 }
