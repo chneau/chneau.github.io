@@ -65,7 +65,10 @@ export const App = () => {
 		}
 	}, []);
 
-	const nextBirthday = birthdays.find((b) => b.daysBeforeBirthday >= 0);
+	const nextBirthdays = useMemo(
+		() => birthdays.filter((b) => b.daysBeforeBirthday >= 0).slice(0, 3),
+		[],
+	);
 
 	return (
 		<ConfigProvider
@@ -93,7 +96,9 @@ export const App = () => {
 				<Layout style={{ minHeight: "100vh" }}>
 					<AppHeader data={data} />
 					<Layout.Content style={{ padding: 16 }}>
-						{nextBirthday && <Countdown nextBirthday={nextBirthday} />}
+						{nextBirthdays.length > 0 && (
+							<Countdown birthdays={nextBirthdays} />
+						)}
 						<Card title={t("app.birthdays")} size="small">
 							<Space
 								orientation="vertical"

@@ -7,11 +7,11 @@ import type { Birthday } from "./birthdays";
 
 dayjs.extend(duration);
 
-type CountdownProps = {
-	nextBirthday: Birthday;
+type CountdownTimerProps = {
+	birthday: Birthday;
 };
 
-export const Countdown = ({ nextBirthday }: CountdownProps) => {
+const CountdownTimer = ({ birthday }: CountdownTimerProps) => {
 	const { t } = useTranslation();
 	const [timeLeft, setTimeLeft] = useState<{
 		days: number;
@@ -21,7 +21,7 @@ export const Countdown = ({ nextBirthday }: CountdownProps) => {
 	} | null>(null);
 
 	useEffect(() => {
-		const target = dayjs(nextBirthday.nextBirthday);
+		const target = dayjs(birthday.nextBirthday);
 
 		const updateCountdown = () => {
 			const now = dayjs();
@@ -46,37 +46,77 @@ export const Countdown = ({ nextBirthday }: CountdownProps) => {
 		const timer = setInterval(updateCountdown, 1000);
 
 		return () => clearInterval(timer);
-	}, [nextBirthday]);
+	}, [birthday]);
 
 	if (!timeLeft) return null;
 
 	return (
-		<Card
-			size="small"
-			style={{
-				marginBottom: 16,
-				textAlign: "center",
-				background: "rgba(24, 144, 255, 0.1)",
-			}}
-		>
-			<Typography.Text strong>
+		<div style={{ textAlign: "center", flex: 1, minWidth: "200px" }}>
+			<Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
 				{t("app.countdown.next_celebration", {
-					name: nextBirthday.name,
-					kind: nextBirthday.kind,
+					name: birthday.name,
+					kind: birthday.kind,
 				})}
 			</Typography.Text>
 			<div
 				style={{
 					display: "flex",
 					justifyContent: "center",
-					gap: "16px",
-					marginTop: "8px",
+					gap: "12px",
 				}}
 			>
-				<Statistic title={t("app.countdown.days")} value={timeLeft.days} />
-				<Statistic title={t("app.countdown.hours")} value={timeLeft.hours} />
-				<Statistic title={t("app.countdown.mins")} value={timeLeft.minutes} />
-				<Statistic title={t("app.countdown.secs")} value={timeLeft.seconds} />
+				<Statistic
+					title={t("app.countdown.days")}
+					value={timeLeft.days}
+					styles={{ content: { fontSize: "1.2rem" } }}
+				/>
+				<Statistic
+					title={t("app.countdown.hours")}
+					value={timeLeft.hours}
+					styles={{ content: { fontSize: "1.2rem" } }}
+				/>
+				<Statistic
+					title={t("app.countdown.mins")}
+					value={timeLeft.minutes}
+					styles={{ content: { fontSize: "1.2rem" } }}
+				/>
+				<Statistic
+					title={t("app.countdown.secs")}
+					value={timeLeft.seconds}
+					styles={{ content: { fontSize: "1.2rem" } }}
+				/>
+			</div>
+		</div>
+	);
+};
+
+type CountdownProps = {
+	birthdays: Birthday[];
+};
+
+export const Countdown = ({ birthdays }: CountdownProps) => {
+	if (birthdays.length === 0) return null;
+
+	return (
+		<Card
+			size="small"
+			style={{
+				marginBottom: 16,
+				background: "rgba(24, 144, 255, 0.1)",
+			}}
+		>
+			<div
+				style={{
+					display: "flex",
+					flexWrap: "wrap",
+					gap: "24px",
+					justifyContent: "space-around",
+					padding: "8px 0",
+				}}
+			>
+				{birthdays.map((b) => (
+					<CountdownTimer key={`${b.name}-${b.birthdayString}`} birthday={b} />
+				))}
 			</div>
 		</Card>
 	);
