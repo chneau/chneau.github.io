@@ -10,6 +10,7 @@ import {
 	getAgeEmoji,
 	getKindColor,
 } from "./birthdays";
+import { OnThisDay } from "./OnThisDay";
 import { store } from "./store";
 
 const Highlight = ({ text, search }: { text: string; search: string }) => {
@@ -215,11 +216,14 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 								</a>
 							</Space>
 
+							<OnThisDay month={record.month} day={record.day} />
+
 							<div
 								style={{
 									display: "grid",
 									gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
 									gap: "16px",
+									marginTop: "16px",
 								}}
 							>
 								<div>
@@ -236,6 +240,9 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 										<li>
 											🔢 Life Path {record.lifePathNumber}:{" "}
 											{record.lifePathMeaning}
+										</li>
+										<li>
+											{record.moonPhaseIcon} Moon Phase: {record.moonPhase}
 										</li>
 									</ul>
 								</div>
@@ -384,6 +391,9 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 										</p>
 										<p>💎 {record.birthgem}</p>
 										<p>🐉 {record.chineseZodiac}</p>
+										<p>
+											{record.moonPhaseIcon} {record.moonPhase}
+										</p>
 										<p>🔢 Life Path {record.lifePathNumber}</p>
 										<p>
 											🚀 {record.distanceTraveled.toLocaleString()} km in orbit

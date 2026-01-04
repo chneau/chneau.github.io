@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import { z } from "zod";
+import { getMoonPhase } from "./astronomy";
 import rawBirthdaysJson from "./birthdays.json";
 import { getBirthgem, getSign } from "./zodiac";
 
@@ -53,6 +54,8 @@ export type Birthday = {
 	sleepYears: number;
 	distanceTraveled: number;
 	dailyInsight: string;
+	moonPhase: string;
+	moonPhaseIcon: string;
 	planetAges: readonly { name: string; age: number; icon: string }[];
 };
 
@@ -357,6 +360,7 @@ export const birthdays: Birthday[] = validatedBirthdays
 		];
 
 		const dailyInsight = getDailyInsight(x.name);
+		const moon = getMoonPhase(birthdayDate);
 
 		return {
 			...x,
@@ -396,6 +400,8 @@ export const birthdays: Birthday[] = validatedBirthdays
 			distanceTraveled,
 			planetAges,
 			dailyInsight,
+			moonPhase: moon.phase,
+			moonPhaseIcon: moon.icon,
 		};
 	})
 	.sort((a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday);
