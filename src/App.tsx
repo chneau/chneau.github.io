@@ -12,7 +12,6 @@ import "dayjs/locale/fr";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
-
 import { AppFooter } from "./AppFooter";
 import { AppHeader } from "./AppHeader";
 import { BirthdayTable } from "./BirthdayTable";
