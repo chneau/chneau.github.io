@@ -1,0 +1,105 @@
+import { Collapse, List, Skeleton, Typography } from "antd";
+import { useEffect, useState } from "react";
+
+interface Event {
+	year: string;
+	text: string;
+	pages: {
+		titles: {
+			normalized: string;
+		};
+		extract: string;
+	}[];
+}
+
+interface OnThisDayProps {
+	month: number;
+	day: number;
+}
+
+export const OnThisDay = ({ month, day }: OnThisDayProps) => {
+	const [events, setEvents] = useState<Event[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState(false);
+
+	const monthNames = [
+		"January",
+		"February",
+		"March",
+		"April",
+		"May",
+		"June",
+		"July",
+		"August",
+		"September",
+		"October",
+		"November",
+		"December",
+	];
+
+	useEffect(() => {
+		const fetchEvents = async () => {
+			setLoading(true);
+			setError(false);
+			try {
+				const mm = month.toString().padStart(2, "0");
+				const dd = day.toString().padStart(2, "0");
+				const res = await fetch(
+					`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/selected/${mm}/${dd}`,
+				);
+				if (!res.ok) throw new Error("Failed to fetch");
+				const data = await res.json();
+				setEvents(data.selected.slice(0, 5));
+			} catch (err) {
+				console.error(err);
+				setError(true);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchEvents();
+	}, [month, day]);
+
+	if (error) return null;
+
+	const items = [
+		{
+			key: "1",
+			label: (
+				<Typography.Text strong>
+					📜 On This Day in History ({monthNames[month - 1]} {day})
+				</Typography.Text>
+			),
+			children: loading ? (
+				<Skeleton active paragraph={{ rows: 3 }} />
+			) : (
+				<List
+					itemLayout="horizontal"
+					dataSource={events}
+					renderItem={(item) => (
+						<List.Item>
+							<List.Item.Meta
+								title={<Typography.Text strong>{item.year}</Typography.Text>}
+								description={item.text}
+							/>
+						</List.Item>
+					)}
+				/>
+			),
+		},
+	];
+
+	return (
+		<Collapse
+			ghost
+			size="small"
+			items={items}
+			style={{
+				marginTop: 16,
+				background: "rgba(0, 0, 0, 0.02)",
+				borderRadius: "8px",
+			}}
+		/>
+	);
+};
