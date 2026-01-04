@@ -1,0 +1,310 @@
+{
+	"app": {
+		"title": "Tāpura fānaura’a",
+		"birthdays": "Mau fānaura’a",
+		"table": {
+			"title": "Tāpura"
+		},
+		"timeline": {
+			"title": "Terera’a tau",
+			"anniversary": "Fānaura’a",
+			"turns": "E {{age}} matahiti tōna",
+			"in_days": "i roto i te {{days}} mahana ({{day}})"
+		},
+		"compatibility": {
+			"title": "Tū’atira’a",
+			"matrix_title": "Tāpura Tū’atira’a",
+			"excellent": "Maita’i roa (100%)",
+			"great": "Maita’i (80%)",
+			"neutral": "Tano maita’i (50%)",
+			"challenging": "Fifī (40%)"
+		},
+		"statistics": {
+			"title": "Nūmera",
+			"age_distribution": "Tāpūra’a matahiti",
+			"birth_heatmap": "Meura’a fānaura’a",
+			"zodiac": "Tāpa’o feti’a",
+			"chinese": "Tāpa’o rāpiti",
+			"elements": "Mata’i, auahi, repo, pape",
+			"gender": "Tāpūra’a tāne/vahine",
+			"age_groups": "Pupū matahiti",
+			"generations": "U’i",
+			"seasons": "Tau",
+			"first_letter": "Reta mātāmua",
+			"month": "Āva’e fānaura’a",
+			"birthstones": "Po’e fānaura’a",
+			"day_of_week": "Mahana o te hepetoma",
+			"decades": "Matahiti",
+			"pyramid": "Ti’ara’a matahiti",
+			"count": "Nūmera"
+		},
+		"milestones": {
+			"title": "Taime faufa’a",
+			"widget_title": "Mau taime faufa’a i mua 🎯",
+			"is_turning": "E {{milestone}} matahiti tō {{name}}",
+			"today": "I teie mahana ! 🎉",
+			"in_days": "I roto i te {{days}} mahana ({{date}})",
+			"no_upcoming": "Aita e taime faufa’a i mua"
+		},
+		"records": {
+			"title": "Faufa’a",
+			"widget_title": "Mau faufa’a 🏆",
+			"elder": "Te Pa’ari",
+			"rookie": "Te ’Āpī",
+			"socialite": "Te Tāu’a",
+			"twins": "Māha’a",
+			"twins_suffix": "pupū",
+			"elder_tooltip": "O {{name}} te mea pa’ari roa a’e.",
+			"rookie_tooltip": "O {{name}} te mea ’āpī roa a’e.",
+			"socialite_tooltip": "E {{count}} tū’atira’a maita’i tō {{name}} !",
+			"twins_tooltip": "Fānaura’a hō’ē : {{pairs}}",
+			"no_twins": "Aita e māha’a i ’itehia !"
+		},
+		"search": "Pāmi...",
+		"filters": {
+			"boys": "Tamāroa",
+			"girls": "Tamāhine",
+			"weddings": "Fa’aipoipora’a",
+			"shortcuts": {
+				"this_month": "Teie āva’e",
+				"next_month": "Āva’e i mua",
+				"gen_z": "U’i Z",
+				"teens": "Taure’are’a",
+				"seniors": "Feiā pa’ari"
+			}
+		},
+		"calendar": {
+			"export": "Hāpono i te tāpūta",
+			"subscribe": "Tāpa’o",
+			"copy": "Tāpiti i te tū’ati",
+			"copied": "Ua tāpitihia !"
+		},
+		"header": {
+			"install": "Tāmi",
+			"test_notification": "Tāmatara’a",
+			"simulate": "Fa’ahō’ē",
+			"enable_notifications": "Fari’i i te parau",
+			"light": "Māramarama",
+			"dark": "Po’iri",
+			"github": "GitHub"
+		},
+		"countdown": {
+			"next_celebration": "’Ōro’a i mua : {{name}} ({{kind}})",
+			"days": "Mahana",
+			"hours": "Hora",
+			"mins": "Miniti",
+			"secs": "Sekone"
+		},
+		"card": "Pe’ape’a",
+		"events": "’Ōro’a"
+	},
+	"table": {
+		"name": "I’oa",
+		"birthday": "Fānaura’a",
+		"age": "Matahiti",
+		"progress": "Terera’a",
+		"in": "I roto i te",
+		"sign": "Tāpa’o",
+		"birthgem": "Po’e",
+		"chinese": "Rāpiti",
+		"days": "mahana",
+		"today": "I teie mahana"
+	},
+	"headers": {
+		"life_progress": "Terera’a orara’a",
+		"milestones": "Taime faufa’a",
+		"traits_match": "Hurura’a & Tū’atira’a",
+		"stats": "Nūmera",
+		"planets": "Matahiti feti’a",
+		"life_path": "Arati’ara’a orara’a"
+	},
+	"units": {
+		"d": "m",
+		"w": "h",
+		"y": "mt",
+		"months_lived": "āva’e orara’a",
+		"half": "Āfā",
+		"beats": "ma’ue’ue",
+		"breaths": "hutira’a aho",
+		"km_orbit": "km i ni’a i te feti’a",
+		"path": "Arati’a"
+	},
+	"on_this_day": "I teie mahana i roto i te tuatāpapa",
+	"biorhythms": {
+		"title": "Terera’a tino (30 mahana i mua)",
+		"physical": "Tino",
+		"emotional": "Mana’o",
+		"intellectual": "Māramarama"
+	},
+	"data": {
+		"planets": {
+			"mercury": "Metiura",
+			"venus": "Venu",
+			"mars": "Mare",
+			"jupiter": "Iupitera",
+			"saturn": "Saturunu"
+		},
+		"zodiac": {
+			"aries": "Māmoe tāne",
+			"taurus": "Pu’atoro tāne",
+			"gemini": "Māha’a",
+			"cancer": "Pā’apa’a",
+			"leo": "Riona",
+			"virgo": "Paretenia",
+			"libra": "Fāito",
+			"scorpio": "Patu’i",
+			"sagittarius": "Ta’ata fana",
+			"capricorn": "Pua’aniho",
+			"aquarius": "Hāmani pape",
+			"pisces": "I’a"
+		},
+		"zodiac_traits": {
+			"aries": "’I’ite ⚡, itoito 🏃, e tata’u 🏆.",
+			"taurus": "Pūai 💪, ti’aturi 🛡️, e au 🌿.",
+			"gemini": "Rave rau 🔄, paraparau 🗣️, e hi’ohi’o 🔍.",
+			"cancer": "Mana’o 🌙, aroha 🧸, e hā’uti 🦀.",
+			"leo": "Fa’ahiahia 🎭, haere i rāpae 🌟, e ti’aturi 🦁.",
+			"virgo": "Ha’apa’o 🤝, hi’opoa 📊, e maita’i ✨.",
+			"libra": "Fa’atano ⚖️, hāmani 🖼️, e tāu’a 🥂.",
+			"scorpio": "Pūai ❤️‍🔥, mātāito 🦂, e ’aravihi 🛠️.",
+			"sagittarius": "Haere i rāpae 🏹, tūmanako ☀️, e ’atavi  😂.",
+			"capricorn": "Ha’apa’o 📈, hina’aro 🏔️, e tano 🛠️.",
+			"aquarius": "’Āpī 💡, ti’amā 🦅, e aroha 🤝.",
+			"pisces": "Aroha 💖, hāmani 🎨, e mana’o 🔮."
+		},
+		"chinese_zodiac": {
+			"rat": "’Iore 🐀",
+			"ox": "Pu’atoro 🐂",
+			"tiger": "Tika 🐅",
+			"rabbit": "Rāpiti 🐇",
+			"dragon": "Tiragona 🐉",
+			"snake": "Ophi 🐍",
+			"horse": "Pua’ahorofenua 🐎",
+			"goat": "Pua’aniho 🐐",
+			"monkey": "Mone’i 🐒",
+			"rooster": "Moa tāne 🐓",
+			"dog": "’Ūrī 🐕",
+			"pig": "Pua’a 🐖"
+		},
+		"birthgems": {
+			"garnet": "Garnet",
+			"amethyst": "Amethyst",
+			"aquamarine": "Aquamarine",
+			"bloodstone": "Bloodstone",
+			"diamond": "Taimani",
+			"emerald": "Emerauda",
+			"alexandrite": "Alexandrite",
+			"moonstone": "Po’e Marama",
+			"pearl": "Po’e",
+			"ruby": "Rubi",
+			"peridot": "Peridot",
+			"sardonyx": "Sardonyx",
+			"spinel": "Spinel",
+			"sapphire": "Saphir",
+			"opal": "Opal",
+			"tourmaline": "Tourmaline",
+			"citrine": "Citrine",
+			"topaz": "Topaz",
+			"tanzanite": "Tanzanite",
+			"turquoise": "Turquoise",
+			"zircon": "Zircon"
+		},
+		"seasons": {
+			"spring": "Tau tiare 🌸",
+			"summer": "Tau mahanahana ☀️",
+			"autumn": "Tau maita’i 🍂",
+			"winter": "Tau to’eto’e ❄️"
+		},
+		"elements": {
+			"fire": "Auahi 🜂",
+			"earth": "Repo 🜃",
+			"air": "Mata’i 🜁",
+			"water": "Pape 🜄"
+		},
+		"generations": {
+			"gen_alpha": "U’i Alpha",
+			"gen_z": "U’i Z",
+			"millennials": "Millennials",
+			"gen_x": "U’i X",
+			"boomers": "Boomers",
+			"silent": "Silent",
+			"greatest": "Greatest"
+		},
+		"age_groups": {
+			"babies": "Pēpe 👶 (<3)",
+			"children": "Tamari’i 🧒 (<13)",
+			"teens": "Taure’are’a 🧒 (<20)",
+			"adults": "Ta’ata pa’ari 🧑 (<60)",
+			"seniors": "Feiā pa’ari 🧓 (60+)",
+			"weddings": "Fa’aipoipora’a 💍"
+		},
+		"months": {
+			"jan": "Tenuare",
+			"feb": "Fepuare",
+			"mar": "Mātī",
+			"apr": "’Ēperera",
+			"may": "Mē",
+			"jun": "Tiunu",
+			"jul": "Tiurai",
+			"aug": "Atete",
+			"sep": "Tetepa",
+			"oct": "Atopa",
+			"nov": "Novema",
+			"dec": "Titema"
+		},
+		"milestone": {
+			"birthday": "Matahiti {{age}}! 🎉",
+			"wedding": "{{year}} matahiti fa’aipoipora’a ({{material}}) 💍",
+			"status": {
+				"today": "I teie mahana !",
+				"since": "",
+				"since_one": "{{diff}} matahiti i ma’iri mai {{target}}",
+				"since_other": "{{diff}} matahiti i ma’iri mai {{target}}",
+				"until": "",
+				"until_one": "{{diff}} matahiti i mua {{target}}",
+				"until_other": "{{diff}} matahiti i mua {{target}}"
+			}
+		},
+		"life_path": {
+			"life_path_1": "Te Ra’atira Ti’amā 🦁",
+			"life_path_2": "Te Fa’ahau 🕊️",
+			"life_path_3": "Te Paraparau ’Aravihi 🎨",
+			"life_path_4": "Te Patu 🏗️",
+			"life_path_5": "Te ’Imi Ti’amāra’a 🌏",
+			"life_path_6": "Te Tāu’a 🏠",
+			"life_path_7": "Te ’Imi Māramarama 🔍",
+			"life_path_8": "Te Pūai 💰",
+			"life_path_9": "Te Aroha 🤝",
+			"life_path_11": "Te ’Ite Ātea ✨",
+			"life_path_22": "Te Patu Pūai 🏛️",
+			"life_path_33": "Te Orometua 🍎"
+		},
+		"insights": {
+			"insight_0": "E mahana maita’i teie nō te ha’amata ’āpī ! ✨",
+			"insight_1": "E hāmama te mau ’ōpani nō tō ’oe maita’i. 🚪",
+			"insight_2": "E taui tō ’oe orara’a i teie mahana. 🚀",
+			"insight_3": "Fa’aro’o i tō ’oe mana’o. 👂",
+			"insight_4": "E hō’ē parau ’āpī maita’i tā ’oe. 🎁",
+			"insight_5": "E rave rahi mana’o ’āpī tā ’oe. 🎨",
+			"insight_6": "Huti i te aho ; tē tauturu mai nei te ao. 🧘",
+			"insight_7": "E moni tā ’oe e no’a mai. 💰",
+			"insight_8": "Mea maita’i tō ’oe itoito i teie mahana ! 🌟",
+			"insight_9": "Ha’amāuruuru i te Atua. 🙏",
+			"insight_10": "E fa’aoti i tā ’oe ’ohipa. 🏁",
+			"insight_11": "E paraparau maita’i ’oe i teie mahana. 💬",
+			"insight_12": "Ti’aturi i te terera’a ’ohipa. 🌱",
+			"insight_13": "E no’a mai te re nō tā ’oe ’ohipa. 🏆",
+			"insight_14": "Tē mana’o mai nei te hō’ē ta’ata ia ’oe. ❤️"
+		},
+		"moon_phases": {
+			"new_moon": "Marama ’āpī",
+			"waxing_crescent": "’Ō’eo’eo",
+			"first_quarter": "’Āfā marama",
+			"waxing_gibbous": "Meura’a",
+			"full_moon": "Marama tō’oto’o",
+			"waning_gibbous": "Topara’a",
+			"last_quarter": "’Āfā marama",
+			"waning_crescent": "Po’iri"
+		}
+	}
+}

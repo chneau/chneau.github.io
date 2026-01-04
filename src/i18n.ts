@@ -5,6 +5,7 @@ import de from "./locales/de.json";
 import en from "./locales/en.json";
 import es from "./locales/es.json";
 import fr from "./locales/fr.json";
+import ty from "./locales/ty.json";
 import zh from "./locales/zh.json";
 
 const resources: Record<string, { translation: typeof en }> = {
@@ -12,6 +13,7 @@ const resources: Record<string, { translation: typeof en }> = {
 	fr: { translation: fr },
 	es: { translation: es },
 	de: { translation: de },
+	ty: { translation: ty },
 	zh: { translation: zh },
 };
 
