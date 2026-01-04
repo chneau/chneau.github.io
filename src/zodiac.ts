@@ -1,4 +1,27 @@
-const birthgems = [
+export type BirthGem =
+	| "garnet"
+	| "amethyst"
+	| "aquamarine"
+	| "bloodstone"
+	| "diamond"
+	| "emerald"
+	| "alexandrite"
+	| "moonstone"
+	| "pearl"
+	| "ruby"
+	| "peridot"
+	| "sardonyx"
+	| "spinel"
+	| "sapphire"
+	| "opal"
+	| "tourmaline"
+	| "citrine"
+	| "topaz"
+	| "tanzanite"
+	| "turquoise"
+	| "zircon";
+
+const birthgems: { name: BirthGem; emoji: string }[][] = [
 	[{ name: "garnet", emoji: "🔴" }],
 	[{ name: "amethyst", emoji: "🟣" }],
 	[
@@ -34,7 +57,7 @@ const birthgems = [
 	],
 ];
 
-export const getBirthgem = (date: Date) => {
+export const getBirthgem = (date: Date): { key: BirthGem; emoji: string } => {
 	const month = date.getMonth();
 	const gems = birthgems[month];
 	if (!gems) throw new Error(`No birthgem found for ${date}`);
@@ -43,7 +66,28 @@ export const getBirthgem = (date: Date) => {
 	return { key: gem.name, emoji: gem.emoji };
 };
 
-const signs = [
+export type ZodiacSign =
+	| "capricorn"
+	| "aquarius"
+	| "pisces"
+	| "aries"
+	| "taurus"
+	| "gemini"
+	| "cancer"
+	| "leo"
+	| "virgo"
+	| "libra"
+	| "scorpio"
+	| "sagittarius";
+
+export type Element = "earth" | "air" | "water" | "fire";
+
+const signsList: {
+	point: number;
+	name: ZodiacSign;
+	symbol: string;
+	element: Element;
+}[] = [
 	{
 		point: 1,
 		name: "capricorn",
@@ -122,9 +166,17 @@ const signs = [
 		symbol: "♑",
 		element: "earth",
 	},
-].reverse();
+];
 
-export const getSign = (date: Date) => {
+const signs = signsList.reverse();
+
+export const getSign = (
+	date: Date,
+): {
+	name: ZodiacSign;
+	symbol: string;
+	element: Element;
+} => {
 	const month = date.getMonth();
 	const day = date.getDate();
 	const point = month * 100 + day;

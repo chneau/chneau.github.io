@@ -1,8 +1,16 @@
 import dayjs from "dayjs";
 import { z } from "zod";
-import { getMoonPhase } from "./astronomy";
+import { getMoonPhase, type MoonPhase } from "./astronomy";
 import rawBirthdaysJson from "./birthdays.json";
-import { getBirthgem, getSign } from "./zodiac";
+import {
+	type BirthGem,
+	type Element,
+	getBirthgem,
+	getSign,
+	type ZodiacSign,
+} from "./zodiac";
+
+export type { Element };
 
 const birthdaySchema = z.object({
 	name: z.string().min(1),
@@ -16,10 +24,95 @@ const birthdaysArraySchema = z.array(birthdaySchema);
 
 export type Kind = "♂️" | "♀️" | "💒";
 
+export type MilestoneKey =
+	| "data.milestone.wedding"
+	| "data.milestone.birthday"
+	| "data.milestone.status.today"
+	| "data.milestone.status.since"
+	| "data.milestone.status.until";
+
 export type MilestoneData = {
-	key: string;
+	key: MilestoneKey;
 	params?: Record<string, string | number>;
 };
+
+export type ChineseZodiac =
+	| "rat"
+	| "ox"
+	| "tiger"
+	| "rabbit"
+	| "dragon"
+	| "snake"
+	| "horse"
+	| "goat"
+	| "monkey"
+	| "rooster"
+	| "dog"
+	| "pig";
+
+export type Season = "spring" | "summer" | "autumn" | "winter";
+
+export type AgeGroup =
+	| "weddings"
+	| "babies"
+	| "children"
+	| "teens"
+	| "adults"
+	| "seniors";
+
+export type Generation =
+	| "gen_alpha"
+	| "gen_z"
+	| "millennials"
+	| "gen_x"
+	| "boomers"
+	| "silent"
+	| "greatest";
+
+export type MonthName =
+	| "jan"
+	| "feb"
+	| "mar"
+	| "apr"
+	| "may"
+	| "jun"
+	| "jul"
+	| "aug"
+	| "sep"
+	| "oct"
+	| "nov"
+	| "dec";
+
+export type LifePathMeaning =
+	| "life_path_1"
+	| "life_path_2"
+	| "life_path_3"
+	| "life_path_4"
+	| "life_path_5"
+	| "life_path_6"
+	| "life_path_7"
+	| "life_path_8"
+	| "life_path_9"
+	| "life_path_11"
+	| "life_path_22"
+	| "life_path_33";
+
+export type DailyInsight =
+	| "insight_0"
+	| "insight_1"
+	| "insight_2"
+	| "insight_3"
+	| "insight_4"
+	| "insight_5"
+	| "insight_6"
+	| "insight_7"
+	| "insight_8"
+	| "insight_9"
+	| "insight_10"
+	| "insight_11"
+	| "insight_12"
+	| "insight_13"
+	| "insight_14";
 
 export type Birthday = {
 	name: string;
@@ -28,20 +121,20 @@ export type Birthday = {
 	birthday: Date;
 	birthdayString: string;
 	nextBirthday: Date;
-	sign: string;
+	sign: ZodiacSign;
 	signSymbol: string;
-	birthgem: string;
+	birthgem: BirthGem;
 	birthgemEmoji: string;
 	year: number;
 	month: number;
-	monthName: string;
+	monthName: MonthName;
 	day: number;
 	daysBeforeBirthday: number;
-	chineseZodiac: string;
-	element: string;
-	generation: string;
-	season: string;
-	ageGroup: string;
+	chineseZodiac: ChineseZodiac;
+	element: Element;
+	generation: Generation;
+	season: Season;
+	ageGroup: AgeGroup;
 	decade: string;
 	milestone?: MilestoneData;
 	milestoneStatus?: MilestoneData;
@@ -51,13 +144,13 @@ export type Birthday = {
 	ageInMonths: number;
 	halfBirthday: string;
 	lifePathNumber: number;
-	lifePathMeaning: string;
+	lifePathMeaning: LifePathMeaning;
 	heartbeats: number;
 	breaths: number;
 	sleepYears: number;
 	distanceTraveled: number;
-	dailyInsight: string;
-	moonPhase: string;
+	dailyInsight: DailyInsight;
+	moonPhase: MoonPhase;
 	moonPhaseIcon: string;
 	planetAges: readonly { name: string; age: number; icon: string }[];
 };
@@ -141,7 +234,7 @@ const getMilestoneInfo = (
 	return { milestone, status };
 };
 
-export const monthNames = [
+export const monthNames: MonthName[] = [
 	"jan",
 	"feb",
 	"mar",
@@ -187,7 +280,7 @@ export const getAgeEmoji = (age: number, kind?: Kind) => {
 	return "🧑";
 };
 
-const getAgeGroup = (age: number, kind?: Kind): string => {
+const getAgeGroup = (age: number, kind?: Kind): AgeGroup => {
 	if (kind === "💒") return "weddings";
 	if (age < 3) return "babies";
 	if (age < 13) return "children";
@@ -196,8 +289,8 @@ const getAgeGroup = (age: number, kind?: Kind): string => {
 	return "seniors";
 };
 
-const getChineseZodiac = (year: number): string => {
-	const animals = [
+const getChineseZodiac = (year: number): ChineseZodiac => {
+	const animals: ChineseZodiac[] = [
 		"rat",
 		"ox",
 		"tiger",
@@ -211,12 +304,13 @@ const getChineseZodiac = (year: number): string => {
 		"dog",
 		"pig",
 	];
-	return animals[(((year - 4) % 12) + 12) % 12] || "unknown";
+	const index = (((year - 4) % 12) + 12) % 12;
+	return animals[index]!;
 };
 
 const getDecade = (year: number): string => `${Math.floor(year / 10) * 10}s`;
 
-const getGeneration = (year: number): string => {
+const getGeneration = (year: number): Generation => {
 	if (year >= 2013) return "gen_alpha";
 	if (year >= 1997) return "gen_z";
 	if (year >= 1981) return "millennials";
@@ -226,7 +320,7 @@ const getGeneration = (year: number): string => {
 	return "greatest";
 };
 
-const getSeason = (month: number): string => {
+const getSeason = (month: number): Season => {
 	if (month >= 3 && month <= 5) return "spring";
 	if (month >= 6 && month <= 8) return "summer";
 	if (month >= 9 && month <= 11) return "autumn";
@@ -260,11 +354,11 @@ const getLifePath = (date: Date) => {
 
 	return {
 		number: lifePathNumber,
-		meaning: `life_path_${lifePathNumber}`,
+		meaning: `life_path_${lifePathNumber}` as LifePathMeaning,
 	};
 };
 
-const getDailyInsight = (name: string): string => {
+const getDailyInsight = (name: string): DailyInsight => {
 	const count = 15;
 	const today = new Date().toDateString();
 	const str = name + today;
@@ -274,7 +368,7 @@ const getDailyInsight = (name: string): string => {
 		hash |= 0;
 	}
 	const index = Math.abs(hash) % count;
-	return `insight_${index}`;
+	return `insight_${index}` as DailyInsight;
 };
 
 const validatedBirthdays = birthdaysArraySchema.parse(rawBirthdaysJson);
@@ -340,7 +434,7 @@ export const birthdays: Birthday[] = validatedBirthdays
 			...x,
 			year,
 			month,
-			monthName: monthNames[month - 1] || "",
+			monthName: monthNames[month - 1]!,
 			day,
 			nextBirthday: nextBirthday.toDate(),
 			birthday: birthdayDate,

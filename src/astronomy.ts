@@ -1,4 +1,16 @@
-export const getMoonPhase = (date: Date): { phase: string; icon: string } => {
+export type MoonPhase =
+	| "new_moon"
+	| "waxing_crescent"
+	| "first_quarter"
+	| "waxing_gibbous"
+	| "full_moon"
+	| "waning_gibbous"
+	| "last_quarter"
+	| "waning_crescent";
+
+export const getMoonPhase = (
+	date: Date,
+): { phase: MoonPhase; icon: string } => {
 	let year = date.getFullYear();
 	let month = date.getMonth() + 1;
 	const day = date.getDate();
@@ -39,5 +51,5 @@ export const getMoonPhase = (date: Date): { phase: string; icon: string } => {
 		{ phase: "waning_crescent", icon: "🌘" },
 	];
 
-	return phases[phaseIndex] as { phase: string; icon: string };
+	return phases[phaseIndex] as { phase: MoonPhase; icon: string };
 };
