@@ -115,11 +115,30 @@
 		"milestones": "Jalons",
 		"traits_match": "Traits & Compatibilité",
 		"stats": "Statistiques",
-		"planets": "Âge Planétaire"
+		"planets": "Âge Planétaire",
+		"life_path": "Chemin de Vie"
+	},
+	"units": {
+		"d": "j",
+		"w": "s",
+		"y": "a",
+		"months_lived": "mois vécus",
+		"half": "Moitié",
+		"beats": "battements",
+		"breaths": "souffles",
+		"km_orbit": "km en orbite",
+		"path": "Chemin"
 	},
 	"on_this_day": "Ce jour dans l'Histoire",
 	"biorhythms": "Biorythmes (30 prochains jours)",
 	"data": {
+		"planets": {
+			"mercury": "Mercure",
+			"venus": "Vénus",
+			"mars": "Mars",
+			"jupiter": "Jupiter",
+			"saturn": "Saturne"
+		},
 		"zodiac": {
 			"aries": "Bélier",
 			"taurus": "Taureau",

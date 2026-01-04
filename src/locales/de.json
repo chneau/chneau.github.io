@@ -115,11 +115,30 @@
 		"milestones": "Meilensteine",
 		"traits_match": "Eigenschaften & Match",
 		"stats": "Stats",
-		"planets": "Planeten-Alter"
+		"planets": "Planeten-Alter",
+		"life_path": "Lebensweg"
+	},
+	"units": {
+		"d": "T",
+		"w": "W",
+		"y": "J",
+		"months_lived": "Monate gelebt",
+		"half": "Hälfte",
+		"beats": "Herzschläge",
+		"breaths": "Atemzüge",
+		"km_orbit": "km im Orbit",
+		"path": "Pfad"
 	},
 	"on_this_day": "An diesem Tag in der Geschichte",
 	"biorhythms": "Biorhythmen (Nächste 30 Tage)",
 	"data": {
+		"planets": {
+			"mercury": "Merkur",
+			"venus": "Venus",
+			"mars": "Mars",
+			"jupiter": "Jupiter",
+			"saturn": "Saturn"
+		},
 		"zodiac": {
 			"aries": "Widder",
 			"taurus": "Stier",

@@ -271,15 +271,21 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 									</Typography.Text>
 									<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
 										<li>
-											🗓️ {record.ageInDays.toLocaleString()}d /{" "}
-											{record.ageInWeeks.toLocaleString()}w
+											🗓️ {record.ageInDays.toLocaleString()}
+											{t("units.d")} / {record.ageInWeeks.toLocaleString()}
+											{t("units.w")}
 										</li>
 										<li>
-											🗓️ {record.ageInMonths.toLocaleString()} months lived
+											🗓️ {record.ageInMonths.toLocaleString()}{" "}
+											{t("units.months_lived")}
 										</li>
-										<li>🌓 Half: {record.halfBirthday}</li>
 										<li>
-											🔢 Path {record.lifePathNumber}:{" "}
+											🌓 {t("units.half")}:{" "}
+											{t(`data.months.${record.halfBirthdayMonth}`)}{" "}
+											{record.halfBirthdayDay}
+										</li>
+										<li>
+											🔢 {t("units.path")} {record.lifePathNumber}:{" "}
 											{t(`data.life_path.${record.lifePathMeaning}`)}
 										</li>
 										<li>
@@ -344,10 +350,15 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 										🔢 {t("headers.stats")}
 									</Typography.Text>
 									<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
-										<li>💓 {record.heartbeats.toLocaleString()} beats</li>
-										<li>🫁 {record.breaths.toLocaleString()} breaths</li>
 										<li>
-											🚀 {record.distanceTraveled.toLocaleString()} km orbit
+											💓 {record.heartbeats.toLocaleString()} {t("units.beats")}
+										</li>
+										<li>
+											🫁 {record.breaths.toLocaleString()} {t("units.breaths")}
+										</li>
+										<li>
+											🚀 {record.distanceTraveled.toLocaleString()}{" "}
+											{t("units.km_orbit")}
 										</li>
 									</ul>
 								</div>
@@ -358,7 +369,9 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 									<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
 										{record.planetAges.map((p) => (
 											<li key={p.name}>
-												{p.icon} {p.name}: {p.age.toFixed(1)}y
+												{p.icon} {t(`data.planets.${p.name}`)}:{" "}
+												{p.age.toFixed(1)}
+												{t("units.y")}
 											</li>
 										))}
 									</ul>
@@ -437,11 +450,16 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 											{record.moonPhaseIcon}{" "}
 											{t(`data.moon_phases.${record.moonPhase}`)}
 										</p>
-										<p>🔢 Life Path {record.lifePathNumber}</p>
 										<p>
-											🚀 {record.distanceTraveled.toLocaleString()} km in orbit
+											🔢 {t("units.path")} {record.lifePathNumber}
 										</p>
-										<p>💓 {record.heartbeats.toLocaleString()} heartbeats</p>
+										<p>
+											🚀 {record.distanceTraveled.toLocaleString()}{" "}
+											{t("units.km_orbit")}
+										</p>
+										<p>
+											💓 {record.heartbeats.toLocaleString()} {t("units.beats")}
+										</p>
 									</div>
 									<Divider style={{ borderColor: "rgba(128,128,128,0.3)" }} />
 									<p

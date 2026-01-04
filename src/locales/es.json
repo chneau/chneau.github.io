@@ -115,11 +115,30 @@
 		"milestones": "Hitos",
 		"traits_match": "Rasgos y Compatibilidad",
 		"stats": "Estadísticas",
-		"planets": "Edad Planetaria"
+		"planets": "Edad Planetaria",
+		"life_path": "Camino de Vida"
+	},
+	"units": {
+		"d": "d",
+		"w": "s",
+		"y": "a",
+		"months_lived": "meses vividos",
+		"half": "Mitad",
+		"beats": "latidos",
+		"breaths": "respiraciones",
+		"km_orbit": "km en órbita",
+		"path": "Camino"
 	},
 	"on_this_day": "Tal día como hoy en la Historia",
 	"biorhythms": "Biorritmos (Próximos 30 Días)",
 	"data": {
+		"planets": {
+			"mercury": "Mercurio",
+			"venus": "Venus",
+			"mars": "Marte",
+			"jupiter": "Júpiter",
+			"saturn": "Saturno"
+		},
 		"zodiac": {
 			"aries": "Aries",
 			"taurus": "Tauro",
