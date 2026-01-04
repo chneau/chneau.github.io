@@ -256,6 +256,26 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 
 							<OnThisDay month={record.month} day={record.day} />
 
+							<div style={{ marginTop: 8, marginBottom: 12 }}>
+								<Typography.Text strong>
+									📜 {t("headers.etymology")}:{" "}
+								</Typography.Text>
+								<Typography.Text italic>
+									{record.name.includes(" & ")
+										? record.name
+												.split(" & ")
+												.map((n) => {
+													const ety = t(`data.names.${n}` as any);
+													return ety !== `data.names.${n}` ? `${n}: ${ety}` : n;
+												})
+												.join(" | ")
+										: t(`data.names.${record.name}` as any) !==
+												(`data.names.${record.name}` as any)
+											? t(`data.names.${record.name}` as any)
+											: t("app.no_data")}
+								</Typography.Text>
+							</div>
+
 							<div
 								style={{
 									display: "grid",

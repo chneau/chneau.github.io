@@ -89,14 +89,15 @@
 			"github": "GitHub"
 		},
 		"countdown": {
-			"next_celebration": "下一次庆祝：{{name}} ({{kind}})",
+			"next_celebration": "下一次庆祝： {{name}} ({{kind}})",
 			"days": "天",
 			"hours": "小时",
-			"mins": "分",
+			"mins": "分钟",
 			"secs": "秒"
 		},
 		"card": "卡片",
-		"events": "事件"
+		"events": "事件",
+		"no_data": "无"
 	},
 	"table": {
 		"name": "姓名",
@@ -116,7 +117,8 @@
 		"traits_match": "特征与匹配",
 		"stats": "统计数据",
 		"planets": "行星年龄",
-		"life_path": "生命灵数"
+		"life_path": "生命灵数",
+		"etymology": "名字来源"
 	},
 	"units": {
 		"d": "天",
@@ -298,13 +300,41 @@
 		},
 		"moon_phases": {
 			"new_moon": "新月",
-			"waxing_crescent": "娥眉月",
+			"waxing_crescent": "峨眉月",
 			"first_quarter": "上弦月",
 			"waxing_gibbous": "盈凸月",
 			"full_moon": "满月",
 			"waning_gibbous": "亏凸月",
 			"last_quarter": "下弦月",
 			"waning_crescent": "残月"
+		},
+		"names": {
+			"Ariimoana": "大溪地语：'海洋之王'",
+			"Brigitte": "盖尔语：'力量'或'崇高者'",
+			"Cécile": "拉丁语：'盲人'（指精神洞察力）",
+			"Charles": "日耳曼语：'自由人'",
+			"Christian": "希腊语：'基督的追随者'",
+			"Christopher": "希腊语：'基督的承担者'",
+			"Dorothée": "希腊语：'上帝的礼物'",
+			"Edouard": "古英语：'财富守护者'",
+			"Elena": "希腊语：'闪耀的光'或'火炬'",
+			"Georges": "希腊语：'农民'或'土地工作者'",
+			"Julien": "拉丁语：'青春'",
+			"Justin": "拉丁语：'公正'",
+			"Lucia": "拉丁语：'光'",
+			"Marie": "希伯来语：'苦涩'、'亲爱的'或'海之滴'",
+			"Martin": "拉丁语：'战神马尔斯的'或'好战的'",
+			"Maximin": "拉丁语：'最伟大的'",
+			"Moanaragi": "大溪地语：'天空海洋'",
+			"Nadia": "斯拉夫语：'希望'",
+			"Nicolas": "希腊语：'人民的胜利'",
+			"Ravahere": "大溪地语：'伟大的爱'",
+			"Sandra": "希腊语：'人类的保卫者'",
+			"Simon": "希伯来语：'他已听见'",
+			"Sophie": "希腊语：'智慧'",
+			"Vadim": "斯拉夫语：'强大的'或'统治者'",
+			"Vaimoana": "大溪地语：'海洋之水'",
+			"Victor": "拉丁语：'征服者'或'获胜者'"
 		}
 	}
 }

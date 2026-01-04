@@ -96,7 +96,8 @@
 			"secs": "Sekone"
 		},
 		"card": "Pe’ape’a",
-		"events": "’Ōro’a"
+		"events": "’Ōro’a",
+		"no_data": "’Aita"
 	},
 	"table": {
 		"name": "I’oa",
@@ -116,7 +117,8 @@
 		"traits_match": "Hurura’a & Tū’atira’a",
 		"stats": "Nūmera",
 		"planets": "Matahiti feti’a",
-		"life_path": "Arati’ara’a orara’a"
+		"life_path": "Arati’ara’a orara’a",
+		"etymology": "Tumu o te i'oa"
 	},
 	"units": {
 		"d": "m",
@@ -305,6 +307,34 @@
 			"waning_gibbous": "Topara’a",
 			"last_quarter": "’Āfā marama",
 			"waning_crescent": "Po’iri"
+		},
+		"names": {
+			"Ariimoana": "Tahitien : 'Ari'i nō te moana'",
+			"Brigitte": "Gaelic : 'Pūai'",
+			"Cécile": "Latin : 'Matapō'",
+			"Charles": "Germanique : 'Ta’ata ti’amā'",
+			"Christian": "Grec : 'Ha’apa’o ia Mesia'",
+			"Christopher": "Grec : 'Hopoi ia Mesia'",
+			"Dorothée": "Grec : 'Hōro’a a te Atua'",
+			"Edouard": "Vieux anglais : 'Tia’i faufa’a'",
+			"Elena": "Grec : 'Māramarama'",
+			"Georges": "Grec : 'Fa’a’apu'",
+			"Julien": "Latin : '’Āpī'",
+			"Justin": "Latin : 'Tano maita’i'",
+			"Lucia": "Latin : 'Māramarama'",
+			"Marie": "Hébreu : 'Herehia'",
+			"Martin": "Latin : '’Aito'",
+			"Maximin": "Latin : 'Mea rahi roa a’e'",
+			"Moanaragi": "Tahitien : 'Moana nō te ra’i'",
+			"Nadia": "Slave : 'Tūmanako'",
+			"Nicolas": "Grec : 'Rē nō te nūna’a'",
+			"Ravahere": "Tahitien : 'Here rahi'",
+			"Sandra": "Grec : 'Puru’a nō te ta’ata'",
+			"Simon": "Hébreu : 'Ua fa’aro’ohia'",
+			"Sophie": "Grec : 'Pa’ari'",
+			"Vadim": "Slave : 'Pūai'",
+			"Vaimoana": "Tahitien : 'Vai nō te moana'",
+			"Victor": "Latin : 'Re'"
 		}
 	}
 }

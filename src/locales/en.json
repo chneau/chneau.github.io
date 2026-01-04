@@ -96,7 +96,8 @@
 			"secs": "Secs"
 		},
 		"card": "Card",
-		"events": "Events"
+		"events": "Events",
+		"no_data": "N/A"
 	},
 	"table": {
 		"name": "Name",
@@ -115,8 +116,9 @@
 		"milestones": "Milestones",
 		"traits_match": "Traits & Match",
 		"stats": "Stats",
-		"planets": "Planets",
-		"life_path": "Life Path"
+		"planets": "Planetary Age",
+		"life_path": "Life Path",
+		"etymology": "Etymology"
 	},
 	"units": {
 		"d": "d",
@@ -305,6 +307,34 @@
 			"waning_gibbous": "Waning Gibbous",
 			"last_quarter": "Last Quarter",
 			"waning_crescent": "Waning Crescent"
+		},
+		"names": {
+			"Ariimoana": "Tahitian: 'King of the ocean'",
+			"Brigitte": "Gaelic: 'Strength' or 'Exalted one'",
+			"Cécile": "Latin: 'Blind' (referring to spiritual insight)",
+			"Charles": "Germanic: 'Free man'",
+			"Christian": "Greek: 'Follower of Christ'",
+			"Christopher": "Greek: 'Christ-bearer'",
+			"Dorothée": "Greek: 'Gift of God'",
+			"Edouard": "Old English: 'Wealthy guardian'",
+			"Elena": "Greek: 'Shining light' or 'Torch'",
+			"Georges": "Greek: 'Farmer' or 'Earth-worker'",
+			"Julien": "Latin: 'Youthful' or 'Downy-bearded'",
+			"Justin": "Latin: 'Just' or 'Righteous'",
+			"Lucia": "Latin: 'Light'",
+			"Marie": "Hebrew: 'Bitter', 'Beloved', or 'Drop of the sea'",
+			"Martin": "Latin: 'Of Mars' or 'Warlike'",
+			"Maximin": "Latin: 'Greatest'",
+			"Moanaragi": "Tahitian: 'Sky ocean'",
+			"Nadia": "Slavic: 'Hope'",
+			"Nicolas": "Greek: 'Victory of the people'",
+			"Ravahere": "Tahitian: 'Great love'",
+			"Sandra": "Greek: 'Defender of man'",
+			"Simon": "Hebrew: 'He has heard'",
+			"Sophie": "Greek: 'Wisdom'",
+			"Vadim": "Slavic: 'Powerful' or 'Ruler'",
+			"Vaimoana": "Tahitian: 'Ocean water'",
+			"Victor": "Latin: 'Conqueror' or 'Winner'"
 		}
 	}
 }

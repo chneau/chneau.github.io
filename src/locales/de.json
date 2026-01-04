@@ -96,7 +96,8 @@
 			"secs": "Sek"
 		},
 		"card": "Karte",
-		"events": "Ereignisse"
+		"events": "Ereignisse",
+		"no_data": "k.A."
 	},
 	"table": {
 		"name": "Name",
@@ -115,8 +116,9 @@
 		"milestones": "Meilensteine",
 		"traits_match": "Eigenschaften & Match",
 		"stats": "Stats",
-		"planets": "Planeten-Alter",
-		"life_path": "Lebensweg"
+		"planets": "Planetares Alter",
+		"life_path": "Lebensweg",
+		"etymology": "Etymologie"
 	},
 	"units": {
 		"d": "T",
@@ -298,13 +300,41 @@
 		},
 		"moon_phases": {
 			"new_moon": "Neumond",
-			"waxing_crescent": "Zunehmender Sichelmond",
+			"waxing_crescent": "Zunehmende Sichel",
 			"first_quarter": "Erstes Viertel",
 			"waxing_gibbous": "Zunehmender Dreiviertelmond",
 			"full_moon": "Vollmond",
 			"waning_gibbous": "Abnehmender Dreiviertelmond",
 			"last_quarter": "Letztes Viertel",
-			"waning_crescent": "Abnehmender Sichelmond"
+			"waning_crescent": "Abnehmende Sichel"
+		},
+		"names": {
+			"Ariimoana": "Tahitianisch: 'König des Ozeans'",
+			"Brigitte": "Gälisch: 'Stärke' oder 'Die Erhabene'",
+			"Cécile": "Lateinisch: 'Die Blinde' (im Sinne von geistiger Sehkraft)",
+			"Charles": "Germanisch: 'Freier Mann'",
+			"Christian": "Griechisch: 'Anhänger Christi'",
+			"Christopher": "Griechisch: 'Christusträger'",
+			"Dorothée": "Griechisch: 'Gottesgeschenk'",
+			"Edouard": "Altenglisch: 'Hüter des Vermögens'",
+			"Elena": "Griechisch: 'Die Leuchtende' oder 'Fackel'",
+			"Georges": "Griechisch: 'Landwirt' oder 'Erdarbeiter'",
+			"Julien": "Lateinisch: 'Dem Jupiter geweiht' oder 'Jugendlich'",
+			"Justin": "Lateinisch: 'Gerecht'",
+			"Lucia": "Lateinisch: 'Licht'",
+			"Marie": "Hebräisch: 'Die Ungezähmte', 'Geliebte' oder 'Meerestropfen'",
+			"Martin": "Lateinisch: 'Dem Mars geweiht' oder 'Kriegerisch'",
+			"Maximin": "Lateinisch: 'Der Größte'",
+			"Moanaragi": "Tahitianisch: 'Himmelsozean'",
+			"Nadia": "Slawisch: 'Hoffnung'",
+			"Nicolas": "Griechisch: 'Sieg des Volkes'",
+			"Ravahere": "Tahitianisch: 'Große Liebe'",
+			"Sandra": "Griechisch: 'Beschützerin der Männer'",
+			"Simon": "Hebräisch: 'Er hat gehört'",
+			"Sophie": "Griechisch: 'Weisheit'",
+			"Vadim": "Slawisch: 'Mächtig' oder 'Herrscher'",
+			"Vaimoana": "Tahitianisch: 'Ozeanwasser'",
+			"Victor": "Lateinisch: 'Sieger'"
 		}
 	}
 }
