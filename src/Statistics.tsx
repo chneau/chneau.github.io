@@ -309,11 +309,12 @@ const getDistribution = (
 };
 
 export const Statistics = () => {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
 	const dataSnap = useSnapshot(dataStore);
 	const data = dataSnap.filtered;
 
 	const stats = useMemo(() => {
+		i18n.language; // depend on language changes
 		return {
 			letters: getDistribution(data, (x) => (x.name[0] || "?").toUpperCase()),
 			signs: getDistribution(data, (x) => t(`data.zodiac.${x.sign}`)),
@@ -339,7 +340,7 @@ export const Statistics = () => {
 				t(`data.chinese_zodiac.${x.chineseZodiac}`),
 			),
 		};
-	}, [data, t]);
+	}, [data, t, i18n.language]);
 
 	return (
 		<Card
