@@ -1,12 +1,6 @@
-export type MoonPhase =
-	| "new_moon"
-	| "waxing_crescent"
-	| "first_quarter"
-	| "waxing_gibbous"
-	| "full_moon"
-	| "waning_gibbous"
-	| "last_quarter"
-	| "waning_crescent";
+import type en from "./locales/en.json";
+
+export type MoonPhase = keyof typeof en.data.moon_phases;
 
 export const getMoonPhase = (
 	date: Date,
