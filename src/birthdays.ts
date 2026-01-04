@@ -44,6 +44,8 @@ export type Generation = keyof typeof en.data.generations;
 
 export type MonthName = keyof typeof en.data.months;
 
+export type PlanetName = keyof typeof en.data.planets;
+
 export type LifePathMeaning = keyof typeof en.data.life_path;
 
 export type DailyInsight = keyof typeof en.data.insights;
@@ -77,6 +79,8 @@ export type Birthday = {
 	ageInWeeks: number;
 	ageInMonths: number;
 	halfBirthday: string;
+	halfBirthdayMonth: MonthName;
+	halfBirthdayDay: number;
 	lifePathNumber: number;
 	lifePathMeaning: LifePathMeaning;
 	heartbeats: number;
@@ -86,7 +90,7 @@ export type Birthday = {
 	dailyInsight: DailyInsight;
 	moonPhase: MoonPhase;
 	moonPhaseIcon: string;
-	planetAges: readonly { name: string; age: number; icon: string }[];
+	planetAges: readonly { name: PlanetName; age: number; icon: string }[];
 };
 
 const BIG_BIRTHDAYS = [
@@ -345,8 +349,17 @@ export const birthdays: Birthday[] = validatedBirthdays
 		const ageInDays = today.diff(birthday, "day");
 		const ageInWeeks = today.diff(birthday, "week");
 		const ageInMonths = today.diff(birthday, "month");
-		const halfBirthday = birthday.add(6, "month").format("MMMM DD");
+		const halfBirthdayDate = birthday.add(6, "month");
+		const halfBirthday = halfBirthdayDate.format("MMMM DD");
+		const halfBirthdayMonth = monthNames[halfBirthdayDate.month()];
+		const halfBirthdayDay = halfBirthdayDate.date();
 		const lifePath = getLifePath(birthdayDate);
+
+		if (!halfBirthdayMonth) {
+			throw new Error(
+				`Invalid half birthday month for birthday ${x.name}: ${halfBirthdayDate.month()}`,
+			);
+		}
 
 		// Life in numbers calculations
 		const heartbeats = ageInDays * 24 * 60 * 80;
@@ -354,12 +367,12 @@ export const birthdays: Birthday[] = validatedBirthdays
 		const sleepYears = age / 3;
 		const distanceTraveled = ageInDays * 2570000; // km in Earth's orbit
 
-		const planetAges = [
-			{ name: "Mercury", age: ageInDays / 87.97, icon: "☿️" },
-			{ name: "Venus", age: ageInDays / 224.7, icon: "♀️" },
-			{ name: "Mars", age: ageInDays / 686.97, icon: "♂️" },
-			{ name: "Jupiter", age: ageInDays / 4332.59, icon: "♃" },
-			{ name: "Saturn", age: ageInDays / 10759.22, icon: "♄" },
+		const planetAges: { name: PlanetName; age: number; icon: string }[] = [
+			{ name: "mercury", age: ageInDays / 87.97, icon: "☿️" },
+			{ name: "venus", age: ageInDays / 224.7, icon: "♀️" },
+			{ name: "mars", age: ageInDays / 686.97, icon: "♂️" },
+			{ name: "jupiter", age: ageInDays / 4332.59, icon: "♃" },
+			{ name: "saturn", age: ageInDays / 10759.22, icon: "♄" },
 		];
 
 		const dailyInsight = getDailyInsight(x.name);
@@ -400,6 +413,8 @@ export const birthdays: Birthday[] = validatedBirthdays
 			ageInWeeks,
 			ageInMonths,
 			halfBirthday,
+			halfBirthdayMonth,
+			halfBirthdayDay,
 			lifePathNumber: lifePath.number,
 			lifePathMeaning: lifePath.meaning,
 			heartbeats,

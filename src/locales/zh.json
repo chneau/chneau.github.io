@@ -115,11 +115,30 @@
 		"milestones": "里程碑",
 		"traits_match": "特征与匹配",
 		"stats": "统计数据",
-		"planets": "行星年龄"
+		"planets": "行星年龄",
+		"life_path": "生命灵数"
+	},
+	"units": {
+		"d": "天",
+		"w": "周",
+		"y": "岁",
+		"months_lived": "个月已过",
+		"half": "半年",
+		"beats": "次心跳",
+		"breaths": "次呼吸",
+		"km_orbit": "公里轨道",
+		"path": "灵数"
 	},
 	"on_this_day": "历史上的今天",
 	"biorhythms": "生物节律 (未来30天)",
 	"data": {
+		"planets": {
+			"mercury": "水星",
+			"venus": "金星",
+			"mars": "火星",
+			"jupiter": "木星",
+			"saturn": "土星"
+		},
 		"zodiac": {
 			"aries": "白羊座",
 			"taurus": "金牛座",

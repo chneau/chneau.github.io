@@ -115,11 +115,30 @@
 		"milestones": "Milestones",
 		"traits_match": "Traits & Match",
 		"stats": "Stats",
-		"planets": "Planets"
+		"planets": "Planets",
+		"life_path": "Life Path"
+	},
+	"units": {
+		"d": "d",
+		"w": "w",
+		"y": "y",
+		"months_lived": "months lived",
+		"half": "Half",
+		"beats": "beats",
+		"breaths": "breaths",
+		"km_orbit": "km orbit",
+		"path": "Path"
 	},
 	"on_this_day": "On This Day in History",
 	"biorhythms": "Biorhythms (Next 30 Days)",
 	"data": {
+		"planets": {
+			"mercury": "Mercury",
+			"venus": "Venus",
+			"mars": "Mars",
+			"jupiter": "Jupiter",
+			"saturn": "Saturn"
+		},
 		"zodiac": {
 			"aries": "Aries",
 			"taurus": "Taurus",
