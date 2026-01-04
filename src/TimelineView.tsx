@@ -1,7 +1,10 @@
 import { Timeline, Typography } from "antd";
+import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
 
 export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
+	const { t } = useTranslation();
 	return (
 		<div style={{ padding: "16px 0", maxHeight: 500, overflowY: "auto" }}>
 			<Timeline
@@ -27,8 +30,13 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 							<Typography.Text strong>{x.name}</Typography.Text>
 							<br />
 							<Typography.Text type="secondary" style={{ fontSize: "0.85em" }}>
-								{x.kind === "💒" ? "Anniversary" : `Turns ${x.age + 1}`} in{" "}
-								{x.daysBeforeBirthday} days ({x.dayOfWeek})
+								{x.kind === "💒"
+									? t("app.timeline.anniversary")
+									: t("app.timeline.turns", { age: x.age + 1 })}{" "}
+								{t("app.timeline.in_days", {
+									days: x.daysBeforeBirthday,
+									day: dayjs(x.birthday).format("dddd"),
+								})}
 							</Typography.Text>
 						</div>
 					),

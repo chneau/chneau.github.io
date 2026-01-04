@@ -1,21 +1,12 @@
 import { Button, Input, Space, Tag } from "antd";
 import type { CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { monthNames } from "./birthdays";
 import { store } from "./store";
 
-const SHORTCUTS = [
-	{ label: "This Month", query: monthNames[new Date().getMonth()] },
-	{
-		label: "Next Month",
-		query: monthNames[(new Date().getMonth() + 1) % 12],
-	},
-	{ label: "Gen Z", query: "Gen Z" },
-	{ label: "Teens", query: "Teens" },
-	{ label: "Seniors", query: "Seniors" },
-];
-
 export const FilterButtons = () => {
+	const { t } = useTranslation();
 	const snap = useSnapshot(store);
 	return (
 		<Space wrap>
@@ -26,7 +17,7 @@ export const FilterButtons = () => {
 					store.showBoys = !store.showBoys;
 				}}
 			>
-				Boys ♂️
+				{t("app.filters.boys")} ♂️
 			</Button>
 			<Button
 				size="small"
@@ -35,7 +26,7 @@ export const FilterButtons = () => {
 					store.showGirls = !store.showGirls;
 				}}
 			>
-				Girls ♀️
+				{t("app.filters.girls")} ♀️
 			</Button>
 			<Button
 				size="small"
@@ -44,18 +35,34 @@ export const FilterButtons = () => {
 					store.showWeddings = !store.showWeddings;
 				}}
 			>
-				Weddings 💒
+				{t("app.filters.weddings")} 💒
 			</Button>
 		</Space>
 	);
 };
 
 export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
+	const { t } = useTranslation();
 	const snap = useSnapshot(store);
+
+	const shortcuts = [
+		{
+			label: t("app.filters.shortcuts.this_month"),
+			query: monthNames[new Date().getMonth()],
+		},
+		{
+			label: t("app.filters.shortcuts.next_month"),
+			query: monthNames[(new Date().getMonth() + 1) % 12],
+		},
+		{ label: t("app.filters.shortcuts.gen_z"), query: "gen_z" },
+		{ label: t("app.filters.shortcuts.teens"), query: "teens" },
+		{ label: t("app.filters.shortcuts.seniors"), query: "seniors" },
+	];
+
 	return (
 		<Space orientation="vertical" style={{ width: "100%" }}>
 			<Input.Search
-				placeholder="Search..."
+				placeholder={t("app.search")}
 				allowClear
 				style={style}
 				onChange={(e) => {
@@ -64,7 +71,7 @@ export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 				value={snap.search}
 			/>
 			<Space wrap style={{ marginTop: -8 }}>
-				{SHORTCUTS.map((s) => (
+				{shortcuts.map((s) => (
 					<Tag.CheckableTag
 						key={s.label}
 						checked={snap.search.toLowerCase() === s.query?.toLowerCase()}

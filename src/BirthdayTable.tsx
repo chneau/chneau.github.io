@@ -10,7 +10,9 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import html2canvas from "html2canvas";
+import type { TFunction } from "i18next";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { BiorhythmsChart } from "./BiorhythmsChart";
 import {
@@ -18,6 +20,7 @@ import {
 	birthdays,
 	getAgeEmoji,
 	getKindColor,
+	monthNames,
 } from "./birthdays";
 import { OnThisDay } from "./OnThisDay";
 import { store } from "./store";
@@ -46,9 +49,15 @@ const Highlight = ({ text, search }: { text: string; search: string }) => {
 	);
 };
 
-const getColumns = (search: string): ColumnsType<Birthday> => [
+const getCompatibleElements = (element: string): string[] => {
+	if (element === "fire" || element === "air") return ["fire", "air"];
+	if (element === "earth" || element === "water") return ["earth", "water"];
+	return [];
+};
+
+const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 	{
-		title: "Name",
+		title: t("table.name"),
 		dataIndex: "name",
 		render: (_, x) => (
 			<>
@@ -57,7 +66,7 @@ const getColumns = (search: string): ColumnsType<Birthday> => [
 				</Tag>
 				{x.milestone && (
 					<Tag color="gold" style={{ marginLeft: 4 }}>
-						{x.milestone}
+						{t(x.milestone.key, x.milestone.params)}
 					</Tag>
 				)}
 			</>
@@ -65,7 +74,7 @@ const getColumns = (search: string): ColumnsType<Birthday> => [
 		sorter: (a, b) => a.name.localeCompare(b.name),
 	},
 	{
-		title: "Birthday",
+		title: t("table.birthday"),
 		dataIndex: "birthdayString",
 		render: (_, x) => (
 			<>
@@ -75,7 +84,7 @@ const getColumns = (search: string): ColumnsType<Birthday> => [
 		sorter: (a, b) => a.birthday.getTime() - b.birthday.getTime(),
 	},
 	{
-		title: "Age",
+		title: t("table.age"),
 		dataIndex: "age",
 		render: (age, x) => (
 			<Highlight text={`${age} ${getAgeEmoji(age, x.kind)}`} search={search} />
@@ -83,7 +92,7 @@ const getColumns = (search: string): ColumnsType<Birthday> => [
 		sorter: (a, b) => a.age - b.age,
 	},
 	{
-		title: "Progress",
+		title: t("table.progress"),
 		dataIndex: "progress",
 		render: (progress) => (
 			<Progress
@@ -97,46 +106,61 @@ const getColumns = (search: string): ColumnsType<Birthday> => [
 		responsive: ["sm"],
 	},
 	{
-		title: "In",
+		title: t("table.in"),
 		dataIndex: "daysBeforeBirthday",
 		render: (days) => (
 			<Tag color={days === 0 ? "red" : days < 30 ? "orange" : undefined}>
-				⏳ {days} days
+				⏳ {days} {t("table.days")}
 			</Tag>
 		),
 		sorter: (a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday,
 	},
 	{
-		title: "Sign",
+		title: t("table.sign"),
 		dataIndex: "sign",
 		render: (_, x) => (
 			<Tag>
-				{x.signSymbol} <Highlight text={x.sign} search={search} />
+				{x.signSymbol}{" "}
+				<Highlight text={t(`data.zodiac.${x.sign}`)} search={search} />
 			</Tag>
 		),
-		sorter: (a, b) => a.sign.localeCompare(b.sign),
+		sorter: (a, b) =>
+			t(`data.zodiac.${a.sign}`).localeCompare(t(`data.zodiac.${b.sign}`)),
 		responsive: ["md"],
 	},
 	{
-		title: "Birthgem",
+		title: t("table.birthgem"),
 		dataIndex: "birthgem",
-		render: (_, x) => (
-			<Tag color="blue">
-				<Highlight text={`${x.birthgem} (${x.monthString})`} search={search} />
-			</Tag>
-		),
+		render: (_, x) => {
+			const month = t(`data.months.${monthNames[x.month - 1]}`);
+			const gem = t(`data.birthgems.${x.birthgem}`);
+			return (
+				<Tag color="blue">
+					<Highlight
+						text={`${gem} ${x.birthgemEmoji} (${month})`}
+						search={search}
+					/>
+				</Tag>
+			);
+		},
 		sorter: (a, b) => a.birthgem.localeCompare(b.birthgem),
 		responsive: ["lg"],
 	},
 	{
-		title: "Chinese",
+		title: t("table.chinese"),
 		dataIndex: "chineseZodiac",
 		render: (_, x) => (
 			<Tag>
-				<Highlight text={x.chineseZodiac} search={search} />
+				<Highlight
+					text={t(`data.chinese_zodiac.${x.chineseZodiac}`)}
+					search={search}
+				/>
 			</Tag>
 		),
-		sorter: (a, b) => a.chineseZodiac.localeCompare(b.chineseZodiac),
+		sorter: (a, b) =>
+			t(`data.chinese_zodiac.${a.chineseZodiac}`).localeCompare(
+				t(`data.chinese_zodiac.${b.chineseZodiac}`),
+			),
 		responsive: ["xl"],
 	},
 ];
@@ -147,7 +171,8 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 		[data],
 	);
 	const { search } = useSnapshot(store);
-	const columns = useMemo(() => getColumns(search), [search]);
+	const { t } = useTranslation();
+	const columns = useMemo(() => getColumns(search, t), [search, t]);
 
 	return (
 		<Table
@@ -167,10 +192,11 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 							b.month === record.month &&
 							b.day === record.day,
 					);
+					const compatibleElements = getCompatibleElements(record.element);
+
 					const handleDownloadCard = async () => {
 						const element = document.getElementById(`card-${record.name}`);
 						if (element) {
-							// Temporarily show the card if it's hidden or just capture it if it's rendered off-screen
 							const canvas = await html2canvas(element, {
 								backgroundColor: store.darkMode ? "#141414" : "#ffffff",
 								scale: 2,
@@ -185,8 +211,8 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 					return (
 						<div style={{ padding: "4px 8px" }}>
 							<Alert
-								message="Today's Insight"
-								description={record.dailyInsight}
+								message={t("app.title")}
+								description={t(`data.insights.${record.dailyInsight}`)}
 								type="info"
 								showIcon
 								icon="🔮"
@@ -217,7 +243,9 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 									📜 {record.year}
 								</a>
 								<a
-									href={`https://en.wikipedia.org/wiki/${record.monthString}_${record.day}`}
+									href={`https://en.wikipedia.org/wiki/${t(
+										`data.months.${monthNames[record.month - 1]}`,
+									)}_${record.day}`}
 									target="_blank"
 									rel="noreferrer"
 									style={{ fontSize: "12px" }}
@@ -238,7 +266,9 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 								}}
 							>
 								<div>
-									<Typography.Text strong>📈 Progress</Typography.Text>
+									<Typography.Text strong>
+										📈 {t("headers.life_progress")}
+									</Typography.Text>
 									<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
 										<li>
 											🗓️ {record.ageInDays.toLocaleString()}d /{" "}
@@ -249,23 +279,31 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 										</li>
 										<li>🌓 Half: {record.halfBirthday}</li>
 										<li>
-											🔢 Path {record.lifePathNumber}: {record.lifePathMeaning}
+											🔢 Path {record.lifePathNumber}:{" "}
+											{t(`data.life_path.${record.lifePathMeaning}`)}
 										</li>
 										<li>
-											{record.moonPhaseIcon} {record.moonPhase}
+											{record.moonPhaseIcon}{" "}
+											{t(`data.moon_phases.${record.moonPhase}`)}
 										</li>
 									</ul>
 								</div>
 								<div>
-									<Typography.Text strong>🎯 Milestones</Typography.Text>
+									<Typography.Text strong>
+										🎯 {t("headers.milestones")}
+									</Typography.Text>
 									<p style={{ margin: "4px 0" }}>
 										{record.milestone && (
 											<span>
-												{record.milestone}
+												{t(record.milestone.key, record.milestone.params)}
 												<br />
 											</span>
 										)}
-										{record.milestoneStatus}
+										{record.milestoneStatus &&
+											t(
+												record.milestoneStatus.key,
+												record.milestoneStatus.params,
+											)}
 									</p>
 									{sameBirthday.length > 0 && (
 										<p style={{ margin: "4px 0" }}>
@@ -274,11 +312,14 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 									)}
 								</div>
 								<div>
-									<Typography.Text strong>✨ Traits & Match</Typography.Text>
-									<p style={{ margin: "4px 0" }}>{record.traits}</p>
+									<Typography.Text strong>
+										✨ {t("headers.traits_match")}
+									</Typography.Text>
+									<p style={{ margin: "4px 0" }}>
+										{t(`data.zodiac_traits.${record.sign}`)}
+									</p>
 									<div style={{ marginTop: "4px" }}>
-										{record.compatible.split("&").map((el) => {
-											const element = el.trim();
+										{compatibleElements.map((element) => {
 											return (
 												<Tag
 													key={element}
@@ -288,18 +329,20 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 														padding: "0 4px",
 													}}
 													onClick={() => {
-														store.search = element;
+														store.search = element; // "fire", "air"... (keys)
 														window.scrollTo({ top: 0, behavior: "smooth" });
 													}}
 												>
-													{element}
+													{t(`data.elements.${element}`)}
 												</Tag>
 											);
 										})}
 									</div>
 								</div>
 								<div>
-									<Typography.Text strong>🔢 Stats</Typography.Text>
+									<Typography.Text strong>
+										🔢 {t("headers.stats")}
+									</Typography.Text>
 									<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
 										<li>💓 {record.heartbeats.toLocaleString()} beats</li>
 										<li>🫁 {record.breaths.toLocaleString()} breaths</li>
@@ -309,7 +352,9 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 									</ul>
 								</div>
 								<div>
-									<Typography.Text strong>🪐 Planets</Typography.Text>
+									<Typography.Text strong>
+										🪐 {t("headers.planets")}
+									</Typography.Text>
 									<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
 										{record.planetAges.map((p) => (
 											<li key={p.name}>
@@ -357,7 +402,7 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 											color: store.darkMode ? "white" : "black",
 										}}
 									>
-										Happy Birthday, {record.name}!
+										{t("app.timeline.anniversary")}, {record.name}!
 									</h1>
 									<h2
 										style={{
@@ -365,7 +410,7 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 											color: store.darkMode ? "white" : "black",
 										}}
 									>
-										Turning {record.age + 1}
+										{t("app.timeline.turns", { age: record.age + 1 })}
 									</h2>
 									<div
 										style={{
@@ -377,16 +422,20 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 											fontSize: "14px",
 										}}
 									>
-										🔮 {record.dailyInsight}
+										🔮 {t(`data.insights.${record.dailyInsight}`)}
 									</div>
 									<div style={{ marginTop: "24px", fontSize: "18px" }}>
 										<p>
-											{record.signSymbol} {record.sign.toUpperCase()}
+											{record.signSymbol} {t(`data.zodiac.${record.sign}`)}
 										</p>
-										<p>💎 {record.birthgem}</p>
-										<p>🐉 {record.chineseZodiac}</p>
 										<p>
-											{record.moonPhaseIcon} {record.moonPhase}
+											💎 {t(`data.birthgems.${record.birthgem}`)}{" "}
+											{record.birthgemEmoji}
+										</p>
+										<p>🐉 {t(`data.chinese_zodiac.${record.chineseZodiac}`)}</p>
+										<p>
+											{record.moonPhaseIcon}{" "}
+											{t(`data.moon_phases.${record.moonPhase}`)}
 										</p>
 										<p>🔢 Life Path {record.lifePathNumber}</p>
 										<p>
@@ -402,9 +451,9 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 											opacity: 0.7,
 										}}
 									>
-										{record.lifePathMeaning}
+										{t(`data.life_path.${record.lifePathMeaning}`)}
 										<br />
-										{record.traits}
+										{t(`data.zodiac_traits.${record.sign}`)}
 									</p>
 									<div
 										style={{
@@ -413,7 +462,7 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 											opacity: 0.5,
 										}}
 									>
-										Birthday Tracker
+										{t("app.title")}
 									</div>
 								</div>
 							</div>

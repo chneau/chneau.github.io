@@ -1,0 +1,280 @@
+{
+	"app": {
+		"title": "Birthday Tracker",
+		"birthdays": "Birthdays",
+		"table": {
+			"title": "Table"
+		},
+		"timeline": {
+			"title": "Timeline",
+			"anniversary": "Anniversary",
+			"turns": "Turns {{age}}",
+			"in_days": "in {{days}} days ({{day}})"
+		},
+		"compatibility": {
+			"title": "Compatibility",
+			"matrix_title": "Compatibility Matrix",
+			"excellent": "Excellent (100%)",
+			"great": "Great (80%)",
+			"neutral": "Neutral (50%)",
+			"challenging": "Challenging (40%)"
+		},
+		"statistics": {
+			"title": "Statistics",
+			"age_distribution": "Age Distribution",
+			"birth_heatmap": "Birth Heatmap (Month vs Day)",
+			"zodiac": "Zodiac Signs",
+			"chinese": "Chinese Zodiac",
+			"elements": "Astrological Elements",
+			"gender": "Gender Distribution",
+			"age_groups": "Age Groups",
+			"generations": "Generations",
+			"seasons": "Birth Seasons",
+			"first_letter": "Name First Letter",
+			"month": "Birth Month",
+			"birthstones": "Birthstones",
+			"day_of_week": "Birth Day of Week",
+			"decades": "Birth Decades",
+			"pyramid": "Age & Gender Distribution",
+			"count": "Count"
+		},
+		"milestones": {
+			"title": "Milestones",
+			"widget_title": "Upcoming Big Milestones 🎯",
+			"is_turning": "{{name}} is turning {{milestone}}",
+			"today": "Today! 🎉",
+			"in_days": "In {{days}} days ({{date}})",
+			"no_upcoming": "No upcoming big milestones"
+		},
+		"records": {
+			"title": "Records",
+			"widget_title": "Birthday Records 🏆",
+			"elder": "The Elder",
+			"rookie": "The Rookie",
+			"socialite": "The Socialite",
+			"twins": "Twins",
+			"twins_suffix": "pairs",
+			"elder_tooltip": "{{name}} is the oldest member.",
+			"rookie_tooltip": "{{name}} is the youngest member.",
+			"socialite_tooltip": "{{name}} has {{count}} perfect matches!",
+			"twins_tooltip": "Shared birthdays: {{pairs}}",
+			"no_twins": "No exact twins found yet!"
+		},
+		"search": "Search...",
+		"filters": {
+			"boys": "Boys",
+			"girls": "Girls",
+			"weddings": "Weddings",
+			"shortcuts": {
+				"this_month": "This Month",
+				"next_month": "Next Month",
+				"gen_z": "Gen Z",
+				"teens": "Teens",
+				"seniors": "Seniors"
+			}
+		},
+		"calendar": {
+			"export": "Export Calendar",
+			"subscribe": "Subscribe",
+			"copy": "Copy Link",
+			"copied": "Copied!"
+		},
+		"header": {
+			"install": "Install",
+			"test_notification": "Test Notification",
+			"simulate": "Simulate Bday",
+			"enable_notifications": "Enable Notifications",
+			"light": "Light",
+			"dark": "Dark",
+			"github": "GitHub"
+		},
+		"countdown": {
+			"next_celebration": "Next Celebration: {{name}} ({{kind}})",
+			"days": "Days",
+			"hours": "Hours",
+			"mins": "Mins",
+			"secs": "Secs"
+		}
+	},
+	"table": {
+		"name": "Name",
+		"birthday": "Birthday",
+		"age": "Age",
+		"progress": "Progress",
+		"in": "In",
+		"sign": "Sign",
+		"birthgem": "Birthgem",
+		"chinese": "Chinese",
+		"days": "days",
+		"today": "Today"
+	},
+	"headers": {
+		"life_progress": "Life Progress",
+		"milestones": "Milestones",
+		"traits_match": "Traits & Match",
+		"stats": "Stats",
+		"planets": "Planets"
+	},
+	"on_this_day": "On This Day in History",
+	"biorhythms": "Biorhythms (Next 30 Days)",
+	"data": {
+		"zodiac": {
+			"aries": "Aries",
+			"taurus": "Taurus",
+			"gemini": "Gemini",
+			"cancer": "Cancer",
+			"leo": "Leo",
+			"virgo": "Virgo",
+			"libra": "Libra",
+			"scorpio": "Scorpio",
+			"sagittarius": "Sagittarius",
+			"capricorn": "Capricorn",
+			"aquarius": "Aquarius",
+			"pisces": "Pisces"
+		},
+		"zodiac_traits": {
+			"aries": "Eager ⚡, dynamic 🏃, and competitive 🏆.",
+			"taurus": "Strong 💪, dependable 🛡️, and sensual 🌿.",
+			"gemini": "Versatile 🔄, expressive 🗣️, and curious 🔍.",
+			"cancer": "Intuitive 🌙, sentimental 🧸, and compassionate 🦀.",
+			"leo": "Dramatic 🎭, outgoing 🌟, and self-assured 🦁.",
+			"virgo": "Loyal 🤝, analytical 📊, and kind-hearted ✨.",
+			"libra": "Diplomatic ⚖️, artistic 🖼️, and social 🥂.",
+			"scorpio": "Passionate ❤️‍🔥, stubborn 🦂, and resourceful 🛠️.",
+			"sagittarius": "Extroverted 🏹, optimistic ☀️, and funny 😂.",
+			"capricorn": "Disciplined 📈, ambitious 🏔️, and practical 🛠️.",
+			"aquarius": "Innovative 💡, independent 🦅, and humanitarian 🤝.",
+			"pisces": "Compassionate 💖, artistic 🎨, and intuitive 🔮."
+		},
+		"chinese_zodiac": {
+			"rat": "Rat 🐀",
+			"ox": "Ox 🐂",
+			"tiger": "Tiger 🐅",
+			"rabbit": "Rabbit 🐇",
+			"dragon": "Dragon 🐉",
+			"snake": "Snake 🐍",
+			"horse": "Horse 🐎",
+			"goat": "Goat 🐐",
+			"monkey": "Monkey 🐒",
+			"rooster": "Rooster 🐓",
+			"dog": "Dog 🐕",
+			"pig": "Pig 🐖"
+		},
+		"birthgems": {
+			"garnet": "Garnet",
+			"amethyst": "Amethyst",
+			"aquamarine": "Aquamarine",
+			"bloodstone": "Bloodstone",
+			"diamond": "Diamond",
+			"emerald": "Emerald",
+			"alexandrite": "Alexandrite",
+			"moonstone": "Moonstone",
+			"pearl": "Pearl",
+			"ruby": "Ruby",
+			"peridot": "Peridot",
+			"sardonyx": "Sardonyx",
+			"spinel": "Spinel",
+			"sapphire": "Sapphire",
+			"opal": "Opal",
+			"tourmaline": "Tourmaline",
+			"citrine": "Citrine",
+			"topaz": "Topaz",
+			"tanzanite": "Tanzanite",
+			"turquoise": "Turquoise",
+			"zircon": "Zircon"
+		},
+		"seasons": {
+			"spring": "Spring 🌸",
+			"summer": "Summer ☀️",
+			"autumn": "Autumn 🍂",
+			"winter": "Winter ❄️"
+		},
+		"elements": {
+			"fire": "Fire 🜂",
+			"earth": "Earth 🜃",
+			"air": "Air 🜁",
+			"water": "Water 🜄"
+		},
+		"generations": {
+			"gen_alpha": "Gen Alpha",
+			"gen_z": "Gen Z",
+			"millennials": "Millennials",
+			"gen_x": "Gen X",
+			"boomers": "Boomers",
+			"silent": "Silent",
+			"greatest": "Greatest"
+		},
+		"age_groups": {
+			"babies": "Babies 👶 (<3)",
+			"children": "Children 🧒 (<13)",
+			"teens": "Teens 🧒 (<20)",
+			"adults": "Adults 🧑 (<60)",
+			"seniors": "Seniors 🧓 (60+)",
+			"weddings": "Weddings 💍"
+		},
+		"months": {
+			"jan": "Jan",
+			"feb": "Feb",
+			"mar": "Mar",
+			"apr": "Apr",
+			"may": "May",
+			"jun": "Jun",
+			"jul": "Jul",
+			"aug": "Aug",
+			"sep": "Sep",
+			"oct": "Oct",
+			"nov": "Nov",
+			"dec": "Dec"
+		},
+		"milestone": {
+			"birthday": "Big {{age}}! 🎉",
+			"wedding": "{{year}}th Anniversary ({{material}}) 💍",
+			"status": {
+				"today": "Today is the milestone!",
+				"since": "{{diff}} year{{s}} since {{target}}",
+				"until": "{{diff}} year{{s}} until {{target}}"
+			}
+		},
+		"life_path": {
+			"life_path_1": "The Independent Leader 🦁",
+			"life_path_2": "The Peacekeeper 🕊️",
+			"life_path_3": "The Creative Communicator 🎨",
+			"life_path_4": "The Practical Builder 🏗️",
+			"life_path_5": "The Freedom Seeker 🌏",
+			"life_path_6": "The Nurturer 🏠",
+			"life_path_7": "The Analytical Seeker 🔍",
+			"life_path_8": "The Powerhouse 💰",
+			"life_path_9": "The Humanitarian 🤝",
+			"life_path_11": "The Intuitive Visionary ✨",
+			"life_path_22": "The Master Builder 🏛️",
+			"life_path_33": "The Master Teacher 🍎"
+		},
+		"insights": {
+			"insight_0": "Today is a great day for a new beginning! ✨",
+			"insight_1": "Your kindness will open doors you never expected. 🚪",
+			"insight_2": "A small act of courage will change your trajectory today. 🚀",
+			"insight_3": "Listen to your intuition; it's louder than usual today. 👂",
+			"insight_4": "Expect a pleasant surprise from someone you haven't seen in a while. 🎁",
+			"insight_5": "Your creativity is at an all-time high—use it! 🎨",
+			"insight_6": "Take a moment to breathe; the universe has your back. 🧘",
+			"insight_7": "A financial opportunity might present itself soon. 💰",
+			"insight_8": "Your positive energy is contagious today! 🌟",
+			"insight_9": "Focus on gratitude, and more things to be grateful for will appear. 🙏",
+			"insight_10": "It's a perfect day to finish that project you started. 🏁",
+			"insight_11": "A conversation today will bring much-needed clarity. 💬",
+			"insight_12": "Trust the process; everything is unfolding as it should. 🌱",
+			"insight_13": "Your hard work is about to pay off in a big way. 🏆",
+			"insight_14": "Someone is thinking of you with a lot of love today. ❤️"
+		},
+		"moon_phases": {
+			"new_moon": "New Moon",
+			"waxing_crescent": "Waxing Crescent",
+			"first_quarter": "First Quarter",
+			"waxing_gibbous": "Waxing Gibbous",
+			"full_moon": "Full Moon",
+			"waning_gibbous": "Waning Gibbous",
+			"last_quarter": "Last Quarter",
+			"waning_crescent": "Waning Crescent"
+		}
+	}
+}

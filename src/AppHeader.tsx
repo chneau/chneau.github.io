@@ -1,5 +1,7 @@
 import { Button, Layout, Space, Typography } from "antd";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import type { Birthday } from "./birthdays";
 import { triggerConfetti } from "./celebration";
@@ -26,6 +28,7 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 export const AppHeader = ({ data }: AppHeaderProps) => {
+	const { t, i18n } = useTranslation();
 	const storeSnap = useSnapshot(store);
 	const [installPrompt, setInstallPrompt] =
 		useState<BeforeInstallPromptEvent>();
@@ -54,7 +57,7 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 			}}
 		>
 			<Typography.Title level={3} style={{ color: "white", margin: 0 }}>
-				Birthday Tracker{" "}
+				{t("app.title")}{" "}
 				<small style={{ fontSize: "0.5em", opacity: 0.8 }}>
 					({BUILD_DATE})
 				</small>
@@ -71,14 +74,14 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 								}
 							}
 						}}
-						title="Install App"
+						title={t("app.header.install")}
 					>
-						📲 Install
+						📲 {t("app.header.install")}
 					</Button>
 				)}
 				<Button
 					onClick={() => sendTestNotification()}
-					title="Test Notification"
+					title={t("app.header.test_notification")}
 				>
 					🧪🔔
 				</Button>
@@ -87,7 +90,7 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 						sendTestNotification();
 						triggerConfetti();
 					}}
-					title="Simulate Birthday"
+					title={t("app.header.simulate")}
 				>
 					🧪🎂
 				</Button>
@@ -96,24 +99,35 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 						await requestNotificationPermission();
 						checkAndNotify(data);
 					}}
-					title="Enable Notifications"
+					title={t("app.header.enable_notifications")}
 				>
 					🔔
+				</Button>
+				<Button
+					onClick={() => {
+						const newLang = i18n.language.startsWith("fr") ? "en" : "fr";
+						i18n.changeLanguage(newLang);
+						dayjs.locale(newLang);
+					}}
+				>
+					{i18n.language.startsWith("fr") ? "🇬🇧 EN" : "🇫🇷 FR"}
 				</Button>
 				<Button
 					onClick={() => {
 						store.darkMode = !store.darkMode;
 					}}
 				>
-					{storeSnap.darkMode ? "☀️ Light" : "🌙 Dark"}
+					{storeSnap.darkMode
+						? `☀️ ${t("app.header.light")}`
+						: `🌙 ${t("app.header.dark")}`}
 				</Button>
 				<Button
 					href="https://github.com/chneau/chneau.github.io"
 					target="_blank"
 					rel="noreferrer"
-					title="View on GitHub"
+					title={t("app.header.github")}
 				>
-					GitHub 🐙
+					{t("app.header.github")} 🐙
 				</Button>
 			</Space>
 		</Layout.Header>

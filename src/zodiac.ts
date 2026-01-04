@@ -40,7 +40,7 @@ export const getBirthgem = (date: Date) => {
 	if (!gems) throw new Error(`No birthgem found for ${date}`);
 	const gem = gems[0];
 	if (!gem) throw new Error(`No birthgem found for ${date}`);
-	return `${gem.name} ${gem.emoji}`;
+	return { key: gem.name, emoji: gem.emoji };
 };
 
 const signs = [
@@ -48,92 +48,79 @@ const signs = [
 		point: 1,
 		name: "capricorn",
 		symbol: "♑",
-		element: "Earth 🜃",
-		traits: "Disciplined 📈, ambitious 🏔️, and practical 🛠️.",
+		element: "earth",
 	},
 	{
 		point: 20,
 		name: "aquarius",
 		symbol: "♒",
-		element: "Air 🜁",
-		traits: "Innovative 💡, independent 🦅, and humanitarian 🤝.",
+		element: "air",
 	},
 	{
 		point: 119,
 		name: "pisces",
 		symbol: "♓",
-		element: "Water 🜄",
-		traits: "Compassionate 💖, artistic 🎨, and intuitive 🔮.",
+		element: "water",
 	},
 	{
 		point: 221,
 		name: "aries",
 		symbol: "♈",
-		element: "Fire 🜂",
-		traits: "Eager ⚡, dynamic 🏃, and competitive 🏆.",
+		element: "fire",
 	},
 	{
 		point: 320,
 		name: "taurus",
 		symbol: "♉",
-		element: "Earth 🜃",
-		traits: "Strong 💪, dependable 🛡️, and sensual 🌿.",
+		element: "earth",
 	},
 	{
 		point: 421,
 		name: "gemini",
 		symbol: "♊",
-		element: "Air 🜁",
-		traits: "Versatile 🔄, expressive 🗣️, and curious 🔍.",
+		element: "air",
 	},
 	{
 		point: 522,
 		name: "cancer",
 		symbol: "♋",
-		element: "Water 🜄",
-		traits: "Intuitive 🌙, sentimental 🧸, and compassionate 🦀.",
+		element: "water",
 	},
 	{
 		point: 623,
 		name: "leo",
 		symbol: "♌",
-		element: "Fire 🜂",
-		traits: "Dramatic 🎭, outgoing 🌟, and self-assured 🦁.",
+		element: "fire",
 	},
 	{
 		point: 723,
 		name: "virgo",
 		symbol: "♍",
-		element: "Earth 🜃",
-		traits: "Loyal 🤝, analytical 📊, and kind-hearted ✨.",
+		element: "earth",
 	},
 	{
 		point: 823,
 		name: "libra",
 		symbol: "♎",
-		element: "Air 🜁",
-		traits: "Diplomatic ⚖️, artistic 🖼️, and social 🥂.",
+		element: "air",
 	},
 	{
 		point: 923,
 		name: "scorpio",
 		symbol: "♏",
-		element: "Water 🜄",
-		traits: "Passionate ❤️‍🔥, stubborn 🦂, and resourceful 🛠️.",
+		element: "water",
 	},
 	{
 		point: 1022,
 		name: "sagittarius",
 		symbol: "♐",
-		element: "Fire 🜂",
-		traits: "Extroverted 🏹, optimistic ☀️, and funny 😂.",
+		element: "fire",
 	},
 	{
 		point: 1122,
 		name: "capricorn",
 		symbol: "♑",
-		element: "Earth 🜃",
-		traits: "Disciplined 📈, ambitious 🏔️, and practical 🛠️.",
+		element: "earth",
 	},
 ].reverse();
 
@@ -147,13 +134,5 @@ export const getSign = (date: Date) => {
 		name: sign.name,
 		symbol: sign.symbol,
 		element: sign.element,
-		traits: sign.traits,
-		compatible: sign.element.includes("Fire")
-			? "Air 🜁 & Fire 🜂"
-			: sign.element.includes("Air")
-				? "Fire 🜂 & Air 🜁"
-				: sign.element.includes("Earth")
-					? "Water 🜄 & Earth 🜃"
-					: "Earth 🜃 & Water 🜄",
 	};
 };

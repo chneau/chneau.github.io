@@ -16,6 +16,11 @@ const birthdaysArraySchema = z.array(birthdaySchema);
 
 export type Kind = "♂️" | "♀️" | "💒";
 
+export type MilestoneData = {
+	key: string;
+	params?: Record<string, string | number>;
+};
+
 export type Birthday = {
 	name: string;
 	kind: Kind;
@@ -26,22 +31,19 @@ export type Birthday = {
 	sign: string;
 	signSymbol: string;
 	birthgem: string;
+	birthgemEmoji: string;
 	year: number;
 	month: number;
-	monthString: string;
 	day: number;
 	daysBeforeBirthday: number;
 	chineseZodiac: string;
 	element: string;
 	generation: string;
 	season: string;
-	dayOfWeek: string;
 	ageGroup: string;
 	decade: string;
-	milestone?: string;
-	milestoneStatus?: string;
-	traits: string;
-	compatible: string;
+	milestone?: MilestoneData;
+	milestoneStatus?: MilestoneData;
 	progress: number;
 	ageInDays: number;
 	ageInWeeks: number;
@@ -65,16 +67,16 @@ const BIG_BIRTHDAYS = [
 ];
 
 const WEDDING_MILESTONES: Record<number, string> = {
-	1: "1st Anniversary (Paper) 📄",
-	5: "5th Anniversary (Wood) 🪵",
-	10: "10th Anniversary (Tin) 🥫",
-	15: "15th Anniversary (Crystal) 💎",
-	20: "20th Anniversary (China) 🏺",
-	25: "25th Anniversary (Silver) 🥈",
-	30: "30th Anniversary (Pearl) ⚪",
-	40: "40th Anniversary (Ruby) 🔴",
-	50: "50th Anniversary (Gold) 🥇",
-	60: "60th Anniversary (Diamond) 💎",
+	1: "paper",
+	5: "wood",
+	10: "tin",
+	15: "crystal",
+	20: "china",
+	25: "silver",
+	30: "pearl",
+	40: "ruby",
+	50: "gold",
+	60: "diamond",
 };
 
 const getMilestoneInfo = (
@@ -82,13 +84,11 @@ const getMilestoneInfo = (
 	nextAge: number,
 	isToday: boolean,
 	kind: Kind,
-) => {
+): { milestone?: MilestoneData; status?: MilestoneData } => {
 	const isWedding = kind === "💒";
 	const milestones = isWedding
 		? Object.keys(WEDDING_MILESTONES).map(Number)
 		: BIG_BIRTHDAYS;
-
-	const milestoneNames = isWedding ? WEDDING_MILESTONES : null;
 
 	const milestoneAge = milestones.includes(age)
 		? age
@@ -96,36 +96,39 @@ const getMilestoneInfo = (
 			? nextAge
 			: undefined;
 
-	const milestone =
-		milestoneAge !== undefined
-			? isWedding
-				? milestoneNames?.[milestoneAge]
-				: `Big ${milestoneAge}! 🎉`
-			: undefined;
-
-	const prevMilestone = [...milestones].reverse().find((m) => m < age);
+	let milestone: MilestoneData | undefined;
+	if (milestoneAge !== undefined) {
+		if (isWedding) {
+			const material = WEDDING_MILESTONES[milestoneAge];
+			milestone = {
+				key: "milestone.wedding",
+				params: { year: milestoneAge, material: material || "" },
+			};
+		} else {
+			milestone = { key: "milestone.birthday", params: { age: milestoneAge } };
+		}
+	}
 
 	const nextMilestone = milestones.find((m) => m > age);
 
-	let status = "";
+	let status: MilestoneData | undefined;
+
 	if (isToday && milestones.includes(age)) {
-		status = "Today is the milestone!";
+		status = { key: "milestone.status.today" };
 	} else {
-		if (prevMilestone !== undefined) {
-			const diff = age - prevMilestone;
-			if (diff > 0) {
-				status = `${diff} year${diff > 1 ? "s" : ""} since ${
-					isWedding ? milestoneNames?.[prevMilestone] : `age ${prevMilestone}`
-				}`;
-			}
-		}
+		// Simplified status logic for now to avoid complex key composition
 		if (nextMilestone !== undefined) {
 			const diff = nextMilestone - age;
 			if (diff > 0) {
-				const nextStatus = `${diff} year${diff > 1 ? "s" : ""} until ${
-					isWedding ? milestoneNames?.[nextMilestone] : `age ${nextMilestone}`
-				}`;
-				status = status ? `${status}. ${nextStatus}` : nextStatus;
+				status = {
+					key: "milestone.status.until",
+					params: {
+						diff,
+						target: isWedding
+							? `${nextMilestone}` // We'll handle translation in UI
+							: `${nextMilestone}`,
+					},
+				};
 			}
 		}
 	}
@@ -134,18 +137,18 @@ const getMilestoneInfo = (
 };
 
 export const monthNames = [
-	"Jan",
-	"Feb",
-	"Mar",
-	"Apr",
-	"May",
-	"Jun",
-	"Jul",
-	"Aug",
-	"Sep",
-	"Oct",
-	"Nov",
-	"Dec",
+	"jan",
+	"feb",
+	"mar",
+	"apr",
+	"may",
+	"jun",
+	"jul",
+	"aug",
+	"sep",
+	"oct",
+	"nov",
+	"dec",
 ];
 
 export const getKindColor = (kind: Kind) => {
@@ -180,49 +183,49 @@ export const getAgeEmoji = (age: number, kind?: Kind) => {
 };
 
 const getAgeGroup = (age: number, kind?: Kind): string => {
-	if (kind === "💒") return "Weddings 💍";
-	if (age < 3) return "Babies 👶 (<3)";
-	if (age < 13) return "Children 🧒 (<13)";
-	if (age < 20) return "Teens 🧒 (<20)";
-	if (age < 60) return "Adults 🧑 (<60)";
-	return "Seniors 🧓 (60+)";
+	if (kind === "💒") return "weddings";
+	if (age < 3) return "babies";
+	if (age < 13) return "children";
+	if (age < 20) return "teens";
+	if (age < 60) return "adults";
+	return "seniors";
 };
 
 const getChineseZodiac = (year: number): string => {
 	const animals = [
-		"Rat 🐀",
-		"Ox 🐂",
-		"Tiger 🐅",
-		"Rabbit 🐇",
-		"Dragon 🐉",
-		"Snake 🐍",
-		"Horse 🐎",
-		"Goat 🐐",
-		"Monkey 🐒",
-		"Rooster 🐓",
-		"Dog 🐕",
-		"Pig 🐖",
+		"rat",
+		"ox",
+		"tiger",
+		"rabbit",
+		"dragon",
+		"snake",
+		"horse",
+		"goat",
+		"monkey",
+		"rooster",
+		"dog",
+		"pig",
 	];
-	return animals[(((year - 4) % 12) + 12) % 12] || "?";
+	return animals[(((year - 4) % 12) + 12) % 12] || "unknown";
 };
 
 const getDecade = (year: number): string => `${Math.floor(year / 10) * 10}s`;
 
 const getGeneration = (year: number): string => {
-	if (year >= 2013) return "Gen Alpha";
-	if (year >= 1997) return "Gen Z";
-	if (year >= 1981) return "Millennials";
-	if (year >= 1965) return "Gen X";
-	if (year >= 1946) return "Boomers";
-	if (year >= 1928) return "Silent";
-	return "Greatest";
+	if (year >= 2013) return "gen_alpha";
+	if (year >= 1997) return "gen_z";
+	if (year >= 1981) return "millennials";
+	if (year >= 1965) return "gen_x";
+	if (year >= 1946) return "boomers";
+	if (year >= 1928) return "silent";
+	return "greatest";
 };
 
 const getSeason = (month: number): string => {
-	if (month >= 3 && month <= 5) return "Spring 🌸";
-	if (month >= 6 && month <= 8) return "Summer ☀️";
-	if (month >= 9 && month <= 11) return "Autumn 🍂";
-	return "Winter ❄️";
+	if (month >= 3 && month <= 5) return "spring";
+	if (month >= 6 && month <= 8) return "summer";
+	if (month >= 9 && month <= 11) return "autumn";
+	return "winter";
 };
 
 const getLifePath = (date: Date) => {
@@ -250,46 +253,14 @@ const getLifePath = (date: Date) => {
 
 	const lifePathNumber = reduce(reduce(d) + reduce(m) + reduce(y));
 
-	const meanings: Record<number, string> = {
-		1: "The Independent Leader 🦁",
-		2: "The Peacekeeper 🕊️",
-		3: "The Creative Communicator 🎨",
-		4: "The Practical Builder 🏗️",
-		5: "The Freedom Seeker 🌏",
-		6: "The Nurturer 🏠",
-		7: "The Analytical Seeker 🔍",
-		8: "The Powerhouse 💰",
-		9: "The Humanitarian 🤝",
-		11: "The Intuitive Visionary ✨",
-		22: "The Master Builder 🏛️",
-		33: "The Master Teacher 🍎",
-	};
-
 	return {
 		number: lifePathNumber,
-		meaning: meanings[lifePathNumber] || "The Mystery 🌀",
+		meaning: `life_path_${lifePathNumber}`,
 	};
 };
 
 const getDailyInsight = (name: string): string => {
-	const insights = [
-		"Today is a great day for a new beginning! ✨",
-		"Your kindness will open doors you never expected. 🚪",
-		"A small act of courage will change your trajectory today. 🚀",
-		"Listen to your intuition; it's louder than usual today. 👂",
-		"Expect a pleasant surprise from someone you haven't seen in a while. 🎁",
-		"Your creativity is at an all-time high—use it! 🎨",
-		"Take a moment to breathe; the universe has your back. 🧘",
-		"A financial opportunity might present itself soon. 💰",
-		"Your positive energy is contagious today! 🌟",
-		"Focus on gratitude, and more things to be grateful for will appear. 🙏",
-		"It's a perfect day to finish that project you started. 🏁",
-		"A conversation today will bring much-needed clarity. 💬",
-		"Trust the process; everything is unfolding as it should. 🌱",
-		"Your hard work is about to pay off in a big way. 🏆",
-		"Someone is thinking of you with a lot of love today. ❤️",
-	];
-
+	const count = 15;
 	const today = new Date().toDateString();
 	const str = name + today;
 	let hash = 0;
@@ -297,11 +268,8 @@ const getDailyInsight = (name: string): string => {
 		hash = (hash << 5) - hash + str.charCodeAt(i);
 		hash |= 0;
 	}
-	return (
-		insights[Math.abs(hash) % insights.length] ||
-		insights[0] ||
-		"Have a wonderful day! 🌈"
-	);
+	const index = Math.abs(hash) % count;
+	return `insight_${index}`;
 };
 
 const validatedBirthdays = birthdaysArraySchema.parse(rawBirthdaysJson);
@@ -361,6 +329,7 @@ export const birthdays: Birthday[] = validatedBirthdays
 
 		const dailyInsight = getDailyInsight(x.name);
 		const moon = getMoonPhase(birthdayDate);
+		const bg = getBirthgem(birthdayDate);
 
 		return {
 			...x,
@@ -372,21 +341,18 @@ export const birthdays: Birthday[] = validatedBirthdays
 			birthdayString: birthday.format("YYYY-MM-DD"),
 			sign: sign.name,
 			signSymbol: sign.symbol,
-			birthgem: getBirthgem(birthdayDate),
+			birthgem: bg.key,
+			birthgemEmoji: bg.emoji,
 			chineseZodiac: getChineseZodiac(year),
 			element: sign.element,
 			generation: getGeneration(year),
 			season: getSeason(month),
-			dayOfWeek: birthday.format("ddd"),
 			ageGroup: getAgeGroup(age, x.kind),
 			decade: getDecade(year),
-			monthString: birthday.format("MMMM"),
 			daysBeforeBirthday: daysBefore,
 			age,
 			milestone: milestoneInfo.milestone,
 			milestoneStatus: milestoneInfo.status,
-			traits: sign.traits,
-			compatible: sign.compatible,
 			progress,
 			ageInDays,
 			ageInWeeks,

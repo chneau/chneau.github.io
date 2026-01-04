@@ -29,14 +29,14 @@ export const getMoonPhase = (date: Date): { phase: string; icon: string } => {
 	const phaseIndex = Math.round(diff * 8) % 8;
 
 	const phases = [
-		{ phase: "New Moon", icon: "🌑" },
-		{ phase: "Waxing Crescent", icon: "🌒" },
-		{ phase: "First Quarter", icon: "🌓" },
-		{ phase: "Waxing Gibbous", icon: "🌔" },
-		{ phase: "Full Moon", icon: "🌕" },
-		{ phase: "Waning Gibbous", icon: "🌖" },
-		{ phase: "Last Quarter", icon: "🌗" },
-		{ phase: "Waning Crescent", icon: "🌘" },
+		{ phase: "new_moon", icon: "🌑" },
+		{ phase: "waxing_crescent", icon: "🌒" },
+		{ phase: "first_quarter", icon: "🌓" },
+		{ phase: "waxing_gibbous", icon: "🌔" },
+		{ phase: "full_moon", icon: "🌕" },
+		{ phase: "waning_gibbous", icon: "🌖" },
+		{ phase: "last_quarter", icon: "🌗" },
+		{ phase: "waning_crescent", icon: "🌘" },
 	];
 
 	return phases[phaseIndex] as { phase: string; icon: string };
