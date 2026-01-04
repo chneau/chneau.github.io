@@ -1,3 +1,4 @@
+import { debounce } from "es-toolkit";
 import Fuse from "fuse.js";
 import { proxy, subscribe } from "valtio";
 import { type Birthday, birthdays } from "./birthdays";
@@ -78,5 +79,5 @@ const compute = () => {
 	});
 };
 
-subscribe(store, compute);
+subscribe(store, debounce(compute, 200));
 compute();
