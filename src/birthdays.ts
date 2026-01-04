@@ -305,7 +305,9 @@ const getChineseZodiac = (year: number): ChineseZodiac => {
 		"pig",
 	];
 	const index = (((year - 4) % 12) + 12) % 12;
-	return animals[index]!;
+	const found = animals[index];
+	if (!found) throw new Error(`No zodiac animal found for year ${year}`);
+	return found;
 };
 
 const getDecade = (year: number): string => `${Math.floor(year / 10) * 10}s`;
@@ -430,11 +432,17 @@ export const birthdays: Birthday[] = validatedBirthdays
 		const moon = getMoonPhase(birthdayDate);
 		const bg = getBirthgem(birthdayDate);
 
+		const monthName = monthNames[month - 1];
+
+		if (!monthName) {
+			throw new Error(`Invalid month ${month} for birthday ${x.name}`);
+		}
+
 		return {
 			...x,
 			year,
 			month,
-			monthName: monthNames[month - 1]!,
+			monthName,
 			day,
 			nextBirthday: nextBirthday.toDate(),
 			birthday: birthdayDate,

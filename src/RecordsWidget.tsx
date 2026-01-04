@@ -63,7 +63,7 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 						<Statistic
 							title={`👴 ${t("app.records.elder")}`}
 							value={records.elder?.name}
-							valueStyle={{ fontSize: "1em" }}
+							styles={{ content: { fontSize: "1em" } }}
 						/>
 					</Tooltip>
 				</Col>
@@ -76,7 +76,7 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 						<Statistic
 							title={`👶 ${t("app.records.rookie")}`}
 							value={records.rookie?.name}
-							valueStyle={{ fontSize: "1em" }}
+							styles={{ content: { fontSize: "1em" } }}
 						/>
 					</Tooltip>
 				</Col>
@@ -90,7 +90,7 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 						<Statistic
 							title={`🤝 ${t("app.records.socialite")}`}
 							value={records.bestSocialite?.name}
-							valueStyle={{ fontSize: "1em" }}
+							styles={{ content: { fontSize: "1em" } }}
 						/>
 					</Tooltip>
 				</Col>
@@ -108,7 +108,7 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 							title={`👯 ${t("app.records.twins")}`}
 							value={records.twins.length}
 							suffix={t("app.records.twins_suffix")}
-							valueStyle={{ fontSize: "1em" }}
+							styles={{ content: { fontSize: "1em" } }}
 						/>
 					</Tooltip>
 				</Col>
