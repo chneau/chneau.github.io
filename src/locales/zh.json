@@ -94,7 +94,9 @@
 			"hours": "小时",
 			"mins": "分",
 			"secs": "秒"
-		}
+		},
+		"card": "卡片",
+		"events": "事件"
 	},
 	"table": {
 		"name": "姓名",

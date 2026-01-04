@@ -94,7 +94,9 @@
 			"hours": "Stunden",
 			"mins": "Min",
 			"secs": "Sek"
-		}
+		},
+		"card": "Karte",
+		"events": "Ereignisse"
 	},
 	"table": {
 		"name": "Name",
