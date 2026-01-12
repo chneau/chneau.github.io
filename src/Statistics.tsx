@@ -317,7 +317,7 @@ export const Statistics = () => {
 	const dayjsLocale = dayjs.locale();
 
 	const stats = useMemo(() => {
-		dayjsLocale; // depend on language changes
+		dayjs.locale(dayjsLocale);
 		return {
 			letters: getDistribution(data, (x) => (x.name[0] || "?").toUpperCase()),
 			signs: getDistribution(data, (x) => t(`data.zodiac.${x.sign}`)),

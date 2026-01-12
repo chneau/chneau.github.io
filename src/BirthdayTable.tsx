@@ -261,18 +261,23 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 									📜 {t("headers.etymology")}:{" "}
 								</Typography.Text>
 								<Typography.Text italic>
-									{record.name.includes(" & ")
-										? record.name
+									{(() => {
+										const name = record.name;
+										const tDynamic = t as unknown as (k: string) => string;
+										if (name.includes(" & ")) {
+											return name
 												.split(" & ")
 												.map((n) => {
-													const ety = t(`data.names.${n}` as any);
-													return ety !== `data.names.${n}` ? `${n}: ${ety}` : n;
+													const key = `data.names.${n}`;
+													const ety = tDynamic(key);
+													return ety !== key ? `${n}: ${ety}` : n;
 												})
-												.join(" | ")
-										: t(`data.names.${record.name}` as any) !==
-												(`data.names.${record.name}` as any)
-											? t(`data.names.${record.name}` as any)
-											: t("app.no_data")}
+												.join(" | ");
+										}
+										const key = `data.names.${name}`;
+										const ety = tDynamic(key);
+										return ety !== key ? ety : t("app.no_data");
+									})()}
 								</Typography.Text>
 							</div>
 
