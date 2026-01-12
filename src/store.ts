@@ -34,7 +34,15 @@ subscribe(store, () => {
 	}
 });
 
-export const dataStore = proxy<{ filtered: Birthday[] }>({
+export type WikiEvent = {
+	year: number;
+	text: string;
+};
+
+export const dataStore = proxy<{
+	filtered: Birthday[];
+	wikiCache: Record<string, WikiEvent[]>;
+}>({
 	filtered: birthdays.filter((x) => {
 		const state = getInitialState();
 		if (x.kind === "♂️" && !state.showBoys) return false;
@@ -42,6 +50,7 @@ export const dataStore = proxy<{ filtered: Birthday[] }>({
 		if (x.kind === "💒" && !state.showWeddings) return false;
 		return true;
 	}),
+	wikiCache: {},
 });
 
 const fuse = new Fuse(birthdays, {

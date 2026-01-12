@@ -1,7 +1,7 @@
-interface HighlightProps {
+type HighlightProps = {
 	text: string;
 	search: string;
-}
+};
 
 export const Highlight = ({ text, search }: HighlightProps) => {
 	const term = search.trim();
