@@ -1,8 +1,10 @@
+import dayjs from "dayjs";
 import type { Birthday } from "./birthdays";
+import i18n from "./i18n";
 
 export const requestNotificationPermission = async () => {
 	if (!("Notification" in window)) {
-		console.log("This browser does not support desktop notification");
+		console.log(i18n.t("app.notifications.no_support"));
 		return;
 	}
 
@@ -16,7 +18,7 @@ export const checkAndNotify = (birthdays: readonly Birthday[]) => {
 		return;
 	}
 
-	const today = new Date().toDateString();
+	const today = dayjs().format("YYYY-MM-DD");
 	const lastNotified = localStorage.getItem("lastNotifiedDate");
 
 	// Prevent spamming: only notify once per day
@@ -36,17 +38,17 @@ export const checkAndNotify = (birthdays: readonly Birthday[]) => {
 
 	if (todayBirthdays.length > 0) {
 		const names = todayBirthdays.map((b) => b.name).join(", ");
-		title = "🎂 Happy Birthday!";
-		body = `Today is ${names}'s birthday!`;
+		title = i18n.t("app.notifications.today_title");
+		body = i18n.t("app.notifications.today_body", { names });
 	}
 
 	if (tomorrowBirthdays.length > 0) {
 		const names = tomorrowBirthdays.map((b) => b.name).join(", ");
 		if (title) {
-			body += `\nAnd ${names} has a birthday tomorrow!`;
+			body += i18n.t("app.notifications.both_body", { names });
 		} else {
-			title = "📅 Upcoming Birthday";
-			body = `${names} has a birthday tomorrow!`;
+			title = i18n.t("app.notifications.upcoming_title");
+			body = i18n.t("app.notifications.upcoming_body", { names });
 		}
 	}
 
@@ -78,17 +80,17 @@ const notify = async (title: string, options?: NotificationOptions) => {
 
 export const sendTestNotification = () => {
 	if (!("Notification" in window)) {
-		alert("This browser does not support desktop notification");
+		alert(i18n.t("app.notifications.no_support"));
 		return;
 	}
 
 	if (Notification.permission !== "granted") {
-		alert("Notification permission not granted. Please click the bell icon.");
+		alert(i18n.t("app.notifications.no_permission"));
 		return;
 	}
 
-	notify("🎉 Test Notification", {
-		body: "This is a test notification from Birthday Tracker!",
+	notify(i18n.t("app.notifications.test_title"), {
+		body: i18n.t("app.notifications.test_body"),
 		icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>",
 	});
 };

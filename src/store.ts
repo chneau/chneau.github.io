@@ -43,13 +43,7 @@ export const dataStore = proxy<{
 	filtered: Birthday[];
 	wikiCache: Record<string, WikiEvent[]>;
 }>({
-	filtered: birthdays.filter((x) => {
-		const state = getInitialState();
-		if (x.kind === "♂️" && !state.showBoys) return false;
-		if (x.kind === "♀️" && !state.showGirls) return false;
-		if (x.kind === "💒" && !state.showWeddings) return false;
-		return true;
-	}),
+	filtered: [],
 	wikiCache: {},
 });
 

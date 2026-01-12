@@ -95,6 +95,17 @@
 			"mins": "Mins",
 			"secs": "Segs"
 		},
+		"notifications": {
+			"today_title": "🎂 ¡Feliz Cumpleaños!",
+			"today_body": "¡Hoy es el cumpleaños de {{names}}!",
+			"upcoming_title": "📅 Cumpleaños Próximo",
+			"upcoming_body": "¡{{names}} cumple años mañana!",
+			"both_body": "\n¡Y {{names}} cumple años mañana!",
+			"test_title": "🎉 Notificación de Prueba",
+			"test_body": "¡Esta es una notificación de prueba de Birthday Tracker!",
+			"no_support": "Este navegador no admite notificaciones de escritorio",
+			"no_permission": "Permiso de notificación no concedido. Haga clic en el icono de la campana."
+		},
 		"card": "Tarjeta",
 		"events": "Eventos",
 		"no_data": "N/D"
@@ -259,10 +270,8 @@
 			"wedding": "{{year}}º Aniversario ({{material}}) 💍",
 			"status": {
 				"today": "¡Hoy es el hito!",
-				"since": "",
 				"since_one": "{{diff}} año desde {{target}}",
 				"since_other": "{{diff}} años desde {{target}}",
-				"until": "",
 				"until_one": "{{diff}} año hasta {{target}}",
 				"until_other": "{{diff}} años hasta {{target}}"
 			}

@@ -95,6 +95,17 @@
 			"mins": "Mins",
 			"secs": "Secs"
 		},
+		"notifications": {
+			"today_title": "🎂 Happy Birthday!",
+			"today_body": "Today is {{names}}'s birthday!",
+			"upcoming_title": "📅 Upcoming Birthday",
+			"upcoming_body": "{{names}} has a birthday tomorrow!",
+			"both_body": "\nAnd {{names}} has a birthday tomorrow!",
+			"test_title": "🎉 Test Notification",
+			"test_body": "This is a test notification from Birthday Tracker!",
+			"no_support": "This browser does not support desktop notification",
+			"no_permission": "Notification permission not granted. Please click the bell icon."
+		},
 		"card": "Card",
 		"events": "Events",
 		"no_data": "N/A"
@@ -259,10 +270,8 @@
 			"wedding": "{{year}}th Anniversary ({{material}}) 💍",
 			"status": {
 				"today": "Today is the milestone!",
-				"since": "",
 				"since_one": "{{diff}} year since {{target}}",
 				"since_other": "{{diff}} years since {{target}}",
-				"until": "",
 				"until_one": "{{diff}} year until {{target}}",
 				"until_other": "{{diff}} years until {{target}}"
 			}
