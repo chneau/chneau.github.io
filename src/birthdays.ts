@@ -1,7 +1,16 @@
 import dayjs from "dayjs";
+import { orderBy } from "es-toolkit";
 import { z } from "zod";
 import { getMoonPhase, type MoonPhase } from "./astronomy";
 import rawBirthdaysJson from "./birthdays.json";
+import {
+	AGE_THRESHOLDS,
+	BIG_BIRTHDAYS,
+	GENERATION_BOUNDARIES,
+	PHYSICAL_CONSTANTS,
+	PLANET_ORBITS_DAYS,
+	WEDDING_MILESTONES,
+} from "./constants";
 import type en from "./locales/en.json";
 import {
 	type BirthGem,
@@ -92,24 +101,6 @@ export type Birthday = {
 	moonPhaseIcon: string;
 	planetAges: readonly { name: PlanetName; age: number; icon: string }[];
 	etymology?: string;
-};
-
-const BIG_BIRTHDAYS = [
-	1, 5, 10, 13, 15, 16, 18, 20, 21, 25, 30, 40, 50, 60, 70, 75, 80, 85, 90, 95,
-	100,
-];
-
-const WEDDING_MILESTONES: Record<number, string> = {
-	1: "paper",
-	5: "wood",
-	10: "tin",
-	15: "crystal",
-	20: "china",
-	25: "silver",
-	30: "pearl",
-	40: "ruby",
-	50: "gold",
-	60: "diamond",
 };
 
 const getMilestoneInfo = (
@@ -203,13 +194,13 @@ export const getKindColor = (kind: Kind) => {
 
 export const getAgeEmoji = (age: number, kind?: Kind) => {
 	if (kind === "💒") return "💍";
-	if (age < 3) return "👶";
-	if (age < 20) {
+	if (age < AGE_THRESHOLDS.BABY) return "👶";
+	if (age < AGE_THRESHOLDS.TEEN) {
 		if (kind === "♂️") return "👦";
 		if (kind === "♀️") return "👧";
 		return "🧒";
 	}
-	if (age >= 60) {
+	if (age >= AGE_THRESHOLDS.ADULT) {
 		if (kind === "♂️") return "👴";
 		if (kind === "♀️") return "👵";
 		return "🧓";
@@ -221,10 +212,10 @@ export const getAgeEmoji = (age: number, kind?: Kind) => {
 
 const getAgeGroup = (age: number, kind?: Kind): AgeGroup => {
 	if (kind === "💒") return "weddings";
-	if (age < 3) return "babies";
-	if (age < 13) return "children";
-	if (age < 20) return "teens";
-	if (age < 60) return "adults";
+	if (age < AGE_THRESHOLDS.BABY) return "babies";
+	if (age < AGE_THRESHOLDS.CHILD) return "children";
+	if (age < AGE_THRESHOLDS.TEEN) return "teens";
+	if (age < AGE_THRESHOLDS.ADULT) return "adults";
 	return "seniors";
 };
 
@@ -252,12 +243,12 @@ const getChineseZodiac = (year: number): ChineseZodiac => {
 const getDecade = (year: number): string => `${Math.floor(year / 10) * 10}s`;
 
 const getGeneration = (year: number): Generation => {
-	if (year >= 2013) return "gen_alpha";
-	if (year >= 1997) return "gen_z";
-	if (year >= 1981) return "millennials";
-	if (year >= 1965) return "gen_x";
-	if (year >= 1946) return "boomers";
-	if (year >= 1928) return "silent";
+	if (year >= GENERATION_BOUNDARIES.GEN_ALPHA) return "gen_alpha";
+	if (year >= GENERATION_BOUNDARIES.GEN_Z) return "gen_z";
+	if (year >= GENERATION_BOUNDARIES.MILLENNIALS) return "millennials";
+	if (year >= GENERATION_BOUNDARIES.GEN_X) return "gen_x";
+	if (year >= GENERATION_BOUNDARIES.BOOMERS) return "boomers";
+	if (year >= GENERATION_BOUNDARIES.SILENT) return "silent";
 	return "greatest";
 };
 
@@ -314,118 +305,122 @@ const getDailyInsight = (name: string): DailyInsight => {
 
 const validatedBirthdays = birthdaysArraySchema.parse(rawBirthdaysJson);
 
-export const birthdays: Birthday[] = validatedBirthdays
-	.map((x) => {
-		const birthday = dayjs(x.date).startOf("day");
-		const today = dayjs().startOf("day");
+const mappedBirthdays = validatedBirthdays.map((x) => {
+	const birthday = dayjs(x.date).startOf("day");
+	const today = dayjs().startOf("day");
 
-		const year = birthday.year();
-		const month = birthday.month() + 1;
-		const day = birthday.date();
+	const year = birthday.year();
+	const month = birthday.month() + 1;
+	const day = birthday.date();
 
-		let nextBirthday = birthday.year(today.year());
-		if (nextBirthday.isBefore(today)) {
-			nextBirthday = nextBirthday.add(1, "year");
-		}
+	let nextBirthday = birthday.year(today.year());
+	if (nextBirthday.isBefore(today)) {
+		nextBirthday = nextBirthday.add(1, "year");
+	}
 
-		const age = today.diff(birthday, "year");
-		const daysBefore = nextBirthday.diff(today, "day");
+	const age = today.diff(birthday, "year");
+	const daysBefore = nextBirthday.diff(today, "day");
 
-		const birthdayDate = birthday.toDate();
-		const sign = getSign(birthdayDate);
-		const nextAge = nextBirthday.diff(birthday, "year");
-		const milestoneInfo = getMilestoneInfo(
-			age,
-			nextAge,
-			daysBefore === 0,
-			x.kind,
+	const birthdayDate = birthday.toDate();
+	const sign = getSign(birthdayDate);
+	const nextAge = nextBirthday.diff(birthday, "year");
+	const milestoneInfo = getMilestoneInfo(
+		age,
+		nextAge,
+		daysBefore === 0,
+		x.kind,
+	);
+
+	const totalDaysInYear = nextBirthday.diff(
+		nextBirthday.subtract(1, "year"),
+		"day",
+	);
+	const progress = ((totalDaysInYear - daysBefore) / totalDaysInYear) * 100;
+
+	const ageInDays = today.diff(birthday, "day");
+	const ageInWeeks = today.diff(birthday, "week");
+	const ageInMonths = today.diff(birthday, "month");
+	const halfBirthdayDate = birthday.add(6, "month");
+	const halfBirthday = halfBirthdayDate.format("MMMM DD");
+	const halfBirthdayMonth = monthNames[halfBirthdayDate.month()];
+	const halfBirthdayDay = halfBirthdayDate.date();
+	const lifePath = getLifePath(birthdayDate);
+
+	if (!halfBirthdayMonth) {
+		throw new Error(
+			`Invalid half birthday month for birthday ${x.name}: ${halfBirthdayDate.month()}`,
 		);
+	}
 
-		const totalDaysInYear = nextBirthday.diff(
-			nextBirthday.subtract(1, "year"),
-			"day",
-		);
-		const progress = ((totalDaysInYear - daysBefore) / totalDaysInYear) * 100;
+	// Life in numbers calculations
+	const heartbeats = ageInDays * 24 * 60 * PHYSICAL_CONSTANTS.HEART_RATE_BPM;
+	const breaths = ageInDays * 24 * 60 * PHYSICAL_CONSTANTS.BREATH_RATE_BPM;
+	const sleepYears = age * PHYSICAL_CONSTANTS.SLEEP_FRACTION;
+	const distanceTraveled = ageInDays * PHYSICAL_CONSTANTS.ORBITAL_SPEED_KM_DAY;
 
-		const ageInDays = today.diff(birthday, "day");
-		const ageInWeeks = today.diff(birthday, "week");
-		const ageInMonths = today.diff(birthday, "month");
-		const halfBirthdayDate = birthday.add(6, "month");
-		const halfBirthday = halfBirthdayDate.format("MMMM DD");
-		const halfBirthdayMonth = monthNames[halfBirthdayDate.month()];
-		const halfBirthdayDay = halfBirthdayDate.date();
-		const lifePath = getLifePath(birthdayDate);
+	const planetAges: { name: PlanetName; age: number; icon: string }[] = [
+		{ name: "mercury", age: ageInDays / PLANET_ORBITS_DAYS.mercury, icon: "☿️" },
+		{ name: "venus", age: ageInDays / PLANET_ORBITS_DAYS.venus, icon: "♀️" },
+		{ name: "mars", age: ageInDays / PLANET_ORBITS_DAYS.mars, icon: "♂️" },
+		{ name: "jupiter", age: ageInDays / PLANET_ORBITS_DAYS.jupiter, icon: "♃" },
+		{ name: "saturn", age: ageInDays / PLANET_ORBITS_DAYS.saturn, icon: "♄" },
+	];
 
-		if (!halfBirthdayMonth) {
-			throw new Error(
-				`Invalid half birthday month for birthday ${x.name}: ${halfBirthdayDate.month()}`,
-			);
-		}
+	const dailyInsight = getDailyInsight(x.name);
+	const moon = getMoonPhase(birthdayDate);
+	const bg = getBirthgem(birthdayDate);
 
-		// Life in numbers calculations
-		const heartbeats = ageInDays * 24 * 60 * 80;
-		const breaths = ageInDays * 24 * 60 * 16;
-		const sleepYears = age / 3;
-		const distanceTraveled = ageInDays * 2570000; // km in Earth's orbit
+	const monthName = monthNames[month - 1];
 
-		const planetAges: { name: PlanetName; age: number; icon: string }[] = [
-			{ name: "mercury", age: ageInDays / 87.97, icon: "☿️" },
-			{ name: "venus", age: ageInDays / 224.7, icon: "♀️" },
-			{ name: "mars", age: ageInDays / 686.97, icon: "♂️" },
-			{ name: "jupiter", age: ageInDays / 4332.59, icon: "♃" },
-			{ name: "saturn", age: ageInDays / 10759.22, icon: "♄" },
-		];
+	if (!monthName) {
+		throw new Error(`Invalid month ${month} for birthday ${x.name}`);
+	}
 
-		const dailyInsight = getDailyInsight(x.name);
-		const moon = getMoonPhase(birthdayDate);
-		const bg = getBirthgem(birthdayDate);
+	return {
+		...x,
+		year,
+		month,
+		monthName,
+		day,
+		nextBirthday: nextBirthday.toDate(),
+		birthday: birthdayDate,
+		birthdayString: birthday.format("YYYY-MM-DD"),
+		sign: sign.name,
+		signSymbol: sign.symbol,
+		birthgem: bg.key,
+		birthgemEmoji: bg.emoji,
+		chineseZodiac: getChineseZodiac(year),
+		element: sign.element,
+		generation: getGeneration(year),
+		season: getSeason(month),
+		ageGroup: getAgeGroup(age, x.kind),
+		decade: getDecade(year),
+		daysBeforeBirthday: daysBefore,
+		age,
+		milestone: milestoneInfo.milestone,
+		milestoneStatus: milestoneInfo.status,
+		progress,
+		ageInDays,
+		ageInWeeks,
+		ageInMonths,
+		halfBirthday,
+		halfBirthdayMonth,
+		halfBirthdayDay,
+		lifePathNumber: lifePath.number,
+		lifePathMeaning: lifePath.meaning,
+		heartbeats,
+		breaths,
+		sleepYears,
+		distanceTraveled,
+		planetAges,
+		dailyInsight,
+		moonPhase: moon.phase,
+		moonPhaseIcon: moon.icon,
+	};
+});
 
-		const monthName = monthNames[month - 1];
-
-		if (!monthName) {
-			throw new Error(`Invalid month ${month} for birthday ${x.name}`);
-		}
-
-		return {
-			...x,
-			year,
-			month,
-			monthName,
-			day,
-			nextBirthday: nextBirthday.toDate(),
-			birthday: birthdayDate,
-			birthdayString: birthday.format("YYYY-MM-DD"),
-			sign: sign.name,
-			signSymbol: sign.symbol,
-			birthgem: bg.key,
-			birthgemEmoji: bg.emoji,
-			chineseZodiac: getChineseZodiac(year),
-			element: sign.element,
-			generation: getGeneration(year),
-			season: getSeason(month),
-			ageGroup: getAgeGroup(age, x.kind),
-			decade: getDecade(year),
-			daysBeforeBirthday: daysBefore,
-			age,
-			milestone: milestoneInfo.milestone,
-			milestoneStatus: milestoneInfo.status,
-			progress,
-			ageInDays,
-			ageInWeeks,
-			ageInMonths,
-			halfBirthday,
-			halfBirthdayMonth,
-			halfBirthdayDay,
-			lifePathNumber: lifePath.number,
-			lifePathMeaning: lifePath.meaning,
-			heartbeats,
-			breaths,
-			sleepYears,
-			distanceTraveled,
-			planetAges,
-			dailyInsight,
-			moonPhase: moon.phase,
-			moonPhaseIcon: moon.icon,
-		};
-	})
-	.sort((a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday);
+export const birthdays: Birthday[] = orderBy(
+	mappedBirthdays,
+	["daysBeforeBirthday"],
+	["asc"],
+);

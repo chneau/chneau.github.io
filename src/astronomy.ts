@@ -1,3 +1,4 @@
+import { ASTRONOMICAL_CONSTANTS } from "./constants";
 import type en from "./locales/en.json";
 
 export type MoonPhase = keyof typeof en.data.moon_phases;
@@ -16,10 +17,10 @@ export const getMoonPhase = (
 
 	const c = 365.25 * year;
 	const e = 30.6 * month;
-	const jd = c + e + day - 694039.09; // jd is total days elapsed
-	const b = jd / 29.5305882; // divide by the moon cycle
-	const ip = Math.floor(b); // int(b) -> integer part, number of full cycles
-	const diff = b - ip; // fractional part: 0 to 1
+	const jd = c + e + day - ASTRONOMICAL_CONSTANTS.JULIAN_DAY_OFFSET;
+	const b = jd / ASTRONOMICAL_CONSTANTS.MOON_CYCLE_DAYS;
+	const ip = Math.floor(b);
+	const diff = b - ip;
 
 	// Map fractional part to phase
 	// 0.0 - 0.1: New Moon

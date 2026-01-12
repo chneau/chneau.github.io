@@ -1,5 +1,6 @@
 import { Card, Row, Skeleton } from "antd";
 import dayjs from "dayjs";
+import { groupBy } from "es-toolkit";
 import { lazy, Suspense, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
@@ -41,16 +42,14 @@ const getDistribution = (
 	data: readonly Birthday[],
 	getValue: (b: Birthday) => string | undefined,
 ): Datum[] => {
-	const counts: Record<string, string[]> = {};
-	for (const x of data) {
-		const val = getValue(x);
-		if (val) {
-			if (!counts[val]) counts[val] = [];
-			counts[val]?.push(x.name);
-		}
-	}
-	return Object.entries(counts)
-		.map(([type, names]) => ({ type, value: names.length, names }))
+	const grouped = groupBy(data, (b) => getValue(b) ?? "undefined");
+	return Object.entries(grouped)
+		.filter(([type]) => type !== "undefined")
+		.map(([type, items]) => ({
+			type,
+			value: items.length,
+			names: items.map((i) => i.name),
+		}))
 		.sort((a, b) => b.value - a.value);
 };
 
