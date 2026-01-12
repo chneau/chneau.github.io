@@ -98,11 +98,17 @@ export const App = () => {
 				</style>
 				<Layout style={{ minHeight: "100vh" }}>
 					<AppHeader data={data} />
-					<Layout.Content style={{ padding: 16 }}>
-						{nextBirthdays.length > 0 && (
-							<Countdown birthdays={nextBirthdays} />
-						)}
-						<Card title={t("app.birthdays")} size="small">
+					<Layout.Content style={{ padding: 16, minHeight: "100vh" }}>
+						<div style={{ minHeight: nextBirthdays.length > 0 ? 120 : 0 }}>
+							{nextBirthdays.length > 0 && (
+								<Countdown birthdays={nextBirthdays} />
+							)}
+						</div>
+						<Card
+							title={t("app.birthdays")}
+							size="small"
+							style={{ minHeight: 600 }}
+						>
 							<Space
 								orientation="vertical"
 								style={{ width: "100%", marginBottom: 16 }}

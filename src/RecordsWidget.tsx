@@ -52,7 +52,11 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 	if (!records) return null;
 
 	return (
-		<Card title={t("app.records.title")} size="small" style={{ marginTop: 16 }}>
+		<Card
+			title={t("app.records.title")}
+			size="small"
+			style={{ marginTop: 16, minHeight: 100 }}
+		>
 			<Row gutter={[16, 16]}>
 				<Col xs={12} sm={6}>
 					<Tooltip
