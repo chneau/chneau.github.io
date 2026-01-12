@@ -138,9 +138,13 @@
 		"months_lived": "Monate gelebt",
 		"half": "Hälfte",
 		"beats": "Herzschläge",
+		"beats_tooltip": "Geschätzte Gesamtzahl der Herzschläge seit der Geburt (durchschn. 80 Schläge/Min.)",
 		"breaths": "Atemzüge",
+		"breaths_tooltip": "Geschätzte Gesamtzahl der Atemzüge seit der Geburt (durchschn. 16 Atemzüge/Min.)",
 		"km_orbit": "km im Orbit",
-		"path": "Pfad"
+		"km_orbit_tooltip": "Geschätzte zurückgelegte Strecke in der Erdumlaufbahn um die Sonne",
+		"path": "Pfad",
+		"path_tooltip": "Numerologische Lebenspfadnummer basierend auf Ihrem Geburtsdatum"
 	},
 	"on_this_day": "An diesem Tag in der Geschichte",
 	"biorhythms": {

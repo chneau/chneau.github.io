@@ -1,4 +1,4 @@
-import { Alert, Button, Divider, Tag, Typography } from "antd";
+import { Alert, Button, Divider, Tag, Tooltip, Typography } from "antd";
 import html2canvas from "html2canvas";
 import { useTranslation } from "react-i18next";
 import { BiorhythmsChart } from "../BiorhythmsChart";
@@ -141,8 +141,10 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 							{record.halfBirthdayDay}
 						</li>
 						<li>
-							🔢 {t("units.path")} {record.lifePathNumber}:{" "}
-							{t(`data.life_path.${record.lifePathMeaning}`)}
+							<Tooltip title={t("units.path_tooltip")}>
+								🔢 {t("units.path")} {record.lifePathNumber}:{" "}
+								{t(`data.life_path.${record.lifePathMeaning}`)}
+							</Tooltip>
 						</li>
 						<li>
 							{record.moonPhaseIcon} {t(`data.moon_phases.${record.moonPhase}`)}
@@ -199,14 +201,20 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 					<Typography.Text strong>🔢 {t("headers.stats")}</Typography.Text>
 					<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
 						<li>
-							💓 {record.heartbeats.toLocaleString()} {t("units.beats")}
+							<Tooltip title={t("units.beats_tooltip")}>
+								💓 {record.heartbeats.toLocaleString()} {t("units.beats")}
+							</Tooltip>
 						</li>
 						<li>
-							🫁 {record.breaths.toLocaleString()} {t("units.breaths")}
+							<Tooltip title={t("units.breaths_tooltip")}>
+								🫁 {record.breaths.toLocaleString()} {t("units.breaths")}
+							</Tooltip>
 						</li>
 						<li>
-							🚀 {record.distanceTraveled.toLocaleString()}{" "}
-							{t("units.km_orbit")}
+							<Tooltip title={t("units.km_orbit_tooltip")}>
+								🚀 {record.distanceTraveled.toLocaleString()}{" "}
+								{t("units.km_orbit")}
+							</Tooltip>
 						</li>
 					</ul>
 				</div>
