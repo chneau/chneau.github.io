@@ -35,8 +35,11 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 
 	useEffect(() => {
 		const handler = (e: Event) => {
-			e.preventDefault();
-			setInstallPrompt(e as unknown as BeforeInstallPromptEvent);
+			if ("prompt" in e) {
+				e.preventDefault();
+				// Casting Event to BeforeInstallPromptEvent as it's a non-standard browser event not yet in TypeScript's base lib
+				setInstallPrompt(e as unknown as BeforeInstallPromptEvent);
+			}
 		};
 		window.addEventListener("beforeinstallprompt", handler);
 		return () => window.removeEventListener("beforeinstallprompt", handler);
@@ -69,17 +72,14 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 		},
 	];
 
-	const currentLang = i18n.language.startsWith("fr")
-		? "🇫🇷 FR"
-		: i18n.language.startsWith("es")
-			? "🇪🇸 ES"
-			: i18n.language.startsWith("de")
-				? "🇩🇪 DE"
-				: i18n.language.startsWith("zh")
-					? "🇨🇳 ZH"
-					: i18n.language.startsWith("ty")
-						? "🇵🇫 TY"
-						: "🇬🇧 EN";
+	const currentLang =
+		languageItems
+			.find((x) => i18n.language.startsWith(x.key))
+			?.label.split(" ")[1] || "EN";
+	const currentEmoji =
+		languageItems
+			.find((x) => i18n.language.startsWith(x.key))
+			?.label.split(" ")[0] || "🇬🇧";
 
 	return (
 		<Layout.Header
@@ -153,7 +153,9 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 					}}
 					trigger={["click"]}
 				>
-					<Button>{currentLang}</Button>
+					<Button>
+						{currentEmoji} {currentLang}
+					</Button>
 				</Dropdown>
 				<Button
 					onClick={() => {
