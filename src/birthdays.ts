@@ -20,8 +20,6 @@ import {
 	type ZodiacSign,
 } from "./zodiac";
 
-export type { Element };
-
 const birthdaySchema = z.object({
 	name: z.string().min(1),
 	date: z.string().refine((val) => dayjs(val).isValid(), {
@@ -32,33 +30,22 @@ const birthdaySchema = z.object({
 
 const birthdaysArraySchema = z.array(birthdaySchema);
 
-export type Kind = "♂️" | "♀️" | "💒";
-
-export type MilestoneKey =
+type Kind = "♂️" | "♀️" | "💒";
+type MilestoneKey =
 	| `data.milestone.${Exclude<keyof typeof en.data.milestone, "status">}`
 	| `data.milestone.status.${keyof typeof en.data.milestone.status}`;
-
-export type MilestoneData = {
+type MilestoneData = {
 	key: MilestoneKey;
 	params?: Record<string, string | number>;
 };
-
-export type ChineseZodiac = keyof typeof en.data.chinese_zodiac;
-
-export type Season = keyof typeof en.data.seasons;
-
-export type AgeGroup = keyof typeof en.data.age_groups;
-
-export type Generation = keyof typeof en.data.generations;
-
-export type MonthName = keyof typeof en.data.months;
-
-export type PlanetName = keyof typeof en.data.planets;
-
-export type LifePathMeaning = keyof typeof en.data.life_path;
-
-export type DailyInsight = keyof typeof en.data.insights;
-
+type ChineseZodiac = keyof typeof en.data.chinese_zodiac;
+type Season = keyof typeof en.data.seasons;
+type AgeGroup = keyof typeof en.data.age_groups;
+type Generation = keyof typeof en.data.generations;
+type MonthName = keyof typeof en.data.months;
+type PlanetName = keyof typeof en.data.planets;
+type LifePathMeaning = keyof typeof en.data.life_path;
+type DailyInsight = keyof typeof en.data.insights;
 export type Birthday = {
 	name: string;
 	kind: Kind;
