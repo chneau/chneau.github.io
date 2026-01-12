@@ -26,25 +26,26 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 	const [error, setError] = useState(false);
 
 	useEffect(() => {
+		const controller = new AbortController();
 		const fetchEvents = async () => {
 			setLoading(true);
 			setError(false);
 			try {
 				const mm = month.toString().padStart(2, "0");
 				const dd = day.toString().padStart(2, "0");
-				let lang = "en";
-				if (i18n.language.startsWith("fr")) lang = "fr";
-				else if (i18n.language.startsWith("es")) lang = "es";
-				else if (i18n.language.startsWith("de")) lang = "de";
-				else if (i18n.language.startsWith("zh")) lang = "zh";
+				const lang = i18n.language.slice(0, 2);
+				const supportedLangs = ["en", "fr", "es", "de", "zh"];
+				const finalLang = supportedLangs.includes(lang) ? lang : "en";
 
 				const res = await fetch(
-					`https://api.wikimedia.org/feed/v1/wikipedia/${lang}/onthisday/selected/${mm}/${dd}`,
+					`https://api.wikimedia.org/feed/v1/wikipedia/${finalLang}/onthisday/selected/${mm}/${dd}`,
+					{ signal: controller.signal },
 				);
 				if (!res.ok) throw new Error("Failed to fetch");
 				const data = await res.json();
 				setEvents(data.selected.slice(0, 5));
 			} catch (err) {
+				if (err instanceof Error && err.name === "AbortError") return;
 				console.error(err);
 				setError(true);
 			} finally {
@@ -53,6 +54,7 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 		};
 
 		fetchEvents();
+		return () => controller.abort();
 	}, [month, day, i18n.language]);
 
 	if (error) return null;

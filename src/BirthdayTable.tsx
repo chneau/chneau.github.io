@@ -21,33 +21,10 @@ import {
 	getAgeEmoji,
 	getKindColor,
 } from "./birthdays";
+import { Highlight } from "./Highlight";
 import { OnThisDay } from "./OnThisDay";
 import { store } from "./store";
 import type { Element } from "./zodiac";
-
-const Highlight = ({ text, search }: { text: string; search: string }) => {
-	const term = search.trim();
-	if (!term) return <>{text}</>;
-	const escapedSearch = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-	const parts = text.split(new RegExp(`(${escapedSearch})`, "gi"));
-	return (
-		<>
-			{parts.map((part, i) =>
-				part.toLowerCase() === term.toLowerCase() ? (
-					<span
-						// biome-ignore lint/suspicious/noArrayIndexKey: fine for static text parts
-						key={i}
-						style={{ backgroundColor: "#ffe58f", padding: 0, color: "black" }}
-					>
-						{part}
-					</span>
-				) : (
-					part
-				),
-			)}
-		</>
-	);
-};
 
 const getCompatibleElements = (element: Element): Element[] => {
 	if (element === "fire" || element === "air") return ["fire", "air"];
@@ -263,7 +240,8 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 								<Typography.Text italic>
 									{(() => {
 										const name = record.name;
-										const tDynamic = t as unknown as (k: string) => string;
+										// Use a less strict signature for t to allow dynamic keys for name etymology
+										const tDynamic = t as (k: string) => string;
 										if (name.includes(" & ")) {
 											return name
 												.split(" & ")
