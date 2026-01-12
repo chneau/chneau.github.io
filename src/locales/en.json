@@ -138,9 +138,13 @@
 		"months_lived": "months lived",
 		"half": "Half",
 		"beats": "beats",
+		"beats_tooltip": "Estimated total heartbeats since birth (avg. 80 bpm)",
 		"breaths": "breaths",
+		"breaths_tooltip": "Estimated total breaths since birth (avg. 16 bpm)",
 		"km_orbit": "km orbit",
-		"path": "Path"
+		"km_orbit_tooltip": "Estimated distance traveled in Earth's orbit around the Sun",
+		"path": "Path",
+		"path_tooltip": "Numerology Life Path number based on your birth date"
 	},
 	"on_this_day": "On This Day in History",
 	"biorhythms": {

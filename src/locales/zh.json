@@ -138,9 +138,13 @@
 		"months_lived": "个月已过",
 		"half": "半年",
 		"beats": "次心跳",
+		"beats_tooltip": "自出生以来估计的总心跳数（平均 80 bpm）",
 		"breaths": "次呼吸",
+		"breaths_tooltip": "自出生以来估计的总呼吸数（平均 16 bpm）",
 		"km_orbit": "公里轨道",
-		"path": "灵数"
+		"km_orbit_tooltip": "地球绕太阳运行轨道上估计的行进距离",
+		"path": "灵数",
+		"path_tooltip": "基于您的出生日期的命理生命路径数字"
 	},
 	"on_this_day": "历史上的今天",
 	"biorhythms": {

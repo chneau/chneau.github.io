@@ -138,9 +138,13 @@
 		"months_lived": "āva’e orara’a",
 		"half": "Āfā",
 		"beats": "ma’ue’ue",
+		"beats_tooltip": "Estimation du nombre total de battements de cœur depuis la naissance (moyenne de 80 bpm)",
 		"breaths": "hutira’a aho",
+		"breaths_tooltip": "Estimation du nombre total de respirations depuis la naissance (moyenne de 16 bpm)",
 		"km_orbit": "km i ni’a i te feti’a",
-		"path": "Arati’a"
+		"km_orbit_tooltip": "Distance estimée parcourue dans l'orbite de la Terre autour du Soleil",
+		"path": "Arati’a",
+		"path_tooltip": "Nombre du chemin de vie en numérologie basé sur votre date de naissance"
 	},
 	"on_this_day": "I teie mahana i roto i te tuatāpapa",
 	"biorhythms": {

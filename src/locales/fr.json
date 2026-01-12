@@ -138,9 +138,13 @@
 		"months_lived": "mois vécus",
 		"half": "Moitié",
 		"beats": "battements",
+		"beats_tooltip": "Estimation du nombre total de battements de cœur depuis la naissance (moyenne de 80 bpm)",
 		"breaths": "souffles",
+		"breaths_tooltip": "Estimation du nombre total de respirations depuis la naissance (moyenne de 16 bpm)",
 		"km_orbit": "km en orbite",
-		"path": "Chemin"
+		"km_orbit_tooltip": "Distance estimée parcourue dans l'orbite de la Terre autour du Soleil",
+		"path": "Chemin",
+		"path_tooltip": "Nombre du chemin de vie en numérologie basé sur votre date de naissance"
 	},
 	"on_this_day": "Ce jour dans l'Histoire",
 	"biorhythms": {

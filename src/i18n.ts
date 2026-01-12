@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
@@ -32,5 +33,21 @@ i18n
 			caches: ["localStorage"],
 		},
 	});
+
+const setDayjsLocale = (lng: string) => {
+	if (lng === "zh") {
+		dayjs.locale("zh-cn");
+	} else if (lng === "ty") {
+		dayjs.locale("fr");
+	} else {
+		dayjs.locale(lng);
+	}
+};
+
+setDayjsLocale(i18n.language);
+
+i18n.on("languageChanged", (lng) => {
+	setDayjsLocale(lng);
+});
 
 export default i18n;

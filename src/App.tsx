@@ -5,13 +5,7 @@ import enUS from "antd/locale/en_US";
 import esES from "antd/locale/es_ES";
 import frFR from "antd/locale/fr_FR";
 import zhCN from "antd/locale/zh_CN";
-import dayjs from "dayjs";
-import "dayjs/locale/de";
-import "dayjs/locale/en";
-import "dayjs/locale/es";
-import "dayjs/locale/fr";
-import "dayjs/locale/zh-cn";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { AppFooter } from "./AppFooter";
@@ -35,18 +29,6 @@ export const App = () => {
 	const storeSnap = useSnapshot(store);
 	const data = dataSnap.filtered;
 	const { t, i18n } = useTranslation();
-	const [, forceUpdate] = useState({});
-
-	useEffect(() => {
-		if (i18n.language === "zh") {
-			dayjs.locale("zh-cn");
-		} else if (i18n.language === "ty") {
-			dayjs.locale("fr");
-		} else {
-			dayjs.locale(i18n.language);
-		}
-		forceUpdate({});
-	}, [i18n.language]);
 
 	const antdLocale = useMemo(() => {
 		if (i18n.language.startsWith("fr")) return frFR;
