@@ -34,7 +34,7 @@ const AgeDistribution = ({ data }: { data: readonly Birthday[] }) => {
 	}, [data]);
 
 	return (
-		<Col xs={24} md={12}>
+		<Col xs={24} md={12} style={{ minHeight: 350 }}>
 			<Typography.Title level={5}>
 				{t("app.statistics.age_distribution")}
 			</Typography.Title>
@@ -86,7 +86,7 @@ const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
 	}, [data, t]);
 
 	return (
-		<Col xs={24}>
+		<Col xs={24} style={{ minHeight: 350 }}>
 			<Typography.Title level={5}>
 				{t("app.statistics.birth_heatmap")}
 			</Typography.Title>
@@ -133,7 +133,7 @@ const StatColumn = <T extends Datum>({
 }) => {
 	const { t } = useTranslation();
 	return (
-		<Col xs={24} sm={12} md={8}>
+		<Col xs={24} sm={12} md={8} style={{ minHeight: 250 }}>
 			<Typography.Title level={5}>{title}</Typography.Title>
 			<Column
 				data={data}
@@ -176,7 +176,7 @@ const StatPie = <T extends Datum>({
 }) => {
 	const { t } = useTranslation();
 	return (
-		<Col xs={24} sm={12} md={8}>
+		<Col xs={24} sm={12} md={8} style={{ minHeight: 300 }}>
 			<Typography.Title level={5}>{title}</Typography.Title>
 			<Pie
 				data={data}
@@ -256,7 +256,7 @@ const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
 	}, [data]);
 
 	return (
-		<Col xs={24} md={12}>
+		<Col xs={24} md={12} style={{ minHeight: 350 }}>
 			<Typography.Title level={5}>
 				{t("app.statistics.pyramid")}
 			</Typography.Title>

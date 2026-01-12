@@ -13,17 +13,29 @@ type CountdownTimerProps = {
 
 const CountdownTimer = ({ birthday }: CountdownTimerProps) => {
 	const { t } = useTranslation();
-	const [timeLeft, setTimeLeft] = useState<{
-		days: number;
-		hours: number;
-		minutes: number;
-		seconds: number;
-	} | null>(null);
+	const getDiff = () => {
+		const target = dayjs(birthday.nextBirthday);
+		const now = dayjs();
+		const diff = target.diff(now);
+
+		if (diff <= 0) {
+			return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+		}
+
+		const dur = dayjs.duration(diff);
+		return {
+			days: Math.floor(dur.asDays()),
+			hours: dur.hours(),
+			minutes: dur.minutes(),
+			seconds: dur.seconds(),
+		};
+	};
+
+	const [timeLeft, setTimeLeft] = useState(getDiff());
 
 	useEffect(() => {
-		const target = dayjs(birthday.nextBirthday);
-
 		const updateCountdown = () => {
+			const target = dayjs(birthday.nextBirthday);
 			const now = dayjs();
 			const diff = target.diff(now);
 
@@ -33,7 +45,6 @@ const CountdownTimer = ({ birthday }: CountdownTimerProps) => {
 			}
 
 			const dur = dayjs.duration(diff);
-
 			setTimeLeft({
 				days: Math.floor(dur.asDays()),
 				hours: dur.hours(),
@@ -42,13 +53,9 @@ const CountdownTimer = ({ birthday }: CountdownTimerProps) => {
 			});
 		};
 
-		updateCountdown();
 		const timer = setInterval(updateCountdown, 1000);
-
 		return () => clearInterval(timer);
-	}, [birthday]);
-
-	if (!timeLeft) return null;
+	}, [birthday.nextBirthday]);
 
 	return (
 		<div style={{ textAlign: "center", flex: 1, minWidth: "200px" }}>

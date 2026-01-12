@@ -18,7 +18,7 @@ export const MilestonesWidget = () => {
 		<Card
 			title={t("app.milestones.title")}
 			size="small"
-			style={{ marginTop: 16 }}
+			style={{ marginTop: 16, minHeight: 180 }}
 		>
 			<Flex vertical gap="middle">
 				{upcomingMilestones.map((item) => (

@@ -35,7 +35,13 @@ subscribe(store, () => {
 });
 
 export const dataStore = proxy<{ filtered: Birthday[] }>({
-	filtered: [],
+	filtered: birthdays.filter((x) => {
+		const state = getInitialState();
+		if (x.kind === "♂️" && !state.showBoys) return false;
+		if (x.kind === "♀️" && !state.showGirls) return false;
+		if (x.kind === "💒" && !state.showWeddings) return false;
+		return true;
+	}),
 });
 
 const fuse = new Fuse(birthdays, {
