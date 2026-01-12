@@ -95,6 +95,17 @@
 			"mins": "分钟",
 			"secs": "秒"
 		},
+		"notifications": {
+			"today_title": "🎂 生日快乐！",
+			"today_body": "今天是 {{names}} 的生日！",
+			"upcoming_title": "📅 生日预告",
+			"upcoming_body": "{{names}} 明天过生日！",
+			"both_body": "\n还有 {{names}} 明天过生日！",
+			"test_title": "🎉 测试通知",
+			"test_body": "这是来自生日追踪器的测试通知！",
+			"no_support": "此浏览器不支持桌面通知",
+			"no_permission": "未授予通知权限。请点击铃铛图标。"
+		},
 		"card": "卡片",
 		"events": "事件",
 		"no_data": "无"
@@ -259,10 +270,8 @@
 			"wedding": "{{year}} 周年纪念 ({{material}}) 💍",
 			"status": {
 				"today": "就是今天！",
-				"since": "",
 				"since_one": "距离 {{target}} 已过 {{diff}} 年",
 				"since_other": "距离 {{target}} 已过 {{diff}} 年",
-				"until": "",
 				"until_one": "距离 {{target}} 还有 {{diff}} 年",
 				"until_other": "距离 {{target}} 还有 {{diff}} 年"
 			}

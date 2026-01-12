@@ -95,6 +95,17 @@
 			"mins": "Min",
 			"secs": "Sec"
 		},
+		"notifications": {
+			"today_title": "🎂 Joyeux Anniversaire !",
+			"today_body": "C'est l'anniversaire de {{names}} aujourd'hui !",
+			"upcoming_title": "📅 Anniversaire Proche",
+			"upcoming_body": "C'est l'anniversaire de {{names}} demain !",
+			"both_body": "\nEt c'est l'anniversaire de {{names}} demain !",
+			"test_title": "🎉 Notification de Test",
+			"test_body": "Ceci est une notification de test de Birthday Tracker !",
+			"no_support": "Ce navigateur ne supporte pas les notifications de bureau",
+			"no_permission": "Permission de notification non accordée. Veuillez cliquer sur l'icône de la cloche."
+		},
 		"card": "Carte",
 		"events": "Événements",
 		"no_data": "N/D"
@@ -259,10 +270,8 @@
 			"wedding": "{{year}}e Anniversaire ({{material}}) 💍",
 			"status": {
 				"today": "C'est aujourd'hui!",
-				"since": "",
 				"since_one": "{{diff}} an depuis {{target}}",
 				"since_other": "{{diff}} ans depuis {{target}}",
-				"until": "",
 				"until_one": "{{diff}} an avant {{target}}",
 				"until_other": "{{diff}} ans avant {{target}}"
 			}

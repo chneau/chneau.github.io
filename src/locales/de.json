@@ -95,6 +95,17 @@
 			"mins": "Min",
 			"secs": "Sek"
 		},
+		"notifications": {
+			"today_title": "🎂 Herzlichen Glückwunsch!",
+			"today_body": "Heute ist der Geburtstag von {{names}}!",
+			"upcoming_title": "📅 Anstehender Geburtstag",
+			"upcoming_body": "{{names}} hat morgen Geburtstag!",
+			"both_body": "\nUnd {{names}} hat morgen Geburtstag!",
+			"test_title": "🎉 Test-Benachrichtigung",
+			"test_body": "Dies ist eine Test-Benachrichtigung vom Geburtstags-Tracker!",
+			"no_support": "Dieser Browser unterstützt keine Desktop-Benachrichtigungen",
+			"no_permission": "Benachrichtigungsberechtigung nicht erteilt. Bitte klicken Sie auf das Glocken-Symbol."
+		},
 		"card": "Karte",
 		"events": "Ereignisse",
 		"no_data": "k.A."
@@ -259,10 +270,8 @@
 			"wedding": "{{year}}. Jahrestag ({{material}}) 💍",
 			"status": {
 				"today": "Heute ist der Meilenstein!",
-				"since": "",
 				"since_one": "{{diff}} Jahr seit {{target}}",
 				"since_other": "{{diff}} Jahre seit {{target}}",
-				"until": "",
 				"until_one": "{{diff}} Jahr bis {{target}}",
 				"until_other": "{{diff}} Jahre bis {{target}}"
 			}

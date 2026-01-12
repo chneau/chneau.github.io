@@ -1,4 +1,5 @@
 import { Button, Input, Space, Tag } from "antd";
+import dayjs from "dayjs";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
@@ -48,11 +49,11 @@ export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 	const shortcuts = [
 		{
 			label: t("app.filters.shortcuts.this_month"),
-			query: monthNames[new Date().getMonth()],
+			query: monthNames[dayjs().month()],
 		},
 		{
 			label: t("app.filters.shortcuts.next_month"),
-			query: monthNames[(new Date().getMonth() + 1) % 12],
+			query: monthNames[(dayjs().month() + 1) % 12],
 		},
 		{ label: t("app.filters.shortcuts.gen_z"), query: "gen_z" },
 		{ label: t("app.filters.shortcuts.teens"), query: "teens" },

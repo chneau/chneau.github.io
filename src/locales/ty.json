@@ -95,6 +95,17 @@
 			"mins": "Miniti",
 			"secs": "Sekone"
 		},
+		"notifications": {
+			"today_title": "🎂 ’Ōro’a fānaura’a maita’i !",
+			"today_body": "I teie mahana, o te ’ōro’a fānaura’a ia o {{names}} !",
+			"upcoming_title": "📅 ’Ōro’a fānaura’a i mua",
+			"upcoming_body": "E ’ōro’a fānaura’a tō {{names}} ananahi !",
+			"both_body": "\nE e ’ōro’a fānaura’a tō {{names}} ananahi !",
+			"test_title": "🎉 Parau tāmatara’a",
+			"test_body": "E parau tāmatara’a teie nō roto mai i te Birthday Tracker !",
+			"no_support": "’Aita teie pāpūira’a e fari’i nei i te mau parau nō te i’a",
+			"no_permission": "’Aita i fari’ihia te parau. Tāmi i ni’a i te tū’ere."
+		},
 		"card": "Pe’ape’a",
 		"events": "’Ōro’a",
 		"no_data": "’Aita"
@@ -259,10 +270,8 @@
 			"wedding": "{{year}} matahiti fa’aipoipora’a ({{material}}) 💍",
 			"status": {
 				"today": "I teie mahana !",
-				"since": "",
 				"since_one": "{{diff}} matahiti i ma’iri mai {{target}}",
 				"since_other": "{{diff}} matahiti i ma’iri mai {{target}}",
-				"until": "",
 				"until_one": "{{diff}} matahiti i mua {{target}}",
 				"until_other": "{{diff}} matahiti i mua {{target}}"
 			}

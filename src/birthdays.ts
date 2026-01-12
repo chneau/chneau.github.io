@@ -33,7 +33,9 @@ const birthdaysArraySchema = z.array(birthdaySchema);
 type Kind = "♂️" | "♀️" | "💒";
 type MilestoneKey =
 	| `data.milestone.${Exclude<keyof typeof en.data.milestone, "status">}`
-	| `data.milestone.status.${keyof typeof en.data.milestone.status}`;
+	| `data.milestone.status.${keyof typeof en.data.milestone.status}`
+	| "data.milestone.status.until"
+	| "data.milestone.status.since";
 type MilestoneData = {
 	key: MilestoneKey;
 	params?: Record<string, string | number>;
@@ -279,7 +281,7 @@ const getLifePath = (date: Date) => {
 
 const getDailyInsight = (name: string): DailyInsight => {
 	const count = 15;
-	const today = new Date().toDateString();
+	const today = dayjs().format("YYYY-MM-DD");
 	const str = name + today;
 	let hash = 0;
 	for (let i = 0; i < str.length; i++) {
