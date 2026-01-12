@@ -1,4 +1,4 @@
-import { Collapse, List, Skeleton, Typography } from "antd";
+import { Collapse, Flex, Skeleton, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -72,18 +72,14 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 			children: loading ? (
 				<Skeleton active paragraph={{ rows: 3 }} />
 			) : (
-				<List
-					itemLayout="horizontal"
-					dataSource={events}
-					renderItem={(item) => (
-						<List.Item>
-							<List.Item.Meta
-								title={<Typography.Text strong>{item.year}</Typography.Text>}
-								description={item.text}
-							/>
-						</List.Item>
-					)}
-				/>
+				<Flex vertical gap="middle">
+					{events.map((item) => (
+						<Flex key={item.text} vertical>
+							<Typography.Text strong>{item.year}</Typography.Text>
+							<Typography.Text type="secondary">{item.text}</Typography.Text>
+						</Flex>
+					))}
+				</Flex>
 			),
 		},
 	];
