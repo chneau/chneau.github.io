@@ -2,48 +2,51 @@ import { Collapse, Flex, Skeleton, Typography } from "antd";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { dataStore, type WikiEvent } from "./store";
 
-interface Event {
-	year: string;
-	text: string;
-	pages: {
-		titles: {
-			normalized: string;
-		};
-		extract: string;
-	}[];
-}
-
-interface OnThisDayProps {
+type OnThisDayProps = {
 	month: number;
 	day: number;
-}
+};
 
 export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 	const { t, i18n } = useTranslation();
-	const [events, setEvents] = useState<Event[]>([]);
+	const [events, setEvents] = useState<WikiEvent[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(false);
 
 	useEffect(() => {
 		const controller = new AbortController();
 		const fetchEvents = async () => {
+			const mm = month.toString().padStart(2, "0");
+			const dd = day.toString().padStart(2, "0");
+			const lang = i18n.language.slice(0, 2);
+			const supportedLangs = ["en", "fr", "es", "de", "zh"];
+			const finalLang = supportedLangs.includes(lang) ? lang : "en";
+			const cacheKey = `${finalLang}-${mm}-${dd}`;
+
+			if (dataStore.wikiCache[cacheKey]) {
+				setEvents(dataStore.wikiCache[cacheKey] as WikiEvent[]);
+				return;
+			}
+
 			setLoading(true);
 			setError(false);
 			try {
-				const mm = month.toString().padStart(2, "0");
-				const dd = day.toString().padStart(2, "0");
-				const lang = i18n.language.slice(0, 2);
-				const supportedLangs = ["en", "fr", "es", "de", "zh"];
-				const finalLang = supportedLangs.includes(lang) ? lang : "en";
-
 				const res = await fetch(
 					`https://api.wikimedia.org/feed/v1/wikipedia/${finalLang}/onthisday/selected/${mm}/${dd}`,
 					{ signal: controller.signal },
 				);
 				if (!res.ok) throw new Error("Failed to fetch");
 				const data = await res.json();
-				setEvents(data.selected.slice(0, 5));
+				const selectedEvents: WikiEvent[] = data.selected
+					.slice(0, 5)
+					.map((e: { year: number; text: string }) => ({
+						year: e.year,
+						text: e.text,
+					}));
+				dataStore.wikiCache[cacheKey] = selectedEvents;
+				setEvents(selectedEvents);
 			} catch (err) {
 				if (err instanceof Error && err.name === "AbortError") return;
 				console.error(err);
