@@ -11,7 +11,7 @@ const RELATIONSHIPS: Record<string, number> = {
 	"water-air": 50,
 };
 
-export const getCompatibilityScore = (a: Birthday, b: Birthday): number => {
+export const getCompatibilityScore = (a: Birthday, b: Birthday) => {
 	if (a.name === b.name) return 100;
 	if (a.element === b.element) return 80;
 	return RELATIONSHIPS[`${a.element}-${b.element}`] ?? 40;

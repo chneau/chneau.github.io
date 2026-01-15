@@ -15,34 +15,21 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 	const records = useMemo(() => {
 		if (people.length === 0) return null;
 
-		// 1. Elder & Rookie
 		const sortedByAge = [...people].sort((a, b) => b.age - a.age);
 		const elder = sortedByAge[0];
 		const rookie = sortedByAge[sortedByAge.length - 1];
 
-		// 2. Socialite (Most 100% compatibility matches)
-		let bestSocialite: { name: string; count: number } | null = null;
-		for (const p1 of people) {
-			let count = 0;
-			for (const p2 of people) {
-				if (p1.name !== p2.name && getCompatibilityScore(p1, p2) === 100) {
-					count++;
-				}
-			}
-			if (!bestSocialite || count > bestSocialite.count) {
-				bestSocialite = { name: p1.name, count };
-			}
-		}
+		const bestSocialite = people.reduce<{ name: string; count: number } | null>((best, p1) => {
+			const count = people.filter((p2) => p1.name !== p2.name && getCompatibilityScore(p1, p2) === 100).length;
+			return !best || count > best.count ? { name: p1.name, count } : best;
+		}, null);
 
-		// 3. Birthday Twins (Same day and month)
 		const twins: string[][] = [];
 		for (let i = 0; i < people.length; i++) {
 			for (let j = i + 1; j < people.length; j++) {
 				const p1 = people[i] as Birthday;
 				const p2 = people[j] as Birthday;
-				if (p1.month === p2.month && p1.day === p2.day) {
-					twins.push([p1.name, p2.name]);
-				}
+				if (p1.month === p2.month && p1.day === p2.day) twins.push([p1.name, p2.name]);
 			}
 		}
 
