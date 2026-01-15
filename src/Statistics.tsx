@@ -1,36 +1,16 @@
-import { Card, Row, Skeleton } from "antd";
+import { Card, Row } from "antd";
 import dayjs from "dayjs";
 import { groupBy } from "es-toolkit";
-import { lazy, Suspense, useMemo } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { type Birthday, monthNames } from "./birthdays";
+import { AgeDistribution } from "./stats/AgeDistribution";
+import { AgePyramid } from "./stats/AgePyramid";
+import { BirthHeatmap } from "./stats/BirthHeatmap";
+import { StatColumn } from "./stats/StatColumn";
+import { StatPie } from "./stats/StatPie";
 import { dataStore } from "./store";
-
-// Lazy load chart components
-const StatPie = lazy(() =>
-	import("./stats/StatPie").then((m) => ({ default: m.StatPie })),
-);
-const StatColumn = lazy(() =>
-	import("./stats/StatColumn").then((m) => ({ default: m.StatColumn })),
-);
-const AgeDistribution = lazy(() =>
-	import("./stats/AgeDistribution").then((m) => ({
-		default: m.AgeDistribution,
-	})),
-);
-const AgePyramid = lazy(() =>
-	import("./stats/AgePyramid").then((m) => ({ default: m.AgePyramid })),
-);
-const BirthHeatmap = lazy(() =>
-	import("./stats/BirthHeatmap").then((m) => ({ default: m.BirthHeatmap })),
-);
-
-const ChartSkeleton = () => (
-	<div style={{ padding: 20 }}>
-		<Skeleton active paragraph={{ rows: 8 }} />
-	</div>
-);
 
 type Datum = {
 	type: string;
@@ -104,46 +84,38 @@ export const Statistics = () => {
 				}
 				`}
 			</style>
-			<Suspense fallback={<ChartSkeleton />}>
-				<Row gutter={[16, 16]}>
-					<StatPie title={t("app.statistics.zodiac")} data={stats.signs} />
-					<StatPie
-						title={t("app.statistics.chinese")}
-						data={stats.chineseZodiac}
-					/>
-					<StatPie title={t("app.statistics.elements")} data={stats.elements} />
-					<StatPie title={t("app.statistics.gender")} data={stats.kinds} />
-					<StatPie
-						title={t("app.statistics.age_groups")}
-						data={stats.ageGroups}
-					/>
-					<StatPie
-						title={t("app.statistics.generations")}
-						data={stats.generations}
-					/>
-					<StatPie title={t("app.statistics.seasons")} data={stats.seasons} />
-					<StatColumn
-						title={t("app.statistics.first_letter")}
-						data={stats.letters}
-					/>
-					<StatColumn title={t("app.statistics.month")} data={stats.months} />
-					<StatColumn
-						title={t("app.statistics.birthstones")}
-						data={stats.birthgems}
-					/>
-					<StatColumn
-						title={t("app.statistics.day_of_week")}
-						data={stats.days}
-					/>
-					<StatColumn
-						title={t("app.statistics.decades")}
-						data={stats.decades}
-					/>
-					<AgeDistribution data={data} />
-					<AgePyramid data={data} />
-					<BirthHeatmap data={data} />
-				</Row>
-			</Suspense>
+			<Row gutter={[16, 16]}>
+				<StatPie title={t("app.statistics.zodiac")} data={stats.signs} />
+				<StatPie
+					title={t("app.statistics.chinese")}
+					data={stats.chineseZodiac}
+				/>
+				<StatPie title={t("app.statistics.elements")} data={stats.elements} />
+				<StatPie title={t("app.statistics.gender")} data={stats.kinds} />
+				<StatPie
+					title={t("app.statistics.age_groups")}
+					data={stats.ageGroups}
+				/>
+				<StatPie
+					title={t("app.statistics.generations")}
+					data={stats.generations}
+				/>
+				<StatPie title={t("app.statistics.seasons")} data={stats.seasons} />
+				<StatColumn
+					title={t("app.statistics.first_letter")}
+					data={stats.letters}
+				/>
+				<StatColumn title={t("app.statistics.month")} data={stats.months} />
+				<StatColumn
+					title={t("app.statistics.birthstones")}
+					data={stats.birthgems}
+				/>
+				<StatColumn title={t("app.statistics.day_of_week")} data={stats.days} />
+				<StatColumn title={t("app.statistics.decades")} data={stats.decades} />
+				<AgeDistribution data={data} />
+				<AgePyramid data={data} />
+				<BirthHeatmap data={data} />
+			</Row>
 		</Card>
 	);
 };
