@@ -371,7 +371,7 @@ const getChineseZodiac = (year: number): ChineseZodiac => {
 	return found;
 };
 
-const getDecade = (year: number): string => `${Math.floor(year / 10) * 10}s`;
+const getDecade = (year: number) => `${Math.floor(year / 10) * 10}s`;
 
 const getGeneration = (year: number): Generation => {
 	if (year >= GENERATION_BOUNDARIES.GEN_ALPHA) return "gen_alpha";
@@ -391,13 +391,13 @@ const getSeason = (month: number): Season => {
 };
 
 const getLifePath = (date: Date) => {
-	const sumDigits = (n: number): number =>
+	const sumDigits = (n: number) =>
 		n
 			.toString()
 			.split("")
-			.reduce((s, d) => s + Number.parseInt(d, 10), 0);
+			.reduce((s, d) => s + Number.parseInt(d, 0), 0);
 
-	const reduce = (n: number): number => {
+	const reduce = (n: number) => {
 		let res = n;
 		while (res > 9 && res !== 11 && res !== 22 && res !== 33) {
 			res = sumDigits(res);
@@ -491,13 +491,13 @@ const mappedBirthdays = validatedBirthdays.map((x) => {
 		PHYSICAL_CONSTANTS.BREATH_RATE_BPM;
 	const distanceTraveled = ageInDays * PHYSICAL_CONSTANTS.ORBITAL_SPEED_KM_DAY;
 
-	const planetAges: { name: PlanetName; age: number; icon: string }[] = [
+	const planetAges = [
 		{ name: "mercury", age: ageInDays / PLANET_ORBITS_DAYS.mercury, icon: "☿️" },
 		{ name: "venus", age: ageInDays / PLANET_ORBITS_DAYS.venus, icon: "♀️" },
 		{ name: "mars", age: ageInDays / PLANET_ORBITS_DAYS.mars, icon: "♂️" },
 		{ name: "jupiter", age: ageInDays / PLANET_ORBITS_DAYS.jupiter, icon: "♃" },
 		{ name: "saturn", age: ageInDays / PLANET_ORBITS_DAYS.saturn, icon: "♄" },
-	];
+	] as const;
 
 	const dailyInsight = getDailyInsight(x.name);
 	const moon = getMoonPhase(birthdayDate);

@@ -14,29 +14,24 @@ export const BiorhythmsChart = ({ birthday }: BiorhythmsChartProps) => {
 		const result = [];
 		const start = dayjs().startOf("day");
 		const birth = dayjs(birthday).startOf("day");
+		const cycles = [
+			{ period: 23, type: t("biorhythms.physical") },
+			{ period: 28, type: t("biorhythms.emotional") },
+			{ period: 33, type: t("biorhythms.intellectual") },
+		];
 
 		for (let i = 0; i < 30; i++) {
 			const current = start.add(i, "day");
 			const daysLived = current.diff(birth, "day");
+			const dayLabel = current.format("MMM DD");
 
-			const calculateCycle = (days: number, period: number) =>
-				Math.sin((2 * Math.PI * days) / period) * 100;
-
-			result.push({
-				day: current.format("MMM DD"),
-				value: calculateCycle(daysLived, 23),
-				type: t("biorhythms.physical"),
-			});
-			result.push({
-				day: current.format("MMM DD"),
-				value: calculateCycle(daysLived, 28),
-				type: t("biorhythms.emotional"),
-			});
-			result.push({
-				day: current.format("MMM DD"),
-				value: calculateCycle(daysLived, 33),
-				type: t("biorhythms.intellectual"),
-			});
+			for (const { period, type } of cycles) {
+				result.push({
+					day: dayLabel,
+					value: Math.sin((2 * Math.PI * daysLived) / period) * 100,
+					type,
+				});
+			}
 		}
 		return result;
 	}, [birthday, t]);
