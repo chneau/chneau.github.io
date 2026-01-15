@@ -2,15 +2,10 @@ import { Button, Dropdown, type MenuProps, message } from "antd";
 import { useTranslation } from "react-i18next";
 
 const downloadICS = () => {
-	const filename = "birthdays.ics";
-	const url = "/birthdays.ics";
-
 	const link = document.createElement("a");
-	link.href = url;
-	link.setAttribute("download", filename);
-	document.body.appendChild(link);
+	link.href = "/birthdays.ics";
+	link.download = "birthdays.ics";
 	link.click();
-	document.body.removeChild(link);
 };
 
 const subscribeICS = () => {

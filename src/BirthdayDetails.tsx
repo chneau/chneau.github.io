@@ -93,23 +93,20 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 			<div style={{ marginTop: 8, marginBottom: 12 }}>
 				<Typography.Text strong>📜 {t("headers.etymology")}:</Typography.Text>
 				<Typography.Text italic>
-					{(() => {
-						const name = record.name;
-						const tDynamic = t as (k: string) => string;
-						if (name.includes(" & ")) {
-							return name
-								.split(" & ")
-								.map((n) => {
-									const key = `data.names.${n}`;
-									const ety = tDynamic(key);
-									return ety !== key ? `${n}: ${ety}` : n;
-								})
-								.join(" | ");
-						}
-						const key = `data.names.${name}`;
-						const ety = tDynamic(key);
-						return ety !== key ? ety : t("app.no_data");
-					})()}
+					{record.name
+						.split(" & ")
+						.map((n) => {
+							const key = `data.names.${n}`;
+							const ety = (t as (k: string) => string)(key);
+							return ety !== key
+								? record.name.includes(" & ")
+									? `${n}: ${ety}`
+									: ety
+								: record.name.includes(" & ")
+									? n
+									: t("app.no_data");
+						})
+						.join(" | ")}
 				</Typography.Text>
 			</div>
 
