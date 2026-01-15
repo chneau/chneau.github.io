@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+const ValueSchema = z.object({ value: z.string() });
 const CurrentConditionSchema = z.object({
 	FeelsLikeC: z.coerce.number(),
 	FeelsLikeF: z.coerce.number(),
@@ -17,8 +18,8 @@ const CurrentConditionSchema = z.object({
 	visibility: z.coerce.number(),
 	visibilityMiles: z.coerce.number(),
 	weatherCode: z.coerce.number(),
-	weatherDesc: z.object({ value: z.string() }).array(),
-	weatherIconUrl: z.object({ value: z.string() }).array(),
+	weatherDesc: z.array(ValueSchema),
+	weatherIconUrl: z.array(ValueSchema),
 	winddir16Point: z.string(),
 	winddirDegree: z.coerce.number(),
 	windspeedKmph: z.coerce.number(),
@@ -26,13 +27,13 @@ const CurrentConditionSchema = z.object({
 });
 
 const NearestAreaSchema = z.object({
-	areaName: z.object({ value: z.string() }).array(),
-	country: z.object({ value: z.string() }).array(),
+	areaName: z.array(ValueSchema),
+	country: z.array(ValueSchema),
 	latitude: z.coerce.number(),
 	longitude: z.coerce.number(),
 	population: z.coerce.number(),
-	region: z.object({ value: z.string() }).array(),
-	weatherUrl: z.object({ value: z.string() }).array(),
+	region: z.array(ValueSchema),
+	weatherUrl: z.array(ValueSchema),
 });
 
 const AstronomySchema = z.object({
@@ -80,8 +81,8 @@ const HourlySchema = z.object({
 	visibility: z.coerce.number(),
 	visibilityMiles: z.coerce.number(),
 	weatherCode: z.coerce.number(),
-	weatherDesc: z.object({ value: z.string() }).array(),
-	weatherIconUrl: z.object({ value: z.string() }).array(),
+	weatherDesc: z.array(ValueSchema),
+	weatherIconUrl: z.array(ValueSchema),
 	winddir16Point: z.string(),
 	winddirDegree: z.coerce.number(),
 	windspeedKmph: z.coerce.number(),
