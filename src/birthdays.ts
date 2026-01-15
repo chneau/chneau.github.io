@@ -1,24 +1,264 @@
 import dayjs from "dayjs";
 import { orderBy } from "es-toolkit";
 import { z } from "zod";
-import { getMoonPhase, type MoonPhase } from "./astronomy";
-import rawBirthdaysJson from "./birthdays.json";
-import {
-	AGE_THRESHOLDS,
-	BIG_BIRTHDAYS,
-	GENERATION_BOUNDARIES,
-	PHYSICAL_CONSTANTS,
-	PLANET_ORBITS_DAYS,
-	WEDDING_MILESTONES,
-} from "./constants";
 import type en from "./locales/en.json";
-import {
-	type BirthGem,
-	type Element,
-	getBirthgem,
-	getSign,
-	type ZodiacSign,
-} from "./zodiac";
+
+// --- Constants ---
+
+export const ASTRONOMICAL_CONSTANTS = {
+	MOON_CYCLE_DAYS: 29.5305882,
+	JULIAN_DAY_OFFSET: 694039.09,
+} as const;
+
+export const PHYSICAL_CONSTANTS = {
+	HEART_RATE_BPM: 80,
+	BREATH_RATE_BPM: 16,
+	SLEEP_FRACTION: 1 / 3,
+	ORBITAL_SPEED_KM_DAY: 2570000,
+} as const;
+
+export const PLANET_ORBITS_DAYS = {
+	mercury: 87.97,
+	venus: 224.7,
+	mars: 686.97,
+	jupiter: 4332.59,
+	saturn: 10759.22,
+} as const;
+
+export const GENERATION_BOUNDARIES = {
+	GEN_ALPHA: 2013,
+	GEN_Z: 1997,
+	MILLENNIALS: 1981,
+	GEN_X: 1965,
+	BOOMERS: 1946,
+	SILENT: 1928,
+} as const;
+
+export const AGE_THRESHOLDS = {
+	BABY: 3,
+	CHILD: 13,
+	TEEN: 20,
+	ADULT: 60,
+} as const;
+
+export const BIG_BIRTHDAYS = [
+	1, 5, 10, 13, 15, 16, 18, 20, 21, 25, 30, 40, 50, 60, 70, 75, 80, 85, 90, 95,
+	100,
+];
+
+export const WEDDING_MILESTONES: Record<number, string> = {
+	1: "paper",
+	5: "wood",
+	10: "tin",
+	15: "crystal",
+	20: "china",
+	25: "silver",
+	30: "pearl",
+	40: "ruby",
+	50: "gold",
+	60: "diamond",
+};
+
+// --- Astronomy ---
+
+export type MoonPhase = keyof typeof en.data.moon_phases;
+
+export const getMoonPhase = (
+	date: Date,
+): { phase: MoonPhase; icon: string } => {
+	let year = date.getFullYear();
+	let month = date.getMonth() + 1;
+	const day = date.getDate();
+
+	if (month < 3) {
+		year--;
+		month += 12;
+	}
+
+	const c = 365.25 * year;
+	const e = 30.6 * month;
+	const jd = c + e + day - ASTRONOMICAL_CONSTANTS.JULIAN_DAY_OFFSET;
+	const b = jd / ASTRONOMICAL_CONSTANTS.MOON_CYCLE_DAYS;
+	const ip = Math.floor(b);
+	const diff = b - ip;
+
+	const phaseIndex = Math.round(diff * 8) % 8;
+
+	const phases = [
+		{ phase: "new_moon", icon: "🌑" },
+		{ phase: "waxing_crescent", icon: "🌒" },
+		{ phase: "first_quarter", icon: "🌓" },
+		{ phase: "waxing_gibbous", icon: "🌔" },
+		{ phase: "full_moon", icon: "🌕" },
+		{ phase: "waning_gibbous", icon: "🌖" },
+		{ phase: "last_quarter", icon: "🌗" },
+		{ phase: "waning_crescent", icon: "🌘" },
+	];
+
+	return phases[phaseIndex] as { phase: MoonPhase; icon: string };
+};
+
+// --- Zodiac & Birthgems ---
+
+export type BirthGem = keyof typeof en.data.birthgems;
+
+const birthgems: { name: BirthGem; emoji: string }[][] = [
+	[{ name: "garnet", emoji: "🔴" }],
+	[{ name: "amethyst", emoji: "🟣" }],
+	[
+		{ name: "aquamarine", emoji: "🔵" },
+		{ name: "bloodstone", emoji: "🔴" },
+	],
+	[{ name: "diamond", emoji: "💎" }],
+	[{ name: "emerald", emoji: "🟢" }],
+	[
+		{ name: "alexandrite", emoji: "🟣" },
+		{ name: "moonstone", emoji: "⚪" },
+		{ name: "pearl", emoji: "⚪" },
+	],
+	[{ name: "ruby", emoji: "🔴" }],
+	[
+		{ name: "peridot", emoji: "🟢" },
+		{ name: "sardonyx", emoji: "🔴" },
+		{ name: "spinel", emoji: "🔴" },
+	],
+	[{ name: "sapphire", emoji: "🔵" }],
+	[
+		{ name: "opal", emoji: "⚪" },
+		{ name: "tourmaline", emoji: "🟢" },
+	],
+	[
+		{ name: "citrine", emoji: "🟡" },
+		{ name: "topaz", emoji: "🟠" },
+	],
+	[
+		{ name: "tanzanite", emoji: "🔵" },
+		{ name: "turquoise", emoji: "🔵" },
+		{ name: "zircon", emoji: "🔵" },
+	],
+];
+
+export const getBirthgem = (date: Date): { key: BirthGem; emoji: string } => {
+	const month = date.getMonth();
+	const gems = birthgems[month];
+	if (!gems) throw new Error(`No birthgem found for ${date}`);
+	const gem = gems[0];
+	if (!gem) throw new Error(`No birthgem found for ${date}`);
+	return { key: gem.name, emoji: gem.emoji };
+};
+
+export type ZodiacSign = keyof typeof en.data.zodiac;
+
+export type Element = keyof typeof en.data.elements;
+
+const signsList: {
+	point: number;
+	name: ZodiacSign;
+	symbol: string;
+	element: Element;
+}[] = [
+	{
+		point: 1,
+		name: "capricorn",
+		symbol: "♑",
+		element: "earth",
+	},
+	{
+		point: 20,
+		name: "aquarius",
+		symbol: "♒",
+		element: "air",
+	},
+	{
+		point: 119,
+		name: "pisces",
+		symbol: "♓",
+		element: "water",
+	},
+	{
+		point: 221,
+		name: "aries",
+		symbol: "♈",
+		element: "fire",
+	},
+	{
+		point: 320,
+		name: "taurus",
+		symbol: "♉",
+		element: "earth",
+	},
+	{
+		point: 421,
+		name: "gemini",
+		symbol: "♊",
+		element: "air",
+	},
+	{
+		point: 522,
+		name: "cancer",
+		symbol: "♋",
+		element: "water",
+	},
+	{
+		point: 623,
+		name: "leo",
+		symbol: "♌",
+		element: "fire",
+	},
+	{
+		point: 723,
+		name: "virgo",
+		symbol: "♍",
+		element: "earth",
+	},
+	{
+		point: 823,
+		name: "libra",
+		symbol: "♎",
+		element: "air",
+	},
+	{
+		point: 923,
+		name: "scorpio",
+		symbol: "♏",
+		element: "water",
+	},
+	{
+		point: 1022,
+		name: "sagittarius",
+		symbol: "♐",
+		element: "fire",
+	},
+	{
+		point: 1122,
+		name: "capricorn",
+		symbol: "♑",
+		element: "earth",
+	},
+];
+
+const signs = [...signsList].reverse();
+
+export const getSign = (
+	date: Date,
+): {
+	name: ZodiacSign;
+	symbol: string;
+	element: Element;
+} => {
+	const month = date.getMonth();
+	const day = date.getDate();
+	const point = month * 100 + day;
+	const sign = signs.find((x) => x.point <= point);
+	if (!sign) throw new Error(`No sign found for ${date}`);
+	return {
+		name: sign.name,
+		symbol: sign.symbol,
+		element: sign.element,
+	};
+};
+
+// --- Birthday Logic ---
 
 const birthdaySchema = z.object({
 	name: z.string().min(1),
@@ -132,7 +372,6 @@ const getMilestoneInfo = (
 	if (isToday && milestones.includes(age)) {
 		status = { key: "data.milestone.status.today" };
 	} else {
-		// Simplified status logic for now to avoid complex key composition
 		if (nextMilestone !== undefined) {
 			const diff = nextMilestone - age;
 			if (diff > 0) {
@@ -141,9 +380,7 @@ const getMilestoneInfo = (
 					params: {
 						diff,
 						count: diff,
-						target: isWedding
-							? `${nextMilestone}` // We'll handle translation in UI
-							: `${nextMilestone}`,
+						target: isWedding ? `${nextMilestone}` : `${nextMilestone}`,
 					},
 				};
 			}
@@ -292,6 +529,8 @@ const getDailyInsight = (name: string): DailyInsight => {
 	return `insight_${index}` as DailyInsight;
 };
 
+import rawBirthdaysJson from "./birthdays.json";
+
 const validatedBirthdays = birthdaysArraySchema.parse(rawBirthdaysJson);
 
 const mappedBirthdays = validatedBirthdays.map((x) => {
@@ -341,10 +580,8 @@ const mappedBirthdays = validatedBirthdays.map((x) => {
 		);
 	}
 
-	// Life in numbers calculations
 	const heartbeats = ageInDays * 24 * 60 * PHYSICAL_CONSTANTS.HEART_RATE_BPM;
 	const breaths = ageInDays * 24 * 60 * PHYSICAL_CONSTANTS.BREATH_RATE_BPM;
-	const sleepYears = age * PHYSICAL_CONSTANTS.SLEEP_FRACTION;
 	const distanceTraveled = ageInDays * PHYSICAL_CONSTANTS.ORBITAL_SPEED_KM_DAY;
 
 	const planetAges: { name: PlanetName; age: number; icon: string }[] = [
@@ -399,7 +636,7 @@ const mappedBirthdays = validatedBirthdays.map((x) => {
 		lifePathMeaning: lifePath.meaning,
 		heartbeats,
 		breaths,
-		sleepYears,
+		sleepYears: age * PHYSICAL_CONSTANTS.SLEEP_FRACTION,
 		distanceTraveled,
 		planetAges,
 		dailyInsight,

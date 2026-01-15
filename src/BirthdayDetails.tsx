@@ -2,6 +2,7 @@ import { Alert, Button, Divider, Tag, Tooltip, Typography } from "antd";
 import html2canvas from "html2canvas";
 import { useTranslation } from "react-i18next";
 import { BiorhythmsChart } from "./BiorhythmsChart";
+import type { Element } from "./birthdays";
 import {
 	type Birthday,
 	birthdays,
@@ -10,7 +11,6 @@ import {
 } from "./birthdays";
 import { OnThisDay } from "./OnThisDay";
 import { store } from "./store";
-import type { Element } from "./zodiac";
 
 type BirthdayDetailsProps = {
 	record: Birthday;
