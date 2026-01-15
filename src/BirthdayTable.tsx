@@ -1,18 +1,13 @@
 import { Progress, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { TFunction } from "i18next";
-import { lazy, Suspense, useMemo } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { type Birthday, getAgeEmoji, getKindColor } from "./birthdays";
 import { Highlight } from "./Highlight";
 import { store } from "./store";
-
-const BirthdayDetails = lazy(() =>
-	import("./table/BirthdayDetails").then((m) => ({
-		default: m.BirthdayDetails,
-	})),
-);
+import { BirthdayDetails } from "./table/BirthdayDetails";
 
 const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 	{
@@ -144,15 +139,7 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 				record.daysBeforeBirthday === 0 ? "birthday-today-row" : ""
 			}
 			expandable={{
-				expandedRowRender: (record) => (
-					<Suspense
-						fallback={
-							<Progress percent={50} status="active" showInfo={false} />
-						}
-					>
-						<BirthdayDetails record={record} />
-					</Suspense>
-				),
+				expandedRowRender: (record) => <BirthdayDetails record={record} />,
 			}}
 		/>
 	);
