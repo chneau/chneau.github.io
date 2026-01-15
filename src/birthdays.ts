@@ -380,7 +380,7 @@ const getMilestoneInfo = (
 					params: {
 						diff,
 						count: diff,
-						target: isWedding ? `${nextMilestone}` : `${nextMilestone}`,
+						target: nextMilestone,
 					},
 				};
 			}
