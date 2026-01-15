@@ -18,11 +18,17 @@ export const MilestonesWidget = () => {
 		<Card
 			title={t("app.milestones.title")}
 			size="small"
-			style={{ marginTop: 16, minHeight: 180 }}
+			style={{ marginTop: 16 }}
 		>
-			<Flex vertical gap="middle">
+			<Flex gap="large" wrap="wrap" justify="center">
 				{upcomingMilestones.map((item) => (
-					<Flex key={item.name} gap="middle" align="start">
+					<Flex
+						key={item.name}
+						gap="small"
+						align="center"
+						vertical
+						style={{ flex: "1 1 250px", textAlign: "center" }}
+					>
 						<Avatar
 							style={{
 								backgroundColor:

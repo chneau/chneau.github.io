@@ -57,8 +57,8 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 			size="small"
 			style={{ marginTop: 16, minHeight: 100 }}
 		>
-			<Row gutter={[16, 16]}>
-				<Col xs={12} sm={6}>
+			<Row gutter={[16, 16]} justify="center">
+				<Col xs={12} sm={6} style={{ textAlign: "center" }}>
 					<Tooltip
 						title={t("app.records.elder_tooltip", {
 							name: records.elder?.name,
@@ -71,7 +71,7 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 						/>
 					</Tooltip>
 				</Col>
-				<Col xs={12} sm={6}>
+				<Col xs={12} sm={6} style={{ textAlign: "center" }}>
 					<Tooltip
 						title={t("app.records.rookie_tooltip", {
 							name: records.rookie?.name,
@@ -84,7 +84,7 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 						/>
 					</Tooltip>
 				</Col>
-				<Col xs={12} sm={6}>
+				<Col xs={12} sm={6} style={{ textAlign: "center" }}>
 					<Tooltip
 						title={t("app.records.socialite_tooltip", {
 							name: records.bestSocialite?.name,
@@ -98,7 +98,7 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 						/>
 					</Tooltip>
 				</Col>
-				<Col xs={12} sm={6}>
+				<Col xs={12} sm={6} style={{ textAlign: "center" }}>
 					<Tooltip
 						title={
 							records.twins.length > 0
