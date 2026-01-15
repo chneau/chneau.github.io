@@ -9,12 +9,12 @@ type CompatibilityMatrixProps = {
 	data: readonly Birthday[];
 };
 
-const getScoreColor = (score: number) => {
-	if (score >= 90) return "#52c41a"; // Green
-	if (score >= 80) return "#a0d911"; // Lime
-	if (score >= 50) return "#faad14"; // Gold
-	return "#f5222d"; // Red
-};
+const getScoreColor = (score: number) =>
+	[
+		{ limit: 90, color: "#52c41a" },
+		{ limit: 80, color: "#a0d911" },
+		{ limit: 50, color: "#faad14" },
+	].find((s) => score >= s.limit)?.color || "#f5222d";
 
 export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 	const { t } = useTranslation();
@@ -22,8 +22,8 @@ export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 	// Let's keep only people (♂️, ♀️)
 	const people = useMemo(() => data.filter((x) => x.kind !== "💒"), [data]);
 
-	const columns: ColumnsType<Birthday> = useMemo(() => {
-		const cols: ColumnsType<Birthday> = [
+	const columns: ColumnsType<Birthday> = useMemo(
+		() => [
 			{
 				title: "",
 				dataIndex: "name",
@@ -36,10 +36,7 @@ export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 					</strong>
 				),
 			},
-		];
-
-		for (const person of people) {
-			cols.push({
+			...people.map((person): ColumnsType<Birthday>[number] => ({
 				title: (
 					<Tooltip
 						title={`${person.name} (${t(`data.zodiac.${person.sign}`)})`}
@@ -75,12 +72,10 @@ export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 						</Tooltip>
 					);
 				},
-			});
-		}
-
-		return cols;
-	}, [people, t]);
-
+			})),
+		],
+		[people, t],
+	);
 	return (
 		<div style={{ marginTop: 16 }}>
 			<div style={{ marginBottom: 16 }}>

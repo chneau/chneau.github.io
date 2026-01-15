@@ -9,11 +9,12 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 		<div style={{ padding: "16px 0", maxHeight: 500, overflowY: "auto" }}>
 			<Timeline
 				items={data.map((x) => ({
-					color: [
-						{ d: 0, c: "red" },
-						{ d: 7, c: "green" },
-						{ d: 30, c: "blue" },
-					].find((c) => x.daysBeforeBirthday <= c.d)?.c || "gray",
+					color:
+						[
+							{ d: 0, c: "red" },
+							{ d: 7, c: "green" },
+							{ d: 30, c: "blue" },
+						].find((c) => x.daysBeforeBirthday <= c.d)?.c || "gray",
 					title: (
 						<Typography.Text
 							type="secondary"
