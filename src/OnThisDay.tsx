@@ -21,7 +21,9 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 			const mm = month.toString().padStart(2, "0");
 			const dd = day.toString().padStart(2, "0");
 			const lang = i18n.language.slice(0, 2);
-			const finalLang = ["en", "fr", "es", "de", "zh"].includes(lang) ? lang : "en";
+			const finalLang = ["en", "fr", "es", "de", "zh"].includes(lang)
+				? lang
+				: "en";
 			const cacheKey = `${finalLang}-${mm}-${dd}`;
 
 			if (dataStore.wikiCache[cacheKey]) {
@@ -38,10 +40,12 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 				);
 				if (!res.ok) throw new Error("Failed to fetch");
 				const data = await res.json();
-				const selectedEvents: WikiEvent[] = data.selected.slice(0, 5).map((e: WikiEvent) => ({
-					year: e.year,
-					text: e.text,
-				}));
+				const selectedEvents: WikiEvent[] = data.selected
+					.slice(0, 5)
+					.map((e: WikiEvent) => ({
+						year: e.year,
+						text: e.text,
+					}));
 				dataStore.wikiCache[cacheKey] = selectedEvents;
 				setEvents(selectedEvents);
 			} catch (err) {

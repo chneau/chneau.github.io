@@ -3,15 +3,7 @@ import Fuse from "fuse.js";
 import { proxy, subscribe } from "valtio";
 import { type Birthday, birthdays } from "./birthdays";
 
-type Store = {
-	search: string;
-	showBoys: boolean;
-	showGirls: boolean;
-	showWeddings: boolean;
-	darkMode: boolean;
-};
-
-const getInitialState = (): Store => {
+const getInitialState = () => {
 	const defaults = {
 		search: "",
 		showBoys: true,

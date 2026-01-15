@@ -35,13 +35,11 @@ i18n
 	});
 
 const setDayjsLocale = (lng: string) => {
-	if (lng === "zh") {
-		dayjs.locale("zh-cn");
-	} else if (lng === "ty") {
-		dayjs.locale("fr");
-	} else {
-		dayjs.locale(lng);
-	}
+	const mapping: Record<string, string> = {
+		zh: "zh-cn",
+		ty: "fr",
+	};
+	dayjs.locale(mapping[lng] || lng);
 };
 
 setDayjsLocale(i18n.language);

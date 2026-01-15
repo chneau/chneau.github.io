@@ -395,7 +395,7 @@ const getLifePath = (date: Date) => {
 		n
 			.toString()
 			.split("")
-			.reduce((s, d) => s + Number.parseInt(d, 0), 0);
+			.reduce((s, d) => s + Number(d), 0);
 
 	const reduce = (n: number) => {
 		let res = n;
