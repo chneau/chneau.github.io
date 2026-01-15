@@ -1,7 +1,7 @@
 import { Card, Statistic, Typography } from "antd";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
 
@@ -13,15 +13,9 @@ type CountdownTimerProps = {
 
 const CountdownTimer = ({ birthday }: CountdownTimerProps) => {
 	const { t } = useTranslation();
-	const getDiff = () => {
-		const target = dayjs(birthday.nextBirthday);
-		const now = dayjs();
-		const diff = target.diff(now);
-
-		if (diff <= 0) {
-			return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-		}
-
+	const getDiff = useCallback(() => {
+		const diff = dayjs(birthday.nextBirthday).diff(dayjs());
+		if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
 		const dur = dayjs.duration(diff);
 		return {
 			days: Math.floor(dur.asDays()),
@@ -29,33 +23,14 @@ const CountdownTimer = ({ birthday }: CountdownTimerProps) => {
 			minutes: dur.minutes(),
 			seconds: dur.seconds(),
 		};
-	};
+	}, [birthday.nextBirthday]);
 
 	const [timeLeft, setTimeLeft] = useState(getDiff());
 
 	useEffect(() => {
-		const updateCountdown = () => {
-			const target = dayjs(birthday.nextBirthday);
-			const now = dayjs();
-			const diff = target.diff(now);
-
-			if (diff <= 0) {
-				setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-				return;
-			}
-
-			const dur = dayjs.duration(diff);
-			setTimeLeft({
-				days: Math.floor(dur.asDays()),
-				hours: dur.hours(),
-				minutes: dur.minutes(),
-				seconds: dur.seconds(),
-			});
-		};
-
-		const timer = setInterval(updateCountdown, 1000);
+		const timer = setInterval(() => setTimeLeft(getDiff()), 1000);
 		return () => clearInterval(timer);
-	}, [birthday.nextBirthday]);
+	}, [getDiff]);
 
 	return (
 		<div style={{ textAlign: "center", flex: 1, minWidth: "200px" }}>
