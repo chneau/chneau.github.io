@@ -9,35 +9,25 @@ import { store } from "./store";
 export const FilterButtons = () => {
 	const { t } = useTranslation();
 	const snap = useSnapshot(store);
+	const configs = [
+		{ key: "showBoys", label: t("app.filters.boys"), icon: "♂️" },
+		{ key: "showGirls", label: t("app.filters.girls"), icon: "♀️" },
+		{ key: "showWeddings", label: t("app.filters.weddings"), icon: "💒" },
+	] as const;
 	return (
 		<Space wrap>
-			<Button
-				size="small"
-				type={snap.showBoys ? "primary" : "default"}
-				onClick={() => {
-					store.showBoys = !store.showBoys;
-				}}
-			>
-				{t("app.filters.boys")} ♂️
-			</Button>
-			<Button
-				size="small"
-				type={snap.showGirls ? "primary" : "default"}
-				onClick={() => {
-					store.showGirls = !store.showGirls;
-				}}
-			>
-				{t("app.filters.girls")} ♀️
-			</Button>
-			<Button
-				size="small"
-				type={snap.showWeddings ? "primary" : "default"}
-				onClick={() => {
-					store.showWeddings = !store.showWeddings;
-				}}
-			>
-				{t("app.filters.weddings")} 💒
-			</Button>
+			{configs.map((c) => (
+				<Button
+					key={c.key}
+					size="small"
+					type={snap[c.key] ? "primary" : "default"}
+					onClick={() => {
+						store[c.key] = !store[c.key];
+					}}
+				>
+					{c.label} {c.icon}
+				</Button>
+			))}
 		</Space>
 	);
 };

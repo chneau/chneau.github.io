@@ -15,6 +15,7 @@ export const PHYSICAL_CONSTANTS = {
 	BREATH_RATE_BPM: 16,
 	SLEEP_FRACTION: 1 / 3,
 	ORBITAL_SPEED_KM_DAY: 2570000,
+	MINUTES_IN_DAY: 24 * 60,
 } as const;
 
 export const PLANET_ORBITS_DAYS = {
@@ -84,66 +85,43 @@ export const getMoonPhase = (
 
 	const phaseIndex = Math.round(diff * 8) % 8;
 
-	const phases = [
-		{ phase: "new_moon", icon: "🌑" },
-		{ phase: "waxing_crescent", icon: "🌒" },
-		{ phase: "first_quarter", icon: "🌓" },
-		{ phase: "waxing_gibbous", icon: "🌔" },
-		{ phase: "full_moon", icon: "🌕" },
-		{ phase: "waning_gibbous", icon: "🌖" },
-		{ phase: "last_quarter", icon: "🌗" },
-		{ phase: "waning_crescent", icon: "🌘" },
-	];
-
-	return phases[phaseIndex] as { phase: MoonPhase; icon: string };
+	return MOON_PHASES[phaseIndex] as { phase: MoonPhase; icon: string };
 };
+
+const MOON_PHASES = [
+	{ phase: "new_moon", icon: "🌑" },
+	{ phase: "waxing_crescent", icon: "🌒" },
+	{ phase: "first_quarter", icon: "🌓" },
+	{ phase: "waxing_gibbous", icon: "🌔" },
+	{ phase: "full_moon", icon: "🌕" },
+	{ phase: "waning_gibbous", icon: "🌖" },
+	{ phase: "last_quarter", icon: "🌗" },
+	{ phase: "waning_crescent", icon: "🌘" },
+];
 
 // --- Zodiac & Birthgems ---
 
 export type BirthGem = keyof typeof en.data.birthgems;
 
-const birthgems: { name: BirthGem; emoji: string }[][] = [
-	[{ name: "garnet", emoji: "🔴" }],
-	[{ name: "amethyst", emoji: "🟣" }],
-	[
-		{ name: "aquamarine", emoji: "🔵" },
-		{ name: "bloodstone", emoji: "🔴" },
-	],
-	[{ name: "diamond", emoji: "💎" }],
-	[{ name: "emerald", emoji: "🟢" }],
-	[
-		{ name: "alexandrite", emoji: "🟣" },
-		{ name: "moonstone", emoji: "⚪" },
-		{ name: "pearl", emoji: "⚪" },
-	],
-	[{ name: "ruby", emoji: "🔴" }],
-	[
-		{ name: "peridot", emoji: "🟢" },
-		{ name: "sardonyx", emoji: "🔴" },
-		{ name: "spinel", emoji: "🔴" },
-	],
-	[{ name: "sapphire", emoji: "🔵" }],
-	[
-		{ name: "opal", emoji: "⚪" },
-		{ name: "tourmaline", emoji: "🟢" },
-	],
-	[
-		{ name: "citrine", emoji: "🟡" },
-		{ name: "topaz", emoji: "🟠" },
-	],
-	[
-		{ name: "tanzanite", emoji: "🔵" },
-		{ name: "turquoise", emoji: "🔵" },
-		{ name: "zircon", emoji: "🔵" },
-	],
+const birthgems: { name: BirthGem; emoji: string }[] = [
+	{ name: "garnet", emoji: "🔴" },
+	{ name: "amethyst", emoji: "🟣" },
+	{ name: "aquamarine", emoji: "🔵" },
+	{ name: "diamond", emoji: "💎" },
+	{ name: "emerald", emoji: "🟢" },
+	{ name: "alexandrite", emoji: "🟣" },
+	{ name: "ruby", emoji: "🔴" },
+	{ name: "peridot", emoji: "🟢" },
+	{ name: "sapphire", emoji: "🔵" },
+	{ name: "opal", emoji: "⚪" },
+	{ name: "citrine", emoji: "🟡" },
+	{ name: "tanzanite", emoji: "🔵" },
 ];
 
 export const getBirthgem = (date: Date): { key: BirthGem; emoji: string } => {
 	const month = date.getMonth();
-	const gems = birthgems[month];
-	if (!gems) throw new Error(`No birthgem found for ${date}`);
-	const gem = gems[0];
-	if (!gem) throw new Error(`No birthgem found for ${date}`);
+	const gem = birthgems[month];
+	if (!gem) throw new Error(`No birthgem found for month ${month}`);
 	return { key: gem.name, emoji: gem.emoji };
 };
 
@@ -151,93 +129,26 @@ export type ZodiacSign = keyof typeof en.data.zodiac;
 
 export type Element = keyof typeof en.data.elements;
 
-const signsList: {
+const signs: {
 	point: number;
 	name: ZodiacSign;
 	symbol: string;
 	element: Element;
 }[] = [
-	{
-		point: 1,
-		name: "capricorn",
-		symbol: "♑",
-		element: "earth",
-	},
-	{
-		point: 20,
-		name: "aquarius",
-		symbol: "♒",
-		element: "air",
-	},
-	{
-		point: 119,
-		name: "pisces",
-		symbol: "♓",
-		element: "water",
-	},
-	{
-		point: 221,
-		name: "aries",
-		symbol: "♈",
-		element: "fire",
-	},
-	{
-		point: 320,
-		name: "taurus",
-		symbol: "♉",
-		element: "earth",
-	},
-	{
-		point: 421,
-		name: "gemini",
-		symbol: "♊",
-		element: "air",
-	},
-	{
-		point: 522,
-		name: "cancer",
-		symbol: "♋",
-		element: "water",
-	},
-	{
-		point: 623,
-		name: "leo",
-		symbol: "♌",
-		element: "fire",
-	},
-	{
-		point: 723,
-		name: "virgo",
-		symbol: "♍",
-		element: "earth",
-	},
-	{
-		point: 823,
-		name: "libra",
-		symbol: "♎",
-		element: "air",
-	},
-	{
-		point: 923,
-		name: "scorpio",
-		symbol: "♏",
-		element: "water",
-	},
-	{
-		point: 1022,
-		name: "sagittarius",
-		symbol: "♐",
-		element: "fire",
-	},
-	{
-		point: 1122,
-		name: "capricorn",
-		symbol: "♑",
-		element: "earth",
-	},
+	{ point: 1122, name: "capricorn", symbol: "♑", element: "earth" },
+	{ point: 1022, name: "sagittarius", symbol: "♐", element: "fire" },
+	{ point: 923, name: "scorpio", symbol: "♏", element: "water" },
+	{ point: 823, name: "libra", symbol: "♎", element: "air" },
+	{ point: 723, name: "virgo", symbol: "♍", element: "earth" },
+	{ point: 623, name: "leo", symbol: "♌", element: "fire" },
+	{ point: 522, name: "cancer", symbol: "♋", element: "water" },
+	{ point: 421, name: "gemini", symbol: "♊", element: "air" },
+	{ point: 320, name: "taurus", symbol: "♉", element: "earth" },
+	{ point: 221, name: "aries", symbol: "♈", element: "fire" },
+	{ point: 119, name: "pisces", symbol: "♓", element: "water" },
+	{ point: 20, name: "aquarius", symbol: "♒", element: "air" },
+	{ point: 0, name: "capricorn", symbol: "♑", element: "earth" },
 ];
-
-const signs = [...signsList].reverse();
 
 export const getSign = (
 	date: Date,
@@ -246,16 +157,10 @@ export const getSign = (
 	symbol: string;
 	element: Element;
 } => {
-	const month = date.getMonth();
-	const day = date.getDate();
-	const point = month * 100 + day;
+	const point = date.getMonth() * 100 + date.getDate();
 	const sign = signs.find((x) => x.point <= point);
-	if (!sign) throw new Error(`No sign found for ${date}`);
-	return {
-		name: sign.name,
-		symbol: sign.symbol,
-		element: sign.element,
-	};
+	if (!sign) throw new Error(`No sign found for point ${point}`);
+	return sign;
 };
 
 // --- Birthday Logic ---
@@ -486,18 +391,14 @@ const getSeason = (month: number): Season => {
 };
 
 const getLifePath = (date: Date) => {
-	const sumDigits = (n: number): number => {
-		let s = 0;
-		let temp = n;
-		while (temp > 0) {
-			s += temp % 10;
-			temp = Math.floor(temp / 10);
-		}
-		return s;
-	};
+	const sumDigits = (n: number): number =>
+		n
+			.toString()
+			.split("")
+			.reduce((s, d) => s + Number.parseInt(d, 10), 0);
 
 	const reduce = (n: number): number => {
-		let res = sumDigits(n);
+		let res = n;
 		while (res > 9 && res !== 11 && res !== 22 && res !== 33) {
 			res = sumDigits(res);
 		}
@@ -580,8 +481,14 @@ const mappedBirthdays = validatedBirthdays.map((x) => {
 		);
 	}
 
-	const heartbeats = ageInDays * 24 * 60 * PHYSICAL_CONSTANTS.HEART_RATE_BPM;
-	const breaths = ageInDays * 24 * 60 * PHYSICAL_CONSTANTS.BREATH_RATE_BPM;
+	const heartbeats =
+		ageInDays *
+		PHYSICAL_CONSTANTS.MINUTES_IN_DAY *
+		PHYSICAL_CONSTANTS.HEART_RATE_BPM;
+	const breaths =
+		ageInDays *
+		PHYSICAL_CONSTANTS.MINUTES_IN_DAY *
+		PHYSICAL_CONSTANTS.BREATH_RATE_BPM;
 	const distanceTraveled = ageInDays * PHYSICAL_CONSTANTS.ORBITAL_SPEED_KM_DAY;
 
 	const planetAges: { name: PlanetName; age: number; icon: string }[] = [

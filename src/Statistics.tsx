@@ -36,6 +36,19 @@ const getDistribution = (
 		.sort((a, b) => b.value - a.value);
 };
 
+const onChartClick = (
+	_: unknown,
+	event: { type: string; data?: { data?: { type?: string } } },
+) => {
+	if (event.type === "element:click") {
+		const datum = event.data?.data;
+		if (datum?.type) {
+			store.search = datum.type;
+			window.scrollTo({ top: 0, behavior: "smooth" });
+		}
+	}
+};
+
 const StatPie = <T extends ChartDatum>({
 	title,
 	data,
@@ -66,15 +79,7 @@ const StatPie = <T extends ChartDatum>({
 						},
 					],
 				}}
-				onEvent={(_, event) => {
-					if (event.type === "element:click") {
-						const datum = event.data?.data;
-						if (datum?.type) {
-							store.search = datum.type;
-							window.scrollTo({ top: 0, behavior: "smooth" });
-						}
-					}
-				}}
+				onEvent={onChartClick}
 			/>
 		</Col>
 	);
@@ -109,15 +114,7 @@ const StatColumn = <T extends ChartDatum>({
 						},
 					],
 				}}
-				onEvent={(_, event) => {
-					if (event.type === "element:click") {
-						const datum = event.data?.data;
-						if (datum?.type) {
-							store.search = datum.type;
-							window.scrollTo({ top: 0, behavior: "smooth" });
-						}
-					}
-				}}
+				onEvent={onChartClick}
 			/>
 		</Col>
 	);
