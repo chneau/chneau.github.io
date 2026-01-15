@@ -17,7 +17,7 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 								: x.daysBeforeBirthday <= 30
 									? "blue"
 									: "gray",
-					label: (
+					title: (
 						<Typography.Text
 							type="secondary"
 							style={{ width: 80, display: "inline-block" }}
@@ -25,7 +25,7 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 							{x.birthdayString.slice(5)}
 						</Typography.Text>
 					),
-					children: (
+					content: (
 						<div>
 							<Typography.Text strong>{x.name}</Typography.Text>
 							<br />
@@ -41,7 +41,7 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 						</div>
 					),
 				}))}
-				mode="left"
+				mode="start"
 			/>
 		</div>
 	);
