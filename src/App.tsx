@@ -31,21 +31,21 @@ export const App = () => {
 	const { t, i18n } = useTranslation();
 
 	const antdLocale = useMemo(() => {
-		if (i18n.language.startsWith("fr")) return frFR;
-		if (i18n.language.startsWith("ty")) return frFR; // Use French as fallback for Tahitian
-		if (i18n.language.startsWith("es")) return esES;
-		if (i18n.language.startsWith("de")) return deDE;
-		if (i18n.language.startsWith("zh")) return zhCN;
-		return enUS;
+		const lang = i18n.language.slice(0, 2);
+		const locales: Record<string, typeof enUS> = {
+			fr: frFR,
+			ty: frFR,
+			es: esES,
+			de: deDE,
+			zh: zhCN,
+		};
+		return locales[lang] || enUS;
 	}, [i18n.language]);
 
 	useEffect(() => {
 		checkAndNotify(birthdays);
 
-		const todayCelebrations = birthdays.filter(
-			(b) => b.daysBeforeBirthday === 0,
-		);
-		if (todayCelebrations.length > 0) {
+		if (birthdays.some((b) => b.daysBeforeBirthday === 0)) {
 			triggerConfetti();
 		}
 	}, []);

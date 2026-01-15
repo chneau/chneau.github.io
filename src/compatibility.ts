@@ -1,35 +1,18 @@
 import type { Birthday } from "./birthdays";
 
+const RELATIONSHIPS: Record<string, number> = {
+	"fire-air": 100,
+	"air-fire": 100,
+	"earth-water": 100,
+	"water-earth": 100,
+	"fire-earth": 50,
+	"earth-fire": 50,
+	"air-water": 50,
+	"water-air": 50,
+};
+
 export const getCompatibilityScore = (a: Birthday, b: Birthday): number => {
 	if (a.name === b.name) return 100;
-
-	const e1 = a.element;
-	const e2 = b.element;
-
-	// Same element
-	if (e1 === e2) return 80;
-
-	// Complementary elements
-	// Fire & Air, Earth & Water
-	if (
-		(e1 === "fire" && e2 === "air") ||
-		(e1 === "air" && e2 === "fire") ||
-		(e1 === "earth" && e2 === "water") ||
-		(e1 === "water" && e2 === "earth")
-	) {
-		return 100;
-	}
-
-	// Neutral (Fire & Earth, Air & Water)
-	if (
-		(e1 === "fire" && e2 === "earth") ||
-		(e1 === "earth" && e2 === "fire") ||
-		(e1 === "air" && e2 === "water") ||
-		(e1 === "water" && e2 === "air")
-	) {
-		return 50;
-	}
-
-	// Challenging (everything else)
-	return 40;
+	if (a.element === b.element) return 80;
+	return RELATIONSHIPS[`${a.element}-${b.element}`] ?? 40;
 };
