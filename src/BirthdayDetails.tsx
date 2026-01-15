@@ -1,16 +1,16 @@
 import { Alert, Button, Divider, Tag, Tooltip, Typography } from "antd";
 import html2canvas from "html2canvas";
 import { useTranslation } from "react-i18next";
-import { BiorhythmsChart } from "./BiorhythmsChart";
+import { BiorhythmsChart } from "../BiorhythmsChart";
 import {
 	type Birthday,
 	birthdays,
 	getAgeEmoji,
 	getKindColor,
-} from "./birthdays";
-import { OnThisDay } from "./OnThisDay";
-import { store } from "./store";
-import type { Element } from "./zodiac";
+} from "../birthdays";
+import { OnThisDay } from "../OnThisDay";
+import { store } from "../store";
+import type { Element } from "../zodiac";
 
 type BirthdayDetailsProps = {
 	record: Birthday;

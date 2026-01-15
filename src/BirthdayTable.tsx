@@ -4,10 +4,10 @@ import type { TFunction } from "i18next";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+import { BirthdayDetails } from "./BirthdayDetails";
 import { type Birthday, getAgeEmoji, getKindColor } from "./birthdays";
 import { Highlight } from "./Highlight";
 import { store } from "./store";
-import { BirthdayDetails } from "./table/BirthdayDetails";
 
 const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 	{
