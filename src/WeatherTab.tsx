@@ -379,7 +379,7 @@ export const WeatherTab = () => {
 
 	return (
 		<div>
-			<Space direction="vertical" style={{ width: "100%" }} size="large">
+			<Space orientation="vertical" style={{ width: "100%" }} size="large">
 				<Space.Compact style={{ width: "100%" }}>
 					<Input
 						placeholder={t("app.weather.placeholder")}
