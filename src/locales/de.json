@@ -95,6 +95,22 @@
 			"mins": "Min",
 			"secs": "Sek"
 		},
+		"weather": {
+			"title": "Wetter",
+			"add_location": "Ort hinzufügen",
+			"placeholder": "Stadtnamen eingeben...",
+			"last_fetched": "Zuletzt aktualisiert: {{time}}",
+			"refresh": "Aktualisieren",
+			"feels_like": "Gefühlt",
+			"humidity": "Luftfeuchtigkeit",
+			"uv_index": "UV-Index",
+			"visibility": "Sichtweite",
+			"pressure": "Luftdruck",
+			"wind": "Wind",
+			"hourly": "Stündlich",
+			"daily": "Täglich",
+			"no_locations": "Noch keine Orte hinzugefügt."
+		},
 		"notifications": {
 			"today_title": "🎂 Herzlichen Glückwunsch!",
 			"today_body": "Heute ist der Geburtstag von {{names}}!",
