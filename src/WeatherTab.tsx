@@ -23,12 +23,15 @@ import dayjs from "dayjs";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+import type en from "./locales/en.json";
 import { store } from "./store";
 import { getWeather, type WttrResponse } from "./wttr";
 
 const { Text, Title } = Typography;
 
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+
+type WeatherKey = `app.weather.codes.${keyof typeof en.app.weather.codes}`;
 
 const weatherMapping: Record<number, string> = {
 	113: "☀️", // Sunny
@@ -102,6 +105,7 @@ const fetchWeatherWithCache = async (
 };
 
 const HourlyForecast = ({ weather }: { weather: WttrResponse }) => {
+	const { t } = useTranslation();
 	// Get next 24 hours (across today and tomorrow if needed)
 	const allHourly = weather.weather.flatMap((w) =>
 		w.hourly.map((h) => ({ ...h, date: w.date })),
@@ -138,7 +142,7 @@ const HourlyForecast = ({ weather }: { weather: WttrResponse }) => {
 						<Text strong>{h.tempC}°</Text>
 					</div>
 					<Text style={{ fontSize: 10, display: "block" }}>
-						{h.weatherDesc[0]?.value}
+						{t(`app.weather.codes.${h.weatherCode}` as WeatherKey)}
 					</Text>
 				</div>
 			))}
@@ -147,6 +151,7 @@ const HourlyForecast = ({ weather }: { weather: WttrResponse }) => {
 };
 
 const DailyForecast = ({ weather }: { weather: WttrResponse }) => {
+	const { t } = useTranslation();
 	return (
 		<List
 			size="small"
@@ -163,7 +168,12 @@ const DailyForecast = ({ weather }: { weather: WttrResponse }) => {
 									{getWeatherEmoji(day.hourly[4]?.weatherCode)}
 								</span>
 								<Text type="secondary">
-									{day.hourly[4]?.weatherDesc[0]?.value}
+									{day.hourly[4]?.weatherCode &&
+										t(
+											`app.weather.codes.${
+												day.hourly[4].weatherCode
+											}` as WeatherKey,
+										)}
 								</Text>
 							</Space>
 						</Col>
@@ -246,7 +256,11 @@ const WeatherItem = ({ location }: { location: string }) => {
 									<span style={{ fontSize: 20 }}>
 										{getWeatherEmoji(current.weatherCode)}
 									</span>
-									<Text type="secondary">{current.weatherDesc[0]?.value}</Text>
+									<Text type="secondary">
+										{t(
+											`app.weather.codes.${current.weatherCode}` as WeatherKey,
+										)}
+									</Text>
 								</Space>
 							</Col>
 							<Col style={{ textAlign: "right" }}>
