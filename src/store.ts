@@ -15,7 +15,9 @@ const getInitialState = () => {
 		return defaults;
 	}
 	const saved = localStorage.getItem("store");
-	return saved ? { ...defaults, ...JSON.parse(saved) } : defaults;
+	return saved
+		? ({ ...defaults, ...JSON.parse(saved) } as typeof defaults)
+		: defaults;
 };
 
 export const store = proxy(getInitialState());
