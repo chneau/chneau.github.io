@@ -1,6 +1,7 @@
 import {
 	ClockCircleOutlined,
 	DeleteOutlined,
+	MenuOutlined,
 	PlusOutlined,
 	ReloadOutlined,
 } from "@ant-design/icons";
@@ -248,6 +249,9 @@ const WeatherItem = ({ location }: { location: string }) => {
 					key: "1",
 					label: (
 						<Row align="middle" style={{ width: "100%" }}>
+							<Col style={{ marginRight: 12, display: "flex" }}>
+								<MenuOutlined style={{ cursor: "grab", color: "#bfbfbf" }} />
+							</Col>
 							<Col flex="auto">
 								<Title level={4} style={{ margin: 0 }}>
 									{location}
@@ -361,6 +365,18 @@ export const WeatherTab = () => {
 		queryClient.invalidateQueries({ queryKey: ["weather"] });
 	};
 
+	const handleMove = (fromIndex: number, toIndex: number) => {
+		if (fromIndex === toIndex) return;
+		const locations = [...store.weatherLocations];
+		const [moved] = locations.splice(fromIndex, 1);
+		if (moved !== undefined) {
+			locations.splice(toIndex, 0, moved);
+			store.weatherLocations = locations;
+		}
+	};
+
+	const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
 	return (
 		<div>
 			<Space direction="vertical" style={{ width: "100%" }} size="large">
@@ -386,11 +402,40 @@ export const WeatherTab = () => {
 				{storeSnap.weatherLocations.length === 0 ? (
 					<Empty description={t("app.weather.no_locations")} />
 				) : (
-					<div>
-						{storeSnap.weatherLocations.map((loc) => (
-							<WeatherItem key={loc} location={loc} />
+					<ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+						{storeSnap.weatherLocations.map((loc, index) => (
+							<li
+								key={loc}
+								draggable
+								onDragStart={() => setDraggedIndex(index)}
+								onDragOver={(e) => {
+									e.preventDefault();
+									e.currentTarget.style.borderTop = "2px solid #1890ff";
+								}}
+								onDragLeave={(e) => {
+									e.currentTarget.style.borderTop = "none";
+								}}
+								onDrop={(e) => {
+									e.preventDefault();
+									e.currentTarget.style.borderTop = "none";
+									if (draggedIndex !== null) {
+										handleMove(draggedIndex, index);
+										setDraggedIndex(null);
+									}
+								}}
+								onDragEnd={() => {
+									setDraggedIndex(null);
+								}}
+								style={{
+									opacity: draggedIndex === index ? 0.5 : 1,
+									transition: "all 0.3s",
+									cursor: "move",
+								}}
+							>
+								<WeatherItem location={loc} />
+							</li>
 						))}
-					</div>
+					</ul>
 				)}
 			</Space>
 		</div>
