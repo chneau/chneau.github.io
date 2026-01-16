@@ -95,6 +95,22 @@
 			"mins": "Mins",
 			"secs": "Segs"
 		},
+		"weather": {
+			"title": "Clima",
+			"add_location": "Añadir ubicación",
+			"placeholder": "Ingrese el nombre de la ciudad...",
+			"last_fetched": "Última actualización: {{time}}",
+			"refresh": "Actualizar",
+			"feels_like": "Sensación térmica",
+			"humidity": "Humedad",
+			"uv_index": "Índice UV",
+			"visibility": "Visibilidad",
+			"pressure": "Presión",
+			"wind": "Viento",
+			"hourly": "Por horas",
+			"daily": "Por días",
+			"no_locations": "No hay ubicaciones añadidas."
+		},
 		"notifications": {
 			"today_title": "🎂 ¡Feliz Cumpleaños!",
 			"today_body": "¡Hoy es el cumpleaños de {{names}}!",

@@ -95,6 +95,22 @@
 			"mins": "Mins",
 			"secs": "Secs"
 		},
+		"weather": {
+			"title": "Weather",
+			"add_location": "Add Location",
+			"placeholder": "Enter city name...",
+			"last_fetched": "Last fetched: {{time}}",
+			"refresh": "Refresh",
+			"feels_like": "Feels like",
+			"humidity": "Humidity",
+			"uv_index": "UV Index",
+			"visibility": "Visibility",
+			"pressure": "Pressure",
+			"wind": "Wind",
+			"hourly": "Hourly",
+			"daily": "Daily",
+			"no_locations": "No locations added yet."
+		},
 		"notifications": {
 			"today_title": "🎂 Happy Birthday!",
 			"today_body": "Today is {{names}}'s birthday!",

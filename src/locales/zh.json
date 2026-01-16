@@ -89,11 +89,27 @@
 			"github": "GitHub"
 		},
 		"countdown": {
-			"next_celebration": "下一次庆祝： {{name}} ({{kind}})",
+			"next_celebration": "下一次庆祝：{{name}} ({{kind}})",
 			"days": "天",
 			"hours": "小时",
 			"mins": "分钟",
 			"secs": "秒"
+		},
+		"weather": {
+			"title": "天气",
+			"add_location": "添加位置",
+			"placeholder": "输入城市名称...",
+			"last_fetched": "最后更新：{{time}}",
+			"refresh": "刷新",
+			"feels_like": "体感温度",
+			"humidity": "湿度",
+			"uv_index": "UV 指数",
+			"visibility": "能见度",
+			"pressure": "气压",
+			"wind": "风速",
+			"hourly": "每小时",
+			"daily": "每日",
+			"no_locations": "尚未添加位置。"
 		},
 		"notifications": {
 			"today_title": "🎂 生日快乐！",

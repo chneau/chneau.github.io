@@ -1,26 +1,53 @@
 import { debounce } from "es-toolkit";
 import Fuse from "fuse.js";
 import { proxy, subscribe } from "valtio";
+import { z } from "zod";
 import { type Birthday, birthdays } from "./birthdays";
+import { WttrResponseSchema } from "./wttr";
 
-const getInitialState = () => {
-	const defaults = {
+const WeatherCacheEntrySchema = z.object({
+	data: WttrResponseSchema,
+	timestamp: z.number(),
+});
+
+const StoreSchema = z.object({
+	search: z.string(),
+	showBoys: z.boolean(),
+	showGirls: z.boolean(),
+	showWeddings: z.boolean(),
+	darkMode: z.boolean(),
+	weatherLocations: z.array(z.string()),
+	weatherCache: z.record(z.string(), WeatherCacheEntrySchema),
+});
+
+type Store = z.infer<typeof StoreSchema>;
+
+const getInitialState = (): Store => {
+	const defaults: Store = {
 		search: "",
 		showBoys: true,
 		showGirls: true,
 		showWeddings: false,
 		darkMode: true,
+		weatherLocations: ["Edinburgh", "Issoire", "Madrid", "Verdun", "Oberageri"],
+		weatherCache: {},
 	};
 	if (typeof localStorage === "undefined") {
 		return defaults;
 	}
 	const saved = localStorage.getItem("store");
-	return saved
-		? ({ ...defaults, ...JSON.parse(saved) } as typeof defaults)
-		: defaults;
+	if (!saved) return defaults;
+
+	try {
+		const parsed = JSON.parse(saved);
+		return StoreSchema.parse({ ...defaults, ...parsed });
+	} catch (e) {
+		console.error("Failed to parse store from localStorage", e);
+		return defaults;
+	}
 };
 
-export const store = proxy(getInitialState());
+export const store = proxy<Store>(getInitialState());
 
 subscribe(store, () => {
 	if (typeof localStorage !== "undefined") {

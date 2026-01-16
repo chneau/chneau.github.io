@@ -89,11 +89,27 @@
 			"github": "GitHub"
 		},
 		"countdown": {
-			"next_celebration": "Prochaine Célébration : {{name}} ({{kind}})",
+			"next_celebration": "Prochaine célébration : {{name}} ({{kind}})",
 			"days": "Jours",
 			"hours": "Heures",
-			"mins": "Min",
-			"secs": "Sec"
+			"mins": "Mins",
+			"secs": "Secs"
+		},
+		"weather": {
+			"title": "Météo",
+			"add_location": "Ajouter un lieu",
+			"placeholder": "Entrez le nom d'une ville...",
+			"last_fetched": "Dernière mise à jour : {{time}}",
+			"refresh": "Rafraîchir",
+			"feels_like": "Ressenti",
+			"humidity": "Humidité",
+			"uv_index": "Index UV",
+			"visibility": "Visibilité",
+			"pressure": "Pression",
+			"wind": "Vent",
+			"hourly": "Par heure",
+			"daily": "Par jour",
+			"no_locations": "Aucun lieu ajouté."
 		},
 		"notifications": {
 			"today_title": "🎂 Joyeux Anniversaire !",

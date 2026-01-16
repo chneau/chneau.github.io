@@ -89,11 +89,27 @@
 			"github": "GitHub"
 		},
 		"countdown": {
-			"next_celebration": "’Ōro’a i mua : {{name}} ({{kind}})",
+			"next_celebration": "Fa'ahanahana i muri nei : {{name}} ({{kind}})",
 			"days": "Mahana",
 			"hours": "Hora",
-			"mins": "Miniti",
-			"secs": "Sekone"
+			"mins": "Mins",
+			"secs": "Secs"
+		},
+		"weather": {
+			"title": "Te huru o te reva",
+			"add_location": "Tāmau i te hō'ē vāhi",
+			"placeholder": "Tāpa'o i te i'oa o te 'oire...",
+			"last_fetched": "Fa'ahouhia i te : {{time}}",
+			"refresh": "Fa'ahou",
+			"feels_like": "Ha'amāha",
+			"humidity": "Ha'amahu",
+			"uv_index": "Index UV",
+			"visibility": "'Ite-maita'i-ra'a",
+			"pressure": "Teimaha o te mata'i",
+			"wind": "Mata'i",
+			"hourly": "I te mau hora",
+			"daily": "I te mau mahana",
+			"no_locations": "'Aita e vāhi."
 		},
 		"notifications": {
 			"today_title": "🎂 ’Ōro’a fānaura’a maita’i !",

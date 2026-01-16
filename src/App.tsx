@@ -23,6 +23,7 @@ import { RecordsWidget } from "./RecordsWidget";
 import { Statistics } from "./Statistics";
 import { dataStore, store } from "./store";
 import { TimelineView } from "./TimelineView";
+import { WeatherTab } from "./WeatherTab";
 
 export const App = () => {
 	const dataSnap = useSnapshot(dataStore);
@@ -124,6 +125,11 @@ export const App = () => {
 										key: "compatibility",
 										label: t("app.compatibility.title"),
 										children: <CompatibilityMatrix data={data} />,
+									},
+									{
+										key: "weather",
+										label: t("app.weather.title"),
+										children: <WeatherTab />,
 									},
 								]}
 							/>
