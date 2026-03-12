@@ -63,6 +63,10 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 			label: "🇩🇪 Deutsch",
 		},
 		{
+			key: "gd",
+			label: "🇬🇧 Gàidhlig",
+		},
+		{
 			key: "zh",
 			label: "🇨🇳 中文",
 		},

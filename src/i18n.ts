@@ -1,4 +1,9 @@
 import dayjs from "dayjs";
+import "dayjs/locale/de";
+import "dayjs/locale/es";
+import "dayjs/locale/fr";
+import "dayjs/locale/gd";
+import "dayjs/locale/zh-cn";
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
@@ -6,6 +11,7 @@ import de from "./locales/de.json";
 import en from "./locales/en.json";
 import es from "./locales/es.json";
 import fr from "./locales/fr.json";
+import gd from "./locales/gd.json";
 import ty from "./locales/ty.json";
 import zh from "./locales/zh.json";
 
@@ -14,6 +20,7 @@ const resources: Record<string, { translation: typeof en }> = {
 	fr: { translation: fr },
 	es: { translation: es },
 	de: { translation: de },
+	gd: { translation: gd },
 	ty: { translation: ty },
 	zh: { translation: zh },
 };
