@@ -5,12 +5,12 @@ import type en from "./locales/en.json";
 
 // --- Constants ---
 
-export const ASTRONOMICAL_CONSTANTS = {
+const ASTRONOMICAL_CONSTANTS = {
 	MOON_CYCLE_DAYS: 29.5305882,
 	JULIAN_DAY_OFFSET: 694039.09,
 } as const;
 
-export const PHYSICAL_CONSTANTS = {
+const PHYSICAL_CONSTANTS = {
 	HEART_RATE_BPM: 80,
 	BREATH_RATE_BPM: 16,
 	SLEEP_FRACTION: 1 / 3,
@@ -18,7 +18,7 @@ export const PHYSICAL_CONSTANTS = {
 	MINUTES_IN_DAY: 24 * 60,
 } as const;
 
-export const PLANET_ORBITS_DAYS = {
+const PLANET_ORBITS_DAYS = {
 	mercury: 87.97,
 	venus: 224.7,
 	mars: 686.97,
@@ -26,7 +26,7 @@ export const PLANET_ORBITS_DAYS = {
 	saturn: 10759.22,
 } as const;
 
-export const GENERATION_BOUNDARIES = {
+const GENERATION_BOUNDARIES = {
 	GEN_ALPHA: 2013,
 	GEN_Z: 1997,
 	MILLENNIALS: 1981,
@@ -35,19 +35,19 @@ export const GENERATION_BOUNDARIES = {
 	SILENT: 1928,
 } as const;
 
-export const AGE_THRESHOLDS = {
+const AGE_THRESHOLDS = {
 	BABY: 3,
 	CHILD: 13,
 	TEEN: 20,
 	ADULT: 60,
 } as const;
 
-export const BIG_BIRTHDAYS = [
+const BIG_BIRTHDAYS = [
 	1, 5, 10, 13, 15, 16, 18, 20, 21, 25, 30, 40, 50, 60, 70, 75, 80, 85, 90, 95,
 	100,
 ];
 
-export const WEDDING_MILESTONES: Record<number, string> = {
+const WEDDING_MILESTONES: Record<number, string> = {
 	1: "paper",
 	5: "wood",
 	10: "tin",
@@ -62,11 +62,9 @@ export const WEDDING_MILESTONES: Record<number, string> = {
 
 // --- Astronomy ---
 
-export type MoonPhase = keyof typeof en.data.moon_phases;
+type MoonPhase = keyof typeof en.data.moon_phases;
 
-export const getMoonPhase = (
-	date: Date,
-): { phase: MoonPhase; icon: string } => {
+const getMoonPhase = (date: Date): { phase: MoonPhase; icon: string } => {
 	let year = date.getFullYear();
 	let month = date.getMonth() + 1;
 	const day = date.getDate();
@@ -101,7 +99,7 @@ const MOON_PHASES = [
 
 // --- Zodiac & Birthgems ---
 
-export type BirthGem = keyof typeof en.data.birthgems;
+type BirthGem = keyof typeof en.data.birthgems;
 
 const birthgems: { name: BirthGem; emoji: string }[] = [
 	{ name: "garnet", emoji: "🔴" },
@@ -118,14 +116,14 @@ const birthgems: { name: BirthGem; emoji: string }[] = [
 	{ name: "tanzanite", emoji: "🔵" },
 ];
 
-export const getBirthgem = (date: Date): { key: BirthGem; emoji: string } => {
+const getBirthgem = (date: Date): { key: BirthGem; emoji: string } => {
 	const month = date.getMonth();
 	const gem = birthgems[month];
 	if (!gem) throw new Error(`No birthgem found for month ${month}`);
 	return { key: gem.name, emoji: gem.emoji };
 };
 
-export type ZodiacSign = keyof typeof en.data.zodiac;
+type ZodiacSign = keyof typeof en.data.zodiac;
 
 export type Element = keyof typeof en.data.elements;
 
@@ -150,7 +148,7 @@ const signs: {
 	{ point: 0, name: "capricorn", symbol: "♑", element: "earth" },
 ];
 
-export const getSign = (
+const getSign = (
 	date: Date,
 ): {
 	name: ZodiacSign;
