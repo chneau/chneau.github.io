@@ -120,18 +120,15 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 ];
 
 export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
-	const dataSource = useMemo(
-		() => data.map((x, i) => ({ ...x, key: i })),
-		[data],
-	);
 	const { search } = useSnapshot(store);
 	const { t } = useTranslation();
 	const columns = useMemo(() => getColumns(search, t), [search, t]);
 
 	return (
 		<Table
+			rowKey={(record) => `${record.name}-${record.birthdayString}`}
 			columns={columns}
-			dataSource={dataSource}
+			dataSource={data}
 			pagination={false}
 			size="small"
 			scroll={{ y: 500 }}

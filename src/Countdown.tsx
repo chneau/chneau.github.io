@@ -1,4 +1,4 @@
-import { Card, Statistic, Typography } from "antd";
+import { Card, Statistic, Tag, Typography } from "antd";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import { useCallback, useEffect, useState } from "react";
@@ -14,16 +14,23 @@ type CountdownTimerProps = {
 const CountdownTimer = ({ birthday }: CountdownTimerProps) => {
 	const { t } = useTranslation();
 	const getDiff = useCallback(() => {
-		const diff = dayjs(birthday.nextBirthday).diff(dayjs());
-		if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+		const isToday = birthday.daysBeforeBirthday === 0;
+		const target = isToday
+			? dayjs(birthday.nextBirthday).endOf("day")
+			: dayjs(birthday.nextBirthday);
+		const diff = target.diff(dayjs());
+		if (diff <= 0) {
+			return { isToday, days: 0, hours: 0, minutes: 0, seconds: 0 };
+		}
 		const dur = dayjs.duration(diff);
 		return {
+			isToday,
 			days: Math.floor(dur.asDays()),
 			hours: dur.hours(),
 			minutes: dur.minutes(),
 			seconds: dur.seconds(),
 		};
-	}, [birthday.nextBirthday]);
+	}, [birthday.nextBirthday, birthday.daysBeforeBirthday]);
 
 	const [timeLeft, setTimeLeft] = useState(getDiff());
 
@@ -39,6 +46,11 @@ const CountdownTimer = ({ birthday }: CountdownTimerProps) => {
 					name: birthday.name,
 					kind: birthday.kind,
 				})}
+				{timeLeft.isToday && (
+					<Tag color="red" style={{ marginLeft: 8 }}>
+						🎉 {t("app.milestones.today")}
+					</Tag>
+				)}
 			</Typography.Text>
 			<div
 				style={{
