@@ -1,24 +1,31 @@
 import { Button, Dropdown, type MenuProps, message } from "antd";
 import { useTranslation } from "react-i18next";
 
+const getIcsUrl = () => {
+	const base = `${window.location.origin}${window.location.pathname}`.replace(
+		/\/+$/,
+		"",
+	);
+	return `${base}/birthdays.ics`;
+};
+
 const downloadICS = () => {
 	const link = document.createElement("a");
-	link.href = "/birthdays.ics";
+	link.href = getIcsUrl();
 	link.download = "birthdays.ics";
 	link.click();
 };
 
 const subscribeICS = () => {
-	const url =
-		`${window.location.host}${window.location.pathname}/birthdays.ics`.replace(
-			/\/+/g,
-			"/",
-		);
-	window.location.assign(`webcal://${url}`);
+	const url = `${window.location.host}${window.location.pathname}`.replace(
+		/\/+$/,
+		"",
+	);
+	window.location.assign(`webcal://${url}/birthdays.ics`);
 };
 
 const addToGoogleCalendar = () => {
-	const url = `${window.location.origin}/birthdays.ics`;
+	const url = getIcsUrl();
 	const googleUrl = `https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(
 		url,
 	)}`;
@@ -46,7 +53,7 @@ export const CalendarActions = () => {
 			label: t("app.calendar.copy"),
 			icon: "🔗",
 			onClick: () => {
-				const url = `${window.location.origin}/birthdays.ics`;
+				const url = getIcsUrl();
 				navigator.clipboard.writeText(url);
 				message.success(t("app.calendar.copied"));
 			},
