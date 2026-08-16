@@ -1,4 +1,4 @@
-import { Progress, Table, Tag } from "antd";
+import { Button, Empty, Progress, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { TFunction } from "i18next";
 import { useMemo } from "react";
@@ -124,14 +124,35 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 	const { t } = useTranslation();
 	const columns = useMemo(() => getColumns(search, t), [search, t]);
 
+	const handleResetFilters = () => {
+		store.search = "";
+		store.showBoys = true;
+		store.showGirls = true;
+		store.showWeddings = false;
+	};
+
 	return (
 		<Table
 			rowKey={(record) => `${record.name}-${record.birthdayString}`}
 			columns={columns}
-			dataSource={data}
+			dataSource={data as Birthday[]}
 			pagination={false}
 			size="small"
 			scroll={{ y: 500 }}
+			locale={{
+				emptyText: (
+					<Empty
+						image={Empty.PRESENTED_IMAGE_SIMPLE}
+						description={
+							search ? `No birthdays matching "${search}"` : undefined
+						}
+					>
+						<Button type="primary" size="small" onClick={handleResetFilters}>
+							🔄 Reset Filters
+						</Button>
+					</Empty>
+				),
+			}}
 			rowClassName={(record) =>
 				record.daysBeforeBirthday === 0 ? "birthday-today-row" : ""
 			}

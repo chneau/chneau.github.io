@@ -1,6 +1,7 @@
 import {
 	Area,
 	Bar,
+	ConfigProvider as ChartConfigProvider,
 	type Datum as ChartDatum,
 	Column,
 	Heatmap,
@@ -315,6 +316,7 @@ const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
 export const Statistics = () => {
 	const { t } = useTranslation();
 	const dataSnap = useSnapshot(dataStore);
+	const storeSnap = useSnapshot(store);
 	const data = dataSnap.filtered;
 	const dayjsLocale = dayjs.locale();
 
@@ -350,51 +352,61 @@ export const Statistics = () => {
 	}, [data, t, dayjsLocale]);
 
 	return (
-		<Card
-			title={t("app.statistics.title")}
-			size="small"
-			style={{ marginTop: 16 }}
+		<ChartConfigProvider
+			common={{ theme: storeSnap.darkMode ? "dark" : "light" }}
 		>
-			<style>
-				{`
-				.g2-tooltip-list-item-value {
-					max-width: unset !important;
-					white-space: pre-wrap !important;
-				}
-				`}
-			</style>
-			<Row gutter={[16, 16]}>
-				<StatPie title={t("app.statistics.zodiac")} data={stats.signs} />
-				<StatPie
-					title={t("app.statistics.chinese")}
-					data={stats.chineseZodiac}
-				/>
-				<StatPie title={t("app.statistics.elements")} data={stats.elements} />
-				<StatPie title={t("app.statistics.gender")} data={stats.kinds} />
-				<StatPie
-					title={t("app.statistics.age_groups")}
-					data={stats.ageGroups}
-				/>
-				<StatPie
-					title={t("app.statistics.generations")}
-					data={stats.generations}
-				/>
-				<StatPie title={t("app.statistics.seasons")} data={stats.seasons} />
-				<StatColumn
-					title={t("app.statistics.first_letter")}
-					data={stats.letters}
-				/>
-				<StatColumn title={t("app.statistics.month")} data={stats.months} />
-				<StatColumn
-					title={t("app.statistics.birthstones")}
-					data={stats.birthgems}
-				/>
-				<StatColumn title={t("app.statistics.day_of_week")} data={stats.days} />
-				<StatColumn title={t("app.statistics.decades")} data={stats.decades} />
-				<AgeDistribution data={data} />
-				<AgePyramid data={data} />
-				<BirthHeatmap data={data} />
-			</Row>
-		</Card>
+			<Card
+				title={t("app.statistics.title")}
+				size="small"
+				style={{ marginTop: 16 }}
+			>
+				<style>
+					{`
+					.g2-tooltip-list-item-value {
+						max-width: unset !important;
+						white-space: pre-wrap !important;
+					}
+					`}
+				</style>
+				<Row gutter={[16, 16]}>
+					<StatPie title={t("app.statistics.zodiac")} data={stats.signs} />
+					<StatPie
+						title={t("app.statistics.chinese")}
+						data={stats.chineseZodiac}
+					/>
+					<StatPie title={t("app.statistics.elements")} data={stats.elements} />
+					<StatPie title={t("app.statistics.gender")} data={stats.kinds} />
+					<StatPie
+						title={t("app.statistics.age_groups")}
+						data={stats.ageGroups}
+					/>
+					<StatPie
+						title={t("app.statistics.generations")}
+						data={stats.generations}
+					/>
+					<StatPie title={t("app.statistics.seasons")} data={stats.seasons} />
+					<StatColumn
+						title={t("app.statistics.first_letter")}
+						data={stats.letters}
+					/>
+					<StatColumn title={t("app.statistics.month")} data={stats.months} />
+					<StatColumn
+						title={t("app.statistics.birthstones")}
+						data={stats.birthgems}
+					/>
+					<StatColumn
+						title={t("app.statistics.day_of_week")}
+						data={stats.days}
+					/>
+					<StatColumn
+						title={t("app.statistics.decades")}
+						data={stats.decades}
+					/>
+					<AgeDistribution data={data} />
+					<AgePyramid data={data} />
+					<BirthHeatmap data={data} />
+				</Row>
+			</Card>
+		</ChartConfigProvider>
 	);
 };

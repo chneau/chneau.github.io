@@ -1,8 +1,9 @@
+import dayjs from "dayjs";
 import { debounce } from "es-toolkit";
 import Fuse from "fuse.js";
 import { proxy, subscribe } from "valtio";
 import { z } from "zod";
-import { type Birthday, birthdays } from "./birthdays";
+import { type Birthday, birthdays, recomputeBirthdays } from "./birthdays";
 import { WttrResponseSchema } from "./wttr";
 
 const WeatherCacheEntrySchema = z.object({
@@ -109,3 +110,22 @@ const compute = () => {
 
 subscribe(store, debounce(compute, 200));
 compute();
+
+if (typeof window !== "undefined") {
+	let lastDate = dayjs().format("YYYY-MM-DD");
+	const checkDateRoll = () => {
+		const currentDate = dayjs().format("YYYY-MM-DD");
+		if (currentDate !== lastDate) {
+			lastDate = currentDate;
+			const updated = recomputeBirthdays();
+			fuse.setCollection(updated);
+			compute();
+		}
+	};
+	document.addEventListener("visibilitychange", () => {
+		if (!document.hidden) {
+			checkDateRoll();
+		}
+	});
+	setInterval(checkDateRoll, 60000);
+}

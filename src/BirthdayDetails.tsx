@@ -1,8 +1,7 @@
 import { Alert, Button, Divider, Tag, Tooltip, Typography } from "antd";
 import dayjs from "dayjs";
-import html2canvas from "html2canvas";
+import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { BiorhythmsChart } from "./BiorhythmsChart";
 import type { Element } from "./birthdays";
 import {
 	type Birthday,
@@ -12,6 +11,10 @@ import {
 } from "./birthdays";
 import { OnThisDay } from "./OnThisDay";
 import { store } from "./store";
+
+const BiorhythmsChart = lazy(() =>
+	import("./BiorhythmsChart").then((m) => ({ default: m.BiorhythmsChart })),
+);
 
 type BirthdayDetailsProps = {
 	record: Birthday;
@@ -36,6 +39,7 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 	const handleDownloadCard = async () => {
 		const element = document.getElementById(`card-${record.name}`);
 		if (element) {
+			const html2canvas = (await import("html2canvas")).default;
 			const canvas = await html2canvas(element, {
 				backgroundColor: store.darkMode ? "#141414" : "#ffffff",
 				scale: 2,
@@ -233,7 +237,9 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 			</div>
 
 			<div style={{ marginTop: 8 }}>
-				<BiorhythmsChart birthday={record.birthday} />
+				<Suspense fallback={<div style={{ minHeight: 200 }} />}>
+					<BiorhythmsChart birthday={record.birthday} />
+				</Suspense>
 			</div>
 
 			{/* Hidden card for capture */}
