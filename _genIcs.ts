@@ -2,7 +2,9 @@ import dayjs from "dayjs";
 import { type Birthday, birthdays } from "./src/birthdays";
 
 const generateICS = (birthdays: readonly Birthday[]) => {
-	const now = dayjs().format("YYYYMMDDTHHmmssZ");
+	const dtstamp = `${
+		new Date().toISOString().replace(/[-:]/g, "").split(".")[0]
+	}Z`;
 	const events = birthdays.map((b) => {
 		const dtstart = dayjs(b.birthday);
 		const dtend = dtstart.add(1, "day");
@@ -10,14 +12,13 @@ const generateICS = (birthdays: readonly Birthday[]) => {
 			b.kind === "💒"
 				? `${b.name} Wedding Anniversary`
 				: `${b.name}'s Birthday`;
-		const uid = `${b.name.replace(/\s+/g, "_")}_${dtstart.format(
-			"YYYYMMDD",
-		)}@chneau.github.io`;
+		const safeName = b.name.replace(/[^a-zA-Z0-9]/g, "_");
+		const uid = `${safeName}_${dtstart.format("YYYYMMDD")}@chneau.github.io`;
 
 		return [
 			"BEGIN:VEVENT",
 			`UID:${uid}`,
-			`DTSTAMP:${now.replace(/[-:]/g, "")}`,
+			`DTSTAMP:${dtstamp}`,
 			`DTSTART;VALUE=DATE:${dtstart.format("YYYYMMDD")}`,
 			`DTEND;VALUE=DATE:${dtend.format("YYYYMMDD")}`,
 			"RRULE:FREQ=YEARLY",
@@ -38,6 +39,7 @@ const generateICS = (birthdays: readonly Birthday[]) => {
 		"METHOD:PUBLISH",
 		...events,
 		"END:VCALENDAR",
+		"",
 	].join("\r\n");
 };
 
