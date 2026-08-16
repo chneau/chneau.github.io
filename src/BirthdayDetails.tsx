@@ -1,4 +1,5 @@
 import { Alert, Button, Divider, Tag, Tooltip, Typography } from "antd";
+import dayjs from "dayjs";
 import html2canvas from "html2canvas";
 import { useTranslation } from "react-i18next";
 import { BiorhythmsChart } from "./BiorhythmsChart";
@@ -23,7 +24,7 @@ const getCompatibleElements = (element: Element): Element[] => {
 };
 
 export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
 	const sameBirthday = birthdays.filter(
 		(b) =>
 			b.name !== record.name &&
@@ -77,9 +78,9 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 					📜 {record.year}
 				</a>
 				<a
-					href={`https://en.wikipedia.org/wiki/${t(
-						`data.months.${record.monthName}`,
-					)}_${record.day}`}
+					href={`https://en.wikipedia.org/wiki/${dayjs(record.birthday)
+						.locale("en")
+						.format("MMMM")}_${record.day}`}
 					target="_blank"
 					rel="noreferrer"
 					style={{ fontSize: "12px" }}
@@ -97,8 +98,11 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 						.split(" & ")
 						.map((n) => {
 							const key = `data.names.${n}`;
-							const ety = (t as (k: string) => string)(key);
-							return ety !== key
+							const hasKey = i18n.exists(key);
+							const ety = hasKey
+								? (i18n.t as unknown as (k: string) => string)(key)
+								: "";
+							return ety
 								? record.name.includes(" & ")
 									? `${n}: ${ety}`
 									: ety
