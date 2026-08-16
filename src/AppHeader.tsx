@@ -125,6 +125,7 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 				<Button
 					onClick={() => sendTestNotification()}
 					title={t("app.header.test_notification")}
+					aria-label={t("app.header.test_notification")}
 				>
 					🧪🔔
 				</Button>
@@ -134,6 +135,7 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 						triggerConfetti();
 					}}
 					title={t("app.header.simulate")}
+					aria-label={t("app.header.simulate")}
 				>
 					🧪🎂
 				</Button>
@@ -143,6 +145,7 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 						checkAndNotify(data);
 					}}
 					title={t("app.header.enable_notifications")}
+					aria-label={t("app.header.enable_notifications")}
 				>
 					🔔
 				</Button>
@@ -157,7 +160,7 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 					}}
 					trigger={["click"]}
 				>
-					<Button>
+					<Button aria-label="Change language">
 						{currentEmoji} {currentLang}
 					</Button>
 				</Dropdown>
@@ -165,6 +168,9 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 					onClick={() => {
 						store.darkMode = !store.darkMode;
 					}}
+					aria-label={
+						storeSnap.darkMode ? t("app.header.light") : t("app.header.dark")
+					}
 				>
 					{storeSnap.darkMode
 						? `☀️ ${t("app.header.light")}`
@@ -175,6 +181,7 @@ export const AppHeader = ({ data }: AppHeaderProps) => {
 					target="_blank"
 					rel="noreferrer"
 					title={t("app.header.github")}
+					aria-label={t("app.header.github")}
 				>
 					{t("app.header.github")} 🐙
 				</Button>

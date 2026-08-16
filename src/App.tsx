@@ -1,11 +1,10 @@
-import { ConfigProvider as ChartConfigProvider } from "@ant-design/charts";
 import { Card, ConfigProvider, Layout, Space, Tabs, theme } from "antd";
 import deDE from "antd/locale/de_DE";
 import enUS from "antd/locale/en_US";
 import esES from "antd/locale/es_ES";
 import frFR from "antd/locale/fr_FR";
 import zhCN from "antd/locale/zh_CN";
-import { useEffect, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { AppFooter } from "./AppFooter";
@@ -20,10 +19,13 @@ import { FilterButtons, FilterSearch } from "./Filter";
 import { MilestonesWidget } from "./MilestonesWidget";
 import { checkAndNotify } from "./notifications";
 import { RecordsWidget } from "./RecordsWidget";
-import { Statistics } from "./Statistics";
 import { dataStore, store } from "./store";
 import { TimelineView } from "./TimelineView";
 import { WeatherTab } from "./WeatherTab";
+
+const Statistics = lazy(() =>
+	import("./Statistics").then((m) => ({ default: m.Statistics })),
+);
 
 export const App = () => {
 	const dataSnap = useSnapshot(dataStore);
@@ -65,82 +67,82 @@ export const App = () => {
 					: theme.defaultAlgorithm,
 			}}
 		>
-			<ChartConfigProvider
-				common={{ theme: storeSnap.darkMode ? "dark" : "light" }}
-			>
-				<style>
-					{`
-					.birthday-today-row {
-						background-color: rgba(255, 77, 79, 0.15) !important;
-						font-weight: bold;
-					}
-					.birthday-today-row:hover > td {
-						background-color: rgba(255, 77, 79, 0.25) !important;
-					}
-				`}
-				</style>
-				<Layout style={{ minHeight: "100vh" }}>
-					<AppHeader data={data} />
-					<Layout.Content style={{ padding: 16, minHeight: "100vh" }}>
-						<div style={{ minHeight: nextBirthdays.length > 0 ? 120 : 0 }}>
-							{nextBirthdays.length > 0 && (
-								<Countdown birthdays={nextBirthdays} />
-							)}
-						</div>
-						<Card
-							title={t("app.birthdays")}
-							size="small"
-							style={{ minHeight: 600 }}
+			<style>
+				{`
+				.birthday-today-row {
+					background-color: rgba(255, 77, 79, 0.15) !important;
+					font-weight: bold;
+				}
+				.birthday-today-row:hover > td {
+					background-color: rgba(255, 77, 79, 0.25) !important;
+				}
+			`}
+			</style>
+			<Layout style={{ minHeight: "100vh" }}>
+				<AppHeader data={data} />
+				<Layout.Content style={{ padding: 16, minHeight: "100vh" }}>
+					<div style={{ minHeight: nextBirthdays.length > 0 ? 120 : 0 }}>
+						{nextBirthdays.length > 0 && (
+							<Countdown birthdays={nextBirthdays} />
+						)}
+					</div>
+					<Card
+						title={t("app.birthdays")}
+						size="small"
+						style={{ minHeight: 600 }}
+					>
+						<Space
+							orientation="vertical"
+							style={{ width: "100%", marginBottom: 16 }}
+							size="middle"
 						>
 							<Space
-								orientation="vertical"
-								style={{ width: "100%", marginBottom: 16 }}
-								size="middle"
+								wrap
+								style={{ justifyContent: "space-between", width: "100%" }}
 							>
-								<Space
-									wrap
-									style={{ justifyContent: "space-between", width: "100%" }}
-								>
-									<Space wrap>
-										<CalendarActions />
-									</Space>
-									<FilterButtons />
+								<Space wrap>
+									<CalendarActions />
 								</Space>
-								<FilterSearch style={{ width: "100%" }} />
+								<FilterButtons />
 							</Space>
-							<Tabs
-								defaultActiveKey="table"
-								items={[
-									{
-										key: "table",
-										label: t("app.table.title"),
-										children: <BirthdayTable data={data} />,
-									},
-									{
-										key: "timeline",
-										label: t("app.timeline.title"),
-										children: <TimelineView data={data} />,
-									},
-									{
-										key: "compatibility",
-										label: t("app.compatibility.title"),
-										children: <CompatibilityMatrix data={data} />,
-									},
-									{
-										key: "weather",
-										label: t("app.weather.title"),
-										children: <WeatherTab />,
-									},
-								]}
-							/>
-						</Card>
-						<MilestonesWidget />
-						<RecordsWidget data={data} />
+							<FilterSearch style={{ width: "100%" }} />
+						</Space>
+						<Tabs
+							defaultActiveKey="table"
+							items={[
+								{
+									key: "table",
+									label: t("app.table.title"),
+									children: <BirthdayTable data={data} />,
+								},
+								{
+									key: "timeline",
+									label: t("app.timeline.title"),
+									children: <TimelineView data={data} />,
+								},
+								{
+									key: "compatibility",
+									label: t("app.compatibility.title"),
+									children: <CompatibilityMatrix data={data} />,
+								},
+								{
+									key: "weather",
+									label: t("app.weather.title"),
+									children: <WeatherTab />,
+								},
+							]}
+						/>
+					</Card>
+					<MilestonesWidget />
+					<RecordsWidget data={data} />
+					<Suspense
+						fallback={<Card size="small" style={{ marginTop: 16 }} loading />}
+					>
 						<Statistics />
-					</Layout.Content>
-					<AppFooter />
-				</Layout>
-			</ChartConfigProvider>
+					</Suspense>
+				</Layout.Content>
+				<AppFooter />
+			</Layout>
 		</ConfigProvider>
 	);
 };
