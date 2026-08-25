@@ -27,7 +27,7 @@
 		"html2canvas": "^1.4.1",
 		"i18next": "^26.4.0",
 		"i18next-browser-languagedetector": "^8.2.1",
-		"posthog-js": "^1.419.3",
+		"posthog-js": "^1.419.4",
 		"react": "^19.2.8",
 		"react-dom": "^19.2.8",
 		"react-i18next": "^17.0.12",
