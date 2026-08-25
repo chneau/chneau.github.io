@@ -8,7 +8,7 @@ import {
 	Typography,
 	theme,
 } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controls } from "./components/Controls";
 import { ReplayCanvas } from "./components/ReplayCanvas";
 import { ServiceDetails } from "./components/ServiceDetails";
@@ -39,6 +39,10 @@ export const App = () => {
 		null,
 	);
 	const [hoveredServiceId, setHoveredServiceId] = useState<string | null>(null);
+	const [searchQuery, setSearchQuery] = useState<string>("");
+	const [selectedCategory, setSelectedCategory] = useState<Category | "all">(
+		"all",
+	);
 	const [isInfoOpen, setIsInfoOpen] = useState<boolean>(false);
 	const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 	const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
@@ -47,6 +51,11 @@ export const App = () => {
 		key: K,
 		value: AppSettings[K],
 	) => {
+		if (key === "soundEffects" && value) {
+			import("./engine/audio").then(({ railAudio }) => {
+				railAudio.unlockAudio();
+			});
+		}
 		setSettings((prev) => ({ ...prev, [key]: value }));
 	};
 
@@ -91,17 +100,40 @@ export const App = () => {
 		return () => cancelAnimationFrame(animId);
 	}, [isPlaying, speed]);
 
+	// Filter services by search query and category
+	const filteredServices = useMemo(() => {
+		let result = services;
+		if (selectedCategory !== "all") {
+			result = result.filter((s) => s.category === selectedCategory);
+		}
+		if (searchQuery.trim()) {
+			const q = searchQuery.toLowerCase().trim();
+			result = result.filter((s) => {
+				return (
+					s.name.toLowerCase().includes(q) ||
+					s.serviceNumber.toLowerCase().includes(q) ||
+					s.operator.toLowerCase().includes(q) ||
+					s.calls.some((c) => {
+						const stName = stationNamesById.get(c.stationId)?.toLowerCase();
+						return stName?.includes(q) || c.stationId.toLowerCase().includes(q);
+					})
+				);
+			});
+		}
+		return result;
+	}, [services, selectedCategory, searchQuery, stationNamesById]);
+
 	// Compute active trains for current time offset
 	const activeTrains: ActiveTrainState[] = useMemo(() => {
 		const result: ActiveTrainState[] = [];
-		for (const service of services) {
+		for (const service of filteredServices) {
 			const state = resolveServiceAtTime(service, timeOffset, stationNamesById);
 			if (state) {
 				result.push(state);
 			}
 		}
 		return result;
-	}, [services, timeOffset, stationNamesById]);
+	}, [filteredServices, timeOffset, stationNamesById]);
 
 	// Audio synthesizer management
 	useEffect(() => {
@@ -116,6 +148,21 @@ export const App = () => {
 			});
 		}
 	}, [settings.soundEffects, isPlaying, activeTrains.length]);
+
+	// Trigger station arrival chime when selected train arrives at a station
+	const prevSelectedDwellingRef = useRef<boolean>(false);
+	useEffect(() => {
+		if (!selectedService || !settings.soundEffects) return;
+		const activeSelected = activeTrains.find(
+			(t) => t.service.id === selectedService.id,
+		);
+		if (activeSelected?.isDwelling && !prevSelectedDwellingRef.current) {
+			import("./engine/audio").then(({ railAudio }) => {
+				railAudio.playArrivalChime();
+			});
+		}
+		prevSelectedDwellingRef.current = !!activeSelected?.isDwelling;
+	}, [activeTrains, selectedService, settings.soundEffects]);
 
 	// Aggregate counts by category
 	const activeCountsByCategory = useMemo(() => {
@@ -434,6 +481,10 @@ export const App = () => {
 					viewPreset={viewPreset}
 					activeCountsByCategory={activeCountsByCategory}
 					totalActive={activeTrains.length}
+					searchQuery={searchQuery}
+					onSearchChange={setSearchQuery}
+					selectedCategory={selectedCategory}
+					onSelectCategory={setSelectedCategory}
 					onTogglePlay={() => setIsPlaying(!isPlaying)}
 					onRestart={() => setTimeOffset(300)}
 					onSeek={(val) => setTimeOffset(val)}

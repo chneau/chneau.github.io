@@ -24,6 +24,10 @@ type ControlsProps = {
 	viewPreset: ViewPreset;
 	activeCountsByCategory: Record<Category, number>;
 	totalActive: number;
+	searchQuery: string;
+	onSearchChange: (query: string) => void;
+	selectedCategory: Category | "all";
+	onSelectCategory: (category: Category | "all") => void;
 	onTogglePlay: () => void;
 	onRestart: () => void;
 	onSeek: (offset: number) => void;
@@ -44,6 +48,10 @@ export const Controls = ({
 	viewPreset,
 	activeCountsByCategory,
 	totalActive,
+	searchQuery,
+	onSearchChange,
+	selectedCategory,
+	onSelectCategory,
 	onTogglePlay,
 	onRestart,
 	onSeek,
@@ -99,25 +107,39 @@ export const Controls = ({
 						</Title>
 						<Tag
 							color="#1677ff"
-							style={{ fontSize: "0.85rem", padding: "2px 8px" }}
+							style={{
+								fontSize: "0.85rem",
+								padding: "2px 8px",
+								cursor: "pointer",
+							}}
+							onClick={() => onSelectCategory("all")}
 						>
 							{totalActive} Active Trains
 						</Tag>
 					</Space>
 
-					{/* Category Breakdown */}
+					{/* Category Breakdown & Filter */}
 					<Space size={4} wrap>
 						{(Object.keys(CATEGORIES) as Category[]).map((cat) => {
 							const cfg = CATEGORIES[cat];
 							const count = activeCountsByCategory[cat] || 0;
+							const isCatSelected = selectedCategory === cat;
 							return (
 								<Tag
 									key={cat}
+									onClick={() => onSelectCategory(isCatSelected ? "all" : cat)}
 									style={{
-										background: "rgba(255,255,255,0.05)",
+										background: isCatSelected
+											? `${cfg.color}33`
+											: "rgba(255,255,255,0.05)",
 										border: `1px solid ${cfg.color}`,
 										color: "#edf3f5",
 										fontSize: "0.75rem",
+										cursor: "pointer",
+										transition: "all 0.2s",
+										boxShadow: isCatSelected
+											? `0 0 8px ${cfg.color}66`
+											: "none",
 									}}
 								>
 									<span style={{ color: cfg.color, fontWeight: "bold" }}>
@@ -129,17 +151,35 @@ export const Controls = ({
 						})}
 					</Space>
 
-					{/* View Selector */}
-					<Radio.Group
-						value={viewPreset}
-						onChange={(e) => onChangeView(e.target.value)}
-						size="small"
-						buttonStyle="solid"
-					>
-						<Radio.Button value="scotland">All Scotland</Radio.Button>
-						<Radio.Button value="central-belt">Central Belt</Radio.Button>
-						<Radio.Button value="highlands">Highlands</Radio.Button>
-					</Radio.Group>
+					{/* Search and View Selector */}
+					<Space size="small" wrap>
+						<input
+							type="text"
+							placeholder="🔍 Search service/station..."
+							value={searchQuery}
+							onChange={(e) => onSearchChange(e.target.value)}
+							style={{
+								background: "rgba(255, 255, 255, 0.08)",
+								border: "1px solid rgba(217, 226, 230, 0.3)",
+								borderRadius: 6,
+								padding: "4px 8px",
+								color: "#edf3f5",
+								fontSize: "0.78rem",
+								outline: "none",
+								width: 180,
+							}}
+						/>
+						<Radio.Group
+							value={viewPreset}
+							onChange={(e) => onChangeView(e.target.value)}
+							size="small"
+							buttonStyle="solid"
+						>
+							<Radio.Button value="scotland">All Scotland</Radio.Button>
+							<Radio.Button value="central-belt">Central Belt</Radio.Button>
+							<Radio.Button value="highlands">Highlands</Radio.Button>
+						</Radio.Group>
+					</Space>
 				</div>
 
 				{/* Timeline Scrubber */}

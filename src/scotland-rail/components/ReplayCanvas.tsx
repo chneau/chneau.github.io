@@ -155,14 +155,42 @@ export const ReplayCanvas = ({
 		zoom,
 	]);
 
-	// Cache static layer whenever viewPreset, zoom, pan, settings, or time of day changes
+	// Quantize time offset to 2-minute increments for static layer (day/night sky/lights) to avoid invalidating static layer every frame
+	const quantizedTime = Math.floor(timeOffset / 2) * 2;
+
+	// Dimensions via ResizeObserver
+	const [dimensions, setDimensions] = useState<{
+		width: number;
+		height: number;
+	}>({
+		width: 800,
+		height: 600,
+	});
+
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 
-		const rect = canvas.getBoundingClientRect();
-		const width = rect.width || 800;
-		const height = rect.height || 600;
+		const ro = new ResizeObserver((entries) => {
+			for (const entry of entries) {
+				const cr = entry.contentRect;
+				if (cr.width > 0 && cr.height > 0) {
+					setDimensions({ width: cr.width, height: cr.height });
+				}
+			}
+		});
+
+		ro.observe(canvas);
+		return () => ro.disconnect();
+	}, []);
+
+	// Cache static layer whenever viewPreset, zoom, pan, settings, or quantized time of day changes
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+
+		const width = dimensions.width;
+		const height = dimensions.height;
 		const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
 		canvas.width = width * dpr;
@@ -181,7 +209,7 @@ export const ReplayCanvas = ({
 		sCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 		sCtx.clearRect(0, 0, width, height);
 
-		const atmo = getDayNightAtmosphere(timeOffset, settings.dayNightCycle);
+		const atmo = getDayNightAtmosphere(quantizedTime, settings.dayNightCycle);
 
 		// Background
 		sCtx.fillStyle = atmo.bgColor;
@@ -353,7 +381,7 @@ export const ReplayCanvas = ({
 				sCtx.shadowBlur = 0;
 			}
 		}
-	}, [viewPreset, zoom, pan, timeOffset, settings]);
+	}, [viewPreset, zoom, pan, quantizedTime, settings, dimensions]);
 
 	// Render dynamic frame (Trains, Trails, Weather, Selected Route)
 	useEffect(() => {
@@ -569,6 +597,57 @@ export const ReplayCanvas = ({
 		isDraggingRef.current = false;
 	};
 
+	// Touch Support (Drag & Pinch Zoom)
+	const touchStartDistRef = useRef<number | null>(null);
+	const initialTouchZoomRef = useRef<number>(1);
+
+	const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+		if (e.touches.length === 1 && e.touches[0]) {
+			isDraggingRef.current = true;
+			lastMousePosRef.current = {
+				x: e.touches[0].clientX,
+				y: e.touches[0].clientY,
+			};
+		} else if (e.touches.length === 2 && e.touches[0] && e.touches[1]) {
+			isDraggingRef.current = false;
+			const dist = Math.hypot(
+				e.touches[0].clientX - e.touches[1].clientX,
+				e.touches[0].clientY - e.touches[1].clientY,
+			);
+			touchStartDistRef.current = dist;
+			initialTouchZoomRef.current = zoom;
+		}
+	};
+
+	const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+		if (e.touches.length === 1 && isDraggingRef.current && e.touches[0]) {
+			const dx = e.touches[0].clientX - lastMousePosRef.current.x;
+			const dy = e.touches[0].clientY - lastMousePosRef.current.y;
+			lastMousePosRef.current = {
+				x: e.touches[0].clientX,
+				y: e.touches[0].clientY,
+			};
+			setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+		} else if (
+			e.touches.length === 2 &&
+			touchStartDistRef.current &&
+			e.touches[0] &&
+			e.touches[1]
+		) {
+			const dist = Math.hypot(
+				e.touches[0].clientX - e.touches[1].clientX,
+				e.touches[0].clientY - e.touches[1].clientY,
+			);
+			const factor = dist / touchStartDistRef.current;
+			setZoom(Math.min(8, Math.max(0.6, initialTouchZoomRef.current * factor)));
+		}
+	};
+
+	const handleTouchEnd = () => {
+		isDraggingRef.current = false;
+		touchStartDistRef.current = null;
+	};
+
 	// Mouse Interaction & Hover Tooltip
 	const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(
 		null,
@@ -595,12 +674,15 @@ export const ReplayCanvas = ({
 			pan,
 		);
 
-		// Find nearest active train
+		// Find nearest active train with bounding box pre-filter
 		let closestId: string | null = null;
 		let minDist = 18;
 
 		for (const train of activeTrains) {
 			const { x, y } = proj.project(train.position);
+			if (Math.abs(x - mouseX) > minDist || Math.abs(y - mouseY) > minDist) {
+				continue;
+			}
 			const dist = Math.hypot(x - mouseX, y - mouseY);
 			if (dist < minDist) {
 				minDist = dist;
@@ -640,6 +722,9 @@ export const ReplayCanvas = ({
 
 		for (const train of activeTrains) {
 			const { x, y } = proj.project(train.position);
+			if (Math.abs(x - mouseX) > minDist || Math.abs(y - mouseY) > minDist) {
+				continue;
+			}
 			const dist = Math.hypot(x - mouseX, y - mouseY);
 			if (dist < minDist) {
 				minDist = dist;
@@ -648,6 +733,11 @@ export const ReplayCanvas = ({
 		}
 
 		onSelectService(closestService);
+	};
+
+	const handleResetView = () => {
+		setZoom(1);
+		setPan({ x: 0, y: 0 });
 	};
 
 	return (
@@ -665,6 +755,9 @@ export const ReplayCanvas = ({
 				onMouseDown={handleMouseDown}
 				onMouseMove={handleMouseMove}
 				onMouseUp={handleMouseUp}
+				onTouchStart={handleTouchStart}
+				onTouchMove={handleTouchMove}
+				onTouchEnd={handleTouchEnd}
 				onPointerMove={handlePointerMove}
 				onPointerLeave={() => {
 					isDraggingRef.current = false;
@@ -679,6 +772,32 @@ export const ReplayCanvas = ({
 					cursor: hoveredServiceId ? "pointer" : "grab",
 				}}
 			/>
+
+			{/* Floating Reset View / Center Button */}
+			{(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
+				<button
+					type="button"
+					onClick={handleResetView}
+					style={{
+						position: "absolute",
+						bottom: 96,
+						right: 20,
+						zIndex: 15,
+						background: "rgba(7, 19, 27, 0.88)",
+						backdropFilter: "blur(8px)",
+						border: "1px solid rgba(89, 215, 255, 0.4)",
+						borderRadius: 8,
+						color: "#59d7ff",
+						padding: "6px 12px",
+						fontSize: "0.8rem",
+						fontWeight: 600,
+						cursor: "pointer",
+						boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+					}}
+				>
+					🎯 Reset Map Center
+				</button>
+			)}
 
 			{/* Floating Hover HUD Tooltip */}
 			{hoveredTrain && hoverPos && (

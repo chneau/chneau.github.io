@@ -27,6 +27,31 @@ const distanceKm = (c1: Coordinate, c2: Coordinate): number => {
 	return R * c;
 };
 
+// Cumulative distance lookup cache for polyline coordinates to prevent reallocations on every frame
+const polylineDistanceCache = new WeakMap<
+	Coordinate[],
+	{ cumulative: number[]; total: number }
+>();
+
+const getPolylineDistances = (
+	coords: Coordinate[],
+): { cumulative: number[]; total: number } => {
+	const cached = polylineDistanceCache.get(coords);
+	if (cached) return cached;
+
+	const cumulative: number[] = [0];
+	for (let i = 1; i < coords.length; i++) {
+		const c1 = coords[i - 1] as Coordinate;
+		const c2 = coords[i] as Coordinate;
+		const prev = cumulative[i - 1] ?? 0;
+		cumulative.push(prev + distanceKm(c1, c2));
+	}
+	const total = cumulative[cumulative.length - 1] ?? 0;
+	const result = { cumulative, total };
+	polylineDistanceCache.set(coords, result);
+	return result;
+};
+
 // Interpolate along a polyline
 const interpolatePolyline = (
 	coords: Coordinate[],
@@ -44,15 +69,7 @@ const interpolatePolyline = (
 		return { pos, prev, heading };
 	}
 
-	// Calculate cumulative distances
-	const dists: number[] = [0];
-	for (let i = 1; i < coords.length; i++) {
-		const c1 = coords[i - 1] as Coordinate;
-		const c2 = coords[i] as Coordinate;
-		const prevDist = dists[i - 1] ?? 0;
-		dists.push(prevDist + distanceKm(c1, c2));
-	}
-	const totalDist = dists[dists.length - 1] ?? 0;
+	const { cumulative: dists, total: totalDist } = getPolylineDistances(coords);
 	if (totalDist === 0) {
 		return { pos: coords[0] as Coordinate, prev: null, heading: 0 };
 	}
