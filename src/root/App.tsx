@@ -13,6 +13,8 @@ import { useEffect, useState } from "react";
 const { Header, Content, Footer } = Layout;
 const { Title, Paragraph, Text } = Typography;
 
+declare const BUILD_DATE: string;
+
 export const App = () => {
 	const [darkMode, setDarkMode] = useState<boolean>(() => {
 		if (typeof localStorage !== "undefined") {
@@ -218,9 +220,13 @@ export const App = () => {
 						textAlign: "center",
 						color: darkMode ? "#8ca0aa" : "#8c8c8c",
 						background: "transparent",
+						fontSize: "0.8rem",
 					}}
 				>
-					chneau © {new Date().getFullYear()}
+					chneau © {new Date().getFullYear()}{" "}
+					<span style={{ opacity: 0.6, fontSize: "0.75rem", marginLeft: 6 }}>
+						({BUILD_DATE})
+					</span>
 				</Footer>
 			</Layout>
 		</ConfigProvider>
