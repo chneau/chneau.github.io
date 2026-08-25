@@ -1,16 +1,11 @@
 import { CloseOutlined } from "@ant-design/icons";
 import { Button, Card, Divider, Space, Steps, Tag, Typography } from "antd";
+import { useSnapshot } from "valtio";
 import { STATIONS_BY_ID } from "../data/geography";
-import { CATEGORIES, type TrainService } from "../data/types";
-import type { ActiveTrainState } from "../engine/interpolator";
+import { CATEGORIES } from "../data/types";
+import { derivedStore, railActions, railStore } from "../store";
 
 const { Title, Text } = Typography;
-
-type ServiceDetailsProps = {
-	service: TrainService;
-	activeState?: ActiveTrainState | null;
-	onClose: () => void;
-};
 
 const formatTime = (minutes: number | null): string => {
 	if (minutes === null) return "—";
@@ -19,12 +14,17 @@ const formatTime = (minutes: number | null): string => {
 	return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 };
 
-export const ServiceDetails = ({
-	service,
-	activeState,
-	onClose,
-}: ServiceDetailsProps) => {
-	const catConfig = CATEGORIES[service.category];
+export const ServiceDetails = () => {
+	const snap = useSnapshot(railStore);
+	const derivedSnap = useSnapshot(derivedStore);
+	const { selectedService } = snap;
+	const { activeTrains } = derivedSnap;
+
+	if (!selectedService) return null;
+
+	const catConfig = CATEGORIES[selectedService.category];
+	const activeState =
+		activeTrains.find((t) => t.service.id === selectedService.id) || null;
 
 	return (
 		<Card
@@ -58,7 +58,7 @@ export const ServiceDetails = ({
 							color={catConfig.color}
 							style={{ color: "#07131b", fontWeight: "bold" }}
 						>
-							{service.serviceNumber}
+							{selectedService.serviceNumber}
 						</Tag>
 						<Tag
 							style={{
@@ -68,7 +68,7 @@ export const ServiceDetails = ({
 								fontWeight: 600,
 							}}
 						>
-							🏢 {service.operator}
+							🏢 {selectedService.operator}
 						</Tag>
 						<Tag
 							style={{
@@ -81,14 +81,16 @@ export const ServiceDetails = ({
 						</Tag>
 					</Space>
 					<Title level={4} style={{ color: "#edf3f5", margin: "8px 0 2px 0" }}>
-						{service.name}
+						{selectedService.name}
 					</Title>
-					{service.rollingStock && (
+					{selectedService.rollingStock && (
 						<Text
 							style={{ color: "#8ca0aa", fontSize: "0.8rem", display: "block" }}
 						>
 							🚆 Model:{" "}
-							<span style={{ color: "#d9e2e6" }}>{service.rollingStock}</span>
+							<span style={{ color: "#d9e2e6" }}>
+								{selectedService.rollingStock}
+							</span>
 						</Text>
 					)}
 				</div>
@@ -96,7 +98,7 @@ export const ServiceDetails = ({
 					type="text"
 					size="small"
 					icon={<CloseOutlined style={{ color: "#edf3f5" }} />}
-					onClick={onClose}
+					onClick={() => railActions.setSelectedService(null)}
 				/>
 			</div>
 
@@ -132,7 +134,7 @@ export const ServiceDetails = ({
 					textTransform: "uppercase",
 				}}
 			>
-				Scheduled Calling Points
+				Scheduled Calling Points (Click to Jump)
 			</Text>
 
 			<div style={{ marginTop: 12 }}>
@@ -140,33 +142,71 @@ export const ServiceDetails = ({
 					direction="vertical"
 					size="small"
 					current={activeState?.currentSegmentIndex ?? -1}
-					items={service.calls.map((call, idx) => {
+					items={selectedService.calls.map((call, idx) => {
 						const st = STATIONS_BY_ID.get(call.stationId);
-						const timeStr =
+						const targetTime =
 							call.departureOffset !== null
-								? formatTime(call.departureOffset)
-								: formatTime(call.arrivalOffset);
+								? call.departureOffset
+								: call.arrivalOffset;
+						const timeStr = formatTime(targetTime);
 
 						return {
 							title: (
-								<div
-									style={{ display: "flex", justifyContent: "space-between" }}
+								<button
+									type="button"
+									onClick={() => {
+										if (targetTime !== null) {
+											railActions.setTimeOffset(targetTime);
+										}
+									}}
+									style={{
+										display: "flex",
+										justifyContent: "space-between",
+										alignItems: "center",
+										cursor: "pointer",
+										padding: "2px 4px",
+										borderRadius: 4,
+										width: "100%",
+										background: "transparent",
+										border: "none",
+										textAlign: "left",
+										transition: "background 0.2s",
+									}}
+									onMouseEnter={(e) => {
+										e.currentTarget.style.background =
+											"rgba(255, 255, 255, 0.08)";
+									}}
+									onMouseLeave={(e) => {
+										e.currentTarget.style.background = "transparent";
+									}}
 								>
-									<span style={{ color: "#edf3f5", fontWeight: 500 }}>
+									<span
+										style={{
+											color: "#edf3f5",
+											fontWeight: 500,
+										}}
+									>
 										{st?.name || call.stationId}
 									</span>
 									<span
-										style={{ color: catConfig.color, fontFamily: "monospace" }}
+										style={{
+											color: catConfig.color,
+											fontFamily: "monospace",
+											background: "rgba(255, 255, 255, 0.06)",
+											padding: "1px 6px",
+											borderRadius: 4,
+											fontSize: "0.8rem",
+										}}
 									>
-										{timeStr}
+										⏱️ {timeStr}
 									</span>
-								</div>
+								</button>
 							),
 							description: (
 								<Text style={{ color: "#8ca0aa", fontSize: "0.75rem" }}>
 									{idx === 0
 										? "Origin Departure"
-										: idx === service.calls.length - 1
+										: idx === selectedService.calls.length - 1
 											? "Destination Terminus"
 											: "Calling Point"}
 								</Text>

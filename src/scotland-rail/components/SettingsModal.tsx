@@ -1,27 +1,27 @@
 import { SettingOutlined } from "@ant-design/icons";
 import { Button, Divider, Drawer, Space, Switch, Typography } from "antd";
+import { useSnapshot } from "valtio";
 import type { AppSettings } from "../data/types";
+import { railActions, railStore } from "../store";
 
 const { Text } = Typography;
 
-type SettingsModalProps = {
-	open: boolean;
-	settings: AppSettings;
-	onClose: () => void;
-	onChangeSetting: <K extends keyof AppSettings>(
-		key: K,
-		value: AppSettings[K],
-	) => void;
-	onResetSettings: () => void;
-};
+export const SettingsModal = () => {
+	const snap = useSnapshot(railStore);
+	const { isSettingsOpen, settings } = snap;
 
-export const SettingsModal = ({
-	open,
-	settings,
-	onClose,
-	onChangeSetting,
-	onResetSettings,
-}: SettingsModalProps) => {
+	const handleSettingToggle = <K extends keyof AppSettings>(
+		key: K,
+		val: AppSettings[K],
+	) => {
+		if (key === "soundEffects" && val) {
+			import("../engine/audio").then(({ railAudio }) => {
+				railAudio.unlockAudio();
+			});
+		}
+		railActions.updateSetting(key, val);
+	};
+
 	return (
 		<Drawer
 			title={
@@ -31,8 +31,8 @@ export const SettingsModal = ({
 				</Space>
 			}
 			placement="right"
-			onClose={onClose}
-			open={open}
+			onClose={() => railActions.setIsSettingsOpen(false)}
+			open={isSettingsOpen}
 			styles={{
 				body: {
 					background: "#0d222f",
@@ -68,7 +68,7 @@ export const SettingsModal = ({
 					</div>
 					<Switch
 						checked={settings.dayNightCycle}
-						onChange={(val) => onChangeSetting("dayNightCycle", val)}
+						onChange={(val) => handleSettingToggle("dayNightCycle", val)}
 					/>
 				</div>
 
@@ -94,7 +94,7 @@ export const SettingsModal = ({
 					</div>
 					<Switch
 						checked={settings.trainHeadlights}
-						onChange={(val) => onChangeSetting("trainHeadlights", val)}
+						onChange={(val) => handleSettingToggle("trainHeadlights", val)}
 					/>
 				</div>
 
@@ -123,7 +123,7 @@ export const SettingsModal = ({
 					</div>
 					<Switch
 						checked={settings.showLochs}
-						onChange={(val) => onChangeSetting("showLochs", val)}
+						onChange={(val) => handleSettingToggle("showLochs", val)}
 					/>
 				</div>
 
@@ -149,7 +149,7 @@ export const SettingsModal = ({
 					</div>
 					<Switch
 						checked={settings.showLandmarks}
-						onChange={(val) => onChangeSetting("showLandmarks", val)}
+						onChange={(val) => handleSettingToggle("showLandmarks", val)}
 					/>
 				</div>
 
@@ -175,7 +175,7 @@ export const SettingsModal = ({
 					</div>
 					<Switch
 						checked={settings.cityLights}
-						onChange={(val) => onChangeSetting("cityLights", val)}
+						onChange={(val) => handleSettingToggle("cityLights", val)}
 					/>
 				</div>
 
@@ -200,7 +200,7 @@ export const SettingsModal = ({
 					</div>
 					<Switch
 						checked={settings.weatherEffects}
-						onChange={(val) => onChangeSetting("weatherEffects", val)}
+						onChange={(val) => handleSettingToggle("weatherEffects", val)}
 					/>
 				</div>
 
@@ -230,7 +230,7 @@ export const SettingsModal = ({
 					</div>
 					<Switch
 						checked={settings.congestionHeatmap}
-						onChange={(val) => onChangeSetting("congestionHeatmap", val)}
+						onChange={(val) => handleSettingToggle("congestionHeatmap", val)}
 					/>
 				</div>
 
@@ -255,7 +255,7 @@ export const SettingsModal = ({
 					</div>
 					<Switch
 						checked={settings.cameraFollowTrain}
-						onChange={(val) => onChangeSetting("cameraFollowTrain", val)}
+						onChange={(val) => handleSettingToggle("cameraFollowTrain", val)}
 					/>
 				</div>
 
@@ -280,7 +280,7 @@ export const SettingsModal = ({
 					</div>
 					<Switch
 						checked={settings.soundEffects}
-						onChange={(val) => onChangeSetting("soundEffects", val)}
+						onChange={(val) => handleSettingToggle("soundEffects", val)}
 					/>
 				</div>
 
@@ -291,7 +291,7 @@ export const SettingsModal = ({
 				<Button
 					block
 					ghost
-					onClick={onResetSettings}
+					onClick={() => railActions.resetSettings()}
 					style={{ color: "#8ca0aa", borderColor: "rgba(255,255,255,0.2)" }}
 				>
 					Reset to Defaults

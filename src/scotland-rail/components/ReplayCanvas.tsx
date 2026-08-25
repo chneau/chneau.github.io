@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useSnapshot } from "valtio";
 import {
 	COASTLINES,
 	LANDMARKS,
@@ -6,27 +7,9 @@ import {
 	RAIL_PATHS,
 	STATIONS,
 } from "../data/geography";
-import {
-	type AppSettings,
-	CATEGORIES,
-	type TrainService,
-	VIEW_BOUNDS,
-	type ViewPreset,
-} from "../data/types";
-import type { ActiveTrainState } from "../engine/interpolator";
+import { CATEGORIES, type TrainService, VIEW_BOUNDS } from "../data/types";
 import { createProjection } from "../engine/projection";
-
-type ReplayCanvasProps = {
-	viewPreset: ViewPreset;
-	selectedServiceId: string | null;
-	hoveredServiceId: string | null;
-	timeOffset: number;
-	settings: AppSettings;
-	onSelectService: (service: TrainService | null) => void;
-	onHoverService: (serviceId: string | null) => void;
-	services: TrainService[];
-	activeTrains: ActiveTrainState[];
-};
+import { derivedStore, railActions, railStore } from "../store";
 
 // Calculate atmospheric day/night colors based on time offset (00:00 to 24:00)
 const getDayNightAtmosphere = (
@@ -51,12 +34,11 @@ const getDayNightAtmosphere = (
 
 	const hours = (timeOffset / 60) % 24;
 
-	// Sunrise: 05:30 - 08:30 (peak golden dawn at 06:30)
+	// Sunrise: 05:30 - 08:30
 	// Daytime: 08:30 - 18:00
-	// Sunset: 18:00 - 21:30 (twilight dusk)
+	// Sunset: 18:00 - 21:30
 	// Night: 21:30 - 05:30
 	if (hours >= 8.5 && hours <= 18) {
-		// Full day
 		return {
 			bgColor: "#091724",
 			landColor: "#0f2c3e",
@@ -66,7 +48,6 @@ const getDayNightAtmosphere = (
 		};
 	}
 	if (hours >= 5.5 && hours < 8.5) {
-		// Dawn / Sunrise transition
 		return {
 			bgColor: "#141525",
 			landColor: "#1d2538",
@@ -76,7 +57,6 @@ const getDayNightAtmosphere = (
 		};
 	}
 	if (hours > 18 && hours <= 21.5) {
-		// Sunset / Twilight transition
 		return {
 			bgColor: "#121422",
 			landColor: "#1b2033",
@@ -85,7 +65,6 @@ const getDayNightAtmosphere = (
 			lightFactor: 0.6,
 		};
 	}
-	// Deep Night
 	return {
 		bgColor: "#040b10",
 		landColor: "#081620",
@@ -95,17 +74,20 @@ const getDayNightAtmosphere = (
 	};
 };
 
-export const ReplayCanvas = ({
-	viewPreset,
-	selectedServiceId,
-	hoveredServiceId,
-	timeOffset,
-	settings,
-	onSelectService,
-	onHoverService,
-	services,
-	activeTrains,
-}: ReplayCanvasProps) => {
+export const ReplayCanvas = () => {
+	const snap = useSnapshot(railStore);
+	const derivedSnap = useSnapshot(derivedStore);
+
+	const {
+		viewPreset,
+		selectedService,
+		hoveredServiceId,
+		timeOffset,
+		settings,
+	} = snap;
+	const { filteredServices, activeTrains } = derivedSnap;
+	const selectedServiceId = selectedService?.id ?? null;
+
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const staticCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -155,7 +137,7 @@ export const ReplayCanvas = ({
 		zoom,
 	]);
 
-	// Quantize time offset to 2-minute increments for static layer (day/night sky/lights) to avoid invalidating static layer every frame
+	// Quantize time offset to 2-minute increments for static layer
 	const quantizedTime = Math.floor(timeOffset / 2) * 2;
 
 	// Dimensions via ResizeObserver
@@ -218,7 +200,7 @@ export const ReplayCanvas = ({
 		const bounds = VIEW_BOUNDS[viewPreset];
 		const proj = createProjection(bounds, width, height, 32, zoom, pan);
 
-		// 1. Coastlines (Land fill with subtle lighting & crisp boundary stroke)
+		// 1. Coastlines
 		sCtx.fillStyle = atmo.landColor;
 		sCtx.strokeStyle = atmo.coastColor;
 		sCtx.lineWidth = 1.6;
@@ -235,7 +217,7 @@ export const ReplayCanvas = ({
 			sCtx.stroke();
 		}
 
-		// 2. Scottish Lochs (Water bodies inside land)
+		// 2. Scottish Lochs
 		if (settings.showLochs) {
 			sCtx.fillStyle = atmo.bgColor;
 			sCtx.strokeStyle = atmo.coastColor;
@@ -264,8 +246,7 @@ export const ReplayCanvas = ({
 			}
 		}
 
-		// 3. Rail Paths (Two-layer track rendering: subtle background glow + crisp track line)
-		// Track glow/bed
+		// 3. Rail Paths
 		sCtx.strokeStyle = settings.congestionHeatmap
 			? "rgba(255, 100, 50, 0.35)"
 			: "#1b3342";
@@ -295,16 +276,24 @@ export const ReplayCanvas = ({
 			sCtx.stroke();
 		}
 
-		// 4. City Night Lights (Ambient urban glow in dark hours)
+		// 4. City Night Lights
 		if (settings.cityLights && atmo.isNight) {
 			const majorCities = [
-				{ name: "Glasgow", coord: [-4.258, 55.859] as [number, number], r: 35 },
+				{
+					name: "Glasgow",
+					coord: [-4.258, 55.859] as [number, number],
+					r: 35,
+				},
 				{
 					name: "Edinburgh",
 					coord: [-3.189, 55.952] as [number, number],
 					r: 30,
 				},
-				{ name: "Dundee", coord: [-2.973, 56.457] as [number, number], r: 18 },
+				{
+					name: "Dundee",
+					coord: [-2.973, 56.457] as [number, number],
+					r: 18,
+				},
 				{
 					name: "Aberdeen",
 					coord: [-2.098, 57.143] as [number, number],
@@ -329,7 +318,9 @@ export const ReplayCanvas = ({
 		if (settings.showLandmarks) {
 			for (const lm of LANDMARKS) {
 				const { x, y } = proj.project(lm.coordinate);
-				if (x < -20 || x > width + 20 || y < -20 || y > height + 20) continue;
+				if (x < -20 || x > width + 20 || y < -20 || y > height + 20) {
+					continue;
+				}
 
 				sCtx.font = "12px sans-serif";
 				sCtx.fillText(lm.icon, x - 6, y + 4);
@@ -348,7 +339,9 @@ export const ReplayCanvas = ({
 		// 6. Stations & Labels
 		for (const st of STATIONS) {
 			const { x, y } = proj.project(st.coordinate);
-			if (x < -30 || x > width + 30 || y < -30 || y > height + 30) continue;
+			if (x < -30 || x > width + 30 || y < -30 || y > height + 30) {
+				continue;
+			}
 
 			// Station Halo
 			if (st.isMajor) {
@@ -374,7 +367,6 @@ export const ReplayCanvas = ({
 					: "500 9.5px system-ui, -apple-system, sans-serif";
 				sCtx.fillStyle = st.isMajor ? "#edf3f5" : "#a8b5bc";
 
-				// Shadow for readability
 				sCtx.shadowColor = "rgba(7, 19, 27, 0.9)";
 				sCtx.shadowBlur = 4;
 				sCtx.fillText(st.name, x + 6, y + 3.5);
@@ -383,7 +375,7 @@ export const ReplayCanvas = ({
 		}
 	}, [viewPreset, zoom, pan, quantizedTime, settings, dimensions]);
 
-	// Render dynamic frame (Trains, Trails, Weather, Selected Route)
+	// Render dynamic frame
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		const staticCanvas = staticCanvasRef.current;
@@ -424,15 +416,17 @@ export const ReplayCanvas = ({
 
 		// 2. Draw Selected Service Full Route
 		if (selectedServiceId) {
-			const selectedService = services.find((s) => s.id === selectedServiceId);
-			if (selectedService) {
-				const catConfig = CATEGORIES[selectedService.category];
+			const activeSelected = filteredServices.find(
+				(s) => s.id === selectedServiceId,
+			);
+			if (activeSelected) {
+				const catConfig = CATEGORIES[activeSelected.category];
 				ctx.save();
 				ctx.strokeStyle = catConfig.color;
 				ctx.lineWidth = 3.5;
 				ctx.globalAlpha = 0.9;
 				ctx.beginPath();
-				selectedService.pathCoordinates.forEach((pt, i) => {
+				activeSelected.pathCoordinates.forEach((pt, i) => {
 					const { x, y } = proj.project(pt);
 					if (i === 0) ctx.moveTo(x, y);
 					else ctx.lineTo(x, y);
@@ -466,7 +460,7 @@ export const ReplayCanvas = ({
 				ctx.restore();
 			}
 
-			// Headlight beam (Night & Dusk effect)
+			// Headlight beam
 			const atmo = getDayNightAtmosphere(timeOffset, settings.dayNightCycle);
 			if (
 				settings.trainHeadlights &&
@@ -502,20 +496,18 @@ export const ReplayCanvas = ({
 
 			const size = isSelected || isHovered ? 6.5 : 4.5;
 
-			// Draw Station Dwelling / Stopped Train Visual Effect (Expanding Pulse Rings)
+			// Draw Station Dwelling / Stopped Train Visual Effect
 			if (train.isDwelling) {
 				const nowMs = performance.now();
-				const pulse1 = (nowMs % 1600) / 1600; // 0..1
-				const pulse2 = ((nowMs + 800) % 1600) / 1600; // staggered pulse
+				const pulse1 = (nowMs % 1600) / 1600;
+				const pulse2 = ((nowMs + 800) % 1600) / 1600;
 
 				ctx.save();
-				// Inner glow
 				ctx.fillStyle = `${catConfig.color}22`;
 				ctx.beginPath();
 				ctx.arc(x, y, size + 6, 0, Math.PI * 2);
 				ctx.fill();
 
-				// Expanding ripple ring 1
 				ctx.strokeStyle = catConfig.color;
 				ctx.lineWidth = 1.6;
 				ctx.globalAlpha = Math.max(0, 1 - pulse1) * 0.85;
@@ -523,7 +515,6 @@ export const ReplayCanvas = ({
 				ctx.arc(x, y, size + pulse1 * 16, 0, Math.PI * 2);
 				ctx.stroke();
 
-				// Expanding ripple ring 2
 				ctx.lineWidth = 1.2;
 				ctx.globalAlpha = Math.max(0, 1 - pulse2) * 0.65;
 				ctx.beginPath();
@@ -539,7 +530,6 @@ export const ReplayCanvas = ({
 			ctx.strokeStyle = "#07131b";
 			ctx.lineWidth = 1.5;
 
-			// Outer ring for highlight
 			if (isSelected || isHovered) {
 				ctx.strokeStyle = "#ffffff";
 				ctx.lineWidth = 2;
@@ -590,7 +580,7 @@ export const ReplayCanvas = ({
 		selectedServiceId,
 		hoveredServiceId,
 		viewPreset,
-		services,
+		filteredServices,
 		zoom,
 		pan,
 		timeOffset,
@@ -602,8 +592,7 @@ export const ReplayCanvas = ({
 		e.preventDefault();
 		const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
 		setZoom((prev) => {
-			const nextZoom = Math.min(8, Math.max(0.6, prev * zoomFactor));
-			return nextZoom;
+			return Math.min(8, Math.max(0.6, prev * zoomFactor));
 		});
 	};
 
@@ -727,7 +716,7 @@ export const ReplayCanvas = ({
 			setHoverPos(null);
 		}
 
-		onHoverService(closestId);
+		railActions.setHoveredServiceId(closestId);
 	};
 
 	const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -759,11 +748,11 @@ export const ReplayCanvas = ({
 			const dist = Math.hypot(x - mouseX, y - mouseY);
 			if (dist < minDist) {
 				minDist = dist;
-				closestService = train.service;
+				closestService = train.service as TrainService;
 			}
 		}
 
-		onSelectService(closestService);
+		railActions.setSelectedService(closestService);
 	};
 
 	const handleResetView = () => {
@@ -793,7 +782,7 @@ export const ReplayCanvas = ({
 				onPointerLeave={() => {
 					isDraggingRef.current = false;
 					setHoverPos(null);
-					onHoverService(null);
+					railActions.setHoveredServiceId(null);
 				}}
 				onClick={handleClick}
 				style={{
@@ -851,7 +840,13 @@ export const ReplayCanvas = ({
 						boxShadow: "0 6px 18px rgba(0,0,0,0.6)",
 					}}
 				>
-					<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+					<div
+						style={{
+							display: "flex",
+							alignItems: "center",
+							gap: 6,
+						}}
+					>
 						<span
 							style={{
 								color: CATEGORIES[hoveredTrain.service.category].color,
@@ -862,7 +857,13 @@ export const ReplayCanvas = ({
 						</span>
 						<span style={{ fontWeight: 600 }}>{hoveredTrain.service.name}</span>
 					</div>
-					<div style={{ color: "#8ca0aa", fontSize: "0.74rem", marginTop: 2 }}>
+					<div
+						style={{
+							color: "#8ca0aa",
+							fontSize: "0.74rem",
+							marginTop: 2,
+						}}
+					>
 						{hoveredTrain.isDwelling ? (
 							<span style={{ color: "#59d7ff" }}>
 								📍 At station: {hoveredTrain.currentStopName}

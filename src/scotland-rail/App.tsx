@@ -8,71 +8,29 @@ import {
 	Typography,
 	theme,
 } from "antd";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useSnapshot } from "valtio";
 import { Controls } from "./components/Controls";
 import { ReplayCanvas } from "./components/ReplayCanvas";
 import { ServiceDetails } from "./components/ServiceDetails";
 import { SettingsModal } from "./components/SettingsModal";
 import { StatsPanel } from "./components/StatsPanel";
-import { STATIONS } from "./data/geography";
-import TIMETABLE_DATA from "./data/timetable.json";
 import {
-	type AppSettings,
-	type Category,
-	DEFAULT_SETTINGS,
-	type TrainService,
-	type ViewPreset,
-} from "./data/types";
-import {
-	type ActiveTrainState,
-	resolveServiceAtTime,
-} from "./engine/interpolator";
+	derivedStore,
+	railActions,
+	railStore,
+	recomputeActiveTrains,
+} from "./store";
 
 const { Title, Paragraph, Text, Link } = Typography;
 
 export const App = () => {
-	const [timeOffset, setTimeOffset] = useState<number>(480); // Start at 08:00 AM
-	const [isPlaying, setIsPlaying] = useState<boolean>(true);
-	const [speed, setSpeed] = useState<number>(2); // 2x default speed
-	const [viewPreset, setViewPreset] = useState<ViewPreset>("scotland");
-	const [selectedService, setSelectedService] = useState<TrainService | null>(
-		null,
-	);
-	const [hoveredServiceId, setHoveredServiceId] = useState<string | null>(null);
-	const [searchQuery, setSearchQuery] = useState<string>("");
-	const [selectedCategory, setSelectedCategory] = useState<Category | "all">(
-		"all",
-	);
-	const [isInfoOpen, setIsInfoOpen] = useState<boolean>(false);
-	const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
-	const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+	const snap = useSnapshot(railStore);
+	const derivedSnap = useSnapshot(derivedStore);
+	const { isInfoOpen, isPlaying, speed, settings, selectedService } = snap;
+	const { activeTrains } = derivedSnap;
 
-	const handleChangeSetting = <K extends keyof AppSettings>(
-		key: K,
-		value: AppSettings[K],
-	) => {
-		if (key === "soundEffects" && value) {
-			import("./engine/audio").then(({ railAudio }) => {
-				railAudio.unlockAudio();
-			});
-		}
-		setSettings((prev) => ({ ...prev, [key]: value }));
-	};
-
-	const handleResetSettings = () => {
-		setSettings(DEFAULT_SETTINGS);
-	};
-
-	// Static schedule loaded from ingested timetable.json
-	const services: TrainService[] = useMemo(
-		() => TIMETABLE_DATA as TrainService[],
-		[],
-	);
-	const stationNamesById = useMemo(() => {
-		return new Map(STATIONS.map((s) => [s.id, s.name]));
-	}, []);
-
-	// Animation frame loop
+	// Animation frame loop directly updating store
 	useEffect(() => {
 		if (!isPlaying) return;
 
@@ -84,14 +42,12 @@ export const App = () => {
 			lastTimestamp = timestamp;
 
 			// Advance time: speed 1x = 1 minute per real second
-			// 1 min / 1000ms
 			const minutesToAdd = (deltaMs / 1000) * speed;
+			let next = railStore.timeOffset + minutesToAdd;
+			if (next >= 1440) next = 300; // loop back to 05:00
 
-			setTimeOffset((prev) => {
-				const next = prev + minutesToAdd;
-				if (next >= 1440) return 300; // loop back to 05:00
-				return next;
-			});
+			railStore.timeOffset = next;
+			recomputeActiveTrains();
 
 			animId = requestAnimationFrame(loop);
 		};
@@ -99,41 +55,6 @@ export const App = () => {
 		animId = requestAnimationFrame(loop);
 		return () => cancelAnimationFrame(animId);
 	}, [isPlaying, speed]);
-
-	// Filter services by search query and category
-	const filteredServices = useMemo(() => {
-		let result = services;
-		if (selectedCategory !== "all") {
-			result = result.filter((s) => s.category === selectedCategory);
-		}
-		if (searchQuery.trim()) {
-			const q = searchQuery.toLowerCase().trim();
-			result = result.filter((s) => {
-				return (
-					s.name.toLowerCase().includes(q) ||
-					s.serviceNumber.toLowerCase().includes(q) ||
-					s.operator.toLowerCase().includes(q) ||
-					s.calls.some((c) => {
-						const stName = stationNamesById.get(c.stationId)?.toLowerCase();
-						return stName?.includes(q) || c.stationId.toLowerCase().includes(q);
-					})
-				);
-			});
-		}
-		return result;
-	}, [services, selectedCategory, searchQuery, stationNamesById]);
-
-	// Compute active trains for current time offset
-	const activeTrains: ActiveTrainState[] = useMemo(() => {
-		const result: ActiveTrainState[] = [];
-		for (const service of filteredServices) {
-			const state = resolveServiceAtTime(service, timeOffset, stationNamesById);
-			if (state) {
-				result.push(state);
-			}
-		}
-		return result;
-	}, [filteredServices, timeOffset, stationNamesById]);
 
 	// Audio synthesizer management
 	useEffect(() => {
@@ -163,29 +84,6 @@ export const App = () => {
 		}
 		prevSelectedDwellingRef.current = !!activeSelected?.isDwelling;
 	}, [activeTrains, selectedService, settings.soundEffects]);
-
-	// Aggregate counts by category
-	const activeCountsByCategory = useMemo(() => {
-		const counts: Record<Category, number> = {
-			Express: 0,
-			Highland: 0,
-			Commuter: 0,
-			CrossBorder: 0,
-			Sleeper: 0,
-		};
-		for (const train of activeTrains) {
-			counts[train.service.category] =
-				(counts[train.service.category] || 0) + 1;
-		}
-		return counts;
-	}, [activeTrains]);
-
-	const activeSelectedState = useMemo(() => {
-		if (!selectedService) return null;
-		return (
-			activeTrains.find((t) => t.service.id === selectedService.id) || null
-		);
-	}, [activeTrains, selectedService]);
 
 	return (
 		<ConfigProvider
@@ -233,8 +131,12 @@ export const App = () => {
 						type="text"
 						size="small"
 						icon={<InfoCircleOutlined />}
-						onClick={() => setIsInfoOpen(true)}
-						style={{ color: "#59d7ff", padding: "0 4px", height: "auto" }}
+						onClick={() => railActions.setIsInfoOpen(true)}
+						style={{
+							color: "#59d7ff",
+							padding: "0 4px",
+							height: "auto",
+						}}
 					>
 						Sources
 					</Button>
@@ -242,8 +144,12 @@ export const App = () => {
 						type="text"
 						size="small"
 						icon={<SettingOutlined />}
-						onClick={() => setIsSettingsOpen(true)}
-						style={{ color: "#a8b5bc", padding: "0 4px", height: "auto" }}
+						onClick={() => railActions.setIsSettingsOpen(true)}
+						style={{
+							color: "#a8b5bc",
+							padding: "0 4px",
+							height: "auto",
+						}}
 					>
 						Settings
 					</Button>
@@ -253,13 +159,13 @@ export const App = () => {
 				<Modal
 					title="Data Sources & Method"
 					open={isInfoOpen}
-					onOk={() => setIsInfoOpen(false)}
-					onCancel={() => setIsInfoOpen(false)}
+					onOk={() => railActions.setIsInfoOpen(false)}
+					onCancel={() => railActions.setIsInfoOpen(false)}
 					footer={[
 						<Button
 							key="close"
 							type="primary"
-							onClick={() => setIsInfoOpen(false)}
+							onClick={() => railActions.setIsInfoOpen(false)}
 						>
 							Close
 						</Button>,
@@ -281,7 +187,10 @@ export const App = () => {
 					</Paragraph>
 
 					<Divider
-						style={{ borderColor: "rgba(255,255,255,0.15)", margin: "12px 0" }}
+						style={{
+							borderColor: "rgba(255,255,255,0.15)",
+							margin: "12px 0",
+						}}
 					/>
 
 					<Title level={5} style={{ color: "#59d7ff", marginTop: 0 }}>
@@ -424,7 +333,10 @@ export const App = () => {
 					</ul>
 
 					<Divider
-						style={{ borderColor: "rgba(255,255,255,0.15)", margin: "12px 0" }}
+						style={{
+							borderColor: "rgba(255,255,255,0.15)",
+							margin: "12px 0",
+						}}
 					/>
 
 					<Text
@@ -445,61 +357,19 @@ export const App = () => {
 				</Modal>
 
 				{/* Map Canvas */}
-				<ReplayCanvas
-					viewPreset={viewPreset}
-					selectedServiceId={selectedService?.id ?? null}
-					hoveredServiceId={hoveredServiceId}
-					timeOffset={timeOffset}
-					settings={settings}
-					onSelectService={setSelectedService}
-					onHoverService={setHoveredServiceId}
-					services={services}
-					activeTrains={activeTrains}
-				/>
+				<ReplayCanvas />
 
 				{/* Live Dynamic Stats Panel (Left HUD) */}
-				<StatsPanel
-					activeTrains={activeTrains}
-					timeOffset={timeOffset}
-					onSelectService={setSelectedService}
-				/>
+				<StatsPanel />
 
 				{/* Settings Drawer */}
-				<SettingsModal
-					open={isSettingsOpen}
-					settings={settings}
-					onClose={() => setIsSettingsOpen(false)}
-					onChangeSetting={handleChangeSetting}
-					onResetSettings={handleResetSettings}
-				/>
+				<SettingsModal />
 
 				{/* Controls */}
-				<Controls
-					timeOffset={timeOffset}
-					isPlaying={isPlaying}
-					speed={speed}
-					viewPreset={viewPreset}
-					activeCountsByCategory={activeCountsByCategory}
-					totalActive={activeTrains.length}
-					searchQuery={searchQuery}
-					onSearchChange={setSearchQuery}
-					selectedCategory={selectedCategory}
-					onSelectCategory={setSelectedCategory}
-					onTogglePlay={() => setIsPlaying(!isPlaying)}
-					onRestart={() => setTimeOffset(300)}
-					onSeek={(val) => setTimeOffset(val)}
-					onChangeSpeed={setSpeed}
-					onChangeView={setViewPreset}
-				/>
+				<Controls />
 
 				{/* Inspector Sidebar */}
-				{selectedService && (
-					<ServiceDetails
-						service={selectedService}
-						activeState={activeSelectedState}
-						onClose={() => setSelectedService(null)}
-					/>
-				)}
+				<ServiceDetails />
 			</Layout>
 		</ConfigProvider>
 	);

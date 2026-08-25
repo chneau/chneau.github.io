@@ -1,7 +1,10 @@
 import type { Bounds, Coordinate } from "../data/types";
 
 type Projection = {
-	project: (coord: Coordinate) => { x: number; y: number };
+	project: (coord: Coordinate | readonly [number, number]) => {
+		x: number;
+		y: number;
+	};
 	unproject: (point: { x: number; y: number }) => Coordinate;
 	width: number;
 	height: number;
@@ -35,7 +38,7 @@ export const createProjection = (
 	const screenCenterX = width / 2 + panOffset.x;
 	const screenCenterY = height / 2 + panOffset.y;
 
-	const project = (coord: Coordinate) => {
+	const project = (coord: Coordinate | readonly [number, number]) => {
 		const [lon, lat] = coord;
 		const x = screenCenterX + (lon - mapCenterX) * lonScale * scale;
 		const y = screenCenterY - (lat - mapCenterY) * scale;

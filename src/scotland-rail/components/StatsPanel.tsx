@@ -6,16 +6,12 @@ import {
 } from "@ant-design/icons";
 import { Badge, Card, Segmented, Space, Typography } from "antd";
 import { useMemo, useState } from "react";
-import { CATEGORIES, type TrainService } from "../data/types";
+import { useSnapshot } from "valtio";
+import { CATEGORIES } from "../data/types";
 import type { ActiveTrainState } from "../engine/interpolator";
+import { derivedStore, railActions, railStore } from "../store";
 
 const { Text } = Typography;
-
-type StatsPanelProps = {
-	activeTrains: ActiveTrainState[];
-	timeOffset: number;
-	onSelectService: (service: TrainService) => void;
-};
 
 // Distance calculation between coordinates in km
 const calcPolylineDistanceKm = (coords: [number, number][]): number => {
@@ -39,11 +35,12 @@ const calcPolylineDistanceKm = (coords: [number, number][]): number => {
 	return total;
 };
 
-export const StatsPanel = ({
-	activeTrains,
-	timeOffset,
-	onSelectService,
-}: StatsPanelProps) => {
+export const StatsPanel = () => {
+	const snap = useSnapshot(railStore);
+	const derivedSnap = useSnapshot(derivedStore);
+	const { timeOffset } = snap;
+	const { activeTrains } = derivedSnap;
+
 	const [unit, setUnit] = useState<"metric" | "imperial">("metric");
 
 	// Compute dynamic stats from active trains
@@ -62,7 +59,9 @@ export const StatsPanel = ({
 
 		for (const train of activeTrains) {
 			const s = train.service;
-			const totalDist = calcPolylineDistanceKm(s.pathCoordinates);
+			const totalDist = calcPolylineDistanceKm(
+				s.pathCoordinates as [number, number][],
+			);
 			totalActiveDistanceKm += totalDist;
 
 			// Duration in hours
@@ -74,18 +73,27 @@ export const StatsPanel = ({
 
 			// Fastest train
 			if (!maxSpeedTrain || avgSpeedKmh > maxSpeedTrain.speedKmh) {
-				maxSpeedTrain = { state: train, speedKmh: avgSpeedKmh };
+				maxSpeedTrain = {
+					state: train as ActiveTrainState,
+					speedKmh: avgSpeedKmh,
+				};
 			}
 
 			// Longest rail run
 			if (!longestJourneyTrain || totalDist > longestJourneyTrain.distKm) {
-				longestJourneyTrain = { state: train, distKm: totalDist };
+				longestJourneyTrain = {
+					state: train as ActiveTrainState,
+					distKm: totalDist,
+				};
 			}
 
 			// Most intermediate stops
 			const stops = s.calls.length;
 			if (!mostStopsTrain || stops > mostStopsTrain.stopCount) {
-				mostStopsTrain = { state: train, stopCount: stops };
+				mostStopsTrain = {
+					state: train as ActiveTrainState,
+					stopCount: stops,
+				};
 			}
 		}
 
@@ -252,7 +260,9 @@ export const StatsPanel = ({
 						<button
 							type="button"
 							onClick={() => {
-								if (stats.fastest) onSelectService(stats.fastest.state.service);
+								if (stats.fastest) {
+									railActions.setSelectedService(stats.fastest.state.service);
+								}
 							}}
 							style={{
 								cursor: "pointer",
@@ -324,7 +334,9 @@ export const StatsPanel = ({
 						<button
 							type="button"
 							onClick={() => {
-								if (stats.longest) onSelectService(stats.longest.state.service);
+								if (stats.longest) {
+									railActions.setSelectedService(stats.longest.state.service);
+								}
 							}}
 							style={{
 								cursor: "pointer",
@@ -396,7 +408,7 @@ export const StatsPanel = ({
 							type="button"
 							onClick={() => {
 								if (stats.mostStops) {
-									onSelectService(stats.mostStops.state.service);
+									railActions.setSelectedService(stats.mostStops.state.service);
 								}
 							}}
 							style={{
