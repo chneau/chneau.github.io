@@ -500,13 +500,44 @@ export const ReplayCanvas = ({
 				}
 			}
 
+			const size = isSelected || isHovered ? 6.5 : 4.5;
+
+			// Draw Station Dwelling / Stopped Train Visual Effect (Expanding Pulse Rings)
+			if (train.isDwelling) {
+				const nowMs = performance.now();
+				const pulse1 = (nowMs % 1600) / 1600; // 0..1
+				const pulse2 = ((nowMs + 800) % 1600) / 1600; // staggered pulse
+
+				ctx.save();
+				// Inner glow
+				ctx.fillStyle = `${catConfig.color}22`;
+				ctx.beginPath();
+				ctx.arc(x, y, size + 6, 0, Math.PI * 2);
+				ctx.fill();
+
+				// Expanding ripple ring 1
+				ctx.strokeStyle = catConfig.color;
+				ctx.lineWidth = 1.6;
+				ctx.globalAlpha = Math.max(0, 1 - pulse1) * 0.85;
+				ctx.beginPath();
+				ctx.arc(x, y, size + pulse1 * 16, 0, Math.PI * 2);
+				ctx.stroke();
+
+				// Expanding ripple ring 2
+				ctx.lineWidth = 1.2;
+				ctx.globalAlpha = Math.max(0, 1 - pulse2) * 0.65;
+				ctx.beginPath();
+				ctx.arc(x, y, size + pulse2 * 16, 0, Math.PI * 2);
+				ctx.stroke();
+
+				ctx.restore();
+			}
+
 			// Draw Train Marker
 			ctx.save();
 			ctx.fillStyle = catConfig.color;
 			ctx.strokeStyle = "#07131b";
 			ctx.lineWidth = 1.5;
-
-			const size = isSelected || isHovered ? 6.5 : 4.5;
 
 			// Outer ring for highlight
 			if (isSelected || isHovered) {
