@@ -60,7 +60,7 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
 	},
 };
 
-export type ServiceCall = {
+type ServiceCall = {
 	stationId: string;
 	arrivalOffset: number | null; // minutes from 00:00
 	departureOffset: number | null;
