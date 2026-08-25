@@ -40,6 +40,7 @@ export default defineConfig({
 		],
 	},
 	output: {
+		assetPrefix: isBirthday ? "/birthday/" : "/",
 		distPath: {
 			root: isBirthday ? "dist/birthday" : "dist/root",
 		},
