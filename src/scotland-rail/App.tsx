@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Controls } from "./components/Controls";
 import { ReplayCanvas } from "./components/ReplayCanvas";
 import { ServiceDetails } from "./components/ServiceDetails";
+import { StatsPanel } from "./components/StatsPanel";
 import { STATIONS } from "./data/geography";
 import TIMETABLE_DATA from "./data/timetable.json";
 import type { Category, TrainService, ViewPreset } from "./data/types";
@@ -362,6 +363,12 @@ export const App = () => {
 					onHoverService={setHoveredServiceId}
 					services={services}
 					activeTrains={activeTrains}
+				/>
+
+				{/* Live Dynamic Stats Panel (Left HUD) */}
+				<StatsPanel
+					activeTrains={activeTrains}
+					onSelectService={setSelectedService}
 				/>
 
 				{/* Controls */}
