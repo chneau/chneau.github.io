@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { COASTLINES, RAIL_PATHS, STATIONS } from "../data/geography";
 import {
+	COASTLINES,
+	LANDMARKS,
+	LOCHS,
+	RAIL_PATHS,
+	STATIONS,
+} from "../data/geography";
+import {
+	type AppSettings,
 	CATEGORIES,
 	type TrainService,
 	VIEW_BOUNDS,
@@ -13,16 +20,87 @@ type ReplayCanvasProps = {
 	viewPreset: ViewPreset;
 	selectedServiceId: string | null;
 	hoveredServiceId: string | null;
+	timeOffset: number;
+	settings: AppSettings;
 	onSelectService: (service: TrainService | null) => void;
 	onHoverService: (serviceId: string | null) => void;
 	services: TrainService[];
 	activeTrains: ActiveTrainState[];
 };
 
+// Calculate atmospheric day/night colors based on time offset (00:00 to 24:00)
+const getDayNightAtmosphere = (
+	timeOffset: number,
+	enabled: boolean,
+): {
+	bgColor: string;
+	landColor: string;
+	coastColor: string;
+	isNight: boolean;
+	lightFactor: number;
+} => {
+	if (!enabled) {
+		return {
+			bgColor: "#07131b",
+			landColor: "#0d222f",
+			coastColor: "#436577",
+			isNight: false,
+			lightFactor: 1,
+		};
+	}
+
+	const hours = (timeOffset / 60) % 24;
+
+	// Sunrise: 05:30 - 08:30 (peak golden dawn at 06:30)
+	// Daytime: 08:30 - 18:00
+	// Sunset: 18:00 - 21:30 (twilight dusk)
+	// Night: 21:30 - 05:30
+	if (hours >= 8.5 && hours <= 18) {
+		// Full day
+		return {
+			bgColor: "#091724",
+			landColor: "#0f2c3e",
+			coastColor: "#567c92",
+			isNight: false,
+			lightFactor: 1,
+		};
+	}
+	if (hours >= 5.5 && hours < 8.5) {
+		// Dawn / Sunrise transition
+		return {
+			bgColor: "#141525",
+			landColor: "#1d2538",
+			coastColor: "#7e6d87",
+			isNight: false,
+			lightFactor: 0.7,
+		};
+	}
+	if (hours > 18 && hours <= 21.5) {
+		// Sunset / Twilight transition
+		return {
+			bgColor: "#121422",
+			landColor: "#1b2033",
+			coastColor: "#6f5b7d",
+			isNight: true,
+			lightFactor: 0.6,
+		};
+	}
+	// Deep Night
+	return {
+		bgColor: "#040b10",
+		landColor: "#081620",
+		coastColor: "#283f4d",
+		isNight: true,
+		lightFactor: 0.3,
+	};
+};
+
 export const ReplayCanvas = ({
 	viewPreset,
 	selectedServiceId,
 	hoveredServiceId,
+	timeOffset,
+	settings,
 	onSelectService,
 	onHoverService,
 	services,
@@ -43,7 +121,41 @@ export const ReplayCanvas = ({
 		setPan({ x: 0, y: 0 });
 	}, []);
 
-	// Cache static layer whenever viewPreset, zoom, or pan changes
+	// Camera Follow Selected Train
+	useEffect(() => {
+		if (!settings.cameraFollowTrain || !selectedServiceId) return;
+		const activeSelected = activeTrains.find(
+			(t) => t.service.id === selectedServiceId,
+		);
+		if (!activeSelected) return;
+
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+		const rect = canvas.getBoundingClientRect();
+		const bounds = VIEW_BOUNDS[viewPreset];
+		const proj = createProjection(bounds, rect.width, rect.height, 32, zoom, {
+			x: 0,
+			y: 0,
+		});
+		const trainScreen = proj.project(activeSelected.position);
+
+		const targetPanX = rect.width / 2 - trainScreen.x;
+		const targetPanY = rect.height / 2 - trainScreen.y;
+
+		// Smooth ease toward train
+		setPan((prev) => ({
+			x: prev.x + (targetPanX - prev.x) * 0.15,
+			y: prev.y + (targetPanY - prev.y) * 0.15,
+		}));
+	}, [
+		selectedServiceId,
+		activeTrains,
+		settings.cameraFollowTrain,
+		viewPreset,
+		zoom,
+	]);
+
+	// Cache static layer whenever viewPreset, zoom, pan, settings, or time of day changes
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -69,16 +181,18 @@ export const ReplayCanvas = ({
 		sCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 		sCtx.clearRect(0, 0, width, height);
 
-		// Background: Deep marine dark tone
-		sCtx.fillStyle = "#07131b";
+		const atmo = getDayNightAtmosphere(timeOffset, settings.dayNightCycle);
+
+		// Background
+		sCtx.fillStyle = atmo.bgColor;
 		sCtx.fillRect(0, 0, width, height);
 
 		const bounds = VIEW_BOUNDS[viewPreset];
 		const proj = createProjection(bounds, width, height, 32, zoom, pan);
 
 		// 1. Coastlines (Land fill with subtle lighting & crisp boundary stroke)
-		sCtx.fillStyle = "#0d222f";
-		sCtx.strokeStyle = "#436577";
+		sCtx.fillStyle = atmo.landColor;
+		sCtx.strokeStyle = atmo.coastColor;
 		sCtx.lineWidth = 1.6;
 		sCtx.lineJoin = "round";
 		for (const coast of COASTLINES) {
@@ -93,10 +207,41 @@ export const ReplayCanvas = ({
 			sCtx.stroke();
 		}
 
-		// 2. Rail Paths (Two-layer track rendering: subtle background glow + crisp track line)
+		// 2. Scottish Lochs (Water bodies inside land)
+		if (settings.showLochs) {
+			sCtx.fillStyle = atmo.bgColor;
+			sCtx.strokeStyle = atmo.coastColor;
+			sCtx.lineWidth = 1.2;
+			for (const loch of LOCHS) {
+				sCtx.beginPath();
+				loch.coordinates.forEach((pt, i) => {
+					const { x, y } = proj.project(pt);
+					if (i === 0) sCtx.moveTo(x, y);
+					else sCtx.lineTo(x, y);
+				});
+				sCtx.closePath();
+				sCtx.fill();
+				sCtx.stroke();
+
+				// Loch label if zoomed in
+				if (zoom > 1.3) {
+					const midPt = loch.coordinates[0];
+					if (midPt) {
+						const { x, y } = proj.project(midPt);
+						sCtx.font = "italic 9px system-ui, sans-serif";
+						sCtx.fillStyle = "#6b8d9e";
+						sCtx.fillText(loch.name, x - 12, y - 6);
+					}
+				}
+			}
+		}
+
+		// 3. Rail Paths (Two-layer track rendering: subtle background glow + crisp track line)
 		// Track glow/bed
-		sCtx.strokeStyle = "#1b3342";
-		sCtx.lineWidth = 3.5;
+		sCtx.strokeStyle = settings.congestionHeatmap
+			? "rgba(255, 100, 50, 0.35)"
+			: "#1b3342";
+		sCtx.lineWidth = settings.congestionHeatmap ? 4.5 : 3.5;
 		sCtx.lineCap = "round";
 		sCtx.lineJoin = "round";
 		for (const rail of RAIL_PATHS) {
@@ -110,7 +255,7 @@ export const ReplayCanvas = ({
 		}
 
 		// Track line
-		sCtx.strokeStyle = "#4d7388";
+		sCtx.strokeStyle = settings.congestionHeatmap ? "#ff7b47" : "#4d7388";
 		sCtx.lineWidth = 1.5;
 		for (const rail of RAIL_PATHS) {
 			sCtx.beginPath();
@@ -122,7 +267,27 @@ export const ReplayCanvas = ({
 			sCtx.stroke();
 		}
 
-		// 3. Stations & Labels
+		// 4. Scenic Landmarks & Viaducts
+		if (settings.showLandmarks) {
+			for (const lm of LANDMARKS) {
+				const { x, y } = proj.project(lm.coordinate);
+				if (x < -20 || x > width + 20 || y < -20 || y > height + 20) continue;
+
+				sCtx.font = "12px sans-serif";
+				sCtx.fillText(lm.icon, x - 6, y + 4);
+
+				if (zoom > 1.2 || viewPreset !== "scotland") {
+					sCtx.font = "bold 9.5px system-ui, sans-serif";
+					sCtx.fillStyle = "#ffba63";
+					sCtx.shadowColor = "rgba(0,0,0,0.85)";
+					sCtx.shadowBlur = 4;
+					sCtx.fillText(lm.name, x + 10, y + 3);
+					sCtx.shadowBlur = 0;
+				}
+			}
+		}
+
+		// 5. Stations & Labels
 		for (const st of STATIONS) {
 			const { x, y } = proj.project(st.coordinate);
 			if (x < -30 || x > width + 30 || y < -30 || y > height + 30) continue;
@@ -158,7 +323,7 @@ export const ReplayCanvas = ({
 				sCtx.shadowBlur = 0;
 			}
 		}
-	}, [viewPreset, zoom, pan]);
+	}, [viewPreset, zoom, pan, timeOffset, settings]);
 
 	// Render dynamic frame (Trains, Trails, Selected Route)
 	useEffect(() => {
@@ -224,6 +389,40 @@ export const ReplayCanvas = ({
 				ctx.restore();
 			}
 
+			// Headlight beam (Night & Dusk effect)
+			const atmo = getDayNightAtmosphere(timeOffset, settings.dayNightCycle);
+			if (
+				settings.trainHeadlights &&
+				atmo.isNight &&
+				!train.isDwelling &&
+				train.previousPosition
+			) {
+				const prevScreen = proj.project(train.previousPosition);
+				const dx = x - prevScreen.x;
+				const dy = y - prevScreen.y;
+				const screenHeading = Math.atan2(dy, dx);
+
+				if (Math.hypot(dx, dy) > 0.001) {
+					ctx.save();
+					ctx.translate(x, y);
+					ctx.rotate(screenHeading);
+
+					const beamGrad = ctx.createRadialGradient(0, 0, 2, 28, 0, 36);
+					beamGrad.addColorStop(0, "rgba(255, 250, 190, 0.65)");
+					beamGrad.addColorStop(0.5, "rgba(255, 235, 140, 0.25)");
+					beamGrad.addColorStop(1, "rgba(255, 220, 90, 0)");
+
+					ctx.fillStyle = beamGrad;
+					ctx.beginPath();
+					ctx.moveTo(0, 0);
+					ctx.lineTo(36, -11);
+					ctx.lineTo(36, 11);
+					ctx.closePath();
+					ctx.fill();
+					ctx.restore();
+				}
+			}
+
 			// Draw Train Marker
 			ctx.save();
 			ctx.fillStyle = catConfig.color;
@@ -286,6 +485,8 @@ export const ReplayCanvas = ({
 		services,
 		zoom,
 		pan,
+		timeOffset,
+		settings,
 	]);
 
 	// Mouse Wheel Zoom

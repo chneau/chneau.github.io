@@ -1,4 +1,4 @@
-import type { Coordinate, RailPath, Station } from "./types";
+import type { Coordinate, Landmark, Loch, RailPath, Station } from "./types";
 
 export const STATIONS: Station[] = [
 	// Central Belt Hubs & Key Commuter Stops
@@ -137,6 +137,107 @@ export const STATIONS: Station[] = [
 ];
 
 export const STATIONS_BY_ID = new Map(STATIONS.map((s) => [s.id, s]));
+
+// Major Scottish Lochs (Polygons for vector map rendering)
+export const LOCHS: Loch[] = [
+	{
+		id: "loch-ness",
+		name: "Loch Ness",
+		coordinates: [
+			[-4.32, 57.34],
+			[-4.38, 57.29],
+			[-4.46, 57.23],
+			[-4.58, 57.17],
+			[-4.69, 57.13],
+			[-4.73, 57.14],
+			[-4.62, 57.19],
+			[-4.51, 57.25],
+			[-4.41, 57.31],
+			[-4.32, 57.34],
+		] as Coordinate[],
+	},
+	{
+		id: "loch-lomond",
+		name: "Loch Lomond",
+		coordinates: [
+			[-4.62, 56.19],
+			[-4.68, 56.12],
+			[-4.64, 56.06],
+			[-4.59, 56.02],
+			[-4.55, 56.05],
+			[-4.58, 56.11],
+			[-4.62, 56.19],
+		] as Coordinate[],
+	},
+	{
+		id: "loch-tay",
+		name: "Loch Tay",
+		coordinates: [
+			[-4.26, 56.48],
+			[-4.18, 56.51],
+			[-4.08, 56.55],
+			[-4.02, 56.57],
+			[-4.07, 56.56],
+			[-4.16, 56.52],
+			[-4.26, 56.48],
+		] as Coordinate[],
+	},
+	{
+		id: "loch-morar",
+		name: "Loch Morar",
+		coordinates: [
+			[-5.81, 56.97],
+			[-5.73, 56.97],
+			[-5.62, 56.96],
+			[-5.58, 56.97],
+			[-5.65, 56.98],
+			[-5.75, 56.98],
+			[-5.81, 56.97],
+		] as Coordinate[],
+	},
+];
+
+// Iconic Scottish Rail Landmarks & Viaducts
+export const LANDMARKS: Landmark[] = [
+	{
+		id: "glenfinnan-viaduct",
+		name: "Glenfinnan Viaduct",
+		coordinate: [-5.431, 56.876] as Coordinate,
+		icon: "🚂",
+		description:
+			"21-arch concrete viaduct made famous by the Jacobite / Hogwarts Express",
+	},
+	{
+		id: "forth-bridge",
+		name: "Forth Rail Bridge",
+		coordinate: [-3.395, 55.994] as Coordinate,
+		icon: "🌉",
+		description:
+			"UNESCO World Heritage cantilever railway bridge opened in 1890",
+	},
+	{
+		id: "tay-bridge",
+		name: "Tay Rail Bridge",
+		coordinate: [-2.938, 56.445] as Coordinate,
+		icon: "🌊",
+		description: "2.75-mile tidal crossing into Dundee",
+	},
+	{
+		id: "drumochter-summit",
+		name: "Drumochter Pass Summit",
+		coordinate: [-4.162, 56.885] as Coordinate,
+		icon: "🏔️",
+		description: "Highest railway summit in Great Britain (1,484 ft / 452 m)",
+	},
+	{
+		id: "culloden-viaduct",
+		name: "Culloden Viaduct",
+		coordinate: [-4.155, 57.452] as Coordinate,
+		icon: "🏛️",
+		description:
+			"Scotland's longest masonry viaduct (29 arches across the Nairn valley)",
+	},
+];
 
 // High-fidelity rail polylines tracing actual Scottish track geometry
 export const RAIL_PATHS: RailPath[] = [
