@@ -100,6 +100,101 @@ const interpolatePolyline = (
 	};
 };
 
+// Find the nearest point along a polyline to a given coordinate and calculate its fractional distance along the path
+const findClosestPolylineFraction = (
+	coords: Coordinate[],
+	target: Coordinate,
+): number => {
+	const { cumulative, total } = getPolylineDistances(coords);
+	if (total === 0 || coords.length < 2) return 0;
+
+	let bestDist = Infinity;
+	let bestPathDistance = 0;
+
+	for (let i = 0; i < coords.length - 1; i++) {
+		const p1 = coords[i] as Coordinate;
+		const p2 = coords[i + 1] as Coordinate;
+		const segLen = distanceKm(p1, p2);
+		const segStartDist = cumulative[i] ?? 0;
+
+		if (segLen === 0) {
+			const d = distanceKm(target, p1);
+			if (d < bestDist) {
+				bestDist = d;
+				bestPathDistance = segStartDist;
+			}
+			continue;
+		}
+
+		// Project target onto segment p1-p2 in Euclidean approx (good for small segments)
+		const dx = p2[0] - p1[0];
+		const dy = p2[1] - p1[1];
+		const t = Math.max(
+			0,
+			Math.min(
+				1,
+				((target[0] - p1[0]) * dx + (target[1] - p1[1]) * dy) /
+					(dx * dx + dy * dy),
+			),
+		);
+
+		const projPt: Coordinate = [p1[0] + t * dx, p1[1] + t * dy];
+		const d = distanceKm(target, projPt);
+
+		if (d < bestDist) {
+			bestDist = d;
+			bestPathDistance = segStartDist + t * segLen;
+		}
+	}
+
+	return Math.min(1, Math.max(0, bestPathDistance / total));
+};
+
+import { STATIONS_BY_ID } from "../data/geography";
+
+// Cache for mapped call fractions along a service's route
+const serviceCallFractionsCache = new WeakMap<TrainService, number[]>();
+
+const getServiceCallFractions = (service: TrainService): number[] => {
+	const cached = serviceCallFractionsCache.get(service);
+	if (cached) return cached;
+
+	const coords = service.pathCoordinates;
+	const calls = service.calls;
+	const fractions: number[] = [];
+
+	for (let i = 0; i < calls.length; i++) {
+		const call = calls[i];
+		if (i === 0) {
+			fractions.push(0);
+			continue;
+		}
+		if (i === calls.length - 1) {
+			fractions.push(1);
+			continue;
+		}
+		const station = call ? STATIONS_BY_ID.get(call.stationId) : null;
+		if (station) {
+			const frac = findClosestPolylineFraction(coords, station.coordinate);
+			fractions.push(frac);
+		} else {
+			fractions.push(i / (calls.length - 1));
+		}
+	}
+
+	// Ensure monotonic strictly non-decreasing fractions
+	for (let i = 1; i < fractions.length; i++) {
+		const prev = fractions[i - 1] ?? 0;
+		const curr = fractions[i] ?? 0;
+		if (curr < prev) {
+			fractions[i] = prev;
+		}
+	}
+
+	serviceCallFractionsCache.set(service, fractions);
+	return fractions;
+};
+
 export const resolveServiceAtTime = (
 	service: TrainService,
 	timeOffset: number, // minutes
@@ -121,6 +216,7 @@ export const resolveServiceAtTime = (
 
 	const overallProgress =
 		(timeOffset - startTime) / Math.max(1, finishTime - startTime);
+	const callFractions = getServiceCallFractions(service);
 
 	// Find active leg between calls
 	for (let i = 0; i < calls.length - 1; i++) {
@@ -131,20 +227,23 @@ export const resolveServiceAtTime = (
 		const depTime = fromCall.departureOffset ?? fromCall.arrivalOffset ?? 0;
 		const arrTime = toCall.arrivalOffset ?? toCall.departureOffset ?? 0;
 
+		const fromFrac = callFractions[i] ?? i / (calls.length - 1);
+		const toFrac = callFractions[i + 1] ?? (i + 1) / (calls.length - 1);
+
 		// Check if dwelling at fromCall station
 		if (fromCall.arrivalOffset !== null && fromCall.departureOffset !== null) {
 			if (
 				timeOffset >= fromCall.arrivalOffset &&
 				timeOffset < fromCall.departureOffset
 			) {
-				// Dwelling at station
-				const { pos } = interpolatePolyline(
-					service.pathCoordinates,
-					i / (calls.length - 1),
-				);
+				const fromStation = STATIONS_BY_ID.get(fromCall.stationId);
+				const dwellingPos: Coordinate = fromStation
+					? fromStation.coordinate
+					: interpolatePolyline(service.pathCoordinates, fromFrac).pos;
+
 				return {
 					service,
-					position: pos,
+					position: dwellingPos,
 					previousPosition: null,
 					progress: overallProgress,
 					currentSegmentIndex: i,
@@ -161,8 +260,8 @@ export const resolveServiceAtTime = (
 		// Check if moving between fromCall and toCall
 		if (timeOffset >= depTime && timeOffset <= arrTime) {
 			const legFrac = (timeOffset - depTime) / Math.max(1, arrTime - depTime);
-			const totalLegs = calls.length - 1;
-			const polyFrac = (i + legFrac) / totalLegs;
+			const polyFrac = fromFrac + legFrac * (toFrac - fromFrac);
+
 			const { pos, prev, heading } = interpolatePolyline(
 				service.pathCoordinates,
 				polyFrac,
@@ -182,6 +281,29 @@ export const resolveServiceAtTime = (
 				headingAngle: heading,
 			};
 		}
+	}
+
+	// Terminus arrival check (if dwelling at destination before service ends)
+	if (lastCall.arrivalOffset !== null && timeOffset >= lastCall.arrivalOffset) {
+		const lastStation = STATIONS_BY_ID.get(lastCall.stationId);
+		const destPos: Coordinate = lastStation
+			? lastStation.coordinate
+			: (service.pathCoordinates[
+					service.pathCoordinates.length - 1
+				] as Coordinate);
+
+		return {
+			service,
+			position: destPos,
+			previousPosition: null,
+			progress: 1,
+			currentSegmentIndex: calls.length - 1,
+			currentStopName:
+				stationNamesById.get(lastCall.stationId) || lastCall.stationId,
+			nextStopName: null,
+			isDwelling: true,
+			headingAngle: 0,
+		};
 	}
 
 	return null;

@@ -13,27 +13,11 @@ import {
 	Tag,
 	Typography,
 } from "antd";
+import { useSnapshot } from "valtio";
 import { CATEGORIES, type Category, type ViewPreset } from "../data/types";
+import { derivedStore, railActions, railStore } from "../store";
 
 const { Text, Title } = Typography;
-
-type ControlsProps = {
-	timeOffset: number;
-	isPlaying: boolean;
-	speed: number;
-	viewPreset: ViewPreset;
-	activeCountsByCategory: Record<Category, number>;
-	totalActive: number;
-	searchQuery: string;
-	onSearchChange: (query: string) => void;
-	selectedCategory: Category | "all";
-	onSelectCategory: (category: Category | "all") => void;
-	onTogglePlay: () => void;
-	onRestart: () => void;
-	onSeek: (offset: number) => void;
-	onChangeSpeed: (speed: number) => void;
-	onChangeView: (preset: ViewPreset) => void;
-};
 
 const formatTime = (minutes: number): string => {
 	const h = Math.floor(minutes / 60) % 24;
@@ -41,23 +25,20 @@ const formatTime = (minutes: number): string => {
 	return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 };
 
-export const Controls = ({
-	timeOffset,
-	isPlaying,
-	speed,
-	viewPreset,
-	activeCountsByCategory,
-	totalActive,
-	searchQuery,
-	onSearchChange,
-	selectedCategory,
-	onSelectCategory,
-	onTogglePlay,
-	onRestart,
-	onSeek,
-	onChangeSpeed,
-	onChangeView,
-}: ControlsProps) => {
+export const Controls = () => {
+	const snap = useSnapshot(railStore);
+	const derivedSnap = useSnapshot(derivedStore);
+
+	const {
+		timeOffset,
+		isPlaying,
+		speed,
+		viewPreset,
+		searchQuery,
+		selectedCategory,
+	} = snap;
+	const { activeTrains, activeCountsByCategory } = derivedSnap;
+
 	return (
 		<div
 			style={{
@@ -112,9 +93,9 @@ export const Controls = ({
 								padding: "2px 8px",
 								cursor: "pointer",
 							}}
-							onClick={() => onSelectCategory("all")}
+							onClick={() => railActions.setSelectedCategory("all")}
 						>
-							{totalActive} Active Trains
+							{activeTrains.length} Active Trains
 						</Tag>
 					</Space>
 
@@ -127,7 +108,9 @@ export const Controls = ({
 							return (
 								<Tag
 									key={cat}
-									onClick={() => onSelectCategory(isCatSelected ? "all" : cat)}
+									onClick={() =>
+										railActions.setSelectedCategory(isCatSelected ? "all" : cat)
+									}
 									style={{
 										background: isCatSelected
 											? `${cfg.color}33`
@@ -157,7 +140,7 @@ export const Controls = ({
 							type="text"
 							placeholder="🔍 Search service/station..."
 							value={searchQuery}
-							onChange={(e) => onSearchChange(e.target.value)}
+							onChange={(e) => railActions.setSearchQuery(e.target.value)}
 							style={{
 								background: "rgba(255, 255, 255, 0.08)",
 								border: "1px solid rgba(217, 226, 230, 0.3)",
@@ -171,7 +154,9 @@ export const Controls = ({
 						/>
 						<Radio.Group
 							value={viewPreset}
-							onChange={(e) => onChangeView(e.target.value)}
+							onChange={(e) =>
+								railActions.setViewPreset(e.target.value as ViewPreset)
+							}
 							size="small"
 							buttonStyle="solid"
 						>
@@ -188,7 +173,7 @@ export const Controls = ({
 						min={300} // 05:00
 						max={1440} // 24:00
 						value={timeOffset}
-						onChange={onSeek}
+						onChange={(val) => railActions.setTimeOffset(val)}
 						tooltip={{
 							formatter: (val) => (val !== undefined ? formatTime(val) : ""),
 						}}
@@ -213,7 +198,7 @@ export const Controls = ({
 							type="primary"
 							shape="circle"
 							icon={isPlaying ? <PauseOutlined /> : <PlayCircleOutlined />}
-							onClick={onTogglePlay}
+							onClick={() => railActions.togglePlay()}
 							style={{
 								background: "#59d7ff",
 								borderColor: "#59d7ff",
@@ -224,7 +209,7 @@ export const Controls = ({
 							ghost
 							shape="circle"
 							icon={<RedoOutlined />}
-							onClick={onRestart}
+							onClick={() => railActions.restart()}
 							style={{ color: "#edf3f5", borderColor: "rgba(255,255,255,0.3)" }}
 						/>
 
@@ -234,7 +219,7 @@ export const Controls = ({
 							</Text>
 							<Select
 								value={speed}
-								onChange={onChangeSpeed}
+								onChange={(val) => railActions.setSpeed(val)}
 								size="small"
 								style={{ width: 80 }}
 								options={[
@@ -257,7 +242,7 @@ export const Controls = ({
 						</Text>
 						<Button
 							size="small"
-							onClick={() => onSeek(480)}
+							onClick={() => railActions.setTimeOffset(480)}
 							style={{
 								background: "rgba(89, 215, 255, 0.15)",
 								borderColor: "#59d7ff",
@@ -270,7 +255,7 @@ export const Controls = ({
 						</Button>
 						<Button
 							size="small"
-							onClick={() => onSeek(780)}
+							onClick={() => railActions.setTimeOffset(780)}
 							style={{
 								background: "rgba(255, 255, 255, 0.08)",
 								borderColor: "rgba(217, 226, 230, 0.35)",
@@ -283,7 +268,7 @@ export const Controls = ({
 						</Button>
 						<Button
 							size="small"
-							onClick={() => onSeek(1050)}
+							onClick={() => railActions.setTimeOffset(1050)}
 							style={{
 								background: "rgba(255, 186, 99, 0.15)",
 								borderColor: "#ffba63",
@@ -296,7 +281,7 @@ export const Controls = ({
 						</Button>
 						<Button
 							size="small"
-							onClick={() => onSeek(1320)}
+							onClick={() => railActions.setTimeOffset(1320)}
 							style={{
 								background: "rgba(255, 43, 214, 0.15)",
 								borderColor: "#ff2bd6",
