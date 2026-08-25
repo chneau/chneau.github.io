@@ -1,4 +1,4 @@
-import { InfoCircleOutlined } from "@ant-design/icons";
+import { InfoCircleOutlined, SettingOutlined } from "@ant-design/icons";
 import {
 	Button,
 	ConfigProvider,
@@ -12,10 +12,17 @@ import { useEffect, useMemo, useState } from "react";
 import { Controls } from "./components/Controls";
 import { ReplayCanvas } from "./components/ReplayCanvas";
 import { ServiceDetails } from "./components/ServiceDetails";
+import { SettingsModal } from "./components/SettingsModal";
 import { StatsPanel } from "./components/StatsPanel";
 import { STATIONS } from "./data/geography";
 import TIMETABLE_DATA from "./data/timetable.json";
-import type { Category, TrainService, ViewPreset } from "./data/types";
+import {
+	type AppSettings,
+	type Category,
+	DEFAULT_SETTINGS,
+	type TrainService,
+	type ViewPreset,
+} from "./data/types";
 import {
 	type ActiveTrainState,
 	resolveServiceAtTime,
@@ -33,6 +40,19 @@ export const App = () => {
 	);
 	const [hoveredServiceId, setHoveredServiceId] = useState<string | null>(null);
 	const [isInfoOpen, setIsInfoOpen] = useState<boolean>(false);
+	const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+	const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+
+	const handleChangeSetting = <K extends keyof AppSettings>(
+		key: K,
+		value: AppSettings[K],
+	) => {
+		setSettings((prev) => ({ ...prev, [key]: value }));
+	};
+
+	const handleResetSettings = () => {
+		setSettings(DEFAULT_SETTINGS);
+	};
 
 	// Static schedule loaded from ingested timetable.json
 	const services: TrainService[] = useMemo(
@@ -156,6 +176,15 @@ export const App = () => {
 						style={{ color: "#59d7ff", padding: "0 4px", height: "auto" }}
 					>
 						Sources
+					</Button>
+					<Button
+						type="text"
+						size="small"
+						icon={<SettingOutlined />}
+						onClick={() => setIsSettingsOpen(true)}
+						style={{ color: "#a8b5bc", padding: "0 4px", height: "auto" }}
+					>
+						Settings
 					</Button>
 				</div>
 
@@ -359,6 +388,8 @@ export const App = () => {
 					viewPreset={viewPreset}
 					selectedServiceId={selectedService?.id ?? null}
 					hoveredServiceId={hoveredServiceId}
+					timeOffset={timeOffset}
+					settings={settings}
 					onSelectService={setSelectedService}
 					onHoverService={setHoveredServiceId}
 					services={services}
@@ -369,6 +400,15 @@ export const App = () => {
 				<StatsPanel
 					activeTrains={activeTrains}
 					onSelectService={setSelectedService}
+				/>
+
+				{/* Settings Drawer */}
+				<SettingsModal
+					open={isSettingsOpen}
+					settings={settings}
+					onClose={() => setIsSettingsOpen(false)}
+					onChangeSetting={handleChangeSetting}
+					onResetSettings={handleResetSettings}
 				/>
 
 				{/* Controls */}

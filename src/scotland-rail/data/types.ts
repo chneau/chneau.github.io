@@ -77,6 +77,40 @@ export type TrainService = {
 	calls: ServiceCall[];
 };
 
+export type Landmark = {
+	id: string;
+	name: string;
+	coordinate: Coordinate;
+	icon: string;
+	description: string;
+};
+
+export type Loch = {
+	id: string;
+	name: string;
+	coordinates: Coordinate[];
+};
+
+export type AppSettings = {
+	dayNightCycle: boolean;
+	trainHeadlights: boolean;
+	showLandmarks: boolean;
+	showLochs: boolean;
+	congestionHeatmap: boolean;
+	cameraFollowTrain: boolean;
+	soundEffects: boolean;
+};
+
+export const DEFAULT_SETTINGS: AppSettings = {
+	dayNightCycle: true,
+	trainHeadlights: true,
+	showLandmarks: true,
+	showLochs: true,
+	congestionHeatmap: false,
+	cameraFollowTrain: false,
+	soundEffects: false,
+};
+
 export type ViewPreset = "scotland" | "central-belt" | "highlands";
 
 export type Bounds = [west: number, south: number, east: number, north: number];
