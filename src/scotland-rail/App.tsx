@@ -22,6 +22,8 @@ import {
 	recomputeActiveTrains,
 } from "./store";
 
+declare const BUILD_DATE: string;
+
 const { Title, Paragraph, Text, Link } = Typography;
 
 export const App = () => {
@@ -126,6 +128,15 @@ export const App = () => {
 					</span>
 					<span style={{ color: "#8ca0aa", fontSize: "0.75rem" }}>
 						| 24h Replay
+					</span>
+					<span
+						style={{
+							color: "#8ca0aa",
+							fontSize: "0.7rem",
+							opacity: 0.7,
+						}}
+					>
+						({BUILD_DATE})
 					</span>
 					<Button
 						type="text"
