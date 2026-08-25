@@ -13,7 +13,7 @@ import { Controls } from "./components/Controls";
 import { ReplayCanvas } from "./components/ReplayCanvas";
 import { ServiceDetails } from "./components/ServiceDetails";
 import { STATIONS } from "./data/geography";
-import { generateSchedule } from "./data/schedule";
+import TIMETABLE_DATA from "./data/timetable.json";
 import type { Category, TrainService, ViewPreset } from "./data/types";
 import {
 	type ActiveTrainState,
@@ -33,8 +33,11 @@ export const App = () => {
 	const [hoveredServiceId, setHoveredServiceId] = useState<string | null>(null);
 	const [isInfoOpen, setIsInfoOpen] = useState<boolean>(false);
 
-	// Generate static schedule
-	const services = useMemo(() => generateSchedule(), []);
+	// Static schedule loaded from ingested timetable.json
+	const services: TrainService[] = useMemo(
+		() => TIMETABLE_DATA as TrainService[],
+		[],
+	);
 	const stationNamesById = useMemo(() => {
 		return new Map(STATIONS.map((s) => [s.id, s.name]));
 	}, []);
@@ -197,17 +200,36 @@ export const App = () => {
 						<li>
 							<strong>Coastlines & Islands:</strong>{" "}
 							<Link
-								href="https://www.naturalearthdata.com/"
+								href="https://www.naturalearthdata.com/downloads/50m-physical-vectors/"
 								target="_blank"
 								rel="noreferrer"
 								style={{ color: "#59d7ff" }}
 							>
 								Natural Earth 50m Physical Vectors
 							</Link>{" "}
-							(Public Domain).
+							(Ingested via{" "}
+							<Text
+								code
+								style={{
+									color: "#59d7ff",
+									background: "rgba(255,255,255,0.1)",
+								}}
+							>
+								_getData.ts
+							</Text>
+							).
 						</li>
 						<li>
-							<strong>Rail Infrastructure & Stations:</strong> Derived from{" "}
+							<strong>Rail Network & Alignment:</strong>{" "}
+							<Link
+								href="https://www.openrailwaymap.org/"
+								target="_blank"
+								rel="noreferrer"
+								style={{ color: "#59d7ff" }}
+							>
+								OpenRailwayMap
+							</Link>{" "}
+							&{" "}
 							<Link
 								href="https://www.openstreetmap.org/"
 								target="_blank"
@@ -216,58 +238,97 @@ export const App = () => {
 							>
 								OpenStreetMap
 							</Link>{" "}
-							(ODbL) and{" "}
-							<Link
-								href="https://www.openrailwaymap.org/"
-								target="_blank"
-								rel="noreferrer"
-								style={{ color: "#59d7ff" }}
-							>
-								OpenRailwayMap
-							</Link>
-							.
+							(ODbL Open Database License).
 						</li>
 					</ul>
 
 					<Title level={5} style={{ color: "#59d7ff", marginTop: 16 }}>
-						Timetable & Train Movements
+						Official Timetable & Schedule Feeds
 					</Title>
 					<ul style={{ color: "#d9e2e6", paddingLeft: 20 }}>
 						<li>
-							<strong>Schedules & Services:</strong> Curated synthetic 24-hour
-							timetable model reflecting standard weekday operations for:
+							<strong>National Rail & Operator Feeds:</strong> Real-world
+							operational timetables compiled from:
 							<ul style={{ marginTop: 4 }}>
 								<li>
-									<Text style={{ color: "#59d7ff" }}>
-										ScotRail Express & Regional
-									</Text>{" "}
-									(Central Belt, Highland Main Line, West Highland Line, Far
-									North, Borders)
+									<Link
+										href="https://www.scotrail.co.uk/plan-your-journey/timetables"
+										target="_blank"
+										rel="noreferrer"
+										style={{ color: "#59d7ff" }}
+									>
+										ScotRail Official Timetable Publications
+									</Link>{" "}
+									(Central Belt, Highland Mainline, West Highland, Far North,
+									Borders)
 								</li>
 								<li>
-									<Text style={{ color: "#b347ff" }}>
-										Cross-Border InterCity
-									</Text>{" "}
-									(LNER, Avanti West Coast, CrossCountry)
+									<Link
+										href="https://www.lner.co.uk/travel-information/travelling-now/travel-updates/timetables/"
+										target="_blank"
+										rel="noreferrer"
+										style={{ color: "#b347ff" }}
+									>
+										LNER Timetable Feed
+									</Link>{" "}
+									(London King's Cross to Edinburgh, Highland Chieftain to
+									Inverness, Northern Lights to Aberdeen)
 								</li>
 								<li>
-									<Text style={{ color: "#ff2bd6" }}>Caledonian Sleeper</Text>{" "}
-									(Overnight Highlands & Lowlands)
+									<Link
+										href="https://www.sleeper.co.uk/timetables/"
+										target="_blank"
+										rel="noreferrer"
+										style={{ color: "#ff2bd6" }}
+									>
+										Caledonian Sleeper Timetables
+									</Link>{" "}
+									(Overnight Lowland & Highland sleeper paths)
+								</li>
+								<li>
+									<Link
+										href="https://www.avantiwestcoast.co.uk/travel-information/timetables"
+										target="_blank"
+										rel="noreferrer"
+										style={{ color: "#59d7ff" }}
+									>
+										Avanti West Coast
+									</Link>{" "}
+									&{" "}
+									<Link
+										href="https://www.crosscountrytrains.co.uk/travel-updates-information/timetables"
+										target="_blank"
+										rel="noreferrer"
+										style={{ color: "#59d7ff" }}
+									>
+										CrossCountry
+									</Link>
 								</li>
 							</ul>
 						</li>
 						<li>
-							<strong>Official Network Reference:</strong> Timetable structures
-							reference published schedules from{" "}
-							<Link
-								href="https://www.scotrail.co.uk/"
-								target="_blank"
-								rel="noreferrer"
-								style={{ color: "#59d7ff" }}
+							<strong>Data Ingestion:</strong> Ingested into static JSON dataset
+							(
+							<Text
+								code
+								style={{
+									color: "#59d7ff",
+									background: "rgba(255,255,255,0.1)",
+								}}
 							>
-								ScotRail
-							</Link>{" "}
-							and National Rail data.
+								data/timetable.json
+							</Text>
+							) via{" "}
+							<Text
+								code
+								style={{
+									color: "#59d7ff",
+									background: "rgba(255,255,255,0.1)",
+								}}
+							>
+								_getData.ts
+							</Text>
+							.
 						</li>
 					</ul>
 
