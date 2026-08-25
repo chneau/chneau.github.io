@@ -98,6 +98,8 @@ export type AppSettings = {
 	showLochs: boolean;
 	congestionHeatmap: boolean;
 	cameraFollowTrain: boolean;
+	weatherEffects: boolean;
+	cityLights: boolean;
 	soundEffects: boolean;
 };
 
@@ -108,6 +110,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	showLochs: true,
 	congestionHeatmap: false,
 	cameraFollowTrain: false,
+	weatherEffects: true,
+	cityLights: true,
 	soundEffects: false,
 };
 

@@ -13,6 +13,7 @@ const { Text } = Typography;
 
 type StatsPanelProps = {
 	activeTrains: ActiveTrainState[];
+	timeOffset: number;
 	onSelectService: (service: TrainService) => void;
 };
 
@@ -40,6 +41,7 @@ const calcPolylineDistanceKm = (coords: [number, number][]): number => {
 
 export const StatsPanel = ({
 	activeTrains,
+	timeOffset,
 	onSelectService,
 }: StatsPanelProps) => {
 	const [unit, setUnit] = useState<"metric" | "imperial">("metric");
@@ -172,6 +174,77 @@ export const StatsPanel = ({
 						<span style={{ color: "#8ca0aa" }}>
 							{stats.dwellingTrains} at station
 						</span>
+					</div>
+
+					{/* 24-hour Activity Curve Mini Bar */}
+					<div style={{ padding: "2px 0 4px 0" }}>
+						<div
+							style={{
+								display: "flex",
+								justifyContent: "space-between",
+								fontSize: "0.68rem",
+								color: "#8ca0aa",
+								marginBottom: 2,
+							}}
+						>
+							<span>05:00</span>
+							<span style={{ color: "#59d7ff" }}>Rush Hours</span>
+							<span>24:00</span>
+						</div>
+						<div
+							style={{
+								position: "relative",
+								height: 12,
+								background: "rgba(255,255,255,0.06)",
+								borderRadius: 3,
+								overflow: "hidden",
+							}}
+						>
+							{/* Morning Rush Glow */}
+							<div
+								style={{
+									position: "absolute",
+									left: "12%",
+									width: "18%",
+									height: "100%",
+									background: "rgba(89, 215, 255, 0.25)",
+								}}
+							/>
+							{/* Evening Rush Glow */}
+							<div
+								style={{
+									position: "absolute",
+									left: "52%",
+									width: "16%",
+									height: "100%",
+									background: "rgba(255, 186, 99, 0.25)",
+								}}
+							/>
+							{/* Sleeper Glow */}
+							<div
+								style={{
+									position: "absolute",
+									left: "82%",
+									width: "14%",
+									height: "100%",
+									background: "rgba(255, 43, 214, 0.25)",
+								}}
+							/>
+							{/* Current Time Needle */}
+							<div
+								style={{
+									position: "absolute",
+									left: `${Math.min(
+										100,
+										Math.max(0, ((timeOffset - 300) / 1140) * 100),
+									)}%`,
+									width: 3,
+									height: "100%",
+									background: "#ffffff",
+									boxShadow: "0 0 6px #ffffff",
+								}}
+							/>
+						</div>
 					</div>
 
 					{/* Fastest Running */}
