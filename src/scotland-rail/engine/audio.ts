@@ -20,6 +20,13 @@ class RailAudioEngine {
 		}
 	}
 
+	public unlockAudio() {
+		this.init();
+		if (this.ctx && this.ctx.state === "suspended") {
+			this.ctx.resume();
+		}
+	}
+
 	public startAmbient(activeTrainCount: number) {
 		if (this.isRunning) return;
 		this.init();
