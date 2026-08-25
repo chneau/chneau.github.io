@@ -8,6 +8,7 @@ import {
 	STATIONS,
 } from "../data/geography";
 import { CATEGORIES, type TrainService, VIEW_BOUNDS } from "../data/types";
+import { drawSmoothPath } from "../engine/curve";
 import { createProjection } from "../engine/projection";
 import { derivedStore, railActions, railStore } from "../store";
 
@@ -246,7 +247,8 @@ export const ReplayCanvas = () => {
 			}
 		}
 
-		// 3. Rail Paths
+		// 3. Rail Paths (Curved High-Resolution Multi-Layer Track)
+		// Track base glow / bed
 		sCtx.strokeStyle = settings.congestionHeatmap
 			? "rgba(255, 100, 50, 0.35)"
 			: "#1b3342";
@@ -255,24 +257,18 @@ export const ReplayCanvas = () => {
 		sCtx.lineJoin = "round";
 		for (const rail of RAIL_PATHS) {
 			sCtx.beginPath();
-			rail.coordinates.forEach((pt, i) => {
-				const { x, y } = proj.project(pt);
-				if (i === 0) sCtx.moveTo(x, y);
-				else sCtx.lineTo(x, y);
-			});
+			const projected = rail.coordinates.map((pt) => proj.project(pt));
+			drawSmoothPath(sCtx, projected);
 			sCtx.stroke();
 		}
 
-		// Track line
+		// Track main line
 		sCtx.strokeStyle = settings.congestionHeatmap ? "#ff7b47" : "#4d7388";
 		sCtx.lineWidth = 1.5;
 		for (const rail of RAIL_PATHS) {
 			sCtx.beginPath();
-			rail.coordinates.forEach((pt, i) => {
-				const { x, y } = proj.project(pt);
-				if (i === 0) sCtx.moveTo(x, y);
-				else sCtx.lineTo(x, y);
-			});
+			const projected = rail.coordinates.map((pt) => proj.project(pt));
+			drawSmoothPath(sCtx, projected);
 			sCtx.stroke();
 		}
 
@@ -414,7 +410,7 @@ export const ReplayCanvas = () => {
 			ctx.restore();
 		}
 
-		// 2. Draw Selected Service Full Route
+		// 2. Draw Selected Service Full Route (High-Res Spline)
 		if (selectedServiceId) {
 			const activeSelected = filteredServices.find(
 				(s) => s.id === selectedServiceId,
@@ -424,13 +420,14 @@ export const ReplayCanvas = () => {
 				ctx.save();
 				ctx.strokeStyle = catConfig.color;
 				ctx.lineWidth = 3.5;
+				ctx.shadowColor = catConfig.color;
+				ctx.shadowBlur = 8;
 				ctx.globalAlpha = 0.9;
 				ctx.beginPath();
-				activeSelected.pathCoordinates.forEach((pt, i) => {
-					const { x, y } = proj.project(pt);
-					if (i === 0) ctx.moveTo(x, y);
-					else ctx.lineTo(x, y);
-				});
+				const projected = activeSelected.pathCoordinates.map((pt) =>
+					proj.project(pt),
+				);
+				drawSmoothPath(ctx, projected);
 				ctx.stroke();
 				ctx.restore();
 			}
