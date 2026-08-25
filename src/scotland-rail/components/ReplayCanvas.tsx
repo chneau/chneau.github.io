@@ -462,36 +462,24 @@ export const ReplayCanvas = () => {
 
 			// Headlight beam
 			const atmo = getDayNightAtmosphere(timeOffset, settings.dayNightCycle);
-			if (
-				settings.trainHeadlights &&
-				atmo.isNight &&
-				!train.isDwelling &&
-				train.previousPosition
-			) {
-				const prevScreen = proj.project(train.previousPosition);
-				const dx = x - prevScreen.x;
-				const dy = y - prevScreen.y;
-				const screenHeading = Math.atan2(dy, dx);
+			if (settings.trainHeadlights && atmo.isNight && !train.isDwelling) {
+				ctx.save();
+				ctx.translate(x, y);
+				ctx.rotate(train.headingAngle);
 
-				if (Math.hypot(dx, dy) > 0.001) {
-					ctx.save();
-					ctx.translate(x, y);
-					ctx.rotate(screenHeading);
+				const beamGrad = ctx.createRadialGradient(0, 0, 2, 30, 0, 38);
+				beamGrad.addColorStop(0, "rgba(255, 250, 190, 0.7)");
+				beamGrad.addColorStop(0.5, "rgba(255, 235, 140, 0.25)");
+				beamGrad.addColorStop(1, "rgba(255, 220, 90, 0)");
 
-					const beamGrad = ctx.createRadialGradient(0, 0, 2, 28, 0, 36);
-					beamGrad.addColorStop(0, "rgba(255, 250, 190, 0.65)");
-					beamGrad.addColorStop(0.5, "rgba(255, 235, 140, 0.25)");
-					beamGrad.addColorStop(1, "rgba(255, 220, 90, 0)");
-
-					ctx.fillStyle = beamGrad;
-					ctx.beginPath();
-					ctx.moveTo(0, 0);
-					ctx.lineTo(36, -11);
-					ctx.lineTo(36, 11);
-					ctx.closePath();
-					ctx.fill();
-					ctx.restore();
-				}
+				ctx.fillStyle = beamGrad;
+				ctx.beginPath();
+				ctx.moveTo(0, 0);
+				ctx.lineTo(38, -12);
+				ctx.lineTo(38, 12);
+				ctx.closePath();
+				ctx.fill();
+				ctx.restore();
 			}
 
 			const size = isSelected || isHovered ? 6.5 : 4.5;
@@ -524,55 +512,55 @@ export const ReplayCanvas = () => {
 				ctx.restore();
 			}
 
-			// Draw Train Marker
+			// Draw Train Marker Outer Highlight Ring
 			ctx.save();
-			ctx.fillStyle = catConfig.color;
-			ctx.strokeStyle = "#07131b";
-			ctx.lineWidth = 1.5;
-
 			if (isSelected || isHovered) {
 				ctx.strokeStyle = "#ffffff";
-				ctx.lineWidth = 2;
+				ctx.lineWidth = 2.5;
+				ctx.shadowColor = catConfig.color;
+				ctx.shadowBlur = 10;
 				ctx.beginPath();
-				ctx.arc(x, y, size + 3, 0, Math.PI * 2);
+				ctx.arc(x, y, size + 4, 0, Math.PI * 2);
 				ctx.stroke();
+				ctx.shadowBlur = 0;
 			}
 
-			// Shape
+			// Draw Directional Carriage / Train Hull with Glow
+			ctx.translate(x, y);
+			ctx.rotate(train.headingAngle);
+
+			// Neon Shadow / Glow on train marker
+			ctx.shadowColor = catConfig.color;
+			ctx.shadowBlur = isSelected ? 12 : 6;
+
+			// Streamlined Aerodynamic Train Capsule Hull
+			const halfL = size * 1.3;
+			const halfW = size * 0.65;
+			ctx.fillStyle = catConfig.color;
+			ctx.strokeStyle = "#07131b";
+			ctx.lineWidth = 1.4;
+
 			ctx.beginPath();
-			switch (catConfig.shape) {
-				case "circle":
-					ctx.arc(x, y, size, 0, Math.PI * 2);
-					break;
-				case "diamond":
-					ctx.moveTo(x, y - size);
-					ctx.lineTo(x + size, y);
-					ctx.lineTo(x, y + size);
-					ctx.lineTo(x - size, y);
-					ctx.closePath();
-					break;
-				case "square":
-					ctx.rect(x - size, y - size, size * 2, size * 2);
-					break;
-				case "triangle":
-					ctx.moveTo(x, y - size * 1.2);
-					ctx.lineTo(x + size, y + size * 0.8);
-					ctx.lineTo(x - size, y + size * 0.8);
-					ctx.closePath();
-					break;
-				case "hexagon":
-					for (let i = 0; i < 6; i++) {
-						const ang = (Math.PI / 3) * i - Math.PI / 6;
-						const px = x + Math.cos(ang) * size;
-						const py = y + Math.sin(ang) * size;
-						if (i === 0) ctx.moveTo(px, py);
-						else ctx.lineTo(px, py);
-					}
-					ctx.closePath();
-					break;
-			}
+			// Pointed / aerodynamic rounded nose along positive X axis (direction of heading)
+			ctx.moveTo(halfL, 0);
+			ctx.lineTo(halfL * 0.4, -halfW);
+			ctx.lineTo(-halfL, -halfW);
+			ctx.lineTo(-halfL, halfW);
+			ctx.lineTo(halfL * 0.4, halfW);
+			ctx.closePath();
 			ctx.fill();
 			ctx.stroke();
+
+			// Windshield cockpit glass at front
+			ctx.fillStyle = "#ffffff";
+			ctx.beginPath();
+			ctx.moveTo(halfL * 0.7, 0);
+			ctx.lineTo(halfL * 0.25, -halfW * 0.6);
+			ctx.lineTo(halfL * 0.15, 0);
+			ctx.lineTo(halfL * 0.25, halfW * 0.6);
+			ctx.closePath();
+			ctx.fill();
+
 			ctx.restore();
 		}
 	}, [

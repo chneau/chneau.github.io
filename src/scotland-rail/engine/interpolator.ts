@@ -52,10 +52,39 @@ const getPolylineDistances = (
 	return result;
 };
 
-// Interpolate along a polyline
+// Physics S-curve easing for realistic station departure acceleration & arrival braking
+// Smoothstep cubic polynomial: 3t^2 - 2t^3 with linear cruise section in between
+const smoothLegProgress = (t: number): number => {
+	if (t <= 0) return 0;
+	if (t >= 1) return 1;
+	// Smooth cubic ease-in-out
+	return t * t * (3 - 2 * t);
+};
+
+// Catmull-Rom cubic spline interpolation between 4 control points
+const catmullRom = (
+	p0: number,
+	p1: number,
+	p2: number,
+	p3: number,
+	t: number,
+): number => {
+	const t2 = t * t;
+	const t3 = t2 * t;
+	return (
+		0.5 *
+		(2 * p1 +
+			(-p0 + p2) * t +
+			(2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+			(-p0 + 3 * p1 - 3 * p2 + p3) * t3)
+	);
+};
+
+// Interpolate smoothly along a polyline using Catmull-Rom splines
 const interpolatePolyline = (
 	coords: Coordinate[],
 	fraction: number,
+	trackOffsetMeters = 0,
 ): { pos: Coordinate; prev: Coordinate | null; heading: number } => {
 	if (coords.length === 0) return { pos: [0, 0], prev: null, heading: 0 };
 	if (coords.length === 1 || fraction <= 0) {
@@ -80,15 +109,47 @@ const interpolatePolyline = (
 		const previousDist = dists[i - 1] ?? 0;
 		if (currentDist >= targetDist) {
 			const segmentDist = currentDist - previousDist;
-			const segFrac =
+			const t =
 				segmentDist === 0 ? 0 : (targetDist - previousDist) / segmentDist;
-			const p1 = coords[i - 1] as Coordinate;
-			const p2 = coords[i] as Coordinate;
-			const pos: Coordinate = [
-				p1[0] + (p2[0] - p1[0]) * segFrac,
-				p1[1] + (p2[1] - p1[1]) * segFrac,
-			];
-			const heading = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+
+			// Control points for Catmull-Rom spline
+			const p0 = (coords[Math.max(0, i - 2)] ?? coords[0]) as Coordinate;
+			const p1 = (coords[i - 1] ?? coords[0]) as Coordinate;
+			const p2 = (coords[i] ?? coords[coords.length - 1]) as Coordinate;
+			const p3 = (coords[Math.min(coords.length - 1, i + 1)] ??
+				coords[coords.length - 1]) as Coordinate;
+
+			let lon = catmullRom(p0[0], p1[0], p2[0], p3[0], t);
+			let lat = catmullRom(p0[1], p1[1], p2[1], p3[1], t);
+
+			// Calculate tangent heading vector for orientation in projected screen coordinates:
+			// screen x = dLon * cos(lat), screen y = -dLat (since screen Y goes downwards)
+			const tEpsilon = 0.02;
+			const tNext = Math.min(1, t + tEpsilon);
+			const lonNext = catmullRom(p0[0], p1[0], p2[0], p3[0], tNext);
+			const latNext = catmullRom(p0[1], p1[1], p2[1], p3[1], tNext);
+
+			const dLon = lonNext - lon;
+			const dLat = latNext - lat;
+			const radLat = (lat * Math.PI) / 180;
+			const dxScreen = dLon * Math.cos(radLat);
+			const dyScreen = -dLat;
+			const heading = Math.atan2(dyScreen, dxScreen);
+
+			// Apply dual-track perpendicular offset (creates left/right passing lanes)
+			if (trackOffsetMeters !== 0) {
+				const geoAngle = Math.atan2(dLat, dLon * Math.cos(radLat));
+				const normalAngle = geoAngle + Math.PI / 2;
+				// Approx degree offset: 1 degree latitude ~ 111,000 meters
+				const latOffset = (Math.sin(normalAngle) * trackOffsetMeters) / 111000;
+				const lonOffset =
+					(Math.cos(normalAngle) * trackOffsetMeters) /
+					(111000 * Math.cos(radLat));
+				lon += lonOffset;
+				lat += latOffset;
+			}
+
+			const pos: Coordinate = [lon, lat];
 			return { pos, prev: p1, heading };
 		}
 	}
@@ -259,12 +320,23 @@ export const resolveServiceAtTime = (
 
 		// Check if moving between fromCall and toCall
 		if (timeOffset >= depTime && timeOffset <= arrTime) {
-			const legFrac = (timeOffset - depTime) / Math.max(1, arrTime - depTime);
+			const rawLegFrac =
+				(timeOffset - depTime) / Math.max(1, arrTime - depTime);
+			const legFrac = smoothLegProgress(rawLegFrac);
 			const polyFrac = fromFrac + legFrac * (toFrac - fromFrac);
+
+			// Dual track passing offset: northbound/eastbound trains offset +12m, southbound/westbound offset -12m
+			const trackOffset =
+				service.id.endsWith("-2") ||
+				service.id.endsWith("-4") ||
+				service.id.endsWith("-6")
+					? 14
+					: -14;
 
 			const { pos, prev, heading } = interpolatePolyline(
 				service.pathCoordinates,
 				polyFrac,
+				trackOffset,
 			);
 
 			return {
