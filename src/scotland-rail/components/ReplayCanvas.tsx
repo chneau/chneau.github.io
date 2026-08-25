@@ -267,7 +267,37 @@ export const ReplayCanvas = ({
 			sCtx.stroke();
 		}
 
-		// 4. Scenic Landmarks & Viaducts
+		// 4. City Night Lights (Ambient urban glow in dark hours)
+		if (settings.cityLights && atmo.isNight) {
+			const majorCities = [
+				{ name: "Glasgow", coord: [-4.258, 55.859] as [number, number], r: 35 },
+				{
+					name: "Edinburgh",
+					coord: [-3.189, 55.952] as [number, number],
+					r: 30,
+				},
+				{ name: "Dundee", coord: [-2.973, 56.457] as [number, number], r: 18 },
+				{
+					name: "Aberdeen",
+					coord: [-2.098, 57.143] as [number, number],
+					r: 22,
+				},
+			];
+
+			for (const city of majorCities) {
+				const { x, y } = proj.project(city.coord);
+				const grad = sCtx.createRadialGradient(x, y, 2, x, y, city.r * zoom);
+				grad.addColorStop(0, "rgba(255, 205, 110, 0.4)");
+				grad.addColorStop(0.5, "rgba(255, 180, 80, 0.15)");
+				grad.addColorStop(1, "rgba(255, 160, 50, 0)");
+				sCtx.fillStyle = grad;
+				sCtx.beginPath();
+				sCtx.arc(x, y, city.r * zoom, 0, Math.PI * 2);
+				sCtx.fill();
+			}
+		}
+
+		// 5. Scenic Landmarks & Viaducts
 		if (settings.showLandmarks) {
 			for (const lm of LANDMARKS) {
 				const { x, y } = proj.project(lm.coordinate);
@@ -287,7 +317,7 @@ export const ReplayCanvas = ({
 			}
 		}
 
-		// 5. Stations & Labels
+		// 6. Stations & Labels
 		for (const st of STATIONS) {
 			const { x, y } = proj.project(st.coordinate);
 			if (x < -30 || x > width + 30 || y < -30 || y > height + 30) continue;
@@ -325,7 +355,7 @@ export const ReplayCanvas = ({
 		}
 	}, [viewPreset, zoom, pan, timeOffset, settings]);
 
-	// Render dynamic frame (Trains, Trails, Selected Route)
+	// Render dynamic frame (Trains, Trails, Weather, Selected Route)
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		const staticCanvas = staticCanvasRef.current;
@@ -345,7 +375,26 @@ export const ReplayCanvas = ({
 		const bounds = VIEW_BOUNDS[viewPreset];
 		const proj = createProjection(bounds, width, height, 32, zoom, pan);
 
-		// 1. Draw Selected Service Full Route
+		// 1. Highland Weather / Rain Effect
+		if (settings.weatherEffects) {
+			ctx.save();
+			ctx.strokeStyle = "rgba(180, 215, 240, 0.18)";
+			ctx.lineWidth = 1;
+			const timeSec = performance.now() / 1000;
+			for (let i = 0; i < 45; i++) {
+				const seedX = (Math.sin(i * 12.9898) * 43758.5453) % 1;
+				const seedY = (Math.cos(i * 78.233) * 43758.5453) % 1;
+				const rx = (seedX * width + timeSec * 60) % width;
+				const ry = (seedY * height + timeSec * 140) % height;
+				ctx.beginPath();
+				ctx.moveTo(rx, ry);
+				ctx.lineTo(rx - 3, ry + 10);
+				ctx.stroke();
+			}
+			ctx.restore();
+		}
+
+		// 2. Draw Selected Service Full Route
 		if (selectedServiceId) {
 			const selectedService = services.find((s) => s.id === selectedServiceId);
 			if (selectedService) {
@@ -365,7 +414,7 @@ export const ReplayCanvas = ({
 			}
 		}
 
-		// 2. Draw Active Trains & Trails
+		// 3. Draw Active Trains & Trails
 		for (const train of activeTrains) {
 			const isSelected = train.service.id === selectedServiceId;
 			const isHovered = train.service.id === hoveredServiceId;
@@ -520,7 +569,14 @@ export const ReplayCanvas = ({
 		isDraggingRef.current = false;
 	};
 
-	// Mouse Interaction (Click & Hover)
+	// Mouse Interaction & Hover Tooltip
+	const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(
+		null,
+	);
+	const hoveredTrain = hoveredServiceId
+		? activeTrains.find((t) => t.service.id === hoveredServiceId)
+		: null;
+
 	const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -541,7 +597,7 @@ export const ReplayCanvas = ({
 
 		// Find nearest active train
 		let closestId: string | null = null;
-		let minDist = 16; // pixel threshold
+		let minDist = 18;
 
 		for (const train of activeTrains) {
 			const { x, y } = proj.project(train.position);
@@ -550,6 +606,12 @@ export const ReplayCanvas = ({
 				minDist = dist;
 				closestId = train.service.id;
 			}
+		}
+
+		if (closestId) {
+			setHoverPos({ x: mouseX, y: mouseY });
+		} else {
+			setHoverPos(null);
 		}
 
 		onHoverService(closestId);
@@ -574,7 +636,7 @@ export const ReplayCanvas = ({
 		);
 
 		let closestService: TrainService | null = null;
-		let minDist = 18;
+		let minDist = 20;
 
 		for (const train of activeTrains) {
 			const { x, y } = proj.project(train.position);
@@ -606,6 +668,7 @@ export const ReplayCanvas = ({
 				onPointerMove={handlePointerMove}
 				onPointerLeave={() => {
 					isDraggingRef.current = false;
+					setHoverPos(null);
 					onHoverService(null);
 				}}
 				onClick={handleClick}
@@ -616,6 +679,50 @@ export const ReplayCanvas = ({
 					cursor: hoveredServiceId ? "pointer" : "grab",
 				}}
 			/>
+
+			{/* Floating Hover HUD Tooltip */}
+			{hoveredTrain && hoverPos && (
+				<div
+					style={{
+						position: "absolute",
+						left: Math.min(window.innerWidth - 240, hoverPos.x + 14),
+						top: Math.max(16, hoverPos.y - 45),
+						zIndex: 25,
+						pointerEvents: "none",
+						background: "rgba(7, 19, 27, 0.95)",
+						backdropFilter: "blur(8px)",
+						border: `1px solid ${
+							CATEGORIES[hoveredTrain.service.category].color
+						}`,
+						borderRadius: 8,
+						padding: "6px 10px",
+						color: "#edf3f5",
+						fontSize: "0.8rem",
+						boxShadow: "0 6px 18px rgba(0,0,0,0.6)",
+					}}
+				>
+					<div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+						<span
+							style={{
+								color: CATEGORIES[hoveredTrain.service.category].color,
+								fontWeight: "bold",
+							}}
+						>
+							{hoveredTrain.service.serviceNumber}
+						</span>
+						<span style={{ fontWeight: 600 }}>{hoveredTrain.service.name}</span>
+					</div>
+					<div style={{ color: "#8ca0aa", fontSize: "0.74rem", marginTop: 2 }}>
+						{hoveredTrain.isDwelling ? (
+							<span style={{ color: "#59d7ff" }}>
+								📍 At station: {hoveredTrain.currentStopName}
+							</span>
+						) : (
+							<span>➡️ Next: {hoveredTrain.nextStopName ?? "Destination"}</span>
+						)}
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };

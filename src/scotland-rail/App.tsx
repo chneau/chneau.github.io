@@ -103,6 +103,20 @@ export const App = () => {
 		return result;
 	}, [services, timeOffset, stationNamesById]);
 
+	// Audio synthesizer management
+	useEffect(() => {
+		if (settings.soundEffects && isPlaying && activeTrains.length > 0) {
+			import("./engine/audio").then(({ railAudio }) => {
+				railAudio.startAmbient(activeTrains.length);
+				railAudio.updateIntensity(activeTrains.length);
+			});
+		} else {
+			import("./engine/audio").then(({ railAudio }) => {
+				railAudio.stop();
+			});
+		}
+	}, [settings.soundEffects, isPlaying, activeTrains.length]);
+
 	// Aggregate counts by category
 	const activeCountsByCategory = useMemo(() => {
 		const counts: Record<Category, number> = {
@@ -399,6 +413,7 @@ export const App = () => {
 				{/* Live Dynamic Stats Panel (Left HUD) */}
 				<StatsPanel
 					activeTrains={activeTrains}
+					timeOffset={timeOffset}
 					onSelectService={setSelectedService}
 				/>
 

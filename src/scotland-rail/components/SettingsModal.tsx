@@ -153,6 +153,57 @@ export const SettingsModal = ({
 					/>
 				</div>
 
+				{/* City Night Lights */}
+				<div
+					style={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+					}}
+				>
+					<div>
+						<Text strong style={{ color: "#edf3f5", display: "block" }}>
+							🏙️ Urban City Glow (Night)
+						</Text>
+						<Text
+							type="secondary"
+							style={{ fontSize: "0.78rem", color: "#8ca0aa" }}
+						>
+							Illuminates metropolitan clusters in Edinburgh, Glasgow, Dundee,
+							and Aberdeen
+						</Text>
+					</div>
+					<Switch
+						checked={settings.cityLights}
+						onChange={(val) => onChangeSetting("cityLights", val)}
+					/>
+				</div>
+
+				{/* Scottish Weather */}
+				<div
+					style={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+					}}
+				>
+					<div>
+						<Text strong style={{ color: "#edf3f5", display: "block" }}>
+							🌧️ Highland Weather Engine
+						</Text>
+						<Text
+							type="secondary"
+							style={{ fontSize: "0.78rem", color: "#8ca0aa" }}
+						>
+							Simulates misty highland rain and mountain precipitation
+						</Text>
+					</div>
+					<Switch
+						checked={settings.weatherEffects}
+						onChange={(val) => onChangeSetting("weatherEffects", val)}
+					/>
+				</div>
+
 				<Divider
 					style={{ borderColor: "rgba(255,255,255,0.1)", margin: "8px 0" }}
 				/>
