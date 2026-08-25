@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { type Birthday, birthdays } from "./src/birthdays";
+import { type Birthday, birthdays } from "./birthdays";
 
 const generateICS = (birthdays: readonly Birthday[]) => {
 	const dtstamp = `${
