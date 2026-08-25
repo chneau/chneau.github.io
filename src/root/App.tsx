@@ -76,6 +76,29 @@ export const App = () => {
 									/>
 								</Card>
 							</a>
+
+							<a href="/scotland-rail/" style={{ textDecoration: "none" }}>
+								<Card
+									hoverable
+									style={{
+										transition: "all 0.3s ease",
+										border: "1px solid #e8e8e8",
+									}}
+								>
+									<Card.Meta
+										avatar={<span style={{ fontSize: "2rem" }}>🚆</span>}
+										title={
+											<Space>
+												<span>A Day in Scottish Rail</span>
+												<span style={{ color: "#59d7ff", fontSize: "0.85rem" }}>
+													24h Replay
+												</span>
+											</Space>
+										}
+										description="Interactive 24-hour time-lapse train replay across Scotland's rail network."
+									/>
+								</Card>
+							</a>
 						</Space>
 					</div>
 				</Content>
