@@ -1,5 +1,5 @@
 // Catmull-Rom 1D evaluation
-const catmullRom = (
+export const catmullRom = (
 	p0: number,
 	p1: number,
 	p2: number,

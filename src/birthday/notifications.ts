@@ -2,6 +2,9 @@ import dayjs from "dayjs";
 import type { Birthday } from "./birthdays";
 import i18n from "./i18n";
 
+const CAKE_ICON =
+	"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>";
+
 export const requestNotificationPermission = async () => {
 	if (!("Notification" in window)) {
 		console.log(i18n.t("app.notifications.no_support"));
@@ -55,7 +58,7 @@ export const checkAndNotify = (birthdays: readonly Birthday[]) => {
 	if (title) {
 		notify(title, {
 			body,
-			icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>",
+			icon: CAKE_ICON,
 		});
 		localStorage.setItem("lastNotifiedDate", today);
 	}
@@ -91,6 +94,6 @@ export const sendTestNotification = () => {
 
 	notify(i18n.t("app.notifications.test_title"), {
 		body: i18n.t("app.notifications.test_body"),
-		icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>",
+		icon: CAKE_ICON,
 	});
 };

@@ -7,33 +7,95 @@ import {
 import { Badge, Card, Segmented, Space, Typography } from "antd";
 import { useMemo, useState } from "react";
 import { useSnapshot } from "valtio";
-import { CATEGORIES } from "../data/types";
-import type { ActiveTrainState } from "../engine/interpolator";
+import { CATEGORIES, type TrainService } from "../data/types";
+import {
+	type ActiveTrainState,
+	getPolylineDistances,
+} from "../engine/interpolator";
 import { derivedStore, railActions, railStore } from "../store";
 
 const { Text } = Typography;
 
-// Distance calculation between coordinates in km
-const calcPolylineDistanceKm = (coords: [number, number][]): number => {
-	let total = 0;
-	const R = 6371;
-	for (let i = 1; i < coords.length; i++) {
-		const c1 = coords[i - 1];
-		const c2 = coords[i];
-		if (!c1 || !c2) continue;
-		const dLat = ((c2[1] - c1[1]) * Math.PI) / 180;
-		const dLon = ((c2[0] - c1[0]) * Math.PI) / 180;
-		const a =
-			Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-			Math.cos((c1[1] * Math.PI) / 180) *
-				Math.cos((c2[1] * Math.PI) / 180) *
-				Math.sin(dLon / 2) *
-				Math.sin(dLon / 2);
-		const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-		total += R * c;
-	}
-	return total;
-};
+const HighlightRow = ({
+	icon,
+	title,
+	titleColor,
+	borderColor,
+	value,
+	service,
+	onClick,
+}: {
+	icon: React.ReactNode;
+	title: string;
+	titleColor: string;
+	borderColor: string;
+	value: React.ReactNode;
+	service: TrainService;
+	onClick: () => void;
+}) => (
+	<button
+		type="button"
+		onClick={onClick}
+		style={{
+			cursor: "pointer",
+			width: "100%",
+			textAlign: "left",
+			padding: "6px 8px",
+			borderRadius: 6,
+			background: "rgba(255,255,255,0.04)",
+			border: `1px solid ${borderColor}`,
+			transition: "all 0.2s",
+		}}
+	>
+		<div
+			style={{
+				display: "flex",
+				justifyContent: "space-between",
+				alignItems: "center",
+			}}
+		>
+			<Text
+				style={{
+					color: titleColor,
+					fontSize: "0.75rem",
+					fontWeight: 600,
+				}}
+			>
+				{icon} {title}
+			</Text>
+			<span
+				style={{
+					color: titleColor,
+					fontWeight: "bold",
+					fontSize: "0.78rem",
+				}}
+			>
+				{value}
+			</span>
+		</div>
+		<div
+			style={{
+				color: "#edf3f5",
+				fontSize: "0.78rem",
+				whiteSpace: "nowrap",
+				overflow: "hidden",
+				textOverflow: "ellipsis",
+				marginTop: 2,
+			}}
+		>
+			<span
+				style={{
+					color: CATEGORIES[service.category].color,
+					fontWeight: "bold",
+					marginRight: 4,
+				}}
+			>
+				{service.serviceNumber}
+			</span>
+			{service.name}
+		</div>
+	</button>
+);
 
 export const StatsPanel = () => {
 	const snap = useSnapshot(railStore);
@@ -59,9 +121,7 @@ export const StatsPanel = () => {
 
 		for (const train of activeTrains) {
 			const s = train.service;
-			const totalDist = calcPolylineDistanceKm(
-				s.pathCoordinates as [number, number][],
-			);
+			const totalDist = getPolylineDistances(s.pathCoordinates).total;
 			totalActiveDistanceKm += totalDist;
 
 			// Duration in hours
@@ -111,6 +171,7 @@ export const StatsPanel = () => {
 
 	const isImperial = unit === "imperial";
 	const kmToMiles = (km: number) => km * 0.621371;
+	const { fastest, longest, mostStops } = stats;
 
 	return (
 		<div
@@ -255,222 +316,54 @@ export const StatsPanel = () => {
 						</div>
 					</div>
 
-					{/* Fastest Running */}
-					{stats.fastest && (
-						<button
-							type="button"
-							onClick={() => {
-								if (stats.fastest) {
-									railActions.setSelectedService(stats.fastest.state.service);
-								}
-							}}
-							style={{
-								cursor: "pointer",
-								width: "100%",
-								textAlign: "left",
-								padding: "6px 8px",
-								borderRadius: 6,
-								background: "rgba(255,255,255,0.04)",
-								border: "1px solid rgba(89, 215, 255, 0.25)",
-								transition: "all 0.2s",
-							}}
-						>
-							<div
-								style={{
-									display: "flex",
-									justifyContent: "space-between",
-									alignItems: "center",
-								}}
-							>
-								<Text
-									style={{
-										color: "#59d7ff",
-										fontSize: "0.75rem",
-										fontWeight: 600,
-									}}
-								>
-									<ThunderboltOutlined /> Fastest Active
-								</Text>
-								<span
-									style={{
-										color: "#59d7ff",
-										fontWeight: "bold",
-										fontSize: "0.78rem",
-									}}
-								>
-									~
-									{isImperial
-										? `${Math.round(kmToMiles(stats.fastest.speedKmh))} mph`
-										: `${Math.round(stats.fastest.speedKmh)} km/h`}
-								</span>
-							</div>
-							<div
-								style={{
-									color: "#edf3f5",
-									fontSize: "0.78rem",
-									whiteSpace: "nowrap",
-									overflow: "hidden",
-									textOverflow: "ellipsis",
-									marginTop: 2,
-								}}
-							>
-								<span
-									style={{
-										color:
-											CATEGORIES[stats.fastest.state.service.category].color,
-										fontWeight: "bold",
-										marginRight: 4,
-									}}
-								>
-									{stats.fastest.state.service.serviceNumber}
-								</span>
-								{stats.fastest.state.service.name}
-							</div>
-						</button>
+					{fastest && (
+						<HighlightRow
+							icon={<ThunderboltOutlined />}
+							title="Fastest Active"
+							titleColor="#59d7ff"
+							borderColor="rgba(89, 215, 255, 0.25)"
+							value={
+								isImperial
+									? `~${Math.round(kmToMiles(fastest.speedKmh))} mph`
+									: `~${Math.round(fastest.speedKmh)} km/h`
+							}
+							service={fastest.state.service}
+							onClick={() =>
+								railActions.setSelectedService(fastest.state.service)
+							}
+						/>
 					)}
 
-					{/* Longest Route */}
-					{stats.longest && (
-						<button
-							type="button"
-							onClick={() => {
-								if (stats.longest) {
-									railActions.setSelectedService(stats.longest.state.service);
-								}
-							}}
-							style={{
-								cursor: "pointer",
-								width: "100%",
-								textAlign: "left",
-								padding: "6px 8px",
-								borderRadius: 6,
-								background: "rgba(255,255,255,0.04)",
-								border: "1px solid rgba(179, 71, 255, 0.25)",
-								transition: "all 0.2s",
-							}}
-						>
-							<div
-								style={{
-									display: "flex",
-									justifyContent: "space-between",
-									alignItems: "center",
-								}}
-							>
-								<Text
-									style={{
-										color: "#b347ff",
-										fontSize: "0.75rem",
-										fontWeight: 600,
-									}}
-								>
-									<CrownOutlined /> Longest Distance
-								</Text>
-								<span
-									style={{
-										color: "#b347ff",
-										fontWeight: "bold",
-										fontSize: "0.78rem",
-									}}
-								>
-									{isImperial
-										? `${Math.round(kmToMiles(stats.longest.distKm))} mi`
-										: `${Math.round(stats.longest.distKm)} km`}
-								</span>
-							</div>
-							<div
-								style={{
-									color: "#edf3f5",
-									fontSize: "0.78rem",
-									whiteSpace: "nowrap",
-									overflow: "hidden",
-									textOverflow: "ellipsis",
-									marginTop: 2,
-								}}
-							>
-								<span
-									style={{
-										color:
-											CATEGORIES[stats.longest.state.service.category].color,
-										fontWeight: "bold",
-										marginRight: 4,
-									}}
-								>
-									{stats.longest.state.service.serviceNumber}
-								</span>
-								{stats.longest.state.service.name}
-							</div>
-						</button>
+					{longest && (
+						<HighlightRow
+							icon={<CrownOutlined />}
+							title="Longest Distance"
+							titleColor="#b347ff"
+							borderColor="rgba(179, 71, 255, 0.25)"
+							value={
+								isImperial
+									? `${Math.round(kmToMiles(longest.distKm))} mi`
+									: `${Math.round(longest.distKm)} km`
+							}
+							service={longest.state.service}
+							onClick={() =>
+								railActions.setSelectedService(longest.state.service)
+							}
+						/>
 					)}
 
-					{/* Most Stops */}
-					{stats.mostStops && (
-						<button
-							type="button"
-							onClick={() => {
-								if (stats.mostStops) {
-									railActions.setSelectedService(stats.mostStops.state.service);
-								}
-							}}
-							style={{
-								cursor: "pointer",
-								width: "100%",
-								textAlign: "left",
-								padding: "6px 8px",
-								borderRadius: 6,
-								background: "rgba(255,255,255,0.04)",
-								border: "1px solid rgba(166, 227, 106, 0.25)",
-								transition: "all 0.2s",
-							}}
-						>
-							<div
-								style={{
-									display: "flex",
-									justifyContent: "space-between",
-									alignItems: "center",
-								}}
-							>
-								<Text
-									style={{
-										color: "#a6e36a",
-										fontSize: "0.75rem",
-										fontWeight: 600,
-									}}
-								>
-									<FieldTimeOutlined /> Most Calling Stops
-								</Text>
-								<span
-									style={{
-										color: "#a6e36a",
-										fontWeight: "bold",
-										fontSize: "0.78rem",
-									}}
-								>
-									{stats.mostStops.stopCount} stops
-								</span>
-							</div>
-							<div
-								style={{
-									color: "#edf3f5",
-									fontSize: "0.78rem",
-									whiteSpace: "nowrap",
-									overflow: "hidden",
-									textOverflow: "ellipsis",
-									marginTop: 2,
-								}}
-							>
-								<span
-									style={{
-										color:
-											CATEGORIES[stats.mostStops.state.service.category].color,
-										fontWeight: "bold",
-										marginRight: 4,
-									}}
-								>
-									{stats.mostStops.state.service.serviceNumber}
-								</span>
-								{stats.mostStops.state.service.name}
-							</div>
-						</button>
+					{mostStops && (
+						<HighlightRow
+							icon={<FieldTimeOutlined />}
+							title="Most Calling Stops"
+							titleColor="#a6e36a"
+							borderColor="rgba(166, 227, 106, 0.25)"
+							value={`${mostStops.stopCount} stops`}
+							service={mostStops.state.service}
+							onClick={() =>
+								railActions.setSelectedService(mostStops.state.service)
+							}
+						/>
 					)}
 				</Space>
 			</Card>

@@ -1,4 +1,7 @@
 import type { Coordinate, TrainService } from "../data/types";
+import { catmullRom } from "./curve";
+
+type ReadonlyCoordinate = readonly [longitude: number, latitude: number];
 
 export type ActiveTrainState = {
 	service: TrainService;
@@ -13,7 +16,7 @@ export type ActiveTrainState = {
 };
 
 // Distance in km between two coords
-const distanceKm = (c1: Coordinate, c2: Coordinate): number => {
+const distanceKm = (c1: ReadonlyCoordinate, c2: ReadonlyCoordinate): number => {
 	const R = 6371;
 	const dLat = ((c2[1] - c1[1]) * Math.PI) / 180;
 	const dLon = ((c2[0] - c1[0]) * Math.PI) / 180;
@@ -29,20 +32,20 @@ const distanceKm = (c1: Coordinate, c2: Coordinate): number => {
 
 // Cumulative distance lookup cache for polyline coordinates to prevent reallocations on every frame
 const polylineDistanceCache = new WeakMap<
-	Coordinate[],
+	readonly ReadonlyCoordinate[],
 	{ cumulative: number[]; total: number }
 >();
 
-const getPolylineDistances = (
-	coords: Coordinate[],
+export const getPolylineDistances = (
+	coords: readonly ReadonlyCoordinate[],
 ): { cumulative: number[]; total: number } => {
 	const cached = polylineDistanceCache.get(coords);
 	if (cached) return cached;
 
 	const cumulative: number[] = [0];
 	for (let i = 1; i < coords.length; i++) {
-		const c1 = coords[i - 1] as Coordinate;
-		const c2 = coords[i] as Coordinate;
+		const c1 = coords[i - 1] as ReadonlyCoordinate;
+		const c2 = coords[i] as ReadonlyCoordinate;
 		const prev = cumulative[i - 1] ?? 0;
 		cumulative.push(prev + distanceKm(c1, c2));
 	}
@@ -59,25 +62,6 @@ const smoothLegProgress = (t: number): number => {
 	if (t >= 1) return 1;
 	// Smooth cubic ease-in-out
 	return t * t * (3 - 2 * t);
-};
-
-// Catmull-Rom cubic spline interpolation between 4 control points
-const catmullRom = (
-	p0: number,
-	p1: number,
-	p2: number,
-	p3: number,
-	t: number,
-): number => {
-	const t2 = t * t;
-	const t3 = t2 * t;
-	return (
-		0.5 *
-		(2 * p1 +
-			(-p0 + p2) * t +
-			(2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
-			(-p0 + 3 * p1 - 3 * p2 + p3) * t3)
-	);
 };
 
 // Interpolate smoothly along a polyline using Catmull-Rom splines
