@@ -16,14 +16,9 @@ import {
 import { useSnapshot } from "valtio";
 import { CATEGORIES, type Category, type ViewPreset } from "../data/types";
 import { derivedStore, railActions, railStore } from "../store";
+import { formatTime } from "../utils";
 
 const { Text, Title } = Typography;
-
-const formatTime = (minutes: number): string => {
-	const h = Math.floor(minutes / 60) % 24;
-	const m = Math.floor(minutes % 60);
-	return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-};
 
 export const Controls = () => {
 	const snap = useSnapshot(railStore);

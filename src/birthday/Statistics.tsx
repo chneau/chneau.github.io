@@ -10,6 +10,7 @@ import {
 import { Card, Col, Row, Typography } from "antd";
 import dayjs from "dayjs";
 import { groupBy } from "es-toolkit";
+import type { TFunction } from "i18next";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
@@ -36,6 +37,12 @@ const getDistribution = (
 		}))
 		.sort((a, b) => b.value - a.value);
 };
+
+const namesTooltipItem = (t: TFunction) => ({
+	field: "names",
+	name: t("table.name"),
+	valueFormatter: (v: string[]) => v.join(", "),
+});
 
 const onChartClick = (
 	_: unknown,
@@ -72,12 +79,7 @@ const StatPie = <T extends ChartDatum>({
 					title: (d) => d.type,
 					items: [
 						{ field: "value", channel: "y", name: t("app.statistics.count") },
-						{
-							field: "names",
-							channel: "color",
-							name: t("table.name"),
-							valueFormatter: (v: string[]) => v.join(", "),
-						},
+						{ channel: "color", ...namesTooltipItem(t) },
 					],
 				}}
 				onEvent={onChartClick}
@@ -107,12 +109,7 @@ const StatColumn = <T extends ChartDatum>({
 					title: (d) => d.type,
 					items: [
 						{ field: "value", channel: "y", name: t("app.statistics.count") },
-						{
-							field: "names",
-							channel: "color",
-							name: t("table.name"),
-							valueFormatter: (v: string[]) => v.join(", "),
-						},
+						{ channel: "color", ...namesTooltipItem(t) },
 					],
 				}}
 				onEvent={onChartClick}
@@ -156,11 +153,7 @@ const AgeDistribution = ({ data }: { data: readonly Birthday[] }) => {
 					title: (d) => `${t("table.age")} ${d.age}`,
 					items: [
 						{ field: "value", name: t("app.statistics.count") },
-						{
-							field: "names",
-							name: t("table.name"),
-							valueFormatter: (v: string[]) => v.join(", "),
-						},
+						namesTooltipItem(t),
 					],
 				}}
 			/>
@@ -238,11 +231,7 @@ const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
 							name: t("app.statistics.count"),
 							valueFormatter: (v: number) => Math.abs(v),
 						},
-						{
-							field: "names",
-							name: t("table.name"),
-							valueFormatter: (v: string[]) => v.join(", "),
-						},
+						namesTooltipItem(t),
 					],
 				}}
 			/>
@@ -301,11 +290,7 @@ const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
 					title: (d) => `${d.month} ${d.day}`,
 					items: [
 						{ field: "value", name: t("app.statistics.count") },
-						{
-							field: "names",
-							name: t("table.name"),
-							valueFormatter: (v: string[]) => v.join(", "),
-						},
+						namesTooltipItem(t),
 					],
 				}}
 			/>

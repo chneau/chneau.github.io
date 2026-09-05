@@ -4,15 +4,9 @@ import { useSnapshot } from "valtio";
 import { STATIONS_BY_ID } from "../data/geography";
 import { CATEGORIES } from "../data/types";
 import { derivedStore, railActions, railStore } from "../store";
+import { formatTime } from "../utils";
 
 const { Title, Text } = Typography;
-
-const formatTime = (minutes: number | null): string => {
-	if (minutes === null) return "—";
-	const h = Math.floor(minutes / 60) % 24;
-	const m = Math.floor(minutes % 60);
-	return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-};
 
 export const ServiceDetails = () => {
 	const snap = useSnapshot(railStore);

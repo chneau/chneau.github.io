@@ -15,6 +15,43 @@ const { Title, Paragraph, Text } = Typography;
 
 declare const BUILD_DATE: string;
 
+const AppCard = ({
+	href,
+	emoji,
+	title,
+	description,
+	darkMode,
+}: {
+	href: string;
+	emoji: string;
+	title: React.ReactNode;
+	description: string;
+	darkMode: boolean;
+}) => (
+	<a href={href} style={{ textDecoration: "none" }}>
+		<Card
+			hoverable
+			style={{
+				transition: "all 0.3s ease",
+				background: darkMode ? "#0d222f" : "#fff",
+				border: darkMode
+					? "1px solid rgba(217, 226, 230, 0.2)"
+					: "1px solid #e8e8e8",
+			}}
+		>
+			<Card.Meta
+				avatar={<span style={{ fontSize: "2rem" }}>{emoji}</span>}
+				title={<Space>{title}</Space>}
+				description={
+					<span style={{ color: darkMode ? "#8ca0aa" : undefined }}>
+						{description}
+					</span>
+				}
+			/>
+		</Card>
+	</a>
+);
+
 export const App = () => {
 	const [darkMode, setDarkMode] = useState<boolean>(() => {
 		if (typeof localStorage !== "undefined") {
@@ -127,90 +164,37 @@ export const App = () => {
 								</Paragraph>
 							</div>
 
-							<a href="/birthday/" style={{ textDecoration: "none" }}>
-								<Card
-									hoverable
-									style={{
-										transition: "all 0.3s ease",
-										background: darkMode ? "#0d222f" : "#fff",
-										border: darkMode
-											? "1px solid rgba(217, 226, 230, 0.2)"
-											: "1px solid #e8e8e8",
-									}}
-								>
-									<Card.Meta
-										avatar={<span style={{ fontSize: "2rem" }}>🎂</span>}
-										title={
-											<Space>
-												<span
-													style={{
-														color: darkMode ? "#edf3f5" : "inherit",
-													}}
-												>
-													Birthday Tracker
-												</span>
-												<CalendarOutlined style={{ color: "#1677ff" }} />
-											</Space>
-										}
-										description={
-											<span
-												style={{
-													color: darkMode ? "#8ca0aa" : undefined,
-												}}
-											>
-												Track birthdays, milestones, biorhythms, zodiac signs,
-												and export calendar events.
-											</span>
-										}
-									/>
-								</Card>
-							</a>
+							<AppCard
+								href="/birthday/"
+								emoji="🎂"
+								title={
+									<>
+										<span style={{ color: darkMode ? "#edf3f5" : "inherit" }}>
+											Birthday Tracker
+										</span>
+										<CalendarOutlined style={{ color: "#1677ff" }} />
+									</>
+								}
+								description="Track birthdays, milestones, biorhythms, zodiac signs, and export calendar events."
+								darkMode={darkMode}
+							/>
 
-							<a href="/scotland-rail/" style={{ textDecoration: "none" }}>
-								<Card
-									hoverable
-									style={{
-										transition: "all 0.3s ease",
-										background: darkMode ? "#0d222f" : "#fff",
-										border: darkMode
-											? "1px solid rgba(217, 226, 230, 0.2)"
-											: "1px solid #e8e8e8",
-									}}
-								>
-									<Card.Meta
-										avatar={<span style={{ fontSize: "2rem" }}>🚆</span>}
-										title={
-											<Space>
-												<span
-													style={{
-														color: darkMode ? "#edf3f5" : "inherit",
-													}}
-												>
-													A Day in Scottish Rail
-												</span>
-												<span
-													style={{
-														color: "#59d7ff",
-														fontSize: "0.85rem",
-													}}
-												>
-													24h Replay
-												</span>
-											</Space>
-										}
-										description={
-											<span
-												style={{
-													color: darkMode ? "#8ca0aa" : undefined,
-												}}
-											>
-												Interactive 24-hour time-lapse train replay across
-												Scotland's rail network.
-											</span>
-										}
-									/>
-								</Card>
-							</a>
+							<AppCard
+								href="/scotland-rail/"
+								emoji="🚆"
+								title={
+									<>
+										<span style={{ color: darkMode ? "#edf3f5" : "inherit" }}>
+											A Day in Scottish Rail
+										</span>
+										<span style={{ color: "#59d7ff", fontSize: "0.85rem" }}>
+											24h Replay
+										</span>
+									</>
+								}
+								description="Interactive 24-hour time-lapse train replay across Scotland's rail network."
+								darkMode={darkMode}
+							/>
 						</Space>
 					</div>
 				</Content>
