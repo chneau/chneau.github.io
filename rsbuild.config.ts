@@ -24,6 +24,15 @@ const getAppConfig = () => {
 				distPath: "dist/scotland-rail",
 				assetPrefix: "/scotland-rail/",
 			};
+		case "crimson-desert-save-editor":
+			return {
+				entry: "./src/crimson-desert-save-editor/app/main.tsx",
+				title: "Crimson Desert Save Editor",
+				icon: "⚔️",
+				distPath: "dist/crimson-desert-save-editor",
+				assetPrefix: "/crimson-desert-save-editor/",
+				publicDir: "src/crimson-desert-save-editor/assets",
+			};
 		default:
 			return {
 				entry: "./src/root/index.tsx",
@@ -39,7 +48,13 @@ const currentApp = getAppConfig();
 
 export default defineConfig({
 	plugins: [pluginReact()],
-	server: { host: "localhost" },
+	server: {
+		host: "localhost",
+		// Apps without an override keep Rsbuild's default `public` directory.
+		...(currentApp.publicDir
+			? { publicDir: { name: currentApp.publicDir } }
+			: {}),
+	},
 	source: {
 		entry: {
 			index: currentApp.entry,
@@ -51,13 +66,17 @@ export default defineConfig({
 	html: {
 		title: currentApp.title,
 		tags: [
-			{
-				tag: "link",
-				attrs: {
-					rel: "manifest",
-					href: "/manifest.json",
-				},
-			},
+			...(currentApp.publicDir === undefined
+				? [
+						{
+							tag: "link" as const,
+							attrs: {
+								rel: "manifest",
+								href: "/manifest.json",
+							},
+						},
+					]
+				: []),
 			{
 				tag: "link",
 				attrs: {

@@ -1,0 +1,5019 @@
+{
+	"maxRoboWorkers": 500,
+	"entries": {
+		"1000173": {
+			"name": "Main Horse for Sequencer",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "MainVehicle",
+			"testedInGame": false,
+			"browseGroup": "Main Horse for Sequencer",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"30048": {
+			"name": "Brown Bear",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Animal_Bear_Wild_30048",
+			"testedInGame": false,
+			"browseGroup": "Bears",
+			"ownershipGroup": "special:bear",
+			"equipmentNote": "Added unequipped"
+		},
+		"30191": {
+			"name": "Bear",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Domestic_Bear_Domestic_30191",
+			"testedInGame": false,
+			"browseGroup": "Bears",
+			"ownershipGroup": "special:bear",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"30111": {
+			"name": "Grizzly Bear",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Grizzly_Bear_Wild_30111",
+			"testedInGame": false,
+			"browseGroup": "Bears",
+			"ownershipGroup": "special:grizzly-bear",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"30108": {
+			"name": "Black Bear",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Black_Bear_Wild_30108",
+			"testedInGame": false,
+			"browseGroup": "Bears",
+			"ownershipGroup": "special:black-bear",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"30116": {
+			"name": "Bear",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Ride_Bear_Wild_30116",
+			"testedInGame": false,
+			"browseGroup": "Bears",
+			"ownershipGroup": "special:bear",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1000270": {
+			"name": "Clawed Bear",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Riding_Bear_1",
+			"testedInGame": false,
+			"browseGroup": "Bears",
+			"ownershipGroup": "special:clawed-bear",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000022": {
+			"name": "Captured Bear",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Trained_Bear_59006",
+			"testedInGame": false,
+			"browseGroup": "Bears",
+			"ownershipGroup": "special:captured-bear",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1001009": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Animal_Wolf_Wild_30019",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003995": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30020",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1003996": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30021",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1003997": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30022",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1003998": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30023",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1003999": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30024",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004000": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30025",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004001": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30026",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004002": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30027",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004003": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30028",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004004": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30029",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004005": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30030",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004006": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30031",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004007": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30032",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004008": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30033",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004009": {
+			"name": "Large Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Wolf_Wild_30034",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1003769": {
+			"name": "Large White Wolf",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Animal_White_Wolf_Wild_30034",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-white-wolf",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004010": {
+			"name": "Large White Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_White_Wolf_Wild_30035",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:large-white-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1000264": {
+			"name": "Swift Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Wolf_1",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:swift-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004011": {
+			"name": "Swift Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Wolf_2",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:swift-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004012": {
+			"name": "Swift Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Wolf_3",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:swift-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004013": {
+			"name": "Swift Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Wolf_4",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:swift-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004014": {
+			"name": "Swift Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Wolf_5",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:swift-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004015": {
+			"name": "Swift Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Wolf_6",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:swift-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"30374": {
+			"name": "Lion",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Animal_Lion_Wild_30374",
+			"testedInGame": false,
+			"browseGroup": "Lions",
+			"ownershipGroup": "special:lion",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003792": {
+			"name": "Lion",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Lion_Domestic_30374",
+			"testedInGame": false,
+			"browseGroup": "Lions",
+			"ownershipGroup": "special:lion",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1002316": {
+			"name": "Circus Lion",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Animal_Lion_Circus_32349",
+			"testedInGame": false,
+			"browseGroup": "Lions",
+			"ownershipGroup": "special:circus-lion",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001077": {
+			"name": "Tiger",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Animal_Tiger_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Tigers",
+			"ownershipGroup": "special:tiger",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000491": {
+			"name": "Rock Tusk Warthog",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Warthog_1",
+			"testedInGame": false,
+			"browseGroup": "Warthogs",
+			"ownershipGroup": "special:rock-tusk-warthog",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"30271": {
+			"name": "Rock Tusk Warthog",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Ride_Battle_Boar_30271",
+			"testedInGame": false,
+			"browseGroup": "Warthogs",
+			"ownershipGroup": "special:rock-tusk-warthog",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004016": {
+			"name": "Rock Tusk Warthog",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Ride_Battle_Boar_30272",
+			"testedInGame": false,
+			"browseGroup": "Warthogs",
+			"ownershipGroup": "special:rock-tusk-warthog",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004017": {
+			"name": "Rock Tusk Warthog",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Ride_Battle_Boar_30273",
+			"testedInGame": false,
+			"browseGroup": "Warthogs",
+			"ownershipGroup": "special:rock-tusk-warthog",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004018": {
+			"name": "Rock Tusk Warthog",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Ride_Battle_Boar_30274",
+			"testedInGame": false,
+			"browseGroup": "Warthogs",
+			"ownershipGroup": "special:rock-tusk-warthog",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004019": {
+			"name": "Rock Tusk Warthog",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Ride_Battle_Boar_30275",
+			"testedInGame": false,
+			"browseGroup": "Warthogs",
+			"ownershipGroup": "special:rock-tusk-warthog",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1004020": {
+			"name": "Rock Tusk Warthog",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Ride_Battle_Boar_30276",
+			"testedInGame": false,
+			"browseGroup": "Warthogs",
+			"ownershipGroup": "special:rock-tusk-warthog",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1002315": {
+			"name": "Ibex",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Animal_AlpineIbex_10",
+			"testedInGame": false,
+			"browseGroup": "Ibex",
+			"ownershipGroup": "special:ibex",
+			"equipmentNote": "Added unequipped"
+		},
+		"31357": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Wild_31357",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32501": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Wild_32501",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32502": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Wild_32502",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32503": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Wild_32503",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32504": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Wild_32504",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32505": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Wild_32505",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003538": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Wild_32506",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003539": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Wild_32507",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003540": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Wild_32508",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003541": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Wild_32509",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"31470": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Domestic_31470",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32506": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Domestic_32506",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32507": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Domestic_32507",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32508": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Domestic_32508",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32509": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Domestic_32509",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32510": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Domestic_32510",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"31487": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Domestic_Saddle_31487",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32511": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Domestic_Saddle_32511",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32512": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Domestic_Saddle_32512",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32513": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Domestic_Saddle_32513",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32514": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Domestic_Saddle_32514",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"32515": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Lumif_Domestic_Saddle_32515",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001414": {
+			"name": "Herspia Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_WagonConnecter_32609",
+			"testedInGame": false,
+			"browseGroup": "Herspia Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001415": {
+			"name": "Herspia Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_WagonConnecter_32610",
+			"testedInGame": false,
+			"browseGroup": "Herspia Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001416": {
+			"name": "Herspia Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_WagonConnecter_32611",
+			"testedInGame": false,
+			"browseGroup": "Herspia Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001417": {
+			"name": "Herspia Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_WagonConnecter_32612",
+			"testedInGame": false,
+			"browseGroup": "Herspia Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001418": {
+			"name": "Herspia Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_WagonConnecter_32613",
+			"testedInGame": false,
+			"browseGroup": "Herspia Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001419": {
+			"name": "Herspia Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_WagonConnecter_32614",
+			"testedInGame": false,
+			"browseGroup": "Herspia Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32800": {
+			"name": "Herspia Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_Bagpack_32800",
+			"testedInGame": false,
+			"browseGroup": "Herspia Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32814": {
+			"name": "Herspia Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_Bagpack_32814",
+			"testedInGame": false,
+			"browseGroup": "Herspia Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32816": {
+			"name": "Herspia Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_Bagpack_32816",
+			"testedInGame": false,
+			"browseGroup": "Herspia Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32818": {
+			"name": "Herspia Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_Bagpack_32818",
+			"testedInGame": false,
+			"browseGroup": "Herspia Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32815": {
+			"name": "Herspia Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_Bagpack_32815",
+			"testedInGame": false,
+			"browseGroup": "Herspia Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32817": {
+			"name": "Herspia Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_Bagpack_32817",
+			"testedInGame": false,
+			"browseGroup": "Herspia Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001382": {
+			"name": "Herspia Trade Goods Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_Bagpack_Trade_1",
+			"testedInGame": false,
+			"browseGroup": "Herspia Trade Goods Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32960": {
+			"name": "Hernandian Warhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_HorseArmor_32960",
+			"testedInGame": false,
+			"browseGroup": "Hernandian Warhorse",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1001680": {
+			"name": "Wells's Military Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_Wells_HorseArmor_1",
+			"testedInGame": false,
+			"browseGroup": "Wells's Military Horse",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"32961": {
+			"name": "Hernandian Warhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_HorseArmor_32961",
+			"testedInGame": false,
+			"browseGroup": "Hernandian Warhorse",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1001443": {
+			"name": "Demenissian War Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_Demeniss_HorseArmor_1",
+			"testedInGame": false,
+			"browseGroup": "Demenissian War Horse",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1001448": {
+			"name": "Delesyian Warhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_Delesian_HorseArmor_2",
+			"testedInGame": false,
+			"browseGroup": "Delesyian Warhorse",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1000892": {
+			"name": "Delesyian Warhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_Delesian_HorseArmor_1",
+			"testedInGame": false,
+			"browseGroup": "Delesyian Warhorse",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"32962": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_HorseArmor_32962",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1003565": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Lumif_Domestic_HorseArmor_1",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"31364": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefano_Wild_31364",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32516": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Wild_32516",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32517": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Wild_32517",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32518": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Wild_32518",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32519": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Wild_32519",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32520": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Wild_32520",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003542": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Wild_32521",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003543": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Wild_32522",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32521": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Domestic_32521",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32522": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Domestic_32522",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32523": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Domestic_32523",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32524": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Domestic_32524",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32525": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Domestic_32525",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"31476": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefano_Domestic_31476",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"31493": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefano_Domestic_Saddle_31493",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32526": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Domestic_Saddle_32526",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32527": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Domestic_Saddle_32527",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32528": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Domestic_Saddle_32528",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32529": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Domestic_Saddle_32529",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32530": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Stefero_Domestic_Saddle_32530",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"equipmentNote": "Added unequipped"
+		},
+		"32801": {
+			"name": "Priden Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_Bagpack_32801",
+			"testedInGame": false,
+			"browseGroup": "Priden Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32819": {
+			"name": "Priden Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_Bagpack_32819",
+			"testedInGame": false,
+			"browseGroup": "Priden Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32820": {
+			"name": "Priden Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_Bagpack_32820",
+			"testedInGame": false,
+			"browseGroup": "Priden Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32821": {
+			"name": "Priden Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_Bagpack_32821",
+			"testedInGame": false,
+			"browseGroup": "Priden Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32822": {
+			"name": "Priden Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_Bagpack_32822",
+			"testedInGame": false,
+			"browseGroup": "Priden Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32823": {
+			"name": "Priden Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_Bagpack_32823",
+			"testedInGame": false,
+			"browseGroup": "Priden Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001383": {
+			"name": "Priden Trade Goods Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_Bagpack_Trade_1",
+			"testedInGame": false,
+			"browseGroup": "Priden Trade Goods Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001420": {
+			"name": "Priden Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefano_Domestic_WagonConnecter_31493",
+			"testedInGame": false,
+			"browseGroup": "Priden Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001421": {
+			"name": "Priden Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_WagonConnecter_32526",
+			"testedInGame": false,
+			"browseGroup": "Priden Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001422": {
+			"name": "Priden Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_WagonConnecter_32527",
+			"testedInGame": false,
+			"browseGroup": "Priden Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001423": {
+			"name": "Priden Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_WagonConnecter_32528",
+			"testedInGame": false,
+			"browseGroup": "Priden Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001424": {
+			"name": "Priden Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_WagonConnecter_32529",
+			"testedInGame": false,
+			"browseGroup": "Priden Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001425": {
+			"name": "Priden Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_WagonConnecter_32530",
+			"testedInGame": false,
+			"browseGroup": "Priden Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"31370": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Wild_31370",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32531": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Wild_32531",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32532": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Wild_32532",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32533": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Wild_32533",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32534": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Wild_32534",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32535": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Wild_32535",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32606": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Wild_32606",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32607": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Wild_32607",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32537": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Domestic_32537",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32538": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Domestic_32538",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32539": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Domestic_32539",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32540": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Domestic_32540",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"31482": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Domestic_31482",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"31499": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Domestic_Saddle_31499",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32541": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Domestic_Saddle_32541",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32542": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Domestic_Saddle_32542",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32543": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Domestic_Saddle_32543",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32544": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Domestic_Saddle_32544",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"32545": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Davrella_Domestic_Saddle_32545",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001426": {
+			"name": "Brianto Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Davrella_Domestic_WagonConnecter_32622",
+			"testedInGame": false,
+			"browseGroup": "Brianto Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001427": {
+			"name": "Brianto Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Davrella_Domestic_WagonConnecter_32623",
+			"testedInGame": false,
+			"browseGroup": "Brianto Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001428": {
+			"name": "Brianto Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Davrella_Domestic_WagonConnecter_32624",
+			"testedInGame": false,
+			"browseGroup": "Brianto Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001429": {
+			"name": "Brianto Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Davrella_Domestic_WagonConnecter_32625",
+			"testedInGame": false,
+			"browseGroup": "Brianto Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001430": {
+			"name": "Brianto Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Davrella_Domestic_WagonConnecter_32626",
+			"testedInGame": false,
+			"browseGroup": "Brianto Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32802": {
+			"name": "Brianto Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Davrella_Domestic_Bagpack_32802",
+			"testedInGame": false,
+			"browseGroup": "Brianto Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32824": {
+			"name": "Brianto Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Davrella_Domestic_Bagpack_32824",
+			"testedInGame": false,
+			"browseGroup": "Brianto Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32825": {
+			"name": "Brianto Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Davrella_Domestic_Bagpack_32825",
+			"testedInGame": false,
+			"browseGroup": "Brianto Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32826": {
+			"name": "Brianto Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Davrella_Domestic_Bagpack_32826",
+			"testedInGame": false,
+			"browseGroup": "Brianto Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32827": {
+			"name": "Brianto Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Davrella_Domestic_Bagpack_32827",
+			"testedInGame": false,
+			"browseGroup": "Brianto Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32828": {
+			"name": "Brianto Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Davrella_Domestic_Bagpack_32828",
+			"testedInGame": false,
+			"browseGroup": "Brianto Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001384": {
+			"name": "Brianto Trade Goods Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Davrella_Domestic_Bagpack_Trade_1",
+			"testedInGame": false,
+			"browseGroup": "Brianto Trade Goods Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"31373": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Phuket_Wild_31373",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"32546": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Wild_32546",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000390": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Wild_32547",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"32548": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Wild_32548",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"32549": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Wild_32549",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"32550": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Wild_32550",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"31485": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Phuket_Domestic_31485",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"32552": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Domestic_32552",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"32553": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Domestic_32553",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"32554": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Domestic_32554",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"31502": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Phuket_Domestic_Saddle_31502",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"32556": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Domestic_Saddle_32556",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"32557": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Domestic_Saddle_32557",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"32558": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Domestic_Saddle_32558",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"32559": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Domestic_Saddle_32559",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"32560": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Pukret_Domestic_Saddle_32560",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001431": {
+			"name": "Numont Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Phuket_Domestic_WagonConnecter_32627",
+			"testedInGame": false,
+			"browseGroup": "Numont Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001432": {
+			"name": "Numont Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Pukret_Domestic_WagonConnecter_32628",
+			"testedInGame": false,
+			"browseGroup": "Numont Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001433": {
+			"name": "Numont Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Pukret_Domestic_WagonConnecter_32629",
+			"testedInGame": false,
+			"browseGroup": "Numont Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001434": {
+			"name": "Numont Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Pukret_Domestic_WagonConnecter_32630",
+			"testedInGame": false,
+			"browseGroup": "Numont Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001435": {
+			"name": "Numont Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Pukret_Domestic_WagonConnecter_32631",
+			"testedInGame": false,
+			"browseGroup": "Numont Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001436": {
+			"name": "Numont Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Pukret_Domestic_WagonConnecter_32632",
+			"testedInGame": false,
+			"browseGroup": "Numont Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32803": {
+			"name": "Numont Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Pukret_Domestic_Bagpack_32803",
+			"testedInGame": false,
+			"browseGroup": "Numont Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32829": {
+			"name": "Numont Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Pukret_Domestic_Bagpack_32829",
+			"testedInGame": false,
+			"browseGroup": "Numont Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32830": {
+			"name": "Numont Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Pukret_Domestic_Bagpack_32830",
+			"testedInGame": false,
+			"browseGroup": "Numont Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32831": {
+			"name": "Numont Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Pukret_Domestic_Bagpack_32831",
+			"testedInGame": false,
+			"browseGroup": "Numont Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32832": {
+			"name": "Numont Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Pukret_Domestic_Bagpack_32832",
+			"testedInGame": false,
+			"browseGroup": "Numont Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32833": {
+			"name": "Numont Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Pukret_Domestic_Bagpack_32833",
+			"testedInGame": false,
+			"browseGroup": "Numont Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001385": {
+			"name": "Numont Trade Goods Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Pukret_Domestic_Bagpack_Trade_1",
+			"testedInGame": false,
+			"browseGroup": "Numont Trade Goods Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32340": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Wild_32340",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32591": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Wild_32591",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32592": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Wild_32592",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32593": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Wild_32593",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32594": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Wild_32594",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32595": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Wild_32595",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32596": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Domestic_32596",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32597": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Domestic_32597",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32337": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Domestic_32337",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32348": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Domestic_Saddle_32348",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32601": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Domestic_Saddle_32601",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32602": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Domestic_Saddle_32602",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32603": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Domestic_Saddle_32603",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32604": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Domestic_Saddle_32604",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"32605": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_Ayut_Domestic_Saddle_32605",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001437": {
+			"name": "Elantrima Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_WagonConnecter_32348",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001438": {
+			"name": "Elantrima Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_WagonConnecter_32601",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001439": {
+			"name": "Elantrima Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_WagonConnecter_32602",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001440": {
+			"name": "Elantrima Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_WagonConnecter_32603",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001441": {
+			"name": "Elantrima Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_WagonConnecter_32604",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001442": {
+			"name": "Elantrima Wagon Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_WagonConnecter_32605",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Wagon Horse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32806": {
+			"name": "Elantrima Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_Bagpack_32806",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32844": {
+			"name": "Elantrima Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_Bagpack_32844",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32845": {
+			"name": "Elantrima Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_Bagpack_32845",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32846": {
+			"name": "Elantrima Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_Bagpack_32846",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32847": {
+			"name": "Elantrima Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_Bagpack_32847",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32848": {
+			"name": "Elantrima Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_Bagpack_32848",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001386": {
+			"name": "Elantrima Trade Goods Packhorse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Ayut_Domestic_Bagpack_Trade_1",
+			"testedInGame": false,
+			"browseGroup": "Elantrima Trade Goods Packhorse",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"31377": {
+			"name": "Royler",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_White_Horse_Wild_31377",
+			"testedInGame": false,
+			"browseGroup": "Royler",
+			"equipmentNote": "Added unequipped"
+		},
+		"31378": {
+			"name": "Rokade",
+			"category": "mounts",
+			"addable": true,
+			"equipmentNote": "Added unequipped",
+			"internalName": "Animal_Black_Horse_Wild_31378",
+			"testedInGame": true,
+			"browseGroup": "Rokade"
+		},
+		"31379": {
+			"name": "Camora",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Animal_RedHare_Horse_Wild_31379",
+			"testedInGame": false,
+			"browseGroup": "Camora",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003120": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": true,
+			"internalName": "Riding_Horse_Tiuta_Unique_2050_kliff",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001120": {
+			"name": "Race Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_Saddle_Unique_32526",
+			"testedInGame": false,
+			"browseGroup": "Race Horse",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"32701": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Quest_32701",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32704": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Quest_32704",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"32705": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Quest_32705",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001054": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Quest_32706",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1001172": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Tiuta_Unique_2050_Oongka",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"1001173": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Tiuta_Unique_2050_Demian",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"1001463": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_UniqueNpc_Horse_1",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"1001465": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_UniqueNpc_Horse_2",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"1001466": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_UniqueNpc_Horse_3",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"1001471": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_UniqueNpc_Horse_4",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"1001477": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_UniqueNpc_Horse_5",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"1000343": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Unique_Marius",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"38007": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_Saddle_Unique_38007",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1001893": {
+			"name": "Icicle Edge Alpine Ibex",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Deer_Boss",
+			"testedInGame": false,
+			"browseGroup": "Icicle Edge Alpine Ibex",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"1000368": {
+			"name": "Brown Dog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Dog_Hernand_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1002271": {
+			"name": "White Dog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Dog_Hernand_Unique_2",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000369": {
+			"name": "Spotted Dog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Dog_Demeniss_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000370": {
+			"name": "Patchy Puppy",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Dog_Delesyian_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000371": {
+			"name": "Wolfdog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Dog_Pailune_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1002900": {
+			"name": "Dark Brown Dog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Dog_Tashkalp_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001855": {
+			"name": "Brown Puppy",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Dog_JijeongTemple_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001856": {
+			"name": "Tan Puppy",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Dog_LongleafTree_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"30070": {
+			"name": "Husky",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Husky_Domestic_30070",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1002047": {
+			"name": "Shepherd",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Shepherd_Domestic_1",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1002258": {
+			"name": "Jindo",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Jindodog_Domestic_1",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003665": {
+			"name": "Jindo",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Jindodog_Domestic_02",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003666": {
+			"name": "Jindo",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Jindodog_Domestic_03",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"30186": {
+			"name": "Pointy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BullDog_Domestic_30186",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003667": {
+			"name": "Pointy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BullDog_Domestic_02",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003668": {
+			"name": "Pointy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BullDog_Domestic_03",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003669": {
+			"name": "Pointy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BullDog_Domestic_04",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003670": {
+			"name": "Pointy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BullDog_Domestic_05",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003671": {
+			"name": "Pointy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BullDog_Domestic_06",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003672": {
+			"name": "Pointy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BullDog_Domestic_07",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003673": {
+			"name": "Pointy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BullDog_Domestic_08",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001396": {
+			"name": "Floppy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_AmericanBullDog_Domestic_1",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003674": {
+			"name": "Floppy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_AmericanBullDog_Domestic_01",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003675": {
+			"name": "Floppy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_AmericanBullDog_Domestic_02",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003676": {
+			"name": "Floppy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_AmericanBullDog_Domestic_03",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003677": {
+			"name": "Floppy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_AmericanBullDog_Domestic_04",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003678": {
+			"name": "Floppy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_AmericanBullDog_Domestic_05",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003679": {
+			"name": "Floppy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_AmericanBullDog_Domestic_06",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003680": {
+			"name": "Floppy-Eared Bulldog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_AmericanBullDog_Domestic_07",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"30022": {
+			"name": "Boarhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_GreatDane_Domestic_30022",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003681": {
+			"name": "Boarhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_GreatDane_Domestic_01",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003682": {
+			"name": "Boarhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_GreatDane_Domestic_02",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003683": {
+			"name": "Boarhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_GreatDane_Domestic_03",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003684": {
+			"name": "Boarhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_GreatDane_Domestic_04",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003685": {
+			"name": "Boarhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_GreatDane_Domestic_08",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003686": {
+			"name": "Boarhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_GreatDane_Domestic_09",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003687": {
+			"name": "Boarhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_GreatDane_Domestic_10",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"31336": {
+			"name": "Boarhound Puppy",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Baby_GreatDane_Domestic_31336",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003688": {
+			"name": "Boarhound Puppy",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Baby_GreatDane_Domestic_01",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003689": {
+			"name": "Boarhound Puppy",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Baby_GreatDane_Domestic_02",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003690": {
+			"name": "Boarhound Puppy",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Baby_GreatDane_Domestic_03",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003691": {
+			"name": "Boarhound Puppy",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Baby_GreatDane_Domestic_04",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003692": {
+			"name": "Boarhound Puppy",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Baby_GreatDane_Domestic_08",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003693": {
+			"name": "Boarhound Puppy",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Baby_GreatDane_Domestic_09",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003694": {
+			"name": "Boarhound Puppy",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Baby_GreatDane_Domestic_10",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"31400": {
+			"name": "Saluki",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Saluki_Domestic_31400",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003695": {
+			"name": "Saluki",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Saluki_Domestic_01",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003696": {
+			"name": "Saluki",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Saluki_Domestic_02",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003697": {
+			"name": "Saluki",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Saluki_Domestic_03",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003698": {
+			"name": "Saluki",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Saluki_Domestic_04",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003699": {
+			"name": "Saluki",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Saluki_Domestic_05",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"32181": {
+			"name": "Greyhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Greyhound_Domestic_32181",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003700": {
+			"name": "Greyhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Greyhound_Domestic_01",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003701": {
+			"name": "Greyhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Greyhound_Domestic_02",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003702": {
+			"name": "Greyhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Greyhound_Domestic_03",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003703": {
+			"name": "Greyhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Greyhound_Domestic_04",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003704": {
+			"name": "Greyhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Greyhound_Domestic_05",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003705": {
+			"name": "Greyhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Greyhound_Domestic_06",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003706": {
+			"name": "Greyhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Greyhound_Domestic_07",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003707": {
+			"name": "Greyhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Greyhound_Domestic_08",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003708": {
+			"name": "Greyhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Greyhound_Domestic_09",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003709": {
+			"name": "Greyhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Greyhound_Domestic_10",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"32189": {
+			"name": "Beagle",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Beagle_Domestic_32189",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003710": {
+			"name": "Beagle",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Beagle_Domestic_01",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003711": {
+			"name": "Beagle",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Beagle_Domestic_02",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003712": {
+			"name": "Beagle",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Beagle_Domestic_03",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003713": {
+			"name": "Beagle",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Beagle_Domestic_04",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"59002": {
+			"name": "Guard Dog Boarhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Trained_Dog_59002",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"32427": {
+			"name": "Calphade Military Dog Boarhound",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_GreatDane_Domestic_Bagpack_32427",
+			"testedInGame": false,
+			"browseGroup": "Dogs",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000335": {
+			"name": "Ashen Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Cat_Hernand_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000336": {
+			"name": "Black Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Cat_Demeniss_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000337": {
+			"name": "Loafy Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Cat_Delesyian_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000338": {
+			"name": "Yellow Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Cat_Pailune_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1002899": {
+			"name": "Tabby Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Cat_Tashkalp_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001853": {
+			"name": "Grey Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Cat_Pororin_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001854": {
+			"name": "Patchy Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Cat_RedOrc_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"30024": {
+			"name": "Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Cat_Domestic_30024",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000312": {
+			"name": "Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Yellow_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000313": {
+			"name": "Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_White_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000314": {
+			"name": "Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Black_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000315": {
+			"name": "Cat (Bicolor)",
+			"category": "pets",
+			"addable": true,
+			"equipmentNote": "Added unequipped",
+			"internalName": "Animal_Bicolor_Cat_Domestic",
+			"testedInGame": true,
+			"browseGroup": "Cats"
+		},
+		"1000316": {
+			"name": "Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Tricolor_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003951": {
+			"name": "Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_RussianBlue_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000317": {
+			"name": "Loafy Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fat_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000318": {
+			"name": "Loafy Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fat_Yellow_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000319": {
+			"name": "Loafy Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fat_White_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000320": {
+			"name": "Loafy Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fat_Black_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000321": {
+			"name": "Loafy Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fat_Bicolor_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000322": {
+			"name": "Loafy Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fat_Tricolor_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003959": {
+			"name": "Loafy Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fat_RussianBlue_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000323": {
+			"name": "Slim Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Skinny_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000324": {
+			"name": "Slim Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Skinny_Yellow_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000325": {
+			"name": "Slim Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Skinny_White_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000326": {
+			"name": "Slim Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Skinny_Black_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000327": {
+			"name": "Slim Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Skinny_Bicolor_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000328": {
+			"name": "Slim Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Skinny_Tricolor_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003960": {
+			"name": "Slim Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Skinny_RussianBlue_Cat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"31511": {
+			"name": "Kitten",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Kitten_Domestic_31511",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000346": {
+			"name": "Kitten",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Yellow_Kitten_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000347": {
+			"name": "Kitten",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_White_Kitten_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000348": {
+			"name": "Kitten",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Black_Kitten_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000349": {
+			"name": "Kitten",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Bicolor_Kitten_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000350": {
+			"name": "Kitten",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Tricolor_Kitten_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003961": {
+			"name": "Kitten",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_RussianBlue_Kitten_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"31467": {
+			"name": "Short-Haired Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BritishCat_Domestic_31467",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000356": {
+			"name": "Short-Haired Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Brown_BritishCat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000357": {
+			"name": "Short-Haired Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_White_BritishCat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000358": {
+			"name": "Short-Haired Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Bicolor_BritishCat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000359": {
+			"name": "Short-Haired Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Striped_BritishCat_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"31468": {
+			"name": "Short-Haired Kitten",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BritishKitten_Domestic_31468",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000364": {
+			"name": "Short-Haired Kitten",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Brown_BritishKitten_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000365": {
+			"name": "Short-Haired Kitten",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_White_BritishKitten_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000366": {
+			"name": "Short-Haired Kitten",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Bicolor_BritishKitten_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000367": {
+			"name": "Short-Haired Kitten",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Striped_BritishKitten_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"30007": {
+			"name": "Long-Haired Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Norwegianforest_Domestic_30007",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000296": {
+			"name": "Long-Haired Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_White_Norwegianforest_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003952": {
+			"name": "Long-Haired Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Ragdoll_Domestic",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"32033": {
+			"name": "Desert Cat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Desert_Cat_Domestic_32033",
+			"testedInGame": false,
+			"browseGroup": "Cats",
+			"equipmentNote": "Added unequipped"
+		},
+		"85001": {
+			"name": "Abyss Heuklang",
+			"category": "pets",
+			"addable": true,
+			"internalName": "BlackWolf",
+			"testedInGame": false,
+			"browseGroup": "Special pets",
+			"equipmentNote": "Added unequipped"
+		},
+		"30060": {
+			"name": "Owl",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Owl_Wild_30060",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30050": {
+			"name": "Eagle",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Eagle_Wild_30050",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30059": {
+			"name": "Hawk",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Hawk_Wild_30059",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"31416": {
+			"name": "Gyrfalcon",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_WhiteHawk_Wild_31416",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"31420": {
+			"name": "Steppe Eagle",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Steppe_Eagle_Wild_31420",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32380": {
+			"name": "Red-Footed Falcon",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Red_Footed_Falcon_Wild_32380",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32395": {
+			"name": "Eastern Sparrowhawk",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_FalcoCherrug_Wild_32395",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"31415": {
+			"name": "Condor",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Condor_Wild_31415",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30020": {
+			"name": "Wild Duck",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Duck_Wild_30020",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30171": {
+			"name": "Mallard",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Mallard_Wild_30171",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30172": {
+			"name": "Spot-Billed Duck",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BlackDuck_Wild_30172",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32284": {
+			"name": "Ruddy Shelduck",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_RuddyshelDuck_Wild_32284",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001879": {
+			"name": "Small Teal",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Pygmy_Teal_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001888": {
+			"name": "Whistling Duck",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Whistling_Duck_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32285": {
+			"name": "Smew",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Mergellus_Wild_32285",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30072": {
+			"name": "Goose",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Goose_Wild_30072",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001889": {
+			"name": "Desert Goose",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Desert_Goose_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32266": {
+			"name": "Yellow-Billed Loon",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_WhiteBilled_Loon_Wild_32266",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32267": {
+			"name": "Loon",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_GaviaStellata_Wild_32267",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30084": {
+			"name": "Seagull",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Seagull_Wild_30084",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003932": {
+			"name": "Seagull",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Seagull_Wild_30085",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32288": {
+			"name": "Common Tern",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Sterna_Wild_32288",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32381": {
+			"name": "Sand Grouse",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_SyrrhaptesParadoxus_Wild_32381",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32411": {
+			"name": "Collared Dove",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Collared_Dove_Wild_32411",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30081": {
+			"name": "Pigeon",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Pigeon_Wild_30081",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003933": {
+			"name": "Pigeon",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Pigeon_Wild_30082",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30009": {
+			"name": "White-Winged Redstart",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_WhiteWing_Flycatcher_Wild_30009",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30079": {
+			"name": "Blue Jay",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BlueJay_Wild_30079",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30071": {
+			"name": "Sparrow",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Sparrow_Wild_30071",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30087": {
+			"name": "Black-Naped Oriole",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Oriole_Wild_30087",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32040": {
+			"name": "Three-Toed Woodpecker",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Wood_Pecker_Wild_32040",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32247": {
+			"name": "Yellow-Billed Oxpecker",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Oxpecker_Wild_32247",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32352": {
+			"name": "Kentish Plover",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Snowy_Plover_Wild_32352",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32366": {
+			"name": "Desert Wheatear",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_BlackTail_Flycatcher_Wild_32366",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32367": {
+			"name": "Meadow Bunting",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Bunting_Bird_Wild_32367",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003779": {
+			"name": "Long-Tailed Tit",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Longtailedtit_Wild_32368",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32038": {
+			"name": "Cuckoo",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Cuckoo_Wild_32038",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30029": {
+			"name": "Crow",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Crow_Wild_30029",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30082": {
+			"name": "Parrot",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Parrot_Wild_30082",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32881": {
+			"name": "Eclectus Parrot",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_EclectusParrot_Wild_32881",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003926": {
+			"name": "Eclectus Parrot",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_EclectusParrot_Wild_32882",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32882": {
+			"name": "Sun Conure",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_SunConure_Wild_32882",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003927": {
+			"name": "Sun Conure",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_SunConure_Wild_32883",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32883": {
+			"name": "Grey Parrot",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Parrot_Wild_32883",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003928": {
+			"name": "Grey Parrot",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Parrot_Wild_32884",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32884": {
+			"name": "Little Blue Macaw",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_SpixsMacaw_Wild_32884",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003929": {
+			"name": "Little Blue Macaw",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_SpixsMacaw_Wild_32885",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32885": {
+			"name": "Ringneck Parrot",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_RoseringedParakeet_Wild_32885",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003930": {
+			"name": "Ringneck Parrot",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_RoseringedParakeet_Wild_32886",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"32886": {
+			"name": "Citron-Crested Cockatoo",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_CitronCockatoo_Wild_32886",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003931": {
+			"name": "Citron-Crested Cockatoo",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_CitronCockatoo_Wild_32887",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003949": {
+			"name": "Iron Eagle",
+			"category": "pets",
+			"addable": true,
+			"equipmentNote": "Added unequipped",
+			"internalName": "Animal_Machine_Eagle_1",
+			"testedInGame": true,
+			"browseGroup": "Special pets"
+		},
+		"1003916": {
+			"name": "Hyacinth Macaw",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Unique_Macaw_Parrot_1",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001618": {
+			"name": "Phoenix",
+			"category": "pets",
+			"addable": true,
+			"equipmentNote": "Added unequipped",
+			"internalName": "Animal_Unique_Phoenix_Wild_1",
+			"testedInGame": true,
+			"browseGroup": "Special pets"
+		},
+		"1004045": {
+			"name": "Baby Wyvern",
+			"category": "pets",
+			"addable": true,
+			"equipmentNote": "Added unequipped",
+			"internalName": "Animal_Baby_Wyvern_1",
+			"testedInGame": true,
+			"browseGroup": "Special pets"
+		},
+		"1004087": {
+			"name": "Kuku Bird Chick",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_KukuBirdbaby_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"30039": {
+			"name": "Weasel",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Weasel_Wild_30039",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000979": {
+			"name": "Meerkat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Meerkat_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"32034": {
+			"name": "Snowfield Weasel",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Snow_Weasel_Wild_32034",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"30042": {
+			"name": "Raccoon",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Raccoon_Wild_30042",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004022": {
+			"name": "Red Panda",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_RedPanda_Wild_30052",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000923": {
+			"name": "Platypus",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Platypus_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"30139": {
+			"name": "Beaver",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Beaver_Wild_30139",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000841": {
+			"name": "Wombat",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Wombat_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"30141": {
+			"name": "Skunk",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Skunk_Wild_30141",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"30142": {
+			"name": "Badger",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Badger_Wild_30142",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"30078": {
+			"name": "Armadillo",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Armadillo_Wild_30078",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"32261": {
+			"name": "Porcupine",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Porcupine_Wild_32261",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000991": {
+			"name": "Desert Porcupine",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Porcupine_Desert_Wild",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"30046": {
+			"name": "Fox",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fox_Wild_30046",
+			"testedInGame": false,
+			"browseGroup": "Foxes",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004061": {
+			"name": "Fox",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fox_Wild_30047",
+			"testedInGame": false,
+			"browseGroup": "Foxes",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004062": {
+			"name": "Fox",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fox_Wild_30048",
+			"testedInGame": false,
+			"browseGroup": "Foxes",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004063": {
+			"name": "Fox",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fox_Wild_30049",
+			"testedInGame": false,
+			"browseGroup": "Foxes",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004064": {
+			"name": "Fox",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fox_Wild_30050",
+			"testedInGame": false,
+			"browseGroup": "Foxes",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004065": {
+			"name": "Fox",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fox_Wild_30051",
+			"testedInGame": false,
+			"browseGroup": "Foxes",
+			"equipmentNote": "Added unequipped"
+		},
+		"30038": {
+			"name": "Snowfield Fox",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Arctic_Fox_Wild_30038",
+			"testedInGame": false,
+			"browseGroup": "Foxes",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004066": {
+			"name": "Snowfield Fox",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Arctic_Fox_Wild_30039",
+			"testedInGame": false,
+			"browseGroup": "Foxes",
+			"equipmentNote": "Added unequipped"
+		},
+		"31410": {
+			"name": "Desert Fox",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Desert_Fox_Wild_31410",
+			"testedInGame": false,
+			"browseGroup": "Foxes",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004067": {
+			"name": "Desert Fox",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Desert_Fox_Wild_31411",
+			"testedInGame": false,
+			"browseGroup": "Foxes",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004068": {
+			"name": "Desert Fox",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Desert_Fox_Wild_31412",
+			"testedInGame": false,
+			"browseGroup": "Foxes",
+			"equipmentNote": "Added unequipped"
+		},
+		"32355": {
+			"name": "Skunky",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Skunky_Wild_32355",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"32359": {
+			"name": "Feathered Weasel",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Wood_Weasel_Wild_32359",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"32357": {
+			"name": "Choppy",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Choppy_Wild_32357",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"30065": {
+			"name": "Chipmunk",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Squirrel_Wild_30065",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"32035": {
+			"name": "Snowfield Chipmunk",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Snow_Chipmunk_Wild_32035",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"32370": {
+			"name": "Red Squirrel",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Red_Squirrel_Wild_32370",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000804": {
+			"name": "Flying Squirrel",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Flying_Squirrel_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"30001": {
+			"name": "Forest Rabbit",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Rabbit_Wild_30001",
+			"testedInGame": false,
+			"browseGroup": "Rabbits",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004055": {
+			"name": "Brown Forest Rabbit",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Rabbit_Wild_30003",
+			"testedInGame": false,
+			"browseGroup": "Rabbits",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004056": {
+			"name": "Gray Forest Rabbit",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Rabbit_Wild_30004",
+			"testedInGame": false,
+			"browseGroup": "Rabbits",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004057": {
+			"name": "Black Forest Rabbit",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Rabbit_Wild_30005",
+			"testedInGame": false,
+			"browseGroup": "Rabbits",
+			"equipmentNote": "Added unequipped"
+		},
+		"30189": {
+			"name": "Forest Rabbit",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Rabbit_Domestic_30189",
+			"testedInGame": false,
+			"browseGroup": "Rabbits",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004058": {
+			"name": "Brown Forest Rabbit",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Rabbit_Domestic_30191",
+			"testedInGame": false,
+			"browseGroup": "Rabbits",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004059": {
+			"name": "Gray Forest Rabbit",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Rabbit_Domestic_30192",
+			"testedInGame": false,
+			"browseGroup": "Rabbits",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004060": {
+			"name": "Black Forest Rabbit",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Rabbit_Domestic_30193",
+			"testedInGame": false,
+			"browseGroup": "Rabbits",
+			"equipmentNote": "Added unequipped"
+		},
+		"30017": {
+			"name": "Snowfield Rabbit",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_SnowRabbit_Wild_30017",
+			"testedInGame": false,
+			"browseGroup": "Rabbits",
+			"equipmentNote": "Added unequipped"
+		},
+		"31409": {
+			"name": "Desert Rabbit",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Desert_Rabbit_Wild_31409",
+			"testedInGame": false,
+			"browseGroup": "Rabbits",
+			"equipmentNote": "Added unequipped"
+		},
+		"30045": {
+			"name": "Hedgehog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Hedgehog_Wild_30045",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"31504": {
+			"name": "Hedgehog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Hedgehog_Wild_31504",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"31505": {
+			"name": "Hedgehog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Hedgehog_Wild_31505",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"31506": {
+			"name": "Hedgehog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Hedgehog_Wild_31506",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"31507": {
+			"name": "Hedgehog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Hedgehog_Wild_31507",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"31510": {
+			"name": "Hedgehog",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Hedgehog_Wild_31510",
+			"testedInGame": false,
+			"browseGroup": "Small animals",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000780": {
+			"name": "Partridge",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_EuropeanPartridge_Wild_30184",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000800": {
+			"name": "Mesite",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Mesite_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000803": {
+			"name": "Crake",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Watercock_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000783": {
+			"name": "Coot",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Fulica_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000805": {
+			"name": "Swamphen",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Takahe_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000807": {
+			"name": "Kakapo",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_kakapo_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000788": {
+			"name": "Kiwi Bird",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Kiwi_Bird_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"1001375": {
+			"name": "Grebe",
+			"category": "pets",
+			"addable": true,
+			"internalName": "Animal_Little_Grebe_Wild_1",
+			"testedInGame": false,
+			"browseGroup": "Birds",
+			"equipmentNote": "Added unequipped"
+		},
+		"2000": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Lumiph_2000",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2021": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Lumiph_2021",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2022": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Lumiph_2009",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2023": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Lumiph_2010",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2024": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Lumiph_2011",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2025": {
+			"name": "Herspia",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Lumiph_2012",
+			"testedInGame": false,
+			"browseGroup": "Herspia",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2001": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Strapero_2001",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2026": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Strapero_2026",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2027": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Strapero_2013",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2028": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Strapero_2028",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2029": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Strapero_2029",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2030": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Strapero_2030",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2002": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Dabrera_2002",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2031": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Dabrera_2031",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2032": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Dabrera_2032",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2033": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Dabrera_2033",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2034": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Dabrera_2014",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2035": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Dabrera_2035",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2057": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Dabrera_2057",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2058": {
+			"name": "Brianto",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Dabrera_2058",
+			"testedInGame": false,
+			"browseGroup": "Brianto",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2005": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Pukre_2005",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2036": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Pukre_2015",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2037": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Pukre_2016",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2038": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Pukre_2017",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2039": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Pukre_2018",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2040": {
+			"name": "Numont",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Pukre_2019",
+			"testedInGame": false,
+			"browseGroup": "Numont",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2011": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Ayut_2008",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2052": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Ayut_2052",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2053": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Ayut_2053",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2054": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Ayut_2054",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2055": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Ayut_2055",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"2056": {
+			"name": "Elantrima",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Riding_Horse_Ayut_2056",
+			"testedInGame": false,
+			"browseGroup": "Elantrima",
+			"exclusionReason": "No valid standalone owned-companion behavior"
+		},
+		"1002041": {
+			"name": "Cloudcart",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Balloon_Summoner_1",
+			"testedInGame": false,
+			"browseGroup": "Airships",
+			"ownershipGroup": "special:cloudcart",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1002042": {
+			"name": "Cloudcruiser",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Balloon_Summoner_2",
+			"testedInGame": false,
+			"browseGroup": "Airships",
+			"ownershipGroup": "special:cloudcruiser",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1002043": {
+			"name": "Skystreaker",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Balloon_Summoner_3",
+			"testedInGame": false,
+			"browseGroup": "Airships",
+			"ownershipGroup": "special:skystreaker",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1003917": {
+			"name": "White Bear",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Riding_Bear_1001",
+			"testedInGame": false,
+			"browseGroup": "Bears",
+			"ownershipGroup": "special:white-bear",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003912": {
+			"name": "Rock Tusk Warthog",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Riding_Warthog_1000",
+			"testedInGame": false,
+			"browseGroup": "Warthogs",
+			"ownershipGroup": "special:rock-tusk-warthog",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003918": {
+			"name": "Silver Fang",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Riding_Wolf_1001",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:silver-fang",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003919": {
+			"name": "Snowwhite Deer",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Riding_Deer_1001",
+			"testedInGame": false,
+			"browseGroup": "Deer",
+			"ownershipGroup": "special:snowwhite-deer",
+			"equipmentNote": "Added unequipped"
+		},
+		"1003915": {
+			"name": "Icicle Edge Alpine Ibex",
+			"category": "specialMounts",
+			"addable": true,
+			"equipmentNote": "Added unequipped",
+			"internalName": "Riding_AlpineIbex_1000",
+			"testedInGame": true,
+			"browseGroup": "Ibex",
+			"ownershipGroup": "special:icicle-edge-alpine-ibex"
+		},
+		"1004021": {
+			"name": "Sandwalk Camel",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Riding_Camel_1000",
+			"testedInGame": false,
+			"browseGroup": "Camels",
+			"ownershipGroup": "special:sandwalk-camel",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004046": {
+			"name": "Leaping Kuku Bird",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Riding_Cucubird_1000",
+			"testedInGame": false,
+			"browseGroup": "Kuku birds",
+			"ownershipGroup": "special:leaping-kuku-bird",
+			"equipmentNote": "Added unequipped"
+		},
+		"1004233": {
+			"name": "Wyvern",
+			"category": "specialMounts",
+			"addable": true,
+			"equipmentNote": "Includes Wyvern Saddle",
+			"internalName": "Riding_Wyvern_1000",
+			"testedInGame": true,
+			"browseGroup": "Wyverns",
+			"ownershipGroup": "special:wyvern"
+		},
+		"1000453": {
+			"name": "Rosehorn Deer",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Riding_Deer_1",
+			"testedInGame": false,
+			"browseGroup": "Deer",
+			"ownershipGroup": "special:rosehorn-deer",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000363": {
+			"name": "Giant Red Iguana",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Riding_Iguana_2",
+			"testedInGame": false,
+			"browseGroup": "Iguanas",
+			"ownershipGroup": "special:giant-red-iguana",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000254": {
+			"name": "Giant Green Iguana",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Riding_Iguana_1",
+			"testedInGame": false,
+			"browseGroup": "Iguanas",
+			"ownershipGroup": "special:giant-green-iguana",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000265": {
+			"name": "Red-Feathered Raptor",
+			"category": "specialMounts",
+			"addable": true,
+			"internalName": "Riding_CarmaBirdsaurus_1",
+			"testedInGame": false,
+			"browseGroup": "Raptors",
+			"ownershipGroup": "special:red-feathered-raptor",
+			"equipmentNote": "Added unequipped"
+		},
+		"1000532": {
+			"name": "Heavy Assault A.T.A.G.",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Machine_Bear_1",
+			"testedInGame": false,
+			"browseGroup": "Bears",
+			"ownershipGroup": "special:heavy-assault-a.t.a.g.",
+			"exclusionReason": "Dragon and ATAG additions are excluded"
+		},
+		"1001467": {
+			"name": "A.T.A.G.",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_WarMachine_Unique_1",
+			"testedInGame": false,
+			"browseGroup": "Other mounts",
+			"ownershipGroup": "special:a.t.a.g.",
+			"exclusionReason": "Dragon and ATAG additions are excluded"
+		},
+		"1001870": {
+			"name": "Balder",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Balder_622",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"574": {
+			"name": "Ashton",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Astin_574",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002973": {
+			"name": "Evelyn",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHW_Unique_Evelyn_634",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002608": {
+			"name": "Matilda",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHW_Unique_Matilda_634_1",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002968": {
+			"name": "Morrow",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Morrow_424",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002942": {
+			"name": "Laurent",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Laurent_422",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002970": {
+			"name": "Brant",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Brant_630",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002070": {
+			"name": "Joseph",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Joseph_633",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002975": {
+			"name": "Devan",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Devan_638",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"639": {
+			"name": "Gilbert",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Gilbert_639",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"640": {
+			"name": "Max",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Max_640",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"641": {
+			"name": "Silvan",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Silvan_641",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"668": {
+			"name": "Terry",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Terry_668",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"409": {
+			"name": "Ryan",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Ryan_DualDagger_409",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"642": {
+			"name": "Lars",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Lars_642",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"643": {
+			"name": "Pierce",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Piers_643",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002435": {
+			"name": "Luther",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Luceran_1",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002976": {
+			"name": "Colton",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Colton_644",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002977": {
+			"name": "Falstaff",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Falstaff_646",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"647": {
+			"name": "Andrew",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Andrew_647",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"649": {
+			"name": "Arnold",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Arnold_649",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"650": {
+			"name": "Lucius",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Lucius_650",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002980": {
+			"name": "Joan",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHW_Unique_Joan_652",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002981": {
+			"name": "Kenneth",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Kenneth_653",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"654": {
+			"name": "Duncan",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Duncan_654",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"629": {
+			"name": "Fred",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Fred_629",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"655": {
+			"name": "Anders",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Anders_655",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002982": {
+			"name": "Wybert",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Wybert_656",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002983": {
+			"name": "Brennan",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NDM_Unique_Brennan_658",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002984": {
+			"name": "Niall",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Niall_659",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"660": {
+			"name": "Aldric",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Aldric_660",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"661": {
+			"name": "Luke",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Luke_661",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002986": {
+			"name": "Gerald",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Gerald_662_1",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002987": {
+			"name": "Vernon",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Vernon_663",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002988": {
+			"name": "Xavier",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Xavier_664",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002989": {
+			"name": "Ronald",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Ronald_665",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002990": {
+			"name": "Fritz",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Fritz_666",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1002991": {
+			"name": "Otto",
+			"category": "camp",
+			"addable": false,
+			"internalName": "NHM_Unique_Otto_667",
+			"testedInGame": false,
+			"browseGroup": "Workers"
+		},
+		"1000006": {
+			"name": "Grey-0",
+			"category": "camp",
+			"addable": true,
+			"equipmentNote": "Added unequipped",
+			"internalName": "NHM_Unique_Robot_Worker_1",
+			"testedInGame": true,
+			"browseGroup": "Workers"
+		},
+		"32702": {
+			"name": "Priden",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Quest_32702",
+			"testedInGame": false,
+			"browseGroup": "Priden",
+			"exclusionReason": "Scripted or attached transport variant; standalone stable variants are offered separately"
+		},
+		"1000766": {
+			"name": "Hernandian Soldier's Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefero_Domestic_Saddle_Unique_38008",
+			"testedInGame": false,
+			"browseGroup": "Hernandian Soldier's Horse",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1000799": {
+			"name": "Blackstar",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Dragon_1",
+			"testedInGame": false,
+			"browseGroup": "Other mounts",
+			"ownershipGroup": "special:blackstar",
+			"exclusionReason": "Dragon and ATAG additions are excluded"
+		},
+		"1003911": {
+			"name": "Clawed Bear",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Bear_1000",
+			"testedInGame": false,
+			"browseGroup": "Bears",
+			"ownershipGroup": "special:clawed-bear",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1003913": {
+			"name": "Swift Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_Wolf_1000",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:swift-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1003748": {
+			"name": "Swift Wolf",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_SandfangBandits_Wolf_2083",
+			"testedInGame": false,
+			"browseGroup": "Wolves",
+			"ownershipGroup": "special:swift-wolf",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1003776": {
+			"name": "Tiger",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Animal_Tiger_Wild_2",
+			"testedInGame": false,
+			"browseGroup": "Tigers",
+			"ownershipGroup": "special:tiger",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"29448": {
+			"name": "Icicle Edge Alpine Ibex",
+			"category": "specialMounts",
+			"addable": false,
+			"internalName": "Riding_AlpineIbex_1",
+			"testedInGame": false,
+			"browseGroup": "Ibex",
+			"ownershipGroup": "special:icicle-edge-alpine-ibex",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		},
+		"1002441": {
+			"name": "Calphadean Scout's Horse",
+			"category": "mounts",
+			"addable": false,
+			"internalName": "Animal_Stefano_Domestic_Saddle_Scout",
+			"testedInGame": false,
+			"browseGroup": "Calphadean Scout's Horse",
+			"exclusionReason": "Permanent registration is not established for this exact variant"
+		}
+	}
+}
