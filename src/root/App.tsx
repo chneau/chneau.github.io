@@ -195,6 +195,23 @@ export const App = () => {
 								description="Interactive 24-hour time-lapse train replay across Scotland's rail network."
 								darkMode={darkMode}
 							/>
+
+							<AppCard
+								href="/crimson-desert-save-editor/"
+								emoji="⚔️"
+								title={
+									<>
+										<span style={{ color: darkMode ? "#edf3f5" : "inherit" }}>
+											Crimson Desert Save Editor
+										</span>
+										<span style={{ color: "#d9ae3c", fontSize: "0.85rem" }}>
+											In-browser
+										</span>
+									</>
+								}
+								description="Edit Crimson Desert save files — inventory, gear, skills, quests and companions — entirely on your device."
+								darkMode={darkMode}
+							/>
 						</Space>
 					</div>
 				</Content>
