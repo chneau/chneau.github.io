@@ -778,31 +778,85 @@ export const ReplayCanvas = () => {
 				}}
 			/>
 
-			{/* Floating Reset View / Center Button */}
-			{(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
+			{/* Floating Map Navigation Controls */}
+			<div
+				style={{
+					position: "absolute",
+					bottom: 96,
+					right: 20,
+					zIndex: 15,
+					display: "flex",
+					flexDirection: "column",
+					gap: 6,
+					background: "rgba(7, 19, 27, 0.88)",
+					backdropFilter: "blur(8px)",
+					border: "1px solid rgba(217, 226, 230, 0.25)",
+					borderRadius: 8,
+					padding: 4,
+					boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+				}}
+			>
+				<button
+					type="button"
+					onClick={() => setZoom((prev) => Math.min(8, prev * 1.25))}
+					title="Zoom In (+)"
+					style={{
+						background: "rgba(255, 255, 255, 0.08)",
+						border: "none",
+						borderRadius: 4,
+						color: "#edf3f5",
+						width: 28,
+						height: 28,
+						fontSize: "1rem",
+						cursor: "pointer",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					+
+				</button>
+				<button
+					type="button"
+					onClick={() => setZoom((prev) => Math.max(0.6, prev * 0.8))}
+					title="Zoom Out (-)"
+					style={{
+						background: "rgba(255, 255, 255, 0.08)",
+						border: "none",
+						borderRadius: 4,
+						color: "#edf3f5",
+						width: 28,
+						height: 28,
+						fontSize: "1.1rem",
+						cursor: "pointer",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+					}}
+				>
+					−
+				</button>
 				<button
 					type="button"
 					onClick={handleResetView}
+					title="Reset Map View (1x)"
 					style={{
-						position: "absolute",
-						bottom: 96,
-						right: 20,
-						zIndex: 15,
-						background: "rgba(7, 19, 27, 0.88)",
-						backdropFilter: "blur(8px)",
-						border: "1px solid rgba(89, 215, 255, 0.4)",
-						borderRadius: 8,
+						background: "rgba(89, 215, 255, 0.15)",
+						border: "none",
+						borderRadius: 4,
 						color: "#59d7ff",
-						padding: "6px 12px",
-						fontSize: "0.8rem",
-						fontWeight: 600,
+						width: 28,
+						height: 28,
+						fontSize: "0.85rem",
 						cursor: "pointer",
-						boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
 					}}
 				>
-					🎯 Reset Map Center
+					⌖
 				</button>
-			)}
+			</div>
 
 			{/* Floating Hover HUD Tooltip */}
 			{hoveredTrain && hoverPos && (

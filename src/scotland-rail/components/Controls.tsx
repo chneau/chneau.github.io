@@ -6,6 +6,7 @@ import {
 import {
 	Button,
 	Card,
+	Input,
 	Radio,
 	Select,
 	Slider,
@@ -131,21 +132,19 @@ export const Controls = () => {
 
 					{/* Search and View Selector */}
 					<Space size="small" wrap>
-						<input
-							type="text"
-							placeholder="🔍 Search service/station..."
+						<Input
+							placeholder="Search service/station..."
 							value={searchQuery}
+							allowClear
 							onChange={(e) => railActions.setSearchQuery(e.target.value)}
 							style={{
+								width: 200,
 								background: "rgba(255, 255, 255, 0.08)",
-								border: "1px solid rgba(217, 226, 230, 0.3)",
-								borderRadius: 6,
-								padding: "4px 8px",
+								borderColor: "rgba(217, 226, 230, 0.3)",
 								color: "#edf3f5",
-								fontSize: "0.78rem",
-								outline: "none",
-								width: 180,
+								fontSize: "0.8rem",
 							}}
+							size="small"
 						/>
 						<Radio.Group
 							value={viewPreset}

@@ -1,5 +1,12 @@
-import { InfoCircleOutlined, SettingOutlined } from "@ant-design/icons";
-import { Button, ConfigProvider, Layout, theme } from "antd";
+import {
+	AudioMutedOutlined,
+	AudioOutlined,
+	CloseOutlined,
+	InfoCircleOutlined,
+	QuestionCircleOutlined,
+	SettingOutlined,
+} from "@ant-design/icons";
+import { Button, ConfigProvider, Layout, Tooltip, theme } from "antd";
 import { useEffect, useRef } from "react";
 import { useSnapshot } from "valtio";
 import { Controls } from "./components/Controls";
@@ -14,14 +21,80 @@ import {
 	railStore,
 	recomputeActiveTrains,
 } from "./store";
+import { formatTime } from "./utils";
 
 declare const BUILD_DATE: string;
 
 export const App = () => {
 	const snap = useSnapshot(railStore);
 	const derivedSnap = useSnapshot(derivedStore);
-	const { isInfoOpen, isPlaying, speed, settings, selectedService } = snap;
+	const {
+		isInfoOpen,
+		isPlaying,
+		speed,
+		settings,
+		selectedService,
+		searchQuery,
+		timeOffset,
+	} = snap;
 	const { activeTrains } = derivedSnap;
+
+	// Global Keyboard Shortcuts
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			const activeTag = document.activeElement?.tagName.toLowerCase();
+			if (activeTag === "input" || activeTag === "textarea") return;
+
+			if (e.code === "Space") {
+				e.preventDefault();
+				railActions.togglePlay();
+			} else if (e.code === "ArrowLeft") {
+				e.preventDefault();
+				const step = e.shiftKey ? 15 : 5;
+				railStore.timeOffset = Math.max(300, railStore.timeOffset - step);
+				recomputeActiveTrains();
+			} else if (e.code === "ArrowRight") {
+				e.preventDefault();
+				const step = e.shiftKey ? 15 : 5;
+				railStore.timeOffset = Math.min(1440, railStore.timeOffset + step);
+				recomputeActiveTrains();
+			} else if (e.code === "ArrowUp") {
+				e.preventDefault();
+				const speeds = [0.5, 1, 2, 5, 15];
+				const currIdx = speeds.indexOf(railStore.speed);
+				if (currIdx < speeds.length - 1) {
+					railActions.setSpeed(speeds[currIdx + 1] ?? 1);
+				}
+			} else if (e.code === "ArrowDown") {
+				e.preventDefault();
+				const speeds = [0.5, 1, 2, 5, 15];
+				const currIdx = speeds.indexOf(railStore.speed);
+				if (currIdx > 0) {
+					railActions.setSpeed(speeds[currIdx - 1] ?? 1);
+				}
+			} else if (e.key === "m" || e.key === "M") {
+				e.preventDefault();
+				const nextSound = !railStore.settings.soundEffects;
+				if (nextSound) {
+					import("./engine/audio").then(({ railAudio }) =>
+						railAudio.unlockAudio(),
+					);
+				}
+				railActions.updateSetting("soundEffects", nextSound);
+			} else if (e.code === "Escape") {
+				if (railStore.selectedService) {
+					railActions.setSelectedService(null);
+				} else if (railStore.isSettingsOpen) {
+					railActions.setIsSettingsOpen(false);
+				} else if (railStore.isInfoOpen) {
+					railActions.setIsInfoOpen(false);
+				}
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, []);
 
 	// Animation frame loop directly updating store
 	useEffect(() => {
@@ -95,7 +168,7 @@ export const App = () => {
 					background: "#07131b",
 				}}
 			>
-				{/* Top Branding & Sources Bar */}
+				{/* Top Branding & Quick Actions Bar */}
 				<div
 					style={{
 						position: "absolute",
@@ -129,6 +202,44 @@ export const App = () => {
 					>
 						({BUILD_DATE})
 					</span>
+
+					{/* Quick Audio Mute Toggle */}
+					<Tooltip
+						title={
+							settings.soundEffects
+								? "Sound effects active (Press M to mute)"
+								: "Sound effects muted (Press M to unmute)"
+						}
+					>
+						<Button
+							type="text"
+							size="small"
+							icon={
+								settings.soundEffects ? (
+									<AudioOutlined style={{ color: "#59d7ff" }} />
+								) : (
+									<AudioMutedOutlined style={{ color: "#8ca0aa" }} />
+								)
+							}
+							onClick={() => {
+								const nextSound = !settings.soundEffects;
+								if (nextSound) {
+									import("./engine/audio").then(({ railAudio }) =>
+										railAudio.unlockAudio(),
+									);
+								}
+								railActions.updateSetting("soundEffects", nextSound);
+							}}
+							style={{
+								color: settings.soundEffects ? "#59d7ff" : "#8ca0aa",
+								padding: "0 4px",
+								height: "auto",
+							}}
+						>
+							{settings.soundEffects ? "Audio On" : "Audio Off"}
+						</Button>
+					</Tooltip>
+
 					<Button
 						type="text"
 						size="small"
@@ -155,6 +266,41 @@ export const App = () => {
 					>
 						Settings
 					</Button>
+
+					{/* Keyboard Shortcuts Hint Popover */}
+					<Tooltip
+						title={
+							<div style={{ fontSize: "0.78rem", lineHeight: "1.6" }}>
+								<div>
+									<b>Space:</b> Play / Pause
+								</div>
+								<div>
+									<b>← / →:</b> Scrub time (±5 min)
+								</div>
+								<div>
+									<b>↑ / ↓:</b> Change speed
+								</div>
+								<div>
+									<b>M:</b> Toggle audio
+								</div>
+								<div>
+									<b>Esc:</b> Deselect train / Close
+								</div>
+								<div>
+									<b>Click:</b> Inspect train or station
+								</div>
+							</div>
+						}
+					>
+						<Button
+							type="text"
+							size="small"
+							icon={<QuestionCircleOutlined />}
+							style={{ color: "#8ca0aa", padding: "0 4px", height: "auto" }}
+						>
+							Shortcuts
+						</Button>
+					</Tooltip>
 				</div>
 
 				{/* Data Sources Modal */}
@@ -165,6 +311,43 @@ export const App = () => {
 
 				{/* Map Canvas */}
 				<ReplayCanvas />
+
+				{/* Floating Empty Search Recovery Banner */}
+				{searchQuery.trim().length > 0 && activeTrains.length === 0 && (
+					<div
+						style={{
+							position: "absolute",
+							top: 72,
+							left: "50%",
+							transform: "translateX(-50%)",
+							zIndex: 20,
+							background: "rgba(7, 19, 27, 0.92)",
+							backdropFilter: "blur(10px)",
+							border: "1px solid rgba(255, 77, 79, 0.4)",
+							borderRadius: 8,
+							padding: "8px 16px",
+							display: "flex",
+							alignItems: "center",
+							gap: 12,
+							color: "#edf3f5",
+							boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+						}}
+					>
+						<span>
+							🔍 No active services matching <b>"{searchQuery}"</b> at{" "}
+							{formatTime(timeOffset)}
+						</span>
+						<Button
+							size="small"
+							type="primary"
+							danger
+							icon={<CloseOutlined />}
+							onClick={() => railActions.setSearchQuery("")}
+						>
+							Clear Search
+						</Button>
+					</div>
+				)}
 
 				{/* Live Dynamic Stats Panel (Left HUD) */}
 				<StatsPanel />
