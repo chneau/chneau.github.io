@@ -1,6 +1,17 @@
-import { Alert, Button, Divider, Tag, Tooltip, Typography } from "antd";
+import {
+	Alert,
+	Button,
+	Card,
+	Col,
+	Divider,
+	message,
+	Row,
+	Tag,
+	Tooltip,
+	Typography,
+} from "antd";
 import dayjs from "dayjs";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Element } from "./birthdays";
 import {
@@ -28,6 +39,8 @@ const getCompatibleElements = (element: Element): Element[] => {
 
 export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 	const { t, i18n } = useTranslation();
+	const [downloading, setDownloading] = useState(false);
+
 	const sameBirthday = birthdays.filter(
 		(b) =>
 			b.name !== record.name &&
@@ -38,7 +51,10 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 
 	const handleDownloadCard = async () => {
 		const element = document.getElementById(`card-${record.name}`);
-		if (element) {
+		if (!element) return;
+
+		setDownloading(true);
+		try {
 			const html2canvas = (await import("html2canvas")).default;
 			const canvas = await html2canvas(element, {
 				backgroundColor: store.darkMode ? "#141414" : "#ffffff",
@@ -48,54 +64,69 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 			link.download = `birthday-card-${record.name}.png`;
 			link.href = canvas.toDataURL("image/png");
 			link.click();
+			message.success(`Downloaded birthday card for ${record.name}! 📸`);
+		} catch (e) {
+			console.error("Failed to generate card", e);
+			message.error("Failed to generate birthday card");
+		} finally {
+			setDownloading(false);
 		}
 	};
 
 	return (
-		<div style={{ padding: "4px 8px" }}>
+		<div style={{ padding: "8px 12px" }}>
 			<Alert
 				message={t("app.title")}
 				description={t(`data.insights.${record.dailyInsight}`)}
 				type="info"
 				showIcon
 				icon="🔮"
-				style={{ marginBottom: 8 }}
+				style={{ marginBottom: 12 }}
 			/>
+
 			<div
-				style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}
+				style={{
+					display: "flex",
+					gap: 12,
+					flexWrap: "wrap",
+					alignItems: "center",
+					marginBottom: 12,
+				}}
 			>
 				<Button
 					type="primary"
 					size="small"
+					loading={downloading}
 					onClick={handleDownloadCard}
 					icon="📸"
 				>
 					{t("app.card")}
 				</Button>
-				<Divider type="vertical" style={{ height: "100%" }} />
+				<Divider type="vertical" />
 				<a
 					href={`https://en.wikipedia.org/wiki/${record.year}`}
 					target="_blank"
 					rel="noreferrer"
-					style={{ fontSize: "12px" }}
+					style={{ fontSize: "13px" }}
 				>
-					📜 {record.year}
+					📜 Year {record.year} on Wikipedia
 				</a>
+				<Divider type="vertical" />
 				<a
 					href={`https://en.wikipedia.org/wiki/${dayjs(record.birthday)
 						.locale("en")
 						.format("MMMM")}_${record.day}`}
 					target="_blank"
 					rel="noreferrer"
-					style={{ fontSize: "12px" }}
+					style={{ fontSize: "13px" }}
 				>
-					📅 {t("app.events")}
+					📅 {t("app.events")} on Wikipedia
 				</a>
 			</div>
 
 			<OnThisDay month={record.month} day={record.day} />
 
-			<div style={{ marginTop: 8, marginBottom: 12 }}>
+			<div style={{ marginTop: 12, marginBottom: 16 }}>
 				<Typography.Text strong>📜 {t("headers.etymology")}:</Typography.Text>
 				<Typography.Text italic>
 					{record.name
@@ -118,72 +149,84 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 				</Typography.Text>
 			</div>
 
-			<div
-				style={{
-					display: "grid",
-					gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-					gap: "8px",
-					marginTop: "8px",
-					fontSize: "12px",
-				}}
-			>
-				<div>
-					<Typography.Text strong>
-						📈 {t("headers.life_progress")}
-					</Typography.Text>
-					<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
-						<li>
-							🗓️ {record.ageInDays.toLocaleString()}
-							{t("units.d")} / {record.ageInWeeks.toLocaleString()}
-							{t("units.w")}
-						</li>
-						<li>
-							🗓️ {record.ageInMonths.toLocaleString()} {t("units.months_lived")}
-						</li>
-						<li>
-							🌓 {t("units.half")}:{" "}
-							{t(`data.months.${record.halfBirthdayMonth}`)}{" "}
-							{record.halfBirthdayDay}
-						</li>
-						<li>
-							<Tooltip title={t("units.path_tooltip")}>
-								🔢 {t("units.path")} {record.lifePathNumber}:{" "}
-								{t(`data.life_path.${record.lifePathMeaning}`)}
-							</Tooltip>
-						</li>
-						<li>
-							{record.moonPhaseIcon} {t(`data.moon_phases.${record.moonPhase}`)}
-						</li>
-					</ul>
-				</div>
-				<div>
-					<Typography.Text strong>🎯 {t("headers.milestones")}</Typography.Text>
-					<p style={{ margin: "4px 0" }}>
+			{/* Grouped, structured information cards */}
+			<Row gutter={[12, 12]}>
+				{/* Life Progress & Milestones */}
+				<Col xs={24} sm={12} md={6}>
+					<Card
+						size="small"
+						title={<span>📈 {t("headers.life_progress")}</span>}
+						style={{ height: "100%" }}
+					>
+						<ul
+							style={{
+								paddingLeft: 16,
+								margin: 0,
+								fontSize: "12px",
+								lineHeight: "1.8",
+							}}
+						>
+							<li>
+								🗓️ {record.ageInDays.toLocaleString()} {t("units.d")} /{" "}
+								{record.ageInWeeks.toLocaleString()} {t("units.w")}
+							</li>
+							<li>
+								🗓️ {record.ageInMonths.toLocaleString()}{" "}
+								{t("units.months_lived")}
+							</li>
+							<li>
+								🌓 {t("units.half")}:{" "}
+								{t(`data.months.${record.halfBirthdayMonth}`)}{" "}
+								{record.halfBirthdayDay}
+							</li>
+							<li>
+								{record.moonPhaseIcon}{" "}
+								{t(`data.moon_phases.${record.moonPhase}`)}
+							</li>
+						</ul>
 						{record.milestone && (
-							<span>
-								{t(record.milestone.key, record.milestone.params)}
-								<br />
-							</span>
+							<div style={{ marginTop: 8, fontSize: "12px" }}>
+								<Typography.Text strong>
+									🎯 {t("headers.milestones")}:
+								</Typography.Text>
+								<span>{t(record.milestone.key, record.milestone.params)}</span>
+							</div>
 						)}
-						{record.milestoneStatus &&
-							t(record.milestoneStatus.key, record.milestoneStatus.params)}
-					</p>
-					{sameBirthday.length > 0 && (
-						<p style={{ margin: "4px 0" }}>
-							👯 Shared: {sameBirthday.map((b) => b.name).join(", ")}
+						{sameBirthday.length > 0 && (
+							<div style={{ marginTop: 4, fontSize: "12px" }}>
+								<Typography.Text type="secondary">
+									👯 Shared: {sameBirthday.map((b) => b.name).join(", ")}
+								</Typography.Text>
+							</div>
+						)}
+					</Card>
+				</Col>
+
+				{/* Astrology & Numerology */}
+				<Col xs={24} sm={12} md={6}>
+					<Card
+						size="small"
+						title={<span>✨ {t("headers.traits_match")}</span>}
+						style={{ height: "100%" }}
+					>
+						<p style={{ margin: "0 0 8px 0", fontSize: "12px" }}>
+							{t(`data.zodiac_traits.${record.sign}`)}
 						</p>
-					)}
-				</div>
-				<div>
-					<Typography.Text strong>
-						✨ {t("headers.traits_match")}
-					</Typography.Text>
-					<p style={{ margin: "4px 0" }}>
-						{t(`data.zodiac_traits.${record.sign}`)}
-					</p>
-					<div style={{ marginTop: "4px" }}>
-						{compatibleElements.map((element) => {
-							return (
+						<div style={{ marginBottom: 8, fontSize: "12px" }}>
+							<Tooltip title={t("units.path_tooltip")}>
+								<Typography.Text strong>
+									🔢 {t("units.path")} {record.lifePathNumber}:
+								</Typography.Text>
+								<Typography.Text type="secondary">
+									{t(`data.life_path.${record.lifePathMeaning}`)}
+								</Typography.Text>
+							</Tooltip>
+						</div>
+						<div>
+							<Typography.Text strong style={{ fontSize: "11px" }}>
+								Compatible:
+							</Typography.Text>
+							{compatibleElements.map((element) => (
 								<Tag
 									key={element}
 									style={{
@@ -192,57 +235,86 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 										padding: "0 4px",
 									}}
 									onClick={() => {
-										store.search = element; // "fire", "air"... (keys)
+										store.search = element;
 										window.scrollTo({ top: 0, behavior: "smooth" });
 									}}
 								>
 									{t(`data.elements.${element}`)}
 								</Tag>
-							);
-						})}
-					</div>
-				</div>
-				<div>
-					<Typography.Text strong>🔢 {t("headers.stats")}</Typography.Text>
-					<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
-						<li>
-							<Tooltip title={t("units.beats_tooltip")}>
-								💓 {record.heartbeats.toLocaleString()} {t("units.beats")}
-							</Tooltip>
-						</li>
-						<li>
-							<Tooltip title={t("units.breaths_tooltip")}>
-								🫁 {record.breaths.toLocaleString()} {t("units.breaths")}
-							</Tooltip>
-						</li>
-						<li>
-							<Tooltip title={t("units.km_orbit_tooltip")}>
-								🚀 {record.distanceTraveled.toLocaleString()}{" "}
-								{t("units.km_orbit")}
-							</Tooltip>
-						</li>
-					</ul>
-				</div>
-				<div>
-					<Typography.Text strong>🪐 {t("headers.planets")}</Typography.Text>
-					<ul style={{ paddingLeft: "16px", margin: "4px 0" }}>
-						{record.planetAges.map((p) => (
-							<li key={p.name}>
-								{p.icon} {t(`data.planets.${p.name}`)}: {p.age.toFixed(1)}
-								{t("units.y")}
-							</li>
-						))}
-					</ul>
-				</div>
-			</div>
+							))}
+						</div>
+					</Card>
+				</Col>
 
-			<div style={{ marginTop: 8 }}>
-				<Suspense fallback={<div style={{ minHeight: 200 }} />}>
+				{/* Cosmic & Biological Stats */}
+				<Col xs={24} sm={12} md={6}>
+					<Card
+						size="small"
+						title={<span>💓 {t("headers.stats")}</span>}
+						style={{ height: "100%" }}
+					>
+						<ul
+							style={{
+								paddingLeft: 16,
+								margin: 0,
+								fontSize: "12px",
+								lineHeight: "1.8",
+							}}
+						>
+							<li>
+								<Tooltip title={t("units.beats_tooltip")}>
+									💓 {record.heartbeats.toLocaleString()} {t("units.beats")}
+								</Tooltip>
+							</li>
+							<li>
+								<Tooltip title={t("units.breaths_tooltip")}>
+									🫁 {record.breaths.toLocaleString()} {t("units.breaths")}
+								</Tooltip>
+							</li>
+							<li>
+								<Tooltip title={t("units.km_orbit_tooltip")}>
+									🚀 {record.distanceTraveled.toLocaleString()}{" "}
+									{t("units.km_orbit")}
+								</Tooltip>
+							</li>
+						</ul>
+					</Card>
+				</Col>
+
+				{/* Planetary Ages */}
+				<Col xs={24} sm={12} md={6}>
+					<Card
+						size="small"
+						title={<span>🪐 {t("headers.planets")}</span>}
+						style={{ height: "100%" }}
+					>
+						<ul
+							style={{
+								paddingLeft: 16,
+								margin: 0,
+								fontSize: "12px",
+								lineHeight: "1.8",
+							}}
+						>
+							{record.planetAges.map((p) => (
+								<li key={p.name}>
+									{p.icon} {t(`data.planets.${p.name}`)}: {p.age.toFixed(1)}{" "}
+									{t("units.y")}
+								</li>
+							))}
+						</ul>
+					</Card>
+				</Col>
+			</Row>
+
+			{/* Biorhythms Visual Chart */}
+			<div style={{ marginTop: 12 }}>
+				<Suspense fallback={<div style={{ minHeight: 180 }} />}>
 					<BiorhythmsChart birthday={record.birthday} />
 				</Suspense>
 			</div>
 
-			{/* Hidden card for capture */}
+			{/* Hidden card for export capture */}
 			<div
 				style={{
 					position: "absolute",

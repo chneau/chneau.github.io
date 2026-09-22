@@ -1,10 +1,11 @@
-import { Card, ConfigProvider, Layout, Space, Tabs, theme } from "antd";
+import { PlusOutlined, SettingOutlined } from "@ant-design/icons";
+import { Button, Card, ConfigProvider, Layout, Space, Tabs, theme } from "antd";
 import deDE from "antd/locale/de_DE";
 import enUS from "antd/locale/en_US";
 import esES from "antd/locale/es_ES";
 import frFR from "antd/locale/fr_FR";
 import zhCN from "antd/locale/zh_CN";
-import { lazy, Suspense, useEffect, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { AppFooter } from "./AppFooter";
@@ -16,6 +17,7 @@ import { CompatibilityMatrix } from "./CompatibilityMatrix";
 import { Countdown } from "./Countdown";
 import { triggerConfetti } from "./celebration";
 import { FilterButtons, FilterSearch } from "./Filter";
+import { ManageBirthdaysModal } from "./ManageBirthdaysModal";
 import { MilestonesWidget } from "./MilestonesWidget";
 import { checkAndNotify } from "./notifications";
 import { RecordsWidget } from "./RecordsWidget";
@@ -32,6 +34,7 @@ export const App = () => {
 	const storeSnap = useSnapshot(store);
 	const data = dataSnap.filtered;
 	const { t, i18n } = useTranslation();
+	const [manageOpen, setManageOpen] = useState(false);
 
 	const antdLocale = useMemo(() => {
 		const lang = i18n.language.slice(0, 2);
@@ -79,7 +82,7 @@ export const App = () => {
 			`}
 			</style>
 			<Layout style={{ minHeight: "100vh" }}>
-				<AppHeader data={data} />
+				<AppHeader data={data} onOpenManage={() => setManageOpen(true)} />
 				<Layout.Content style={{ padding: 16, minHeight: "100vh" }}>
 					<div style={{ minHeight: nextBirthdays.length > 0 ? 120 : 0 }}>
 						{nextBirthdays.length > 0 && (
@@ -90,9 +93,19 @@ export const App = () => {
 						title={t("app.birthdays")}
 						size="small"
 						style={{ minHeight: 600 }}
+						extra={
+							<Button
+								type="primary"
+								size="small"
+								icon={<SettingOutlined />}
+								onClick={() => setManageOpen(true)}
+							>
+								Manage List
+							</Button>
+						}
 					>
 						<Space
-							orientation="vertical"
+							direction="vertical"
 							style={{ width: "100%", marginBottom: 16 }}
 							size="middle"
 						>
@@ -102,6 +115,12 @@ export const App = () => {
 							>
 								<Space wrap>
 									<CalendarActions />
+									<Button
+										icon={<PlusOutlined />}
+										onClick={() => setManageOpen(true)}
+									>
+										Add Birthday
+									</Button>
 								</Space>
 								<FilterButtons />
 							</Space>
@@ -143,6 +162,11 @@ export const App = () => {
 				</Layout.Content>
 				<AppFooter />
 			</Layout>
+
+			<ManageBirthdaysModal
+				open={manageOpen}
+				onClose={() => setManageOpen(false)}
+			/>
 		</ConfigProvider>
 	);
 };

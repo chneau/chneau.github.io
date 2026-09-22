@@ -430,12 +430,79 @@ const getDailyInsight = (name: string): DailyInsight => {
 
 import rawBirthdaysJson from "./birthdays.json";
 
-const validatedBirthdays = birthdaysArraySchema.parse(rawBirthdaysJson);
+export type RawBirthday = z.infer<typeof birthdaySchema>;
+
+const STORAGE_KEY = "custom_birthdays_data";
+
+export const getRawBirthdays = (): RawBirthday[] => {
+	if (typeof localStorage === "undefined") {
+		return rawBirthdaysJson as RawBirthday[];
+	}
+	const saved = localStorage.getItem(STORAGE_KEY);
+	if (!saved) return rawBirthdaysJson as RawBirthday[];
+	try {
+		const parsed = JSON.parse(saved);
+		return birthdaysArraySchema.parse(parsed);
+	} catch (e) {
+		console.error("Failed to parse custom birthdays", e);
+		return rawBirthdaysJson as RawBirthday[];
+	}
+};
+
+export const saveRawBirthdays = (list: RawBirthday[]) => {
+	const validated = birthdaysArraySchema.parse(list);
+	if (typeof localStorage !== "undefined") {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(validated));
+	}
+	recomputeBirthdays();
+};
+
+export const resetRawBirthdays = () => {
+	if (typeof localStorage !== "undefined") {
+		localStorage.removeItem(STORAGE_KEY);
+	}
+	recomputeBirthdays();
+};
+
+export const addRawBirthday = (item: RawBirthday) => {
+	const current = getRawBirthdays();
+	saveRawBirthdays([...current, item]);
+};
+
+export const updateRawBirthday = (
+	oldKey: { name: string; date: string },
+	updated: RawBirthday,
+) => {
+	const current = getRawBirthdays();
+	const index = current.findIndex(
+		(b) => b.name === oldKey.name && b.date === oldKey.date,
+	);
+	if (index >= 0) {
+		const next = [...current];
+		next[index] = updated;
+		saveRawBirthdays(next);
+	}
+};
+
+export const deleteRawBirthday = (key: { name: string; date: string }) => {
+	const current = getRawBirthdays();
+	const next = current.filter(
+		(b) => !(b.name === key.name && b.date === key.date),
+	);
+	saveRawBirthdays(next);
+};
+
+const listeners = new Set<() => void>();
+export const subscribeBirthdays = (fn: () => void) => {
+	listeners.add(fn);
+	return () => listeners.delete(fn);
+};
 
 const computeBirthdays = (): Birthday[] => {
 	const today = dayjs().startOf("day");
+	const rawList = getRawBirthdays();
 
-	const mappedBirthdays = validatedBirthdays.map((x) => {
+	const mappedBirthdays = rawList.map((x) => {
 		const birthday = dayjs(x.date).startOf("day");
 
 		const year = birthday.year();
@@ -572,5 +639,8 @@ export let birthdays: Birthday[] = computeBirthdays();
 
 export const recomputeBirthdays = () => {
 	birthdays = computeBirthdays();
+	for (const fn of listeners) {
+		fn();
+	}
 	return birthdays;
 };

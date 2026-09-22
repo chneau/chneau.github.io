@@ -297,10 +297,7 @@ export const AppSidebar = ({
 			)}
 		</ScrollArea>
 
-		<Box
-			p="md"
-			style={{ borderTop: "1px solid var(--mantine-color-dark-4)" }}
-		>
+		<Box p="md" style={{ borderTop: "1px solid var(--mantine-color-dark-4)" }}>
 			<Text
 				size="10px"
 				c="dimmed"
