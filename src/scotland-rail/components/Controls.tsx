@@ -215,13 +215,13 @@ export const Controls = () => {
 								value={speed}
 								onChange={(val) => railActions.setSpeed(val)}
 								size="small"
-								style={{ width: 80 }}
+								style={{ width: 110 }}
 								options={[
-									{ value: 0.5, label: "0.5x" },
-									{ value: 1, label: "1x" },
-									{ value: 2, label: "2x" },
-									{ value: 5, label: "5x" },
-									{ value: 15, label: "15x" },
+									{ value: 0.5, label: "0.5x (30s/s)" },
+									{ value: 1, label: "1x (1m/s)" },
+									{ value: 2, label: "2x (2m/s)" },
+									{ value: 5, label: "5x (5m/s)" },
+									{ value: 15, label: "15x (15m/s)" },
 								]}
 							/>
 						</Space>
