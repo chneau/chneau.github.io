@@ -104,6 +104,7 @@ export const StatsPanel = () => {
 	const { activeTrains } = derivedSnap;
 
 	const [unit, setUnit] = useState<"metric" | "imperial">("metric");
+	const [collapsed, setCollapsed] = useState(false);
 
 	// Compute dynamic stats from active trains
 	const stats = useMemo(() => {
@@ -195,23 +196,43 @@ export const StatsPanel = () => {
 							width: "100%",
 						}}
 					>
-						<Space style={{ fontSize: "0.82rem", color: "#59d7ff" }}>
+						<button
+							type="button"
+							style={{
+								background: "none",
+								border: "none",
+								padding: 0,
+								cursor: "pointer",
+								fontSize: "0.82rem",
+								color: "#59d7ff",
+								display: "flex",
+								alignItems: "center",
+								gap: 4,
+							}}
+							onClick={() => setCollapsed(!collapsed)}
+							title={collapsed ? "Expand Highlights" : "Collapse Highlights"}
+						>
 							<FireOutlined />
 							<span>Live Highlights</span>
-						</Space>
-						<Segmented
-							size="small"
-							value={unit}
-							onChange={(val) => setUnit(val as "metric" | "imperial")}
-							options={[
-								{ label: "km", value: "metric" },
-								{ label: "mi", value: "imperial" },
-							]}
-							style={{
-								fontSize: "0.72rem",
-								background: "rgba(0,0,0,0.3)",
-							}}
-						/>
+							<span style={{ fontSize: "0.7rem", opacity: 0.7 }}>
+								{collapsed ? "▼" : "▲"}
+							</span>
+						</button>
+						{!collapsed && (
+							<Segmented
+								size="small"
+								value={unit}
+								onChange={(val) => setUnit(val as "metric" | "imperial")}
+								options={[
+									{ label: "km", value: "metric" },
+									{ label: "mi", value: "imperial" },
+								]}
+								style={{
+									fontSize: "0.72rem",
+									background: "rgba(0,0,0,0.3)",
+								}}
+							/>
+						)}
 					</div>
 				}
 				style={{
@@ -222,7 +243,10 @@ export const StatsPanel = () => {
 					color: "#edf3f5",
 					boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
 				}}
-				bodyStyle={{ padding: "8px 12px" }}
+				bodyStyle={{
+					padding: collapsed ? 0 : "8px 12px",
+					display: collapsed ? "none" : "block",
+				}}
 			>
 				<Space orientation="vertical" style={{ width: "100%" }} size={8}>
 					{/* Active status pulse */}
