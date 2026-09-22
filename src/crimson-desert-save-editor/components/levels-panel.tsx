@@ -4,6 +4,7 @@ import {
 	Box,
 	Button,
 	Checkbox,
+	CloseButton,
 	Group,
 	NumberInput,
 	Pagination,
@@ -332,6 +333,18 @@ export const LevelsPanel = ({
 						label="Search rows"
 						placeholder="Search names, ids or keys"
 						leftSection={<Search size={16} />}
+						rightSection={
+							query ? (
+								<CloseButton
+									size="xs"
+									onClick={() => {
+										setQuery("");
+										setPage(0);
+									}}
+									aria-label="Clear search"
+								/>
+							) : undefined
+						}
 						value={query}
 						onChange={(event) => {
 							setQuery(event.currentTarget.value);
