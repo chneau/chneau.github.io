@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
 import { getCompatibilityScore } from "./compatibility";
+import { dataStore } from "./store";
 
 type RecordsWidgetProps = {
 	data: readonly Birthday[];
@@ -58,11 +59,31 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 							name: records.elder?.name,
 						})}
 					>
-						<Statistic
-							title={`👴 ${t("app.records.elder")}`}
-							value={records.elder?.name}
-							styles={{ content: { fontSize: "1em" } }}
-						/>
+						<button
+							type="button"
+							style={{
+								cursor: records.elder ? "pointer" : "default",
+								background: "none",
+								border: "none",
+								padding: 0,
+								width: "100%",
+							}}
+							onClick={() => {
+								if (records.elder) dataStore.selectedBirthday = records.elder;
+							}}
+						>
+							<Statistic
+								title={`👴 ${t("app.records.elder")}`}
+								value={records.elder?.name}
+								styles={{
+									content: {
+										fontSize: "1em",
+										color: "#1677ff",
+										textDecoration: "underline",
+									},
+								}}
+							/>
+						</button>
 					</Tooltip>
 				</Col>
 				<Col xs={12} sm={6} style={{ textAlign: "center" }}>
@@ -71,11 +92,31 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 							name: records.rookie?.name,
 						})}
 					>
-						<Statistic
-							title={`👶 ${t("app.records.rookie")}`}
-							value={records.rookie?.name}
-							styles={{ content: { fontSize: "1em" } }}
-						/>
+						<button
+							type="button"
+							style={{
+								cursor: records.rookie ? "pointer" : "default",
+								background: "none",
+								border: "none",
+								padding: 0,
+								width: "100%",
+							}}
+							onClick={() => {
+								if (records.rookie) dataStore.selectedBirthday = records.rookie;
+							}}
+						>
+							<Statistic
+								title={`👶 ${t("app.records.rookie")}`}
+								value={records.rookie?.name}
+								styles={{
+									content: {
+										fontSize: "1em",
+										color: "#1677ff",
+										textDecoration: "underline",
+									},
+								}}
+							/>
+						</button>
 					</Tooltip>
 				</Col>
 				<Col xs={12} sm={6} style={{ textAlign: "center" }}>
@@ -85,11 +126,36 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 							count: records.bestSocialite?.count,
 						})}
 					>
-						<Statistic
-							title={`🤝 ${t("app.records.socialite")}`}
-							value={records.bestSocialite?.name}
-							styles={{ content: { fontSize: "1em" } }}
-						/>
+						<button
+							type="button"
+							style={{
+								cursor: records.bestSocialite ? "pointer" : "default",
+								background: "none",
+								border: "none",
+								padding: 0,
+								width: "100%",
+							}}
+							onClick={() => {
+								if (records.bestSocialite) {
+									const match = people.find(
+										(p) => p.name === records.bestSocialite?.name,
+									);
+									if (match) dataStore.selectedBirthday = match;
+								}
+							}}
+						>
+							<Statistic
+								title={`🤝 ${t("app.records.socialite")}`}
+								value={records.bestSocialite?.name}
+								styles={{
+									content: {
+										fontSize: "1em",
+										color: "#1677ff",
+										textDecoration: "underline",
+									},
+								}}
+							/>
+						</button>
 					</Tooltip>
 				</Col>
 				<Col xs={12} sm={6} style={{ textAlign: "center" }}>

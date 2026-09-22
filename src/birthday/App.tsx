@@ -1,5 +1,14 @@
 import { PlusOutlined, SettingOutlined } from "@ant-design/icons";
-import { Button, Card, ConfigProvider, Layout, Space, Tabs, theme } from "antd";
+import {
+	Button,
+	Card,
+	ConfigProvider,
+	Layout,
+	Modal,
+	Space,
+	Tabs,
+	theme,
+} from "antd";
 import deDE from "antd/locale/de_DE";
 import enUS from "antd/locale/en_US";
 import esES from "antd/locale/es_ES";
@@ -10,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { AppFooter } from "./AppFooter";
 import { AppHeader } from "./AppHeader";
+import { BirthdayDetails } from "./BirthdayDetails";
 import { BirthdayTable } from "./BirthdayTable";
 import { birthdays } from "./birthdays";
 import { CalendarActions } from "./CalendarActions";
@@ -167,6 +177,27 @@ export const App = () => {
 				open={manageOpen}
 				onClose={() => setManageOpen(false)}
 			/>
+
+			<Modal
+				title={
+					dataSnap.selectedBirthday
+						? `${dataSnap.selectedBirthday.name} ${dataSnap.selectedBirthday.kind} (${dataSnap.selectedBirthday.birthdayString})`
+						: undefined
+				}
+				open={Boolean(dataSnap.selectedBirthday)}
+				onCancel={() => {
+					dataStore.selectedBirthday = null;
+				}}
+				footer={null}
+				width={760}
+				destroyOnClose
+			>
+				{dataSnap.selectedBirthday && (
+					<div style={{ marginTop: 16 }}>
+						<BirthdayDetails record={dataSnap.selectedBirthday} />
+					</div>
+				)}
+			</Modal>
 		</ConfigProvider>
 	);
 };
