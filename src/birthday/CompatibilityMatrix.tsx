@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
 import { getCompatibilityScore } from "./compatibility";
+import { dataStore } from "./store";
 
 type CompatibilityMatrixProps = {
 	data: readonly Birthday[];
@@ -18,8 +19,6 @@ const getScoreColor = (score: number) =>
 
 export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 	const { t } = useTranslation();
-	// Filter out weddings for compatibility matrix to keep it clean, or keep them?
-	// Let's keep only people (♂️, ♀️)
 	const people = useMemo(() => data.filter((x) => x.kind !== "💒"), [data]);
 
 	const columns: ColumnsType<Birthday> = useMemo(
@@ -29,21 +28,51 @@ export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 				dataIndex: "name",
 				key: "name",
 				fixed: "left",
-				width: 100,
+				width: 110,
 				render: (name, record) => (
-					<strong style={{ fontSize: "0.8em" }}>
+					<button
+						type="button"
+						style={{
+							background: "none",
+							border: "none",
+							padding: 0,
+							cursor: "pointer",
+							color: "#1677ff",
+							textAlign: "left",
+							fontSize: "0.8em",
+							fontWeight: "bold",
+						}}
+						onClick={() => {
+							dataStore.selectedBirthday = record;
+						}}
+					>
 						{name} {record.signSymbol}
-					</strong>
+					</button>
 				),
 			},
 			...people.map((person): ColumnsType<Birthday>[number] => ({
 				title: (
 					<Tooltip
-						title={`${person.name} (${t(`data.zodiac.${person.sign}`)})`}
+						title={`${person.name} (${t(
+							`data.zodiac.${person.sign}`,
+						)}) — Click to view details`}
 					>
-						<span style={{ fontSize: "0.8em" }}>
+						<button
+							type="button"
+							style={{
+								background: "none",
+								border: "none",
+								padding: 0,
+								cursor: "pointer",
+								color: "inherit",
+								fontSize: "0.8em",
+							}}
+							onClick={() => {
+								dataStore.selectedBirthday = person;
+							}}
+						>
 							{person.name.slice(0, 3)}. {person.signSymbol}
-						</span>
+						</button>
 					</Tooltip>
 				),
 				key: person.name,
