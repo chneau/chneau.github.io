@@ -4,9 +4,9 @@ The app has no upload or processing endpoint: the save is read with the File
 API, edited in the page, and downloaded as a new file, so a user's save only
 ever exists on their own machine. The published app is a static bundle served
 straight from GitHub Pages: it ships the page plus the two static picture
-archives and nothing else, and the page's only network request is the same-origin
-GET for those picture parts (`lib/image-archive.ts`) — no save byte is sent
-anywhere. Uploading saves for server-side processing would be simpler to
+archives and nothing else, and the page's only network request is the
+same-origin GET for those picture parts (`lib/image-archive.ts`) — no save byte
+is sent anywhere. Uploading saves for server-side processing would be simpler to
 instrument, but it would make save files a liability to hold, and the format's
 own crypto is available as WebCrypto in the page anyway.
 

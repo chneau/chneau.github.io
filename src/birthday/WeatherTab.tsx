@@ -1,4 +1,6 @@
 import {
+	ArrowDownOutlined,
+	ArrowUpOutlined,
 	ClockCircleOutlined,
 	DeleteOutlined,
 	MenuOutlined,
@@ -15,9 +17,12 @@ import {
 	Empty,
 	Input,
 	List,
+	message,
+	Popconfirm,
 	Row,
 	Skeleton,
 	Space,
+	Tooltip,
 	Typography,
 } from "antd";
 import dayjs from "dayjs";
@@ -189,7 +194,14 @@ const DailyForecast = ({ weather }: { weather: WttrResponse }) => {
 	);
 };
 
-const WeatherItem = ({ location }: { location: string }) => {
+type WeatherItemProps = {
+	location: string;
+	index: number;
+	total: number;
+	onMove: (from: number, to: number) => void;
+};
+
+const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 	const { t } = useTranslation();
 	const storeSnap = useSnapshot(store);
 	const { data, isLoading, error, refetch } = useQuery({
@@ -217,17 +229,24 @@ const WeatherItem = ({ location }: { location: string }) => {
 				>
 					Retry
 				</Button>
-				<Button
-					size="small"
-					danger
-					icon={<DeleteOutlined />}
-					onClick={() => {
+				<Popconfirm
+					title={`Remove ${location} from weather list?`}
+					onConfirm={() => {
 						store.weatherLocations = store.weatherLocations.filter(
 							(l) => l !== location,
 						);
+						message.info(`Removed ${location}`);
 					}}
-					style={{ marginLeft: 8 }}
-				/>
+					okText="Remove"
+					cancelText="Cancel"
+				>
+					<Button
+						size="small"
+						danger
+						icon={<DeleteOutlined />}
+						style={{ marginLeft: 8 }}
+					/>
+				</Popconfirm>
 			</Card>
 		);
 	}
@@ -249,8 +268,42 @@ const WeatherItem = ({ location }: { location: string }) => {
 					key: "1",
 					label: (
 						<Row align="middle" style={{ width: "100%" }}>
-							<Col style={{ marginRight: 12, display: "flex" }}>
-								<MenuOutlined style={{ cursor: "grab", color: "#bfbfbf" }} />
+							<Col
+								style={{
+									marginRight: 12,
+									display: "flex",
+									alignItems: "center",
+								}}
+							>
+								<Tooltip title="Drag to reorder">
+									<MenuOutlined
+										style={{ cursor: "grab", color: "#bfbfbf", marginRight: 8 }}
+									/>
+								</Tooltip>
+								<Space size={2}>
+									<Button
+										type="text"
+										size="small"
+										icon={<ArrowUpOutlined />}
+										disabled={index === 0}
+										onClick={(e) => {
+											e.stopPropagation();
+											onMove(index, index - 1);
+										}}
+										title="Move up"
+									/>
+									<Button
+										type="text"
+										size="small"
+										icon={<ArrowDownOutlined />}
+										disabled={index === total - 1}
+										onClick={(e) => {
+											e.stopPropagation();
+											onMove(index, index + 1);
+										}}
+										title="Move down"
+									/>
+								</Space>
 							</Col>
 							<Col flex="auto">
 								<Title level={4} style={{ margin: 0 }}>
@@ -280,17 +333,25 @@ const WeatherItem = ({ location }: { location: string }) => {
 						</Row>
 					),
 					extra: (
-						<Button
-							type="text"
-							danger
-							icon={<DeleteOutlined />}
-							onClick={(e) => {
-								e.stopPropagation();
+						<Popconfirm
+							title={`Remove ${location} from weather locations?`}
+							onConfirm={() => {
 								store.weatherLocations = store.weatherLocations.filter(
 									(l) => l !== location,
 								);
+								message.info(`Removed ${location}`);
 							}}
-						/>
+							okText="Remove"
+							cancelText="Cancel"
+						>
+							<Button
+								type="text"
+								danger
+								icon={<DeleteOutlined />}
+								title={`Remove ${location}`}
+								onClick={(e) => e.stopPropagation()}
+							/>
+						</Popconfirm>
 					),
 					children: (
 						<div>
@@ -348,13 +409,23 @@ export const WeatherTab = () => {
 	const queryClient = useQueryClient();
 
 	const handleAddLocation = () => {
-		if (
-			newLocation.trim() &&
-			!store.weatherLocations.includes(newLocation.trim())
-		) {
-			store.weatherLocations.push(newLocation.trim());
-			setNewLocation("");
+		const trimmed = newLocation.trim();
+		if (!trimmed) {
+			message.warning("Please enter a city or location name");
+			return;
 		}
+		if (
+			store.weatherLocations
+				.map((l) => l.toLowerCase())
+				.includes(trimmed.toLowerCase())
+		) {
+			message.info(`${trimmed} is already in your weather list`);
+			return;
+		}
+
+		store.weatherLocations.push(trimmed);
+		message.success(`Added ${trimmed}`);
+		setNewLocation("");
 	};
 
 	const handleRefreshAll = () => {
@@ -363,10 +434,19 @@ export const WeatherTab = () => {
 			delete store.weatherCache[loc];
 		}
 		queryClient.invalidateQueries({ queryKey: ["weather"] });
+		message.success("Weather refreshed");
 	};
 
 	const handleMove = (fromIndex: number, toIndex: number) => {
-		if (fromIndex === toIndex) return;
+		if (
+			fromIndex === toIndex ||
+			fromIndex < 0 ||
+			toIndex < 0 ||
+			fromIndex >= store.weatherLocations.length ||
+			toIndex >= store.weatherLocations.length
+		) {
+			return;
+		}
 		const locations = [...store.weatherLocations];
 		const [moved] = locations.splice(fromIndex, 1);
 		if (moved !== undefined) {
@@ -379,7 +459,7 @@ export const WeatherTab = () => {
 
 	return (
 		<div>
-			<Space orientation="vertical" style={{ width: "100%" }} size="large">
+			<Space direction="vertical" style={{ width: "100%" }} size="large">
 				<Space.Compact style={{ width: "100%" }}>
 					<Input
 						placeholder={t("app.weather.placeholder")}
@@ -432,7 +512,12 @@ export const WeatherTab = () => {
 									cursor: "move",
 								}}
 							>
-								<WeatherItem location={loc} />
+								<WeatherItem
+									location={loc}
+									index={index}
+									total={storeSnap.weatherLocations.length}
+									onMove={handleMove}
+								/>
 							</li>
 						))}
 					</ul>

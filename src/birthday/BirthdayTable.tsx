@@ -1,4 +1,4 @@
-import { Button, Empty, Progress, Table, Tag } from "antd";
+import { Button, Empty, Progress, Table, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { TFunction } from "i18next";
 import { useMemo } from "react";
@@ -13,18 +13,28 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 	{
 		title: t("table.name"),
 		dataIndex: "name",
-		render: (_, x) => (
-			<>
-				<Tag color={getKindColor(x.kind)}>
-					<Highlight text={x.name} search={search} /> {x.kind}
-				</Tag>
-				{x.milestone && (
-					<Tag color="gold" style={{ marginLeft: 4 }}>
-						{t(x.milestone.key, x.milestone.params)}
-					</Tag>
-				)}
-			</>
-		),
+		render: (_, x) => {
+			const kindLabel =
+				x.kind === "♂️"
+					? t("app.filters.boys")
+					: x.kind === "♀️"
+						? t("app.filters.girls")
+						: t("app.filters.weddings");
+			return (
+				<>
+					<Tooltip title={kindLabel}>
+						<Tag color={getKindColor(x.kind)}>
+							<Highlight text={x.name} search={search} /> {x.kind}
+						</Tag>
+					</Tooltip>
+					{x.milestone && (
+						<Tag color="gold" style={{ marginLeft: 4 }}>
+							{t(x.milestone.key, x.milestone.params)}
+						</Tag>
+					)}
+				</>
+			);
+		},
 		sorter: (a, b) => a.name.localeCompare(b.name),
 	},
 	{
@@ -136,9 +146,14 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 			rowKey={(record) => `${record.name}-${record.birthdayString}`}
 			columns={columns}
 			dataSource={data as Birthday[]}
-			pagination={false}
+			pagination={{
+				pageSize: 15,
+				showSizeChanger: true,
+				pageSizeOptions: ["10", "15", "25", "50", "100"],
+				showTotal: (total) => `${total} ${t("app.birthdays")}`,
+				size: "small",
+			}}
 			size="small"
-			scroll={{ y: 500 }}
 			locale={{
 				emptyText: (
 					<Empty

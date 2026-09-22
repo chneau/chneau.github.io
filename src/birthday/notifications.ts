@@ -5,15 +5,17 @@ import i18n from "./i18n";
 const CAKE_ICON =
 	"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎂</text></svg>";
 
-export const requestNotificationPermission = async () => {
-	if (!("Notification" in window)) {
+export const requestNotificationPermission = async (): Promise<boolean> => {
+	if (typeof window === "undefined" || !("Notification" in window)) {
 		console.log(i18n.t("app.notifications.no_support"));
-		return;
+		return false;
 	}
 
 	if (Notification.permission === "default") {
-		await Notification.requestPermission();
+		const res = await Notification.requestPermission();
+		return res === "granted";
 	}
+	return Notification.permission === "granted";
 };
 
 export const checkAndNotify = (birthdays: readonly Birthday[]) => {

@@ -3,7 +3,12 @@ import { debounce } from "es-toolkit";
 import Fuse from "fuse.js";
 import { proxy, subscribe } from "valtio";
 import { z } from "zod";
-import { type Birthday, birthdays, recomputeBirthdays } from "./birthdays";
+import {
+	type Birthday,
+	birthdays,
+	recomputeBirthdays,
+	subscribeBirthdays,
+} from "./birthdays";
 import { WttrResponseSchema } from "./wttr";
 
 const WeatherCacheEntrySchema = z.object({
@@ -109,6 +114,10 @@ const compute = () => {
 };
 
 subscribe(store, debounce(compute, 200));
+subscribeBirthdays(() => {
+	fuse.setCollection(birthdays);
+	compute();
+});
 compute();
 
 if (typeof window !== "undefined") {

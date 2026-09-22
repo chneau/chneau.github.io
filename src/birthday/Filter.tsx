@@ -51,7 +51,7 @@ export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 	];
 
 	return (
-		<Space orientation="vertical" style={{ width: "100%" }}>
+		<Space direction="vertical" style={{ width: "100%" }}>
 			<Input.Search
 				placeholder={t("app.search")}
 				allowClear
