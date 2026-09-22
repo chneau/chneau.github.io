@@ -15,6 +15,7 @@ import {
 } from "@mantine/core";
 import { Search, ShieldCheck, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { storageName } from "@/lib/inventory";
 import type {
 	ConditionDescription,
 	ConditionEntry,
@@ -229,7 +230,7 @@ export const ConditionPanel = ({
 						}}
 					/>
 					<Select
-						w={200}
+						w={220}
 						label="Storage"
 						value={storage}
 						allowDeselect={false}
@@ -237,7 +238,7 @@ export const ConditionPanel = ({
 							{ value: "all", label: `All storages (${entries.length})` },
 							...storages.map((key) => ({
 								value: String(key),
-								label: `Storage ${key}`,
+								label: `${storageName(key)} (${key})`,
 							})),
 						]}
 						onChange={(value) => {
@@ -288,7 +289,7 @@ export const ConditionPanel = ({
 									</Table.Td>
 									<Table.Td>
 										<Text size="xs" c="dimmed">
-											storage {entry.inventoryKey} · slot {entry.slotNo}
+											{storageName(entry.inventoryKey)} · slot {entry.slotNo}
 										</Text>
 									</Table.Td>
 									<Table.Td>
