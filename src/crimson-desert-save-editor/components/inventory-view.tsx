@@ -6,7 +6,9 @@ import {
 	Center,
 	Flex,
 	Group,
+	Modal,
 	Paper,
+	ScrollArea,
 	Select,
 	SimpleGrid,
 	Stack,
@@ -23,6 +25,8 @@ import {
 	CircleHelp,
 	Hash,
 	Search,
+	Sparkles,
+	Wand2,
 } from "lucide-react";
 import {
 	type Dispatch,
@@ -170,12 +174,18 @@ export const InventoryView = ({
 	onStageEquipment: (edit: EquipmentEdit | InsertEquipmentEdit) => void;
 }) => {
 	const [query, setQuery] = useState("");
+	const [selectedCategory, setSelectedCategory] = useState<string>("all");
 	const [sortBy, setSortBy] = useState<SortColumn>("name");
 	const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 	const [selectedKey, setSelectedKey] = useState<number | null>(null);
 	const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
 	const [quantityDraft, setQuantityDraft] = useState("");
 	const [editorOpen, setEditorOpen] = useState(false);
+	const [bulkConfirm, setBulkConfirm] = useState<{
+		type: "max" | "random";
+		count: number;
+		plannedEdits: EquipmentEdit[];
+	} | null>(null);
 
 	// Opening another location starts a fresh browse; a staged change re-points
 	// the selection at what was just staged. Both arrive as props, so they are
@@ -186,6 +196,7 @@ export const InventoryView = ({
 		setQuantityDraft("");
 		setEditorOpen(false);
 		setQuery("");
+		setSelectedCategory("all");
 	}, [focus]);
 
 	// The drawer is portalled, so hiding this view would not hide it.
@@ -201,16 +212,28 @@ export const InventoryView = ({
 		);
 	}, [activeStorage, catalog, records]);
 
+	const availableCategories = useMemo(() => {
+		const cats = new Set<string>();
+		for (const item of items) {
+			if (item.category) cats.add(item.category);
+		}
+		return Array.from(cats).sort();
+	}, [items]);
+
 	const visibleItems = useMemo(() => {
 		const normalized = query.trim().toLowerCase();
-		if (!normalized) return items;
-		return items.filter(
-			(item) =>
+		return items.filter((item) => {
+			if (selectedCategory !== "all" && item.category !== selectedCategory) {
+				return false;
+			}
+			if (!normalized) return true;
+			return (
 				item.name.toLowerCase().includes(normalized) ||
 				item.category.toLowerCase().includes(normalized) ||
-				String(item.itemKey).includes(normalized),
-		);
-	}, [items, query]);
+				String(item.itemKey).includes(normalized)
+			);
+		});
+	}, [items, query, selectedCategory]);
 
 	const sortedItems = useMemo(() => {
 		const direction = sortDirection === "asc" ? 1 : -1;
@@ -412,43 +435,45 @@ export const InventoryView = ({
 								<Button
 									variant="default"
 									size="sm"
+									leftSection={<Sparkles size={14} />}
 									title="Take every item to the refinement and sockets this item allows, then fill the sockets with the strongest Abyss Gear that fits."
-									onClick={() =>
-										setEdits((current) =>
-											replaceStorageEquipment(
-												current,
-												maxEquipmentEdits({
-													records: savedRecords,
-													inventoryKey: activeStorage,
-													rules: abyssGearRules,
-													itemNameFor: equipmentName,
-												}).edits,
-												activeStorage,
-											),
-										)
-									}
+									onClick={() => {
+										if (activeStorage === null) return;
+										const plan = maxEquipmentEdits({
+											records: savedRecords,
+											inventoryKey: activeStorage,
+											rules: abyssGearRules,
+											itemNameFor: equipmentName,
+										});
+										setBulkConfirm({
+											type: "max",
+											count: plan.edits.length,
+											plannedEdits: plan.edits,
+										});
+									}}
 								>
 									Max Equipment
 								</Button>
 								<Button
 									variant="default"
 									size="sm"
+									leftSection={<Wand2 size={14} />}
 									title="Same as Max Equipment, but each empty socket gets a random Abyss Gear. A family's lower tiers are never used: if a “… III” exists, only the III is ever socketed."
-									onClick={() =>
-										setEdits((current) =>
-											replaceStorageEquipment(
-												current,
-												maxEquipmentEdits({
-													records: savedRecords,
-													inventoryKey: activeStorage,
-													rules: abyssGearRules,
-													itemNameFor: equipmentName,
-													gear: "random",
-												}).edits,
-												activeStorage,
-											),
-										)
-									}
+									onClick={() => {
+										if (activeStorage === null) return;
+										const plan = maxEquipmentEdits({
+											records: savedRecords,
+											inventoryKey: activeStorage,
+											rules: abyssGearRules,
+											itemNameFor: equipmentName,
+											gear: "random",
+										});
+										setBulkConfirm({
+											type: "random",
+											count: plan.edits.length,
+											plannedEdits: plan.edits,
+										});
+									}}
 								>
 									Randomize All Sockets
 								</Button>
@@ -456,6 +481,107 @@ export const InventoryView = ({
 						)}
 					</Group>
 				</Group>
+
+				{/* Quick Category Filter Pills */}
+				{availableCategories.length > 1 && (
+					<Box
+						px="md"
+						py="xs"
+						style={{
+							flexShrink: 0,
+							borderBottom: "1px solid var(--mantine-color-dark-4)",
+							background: "rgba(0,0,0,0.15)",
+						}}
+					>
+						<ScrollArea type="never">
+							<Group gap={6} wrap="nowrap">
+								<Badge
+									size="sm"
+									variant={selectedCategory === "all" ? "filled" : "outline"}
+									color={selectedCategory === "all" ? "brand" : "gray"}
+									style={{ cursor: "pointer" }}
+									onClick={() => setSelectedCategory("all")}
+								>
+									All ({items.length})
+								</Badge>
+								{availableCategories.map((cat) => {
+									const count = items.filter((i) => i.category === cat).length;
+									return (
+										<Badge
+											key={cat}
+											size="sm"
+											variant={selectedCategory === cat ? "filled" : "outline"}
+											color={selectedCategory === cat ? "brand" : "gray"}
+											style={{ cursor: "pointer" }}
+											onClick={() =>
+												setSelectedCategory(
+													selectedCategory === cat ? "all" : cat,
+												)
+											}
+										>
+											{cat} ({count})
+										</Badge>
+									);
+								})}
+							</Group>
+						</ScrollArea>
+					</Box>
+				)}
+
+				{/* Bulk Action Confirmation Modal */}
+				<Modal
+					opened={bulkConfirm !== null}
+					onClose={() => setBulkConfirm(null)}
+					title={
+						bulkConfirm?.type === "max"
+							? "Confirm Max Equipment"
+							: "Confirm Randomize Sockets"
+					}
+					centered
+				>
+					<Stack gap="md">
+						<Text size="sm">
+							{bulkConfirm?.type === "max"
+								? `Upgrade all equipment in ${
+										activeStorage !== null
+											? storageName(activeStorage)
+											: "storage"
+									} to maximum refinement and fill sockets with best matching Abyss Gear?`
+								: `Randomize all unlocked sockets in ${
+										activeStorage !== null
+											? storageName(activeStorage)
+											: "storage"
+									} with compatible Abyss Gear?`}
+						</Text>
+						<Text size="xs" c="dimmed">
+							This will stage changes for {bulkConfirm?.count ?? 0} equipment
+							items in this location. Your original save file is never
+							overwritten.
+						</Text>
+						<Group justify="flex-end" gap="sm" mt="md">
+							<Button variant="default" onClick={() => setBulkConfirm(null)}>
+								Cancel
+							</Button>
+							<Button
+								color="brand"
+								onClick={() => {
+									if (bulkConfirm && activeStorage !== null) {
+										setEdits((current) =>
+											replaceStorageEquipment(
+												current,
+												bulkConfirm.plannedEdits,
+												activeStorage,
+											),
+										);
+									}
+									setBulkConfirm(null);
+								}}
+							>
+								Confirm & Stage ({bulkConfirm?.count ?? 0})
+							</Button>
+						</Group>
+					</Stack>
+				</Modal>
 
 				{error && (
 					<Alert
