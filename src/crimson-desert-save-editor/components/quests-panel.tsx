@@ -4,8 +4,10 @@ import {
 	Box,
 	Button,
 	Checkbox,
+	CloseButton,
 	Group,
 	Loader,
+	Modal,
 	Pagination,
 	Paper,
 	ScrollArea,
@@ -65,6 +67,9 @@ export const QuestsPanel = ({
 	const [onlyIncomplete, setOnlyIncomplete] = useState(true);
 	const [page, setPage] = useState(0);
 	const [scope, setScope] = useState<QuestKind | "all">("quest");
+	const [confirmPreset, setConfirmPreset] = useState<
+		"completeAll" | "resetAll" | null
+	>(null);
 
 	useEffect(() => {
 		let active = true;
@@ -265,7 +270,7 @@ export const QuestsPanel = ({
 					}
 					leftSection={<CheckCheck size={14} />}
 					disabled={busy || !description}
-					onClick={() => stagePreset("completeAll")}
+					onClick={() => setConfirmPreset("completeAll")}
 				>
 					Complete all
 				</Button>
@@ -278,7 +283,7 @@ export const QuestsPanel = ({
 					}
 					leftSection={<RotateCcw size={14} />}
 					disabled={busy || !description}
-					onClick={() => stagePreset("resetAll")}
+					onClick={() => setConfirmPreset("resetAll")}
 				>
 					Reset all
 				</Button>
@@ -331,6 +336,18 @@ export const QuestsPanel = ({
 						label="Search"
 						placeholder="Quest, mission or stage name, or a key"
 						leftSection={<Search size={16} />}
+						rightSection={
+							query ? (
+								<CloseButton
+									size="xs"
+									onClick={() => {
+										setQuery("");
+										setPage(0);
+									}}
+									aria-label="Clear search"
+								/>
+							) : undefined
+						}
 						value={query}
 						onChange={(event) => {
 							setQuery(event.currentTarget.value);
@@ -483,6 +500,46 @@ export const QuestsPanel = ({
 					/>
 				</Group>
 			</Box>
+
+			<Modal
+				opened={confirmPreset !== null}
+				onClose={() => setConfirmPreset(null)}
+				title={
+					confirmPreset === "completeAll"
+						? "Complete All Quests / Stages?"
+						: "Reset All Quests / Stages?"
+				}
+				centered
+				size="sm"
+			>
+				<Stack gap="md">
+					<Text size="sm">
+						{confirmPreset === "completeAll"
+							? `Are you sure you want to mark all ${
+									scope === "all" ? "four tables" : questKindLabels[scope]
+								} as completed?`
+							: `Are you sure you want to reset all progress on ${
+									scope === "all" ? "four tables" : questKindLabels[scope]
+								}? This clears timestamps and completion counters.`}
+					</Text>
+					<Group justify="flex-end" gap="sm">
+						<Button variant="default" onClick={() => setConfirmPreset(null)}>
+							Cancel
+						</Button>
+						<Button
+							color={confirmPreset === "resetAll" ? "red" : "brand"}
+							onClick={() => {
+								if (confirmPreset) {
+									stagePreset(confirmPreset);
+									setConfirmPreset(null);
+								}
+							}}
+						>
+							{confirmPreset === "completeAll" ? "Complete all" : "Reset all"}
+						</Button>
+					</Group>
+				</Stack>
+			</Modal>
 		</Stack>
 	);
 };
