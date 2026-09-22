@@ -68,9 +68,11 @@ export type WikiEvent = {
 
 export const dataStore = proxy<{
 	filtered: Birthday[];
+	selectedBirthday: Birthday | null;
 	wikiCache: Record<string, WikiEvent[]>;
 }>({
 	filtered: [],
+	selectedBirthday: null,
 	wikiCache: {},
 });
 

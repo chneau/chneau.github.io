@@ -4,6 +4,7 @@ import duration from "dayjs/plugin/duration";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
+import { dataStore } from "./store";
 
 dayjs.extend(duration);
 
@@ -40,8 +41,27 @@ const CountdownTimer = ({ birthday }: CountdownTimerProps) => {
 	}, [getDiff]);
 
 	return (
-		<div style={{ textAlign: "center", flex: 1, minWidth: "200px" }}>
-			<Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
+		<button
+			type="button"
+			style={{
+				textAlign: "center",
+				flex: 1,
+				minWidth: "200px",
+				cursor: "pointer",
+				padding: "6px 12px",
+				borderRadius: 8,
+				transition: "background 0.2s",
+				background: "none",
+				border: "none",
+			}}
+			onClick={() => {
+				dataStore.selectedBirthday = birthday;
+			}}
+		>
+			<Typography.Text
+				strong
+				style={{ display: "block", marginBottom: 8, color: "#1677ff" }}
+			>
 				{t("app.countdown.next_celebration", {
 					name: birthday.name,
 					kind: birthday.kind,
@@ -80,7 +100,7 @@ const CountdownTimer = ({ birthday }: CountdownTimerProps) => {
 					styles={{ content: { fontSize: "1.2rem" } }}
 				/>
 			</div>
-		</div>
+		</button>
 	);
 };
 
