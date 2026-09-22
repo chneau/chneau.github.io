@@ -1,5 +1,6 @@
 import {
 	Anchor,
+	Badge,
 	Box,
 	Center,
 	Divider,
@@ -63,6 +64,8 @@ export const AppSidebar = ({
 	storages,
 	view,
 	activeStorage,
+	stagedStorageCounts = {},
+	stagedViewCounts = {} as Record<SaveView, number>,
 	onSelectStorage,
 	onSelectView,
 	onNavigate,
@@ -73,6 +76,8 @@ export const AppSidebar = ({
 	storages: { key: number; records: number }[];
 	view: SaveView;
 	activeStorage: number | null;
+	stagedStorageCounts?: Record<number, number>;
+	stagedViewCounts?: Record<SaveView, number>;
 	onSelectStorage: (key: number) => void;
 	onSelectView: (view: SaveView) => void;
 	/** Called after a choice, so the mobile drawer can close itself. */
@@ -156,6 +161,7 @@ export const AppSidebar = ({
 			</Text>
 			{storages.map((storage) => {
 				const Icon = storageIcon(storage.key);
+				const stagedCount = stagedStorageCounts[storage.key] ?? 0;
 				return (
 					<NavLink
 						key={storage.key}
@@ -163,9 +169,16 @@ export const AppSidebar = ({
 						leftSection={<Icon size={16} />}
 						label={storageName(storage.key)}
 						rightSection={
-							<Text size="xs" c="dimmed">
-								{storage.records}
-							</Text>
+							<Group gap={6} wrap="nowrap">
+								{stagedCount > 0 && (
+									<Badge size="xs" variant="filled" color="brand">
+										{stagedCount}
+									</Badge>
+								)}
+								<Text size="xs" c="dimmed">
+									{storage.records}
+								</Text>
+							</Group>
 						}
 						onClick={() => {
 							onSelectStorage(storage.key);
@@ -186,11 +199,18 @@ export const AppSidebar = ({
 						leftSection={<Paintbrush size={16} />}
 						label={editorViewInfo.dyes.label}
 						rightSection={
-							result.dyes ? (
-								<Text size="xs" c="dimmed">
-									{result.dyes.items.length}
-								</Text>
-							) : undefined
+							<Group gap={6} wrap="nowrap">
+								{(stagedViewCounts.dyes ?? 0) > 0 && (
+									<Badge size="xs" variant="filled" color="brand">
+										{stagedViewCounts.dyes}
+									</Badge>
+								)}
+								{result.dyes && (
+									<Text size="xs" c="dimmed">
+										{result.dyes.items.length}
+									</Text>
+								)}
+							</Group>
 						}
 						onClick={() => {
 							onSelectView("dyes");
@@ -202,11 +222,18 @@ export const AppSidebar = ({
 						leftSection={<ShieldCheck size={16} />}
 						label={editorViewInfo.condition.label}
 						rightSection={
-							result.conditions ? (
-								<Text size="xs" c="dimmed">
-									{result.conditions.entries.length}
-								</Text>
-							) : undefined
+							<Group gap={6} wrap="nowrap">
+								{(stagedViewCounts.condition ?? 0) > 0 && (
+									<Badge size="xs" variant="filled" color="brand">
+										{stagedViewCounts.condition}
+									</Badge>
+								)}
+								{result.conditions && (
+									<Text size="xs" c="dimmed">
+										{result.conditions.entries.length}
+									</Text>
+								)}
+							</Group>
 						}
 						onClick={() => {
 							onSelectView("condition");
@@ -220,28 +247,45 @@ export const AppSidebar = ({
 					</Text>
 					{(
 						Object.entries(companionLabels) as [CompanionCategory, string][]
-					).map(([category, label]) => (
-						<NavLink
-							key={category}
-							active={view === category}
-							leftSection={<Users size={16} />}
-							label={label}
-							onClick={() => {
-								onSelectView(category);
-								onNavigate?.();
-							}}
-						/>
-					))}
+					).map(([category, label]) => {
+						const stagedCat = stagedViewCounts[category] ?? 0;
+						return (
+							<NavLink
+								key={category}
+								active={view === category}
+								leftSection={<Users size={16} />}
+								label={label}
+								rightSection={
+									stagedCat > 0 ? (
+										<Badge size="xs" variant="filled" color="brand">
+											{stagedCat}
+										</Badge>
+									) : undefined
+								}
+								onClick={() => {
+									onSelectView(category);
+									onNavigate?.();
+								}}
+							/>
+						);
+					})}
 					<NavLink
 						active={view === "names"}
 						leftSection={<Signature size={16} />}
 						label={editorViewInfo.names.label}
 						rightSection={
-							result.names ? (
-								<Text size="xs" c="dimmed">
-									{result.names.rows.length}
-								</Text>
-							) : undefined
+							<Group gap={6} wrap="nowrap">
+								{(stagedViewCounts.names ?? 0) > 0 && (
+									<Badge size="xs" variant="filled" color="brand">
+										{stagedViewCounts.names}
+									</Badge>
+								)}
+								{result.names && (
+									<Text size="xs" c="dimmed">
+										{result.names.rows.length}
+									</Text>
+								)}
+							</Group>
 						}
 						onClick={() => {
 							onSelectView("names");
@@ -257,11 +301,18 @@ export const AppSidebar = ({
 						leftSection={<Sparkles size={16} />}
 						label={editorViewInfo.skills.label}
 						rightSection={
-							result.skills ? (
-								<Text size="xs" c="dimmed">
-									{result.skills.skillsMissing}
-								</Text>
-							) : undefined
+							<Group gap={6} wrap="nowrap">
+								{(stagedViewCounts.skills ?? 0) > 0 && (
+									<Badge size="xs" variant="filled" color="brand">
+										{stagedViewCounts.skills}
+									</Badge>
+								)}
+								{result.skills && (
+									<Text size="xs" c="dimmed">
+										{result.skills.skillsMissing}
+									</Text>
+								)}
+							</Group>
 						}
 						onClick={() => {
 							onSelectView("skills");
@@ -273,11 +324,18 @@ export const AppSidebar = ({
 						leftSection={<TrendingUp size={16} />}
 						label={editorViewInfo.levels.label}
 						rightSection={
-							result.levels ? (
-								<Text size="xs" c="dimmed">
-									{result.levels.entries.length}
-								</Text>
-							) : undefined
+							<Group gap={6} wrap="nowrap">
+								{(stagedViewCounts.levels ?? 0) > 0 && (
+									<Badge size="xs" variant="filled" color="brand">
+										{stagedViewCounts.levels}
+									</Badge>
+								)}
+								{result.levels && (
+									<Text size="xs" c="dimmed">
+										{result.levels.entries.length}
+									</Text>
+								)}
+							</Group>
 						}
 						onClick={() => {
 							onSelectView("levels");
@@ -288,6 +346,13 @@ export const AppSidebar = ({
 						active={view === "quests"}
 						leftSection={<CheckCheck size={16} />}
 						label={editorViewInfo.quests.label}
+						rightSection={
+							(stagedViewCounts.quests ?? 0) > 0 ? (
+								<Badge size="xs" variant="filled" color="brand">
+									{stagedViewCounts.quests}
+								</Badge>
+							) : undefined
+						}
 						onClick={() => {
 							onSelectView("quests");
 							onNavigate?.();

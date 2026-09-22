@@ -9,13 +9,14 @@ import {
 	Flex,
 	Group,
 	Loader,
+	Modal,
 	Progress,
 	Stack,
 	Text,
 	Title,
 } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
-import { CircleHelp, FileUp, Plus } from "lucide-react";
+import { CircleHelp, FileUp, Plus, Trash2, Undo2 } from "lucide-react";
 import {
 	type DragEvent,
 	useCallback,
@@ -140,12 +141,32 @@ export const Home = () => {
 		return () => window.clearInterval(timer);
 	}, [downloading]);
 	const [error, setError] = useState("");
+	const [discardModalOpen, setDiscardModalOpen] = useState(false);
 	const [activeStorage, setActiveStorage] = useState<number | null>(null);
 	const [dragging, setDragging] = useState(false);
 	const [addOpen, setAddOpen] = useState(false);
 	const [edits, setEdits] = useState<SaveEdit[]>([]);
 	/** What a staged change just selected, so the inventory view follows it. */
 	const [focus, setFocus] = useState<InventoryFocus | null>(null);
+
+	// Global shortcut: Ctrl+Z / Cmd+Z to undo the latest staged edit
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				e.key.toLowerCase() === "z" &&
+				!e.shiftKey
+			) {
+				const activeTag = document.activeElement?.tagName?.toLowerCase();
+				if (activeTag === "input" || activeTag === "textarea") return;
+				if (edits.length === 0) return;
+				e.preventDefault();
+				setEdits((current) => current.slice(0, -1));
+			}
+		};
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [edits.length]);
 
 	useEffect(() => {
 		void itemCatalogTable()
@@ -366,6 +387,52 @@ export const Home = () => {
 
 	const loading = Boolean(status);
 
+	const { stagedStorageCounts, stagedViewCounts } = useMemo(() => {
+		const storageCounts: Record<number, number> = {};
+		const viewCounts: Record<SaveView, number> = {
+			inventory: 0,
+			skills: 0,
+			levels: 0,
+			quests: 0,
+			dyes: 0,
+			condition: 0,
+			names: 0,
+			pets: 0,
+			mounts: 0,
+			specialMounts: 0,
+			camp: 0,
+		};
+
+		for (const edit of edits) {
+			if (edit.type === "condition") {
+				storageCounts[edit.inventoryKey] =
+					(storageCounts[edit.inventoryKey] ?? 0) + 1;
+				viewCounts.condition++;
+			} else if ("inventoryKey" in edit) {
+				storageCounts[edit.inventoryKey] =
+					(storageCounts[edit.inventoryKey] ?? 0) + 1;
+				viewCounts.inventory++;
+			} else if (edit.type === "skills") {
+				viewCounts.skills++;
+			} else if (edit.type === "character" || edit.type === "characterPreset") {
+				viewCounts.levels++;
+			} else if (edit.type === "quest" || edit.type === "questPreset") {
+				viewCounts.quests++;
+			} else if (edit.type === "dye") {
+				viewCounts.dyes++;
+			} else if (edit.type === "renameCompanion") {
+				viewCounts.names++;
+			} else if (
+				edit.type === "addCompanion" ||
+				edit.type === "addRoboWorkers"
+			) {
+				viewCounts[edit.category] = (viewCounts[edit.category] ?? 0) + 1;
+			}
+		}
+
+		return { stagedStorageCounts: storageCounts, stagedViewCounts: viewCounts };
+	}, [edits]);
+
 	const sidebar = (
 		<AppSidebar
 			result={result}
@@ -374,6 +441,8 @@ export const Home = () => {
 			storages={storages}
 			view={view}
 			activeStorage={activeStorage}
+			stagedStorageCounts={stagedStorageCounts}
+			stagedViewCounts={stagedViewCounts}
 			onSelectStorage={(key) => {
 				setView("inventory");
 				setActiveStorage(key);
@@ -473,6 +542,31 @@ export const Home = () => {
 						</Button>
 						{result && (
 							<>
+								{edits.length > 0 && (
+									<>
+										<Button
+											variant="subtle"
+											color="gray"
+											size="sm"
+											leftSection={<Undo2 size={16} />}
+											onClick={() =>
+												setEdits((current) => current.slice(0, -1))
+											}
+											title="Undo last staged change (Ctrl+Z / ⌘Z)"
+										>
+											Undo
+										</Button>
+										<Button
+											variant="subtle"
+											color="red"
+											size="sm"
+											leftSection={<Trash2 size={16} />}
+											onClick={() => setDiscardModalOpen(true)}
+										>
+											Discard all
+										</Button>
+									</>
+								)}
 								{view === "inventory" && (
 									<>
 										<EquipmentCatalogPanel
@@ -827,6 +921,38 @@ export const Home = () => {
 				onClose={() => setAddOpen(false)}
 				onReveal={revealStaged}
 			/>
+
+			<Modal
+				opened={discardModalOpen}
+				onClose={() => setDiscardModalOpen(false)}
+				title="Discard all changes?"
+				centered
+				size="sm"
+			>
+				<Stack gap="md">
+					<Text size="sm">
+						Are you sure you want to discard all {edits.length} staged change
+						{edits.length === 1 ? "" : "s"}? This action cannot be undone.
+					</Text>
+					<Group justify="flex-end" gap="sm">
+						<Button
+							variant="default"
+							onClick={() => setDiscardModalOpen(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							color="red"
+							onClick={() => {
+								setEdits([]);
+								setDiscardModalOpen(false);
+							}}
+						>
+							Discard all
+						</Button>
+					</Group>
+				</Stack>
+			</Modal>
 		</Flex>
 	);
 };
