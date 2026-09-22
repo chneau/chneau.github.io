@@ -519,6 +519,31 @@ export const AddItemDrawer = ({
 					}
 					ff="monospace"
 				/>
+				{!target?.addsAsSingleRecord && (
+					<Group gap={6}>
+						{[1, 10, 100, 1000].map((inc) => (
+							<Button
+								key={inc}
+								size="xs"
+								variant="default"
+								onClick={() => {
+									const current = Number.parseInt(quantity, 10);
+									const base = Number.isNaN(current) ? 0 : current;
+									setQuantity(String(Math.min(999_999_999, base + inc)));
+								}}
+							>
+								+{inc}
+							</Button>
+						))}
+						<Button
+							size="xs"
+							variant="default"
+							onClick={() => setQuantity("999")}
+						>
+							Set 999
+						</Button>
+					</Group>
+				)}
 				{!target?.addsAsSingleRecord && existingItem && existingRecord && (
 					<Text size="xs" c="dimmed">
 						{existingBaseQuantity.toLocaleString()} currently
