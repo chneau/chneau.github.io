@@ -1,0 +1,10 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+	"files": {
+		"maxSize": 10485760,
+		"includes": [
+			"**",
+			"!**/src/crimson-desert-save-editor/lib/generated/*.json"
+		]
+	}
+}
