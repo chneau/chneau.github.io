@@ -1,4 +1,5 @@
 import {
+	ActionIcon,
 	Button,
 	Checkbox,
 	type ComboboxItem,
@@ -8,7 +9,7 @@ import {
 	Text,
 	TextInput,
 } from "@mantine/core";
-import { Search } from "lucide-react";
+import { Search, Sparkles, X } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import { Picture } from "@/components/picture";
 import {
@@ -158,6 +159,23 @@ export const EquipmentEditor = ({
 
 	return (
 		<Stack gap="lg">
+			{maxed && (
+				<Button
+					variant="light"
+					color="brand"
+					size="xs"
+					leftSection={<Sparkles size={14} />}
+					disabled={busy}
+					onClick={() => {
+						setRefinement(maxed.refinement);
+						setUnlocked(maxed.unlockedSockets);
+						setSockets(socketList(maxed.socketItems));
+					}}
+				>
+					⚡ Max Out This Item (Refinement & Best Abyss Gear)
+				</Button>
+			)}
+
 			<div>
 				<Text size="sm" fw={500}>
 					Refinement
@@ -238,6 +256,20 @@ export const EquipmentEditor = ({
 						placeholder="Search Abyss Gear or effects"
 						value={search}
 						leftSection={<Search size={16} />}
+						rightSection={
+							search ? (
+								<ActionIcon
+									size="xs"
+									variant="subtle"
+									color="gray"
+									onClick={() => setSearch("")}
+									title="Clear search"
+									aria-label="Clear search"
+								>
+									<X size={14} />
+								</ActionIcon>
+							) : null
+						}
 						onChange={(event) => setSearch(event.currentTarget.value)}
 					/>
 					<Text size="sm" c="dimmed">
