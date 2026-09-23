@@ -1,4 +1,5 @@
 import {
+	ActionIcon,
 	Alert,
 	Badge,
 	Box,
@@ -17,7 +18,7 @@ import {
 	TextInput,
 	UnstyledButton,
 } from "@mantine/core";
-import { Check, Eraser, RotateCcw, Search, Sparkles } from "lucide-react";
+import { Check, Eraser, RotateCcw, Search, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 import type {
 	SkillDescription,
@@ -160,9 +161,15 @@ const EntryRow = ({
 			</Text>
 		</Table.Td>
 		<Table.Td>
-			<Text size="sm" c={(entry.currentLevel ?? 0) >= 1 ? undefined : "dimmed"}>
-				{entry.currentLevel === null ? "unlearned" : entry.currentLevel}
-			</Text>
+			{entry.currentLevel === null ? (
+				<Badge size="xs" variant="light" color="gray">
+					Unlearned
+				</Badge>
+			) : (
+				<Badge size="xs" variant="filled" color="green">
+					Level {entry.currentLevel}
+				</Badge>
+			)}
 		</Table.Td>
 		<Table.Td>
 			<NumberInput
@@ -335,6 +342,20 @@ export const SkillsPanel = ({
 						label="Search skill entries"
 						placeholder="Search names or keys"
 						leftSection={<Search size={16} />}
+						rightSection={
+							query ? (
+								<ActionIcon
+									size="xs"
+									variant="subtle"
+									color="gray"
+									onClick={() => reset(() => setQuery(""))}
+									title="Clear search"
+									aria-label="Clear search"
+								>
+									<X size={14} />
+								</ActionIcon>
+							) : null
+						}
 						value={query}
 						onChange={(event) => {
 							const value = event.currentTarget.value;
