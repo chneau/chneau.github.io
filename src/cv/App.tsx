@@ -17,6 +17,7 @@ import {
 	Card,
 	ConfigProvider,
 	Divider,
+	FloatButton,
 	Layout,
 	Space,
 	Tag,
@@ -257,7 +258,7 @@ export const App = () => {
 					}
 				}
 				@media print {
-					.no-print, header.ant-layout-header, footer.ant-layout-footer {
+					.no-print, header.ant-layout-header, footer.ant-layout-footer, .ant-float-btn {
 						display: none !important;
 					}
 					body, .ant-layout {
@@ -551,30 +552,34 @@ export const App = () => {
 										</Text>
 										<Space size={[4, 6]} wrap style={{ width: "100%" }}>
 											{grp.items.map((it) => (
-												<a
+												<Tooltip
 													key={it}
-													href={getSkillSearchUrl(it)}
-													target="_blank"
-													rel="noreferrer"
-													style={{ textDecoration: "none" }}
+													title={`Search "${it}" projects on GitHub`}
 												>
-													<Tag
-														color={grp.color}
-														style={{
-															margin: 0,
-															borderRadius: 4,
-															fontSize: 12,
-															whiteSpace: "normal",
-															wordBreak: "break-word",
-															height: "auto",
-															lineHeight: "18px",
-															padding: "2px 7px",
-															cursor: "pointer",
-														}}
+													<a
+														href={getSkillSearchUrl(it)}
+														target="_blank"
+														rel="noreferrer"
+														style={{ textDecoration: "none" }}
 													>
-														{it}
-													</Tag>
-												</a>
+														<Tag
+															color={grp.color}
+															style={{
+																margin: 0,
+																borderRadius: 4,
+																fontSize: 12,
+																whiteSpace: "normal",
+																wordBreak: "break-word",
+																height: "auto",
+																lineHeight: "18px",
+																padding: "2px 7px",
+																cursor: "pointer",
+															}}
+														>
+															{it}
+														</Tag>
+													</a>
+												</Tooltip>
 											))}
 										</Space>
 									</div>
@@ -627,7 +632,15 @@ export const App = () => {
 									type="secondary"
 									style={{ display: "block", marginBottom: 12 }}
 								>
-									Celerum Ltd — Aberdeen, UK
+									<a
+										href="https://celerum.co.uk"
+										target="_blank"
+										rel="noreferrer"
+										style={{ color: "inherit", textDecoration: "underline" }}
+									>
+										Celerum Ltd
+									</a>{" "}
+									— Aberdeen, UK
 								</Text>
 								<ul
 									style={{
@@ -722,7 +735,15 @@ export const App = () => {
 									type="secondary"
 									style={{ display: "block", marginBottom: 12 }}
 								>
-									Robert Gordon University & ARR Craib — Aberdeen, UK
+									<a
+										href="https://www.rgu.ac.uk"
+										target="_blank"
+										rel="noreferrer"
+										style={{ color: "inherit", textDecoration: "underline" }}
+									>
+										Robert Gordon University
+									</a>{" "}
+									& ARR Craib — Aberdeen, UK
 								</Text>
 								<ul
 									style={{
@@ -784,7 +805,15 @@ export const App = () => {
 										<Text type="secondary">2013 – 2014</Text>
 									</div>
 									<Text italic type="secondary">
-										Université Blaise Pascal, Clermont-Ferrand, France
+										<a
+											href="https://www.uca.fr"
+											target="_blank"
+											rel="noreferrer"
+											style={{ color: "inherit", textDecoration: "underline" }}
+										>
+											Université Blaise Pascal
+										</a>
+										, Clermont-Ferrand, France
 									</Text>
 								</div>
 								<div>
@@ -799,7 +828,15 @@ export const App = () => {
 										<Text type="secondary">2011 – 2013</Text>
 									</div>
 									<Text italic type="secondary">
-										IUT Clermont-Ferrand, France
+										<a
+											href="https://iut.uca.fr"
+											target="_blank"
+											rel="noreferrer"
+											style={{ color: "inherit", textDecoration: "underline" }}
+										>
+											IUT Clermont-Ferrand
+										</a>
+										, France
 									</Text>
 								</div>
 							</Space>
@@ -864,8 +901,8 @@ export const App = () => {
 						color: darkMode ? "#7a929e" : "#8c8c8c",
 					}}
 				>
-					<Space split="•">
-						<span>Charles Neau</span>
+					<Space split="•" wrap style={{ justifyContent: "center" }}>
+						<a href="/">Dashboard</a>
 						<a href="/cv.pdf" target="_blank" rel="noreferrer">
 							Download PDF
 						</a>
@@ -879,6 +916,13 @@ export const App = () => {
 						>
 							GitHub
 						</a>
+						<a
+							href="https://linkedin.com/in/chneau"
+							target="_blank"
+							rel="noreferrer"
+						>
+							LinkedIn
+						</a>
 					</Space>
 					{BUILD_DATE && (
 						<div style={{ marginTop: 8, fontSize: 12 }}>
@@ -886,6 +930,8 @@ export const App = () => {
 						</div>
 					)}
 				</Footer>
+
+				<FloatButton.BackTop className="no-print" />
 			</Layout>
 		</ConfigProvider>
 	);
