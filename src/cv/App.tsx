@@ -2,6 +2,7 @@ import {
 	EnvironmentOutlined,
 	FilePdfOutlined,
 	FileWordOutlined,
+	GithubOutlined,
 	GlobalOutlined,
 	HomeOutlined,
 	LinkedinOutlined,
@@ -148,6 +149,17 @@ export const App = () => {
 		document.body.style.backgroundColor = darkMode ? "#07161e" : "#f5f7fa";
 	}, [darkMode]);
 
+	// Keyboard shortcut: Esc to return to Dashboard
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				window.location.href = "/";
+			}
+		};
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, []);
+
 	return (
 		<ConfigProvider
 			theme={{
@@ -160,6 +172,36 @@ export const App = () => {
 				},
 			}}
 		>
+			<style>
+				{`
+				@media print {
+					.no-print, header.ant-layout-header, footer.ant-layout-footer {
+						display: none !important;
+					}
+					body, .ant-layout {
+						background: #ffffff !important;
+						color: #000000 !important;
+						padding: 0 !important;
+					}
+					.ant-layout-content {
+						padding: 0 !important;
+						max-width: 100% !important;
+					}
+					.ant-card {
+						box-shadow: none !important;
+						border: none !important;
+						background: transparent !important;
+					}
+					.ant-card-body {
+						padding: 0 !important;
+					}
+					a {
+						text-decoration: none !important;
+						color: inherit !important;
+					}
+				}
+			`}
+			</style>
 			<Layout
 				style={{
 					minHeight: "100vh",
@@ -168,6 +210,7 @@ export const App = () => {
 				}}
 			>
 				<Header
+					className="no-print"
 					style={{
 						position: "sticky",
 						top: 0,
@@ -186,14 +229,16 @@ export const App = () => {
 					}}
 				>
 					<Space size="middle">
-						<Button
-							type="text"
-							icon={<HomeOutlined />}
-							href="/"
-							style={{ fontWeight: 500 }}
-						>
-							Dashboard
-						</Button>
+						<Tooltip title="Return to Dashboard (Esc)">
+							<Button
+								type="text"
+								icon={<HomeOutlined />}
+								href="/"
+								style={{ fontWeight: 500 }}
+							>
+								Dashboard
+							</Button>
+						</Tooltip>
 						<Text strong style={{ fontSize: 16 }}>
 							Curriculum Vitae
 						</Text>
@@ -221,17 +266,21 @@ export const App = () => {
 								DOCX
 							</Button>
 						</Tooltip>
-						<Tooltip title="Print CV">
+						<Tooltip title="Print or Save as PDF (Ctrl+P)">
 							<Button
 								icon={<PrinterOutlined />}
 								onClick={() => window.print()}
 							/>
 						</Tooltip>
-						<Button
-							type="text"
-							icon={darkMode ? <SunOutlined /> : <MoonOutlined />}
-							onClick={() => setDarkMode(!darkMode)}
-						/>
+						<Tooltip
+							title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+						>
+							<Button
+								type="text"
+								icon={darkMode ? <SunOutlined /> : <MoonOutlined />}
+								onClick={() => setDarkMode(!darkMode)}
+							/>
+						</Tooltip>
 					</Space>
 				</Header>
 
@@ -287,10 +336,24 @@ export const App = () => {
 									<a href="mailto:charles63500@gmail.com">
 										charles63500@gmail.com
 									</a>
+									<Text
+										copyable={{
+											text: "charles63500@gmail.com",
+											tooltips: ["Copy Email", "Copied!"],
+										}}
+										style={{ marginLeft: 4 }}
+									/>
 								</Text>
 								<Text type="secondary">
 									<PhoneOutlined />{" "}
 									<a href="tel:+447397174345">+44 7397 174345</a>
+									<Text
+										copyable={{
+											text: "+447397174345",
+											tooltips: ["Copy Phone", "Copied!"],
+										}}
+										style={{ marginLeft: 4 }}
+									/>
 								</Text>
 								<Text type="secondary">
 									<GlobalOutlined />{" "}
@@ -300,6 +363,16 @@ export const App = () => {
 										rel="noreferrer"
 									>
 										chneau.github.io
+									</a>
+								</Text>
+								<Text type="secondary">
+									<GithubOutlined />{" "}
+									<a
+										href="https://github.com/chneau"
+										target="_blank"
+										rel="noreferrer"
+									>
+										github.com/chneau
 									</a>
 								</Text>
 								<Text type="secondary">
@@ -391,22 +464,32 @@ export const App = () => {
 										</Text>
 										<Space size={[4, 6]} wrap style={{ width: "100%" }}>
 											{grp.items.map((it) => (
-												<Tag
+												<a
 													key={it}
-													color={grp.color}
-													style={{
-														margin: 0,
-														borderRadius: 4,
-														fontSize: 12,
-														whiteSpace: "normal",
-														wordBreak: "break-word",
-														height: "auto",
-														lineHeight: "18px",
-														padding: "2px 7px",
-													}}
+													href={`https://github.com/chneau?tab=repositories&q=${encodeURIComponent(
+														it.toLowerCase(),
+													)}`}
+													target="_blank"
+													rel="noreferrer"
+													style={{ textDecoration: "none" }}
 												>
-													{it}
-												</Tag>
+													<Tag
+														color={grp.color}
+														style={{
+															margin: 0,
+															borderRadius: 4,
+															fontSize: 12,
+															whiteSpace: "normal",
+															wordBreak: "break-word",
+															height: "auto",
+															lineHeight: "18px",
+															padding: "2px 7px",
+															cursor: "pointer",
+														}}
+													>
+														{it}
+													</Tag>
+												</a>
 											))}
 										</Space>
 									</div>
@@ -584,7 +667,7 @@ export const App = () => {
 							>
 								Education
 							</Title>
-							<Space orientation="vertical" size={12} style={{ width: "100%" }}>
+							<Space direction="vertical" size={12} style={{ width: "100%" }}>
 								<div>
 									<div
 										style={{
@@ -664,6 +747,7 @@ export const App = () => {
 				</Content>
 
 				<Footer
+					className="no-print"
 					style={{
 						textAlign: "center",
 						background: "transparent",
