@@ -16,7 +16,14 @@ import {
 	Title,
 } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
-import { CircleHelp, FileUp, Plus, Trash2, Undo2 } from "lucide-react";
+import {
+	CheckCircle2,
+	CircleHelp,
+	FileUp,
+	Plus,
+	Trash2,
+	Undo2,
+} from "lucide-react";
 import {
 	type DragEvent,
 	useCallback,
@@ -40,6 +47,7 @@ import { LevelsPanel } from "@/components/levels-panel";
 import { NamesPanel } from "@/components/names-panel";
 import { QuestsPanel } from "@/components/quests-panel";
 import { SkillsPanel } from "@/components/skills-panel";
+import { StagedEditsDrawer } from "@/components/staged-edits-drawer";
 import {
 	type CompanionCatalog,
 	type CompanionEdit,
@@ -142,10 +150,15 @@ export const Home = () => {
 	}, [downloading]);
 	const [error, setError] = useState("");
 	const [discardModalOpen, setDiscardModalOpen] = useState(false);
+	const [reviewOpen, setReviewOpen] = useState(false);
 	const [activeStorage, setActiveStorage] = useState<number | null>(null);
 	const [dragging, setDragging] = useState(false);
 	const [addOpen, setAddOpen] = useState(false);
 	const [edits, setEdits] = useState<SaveEdit[]>([]);
+
+	const removeStagedEdit = (index: number) => {
+		setEdits((current) => current.filter((_, i) => i !== index));
+	};
 	/** What a staged change just selected, so the inventory view follows it. */
 	const [focus, setFocus] = useState<InventoryFocus | null>(null);
 
@@ -522,15 +535,29 @@ export const Home = () => {
 					</Group>
 					<Group gap="xs" wrap="nowrap">
 						{result && (
-							<Badge
-								variant="outline"
-								color="brand"
-								visibleFrom="sm"
-								h={28}
-								styles={{ label: { textTransform: "none" } }}
-							>
-								Build {catalog?.game.steam_build_id ?? "catalog loading"}
-							</Badge>
+							<>
+								{fileName && (
+									<Badge
+										variant="light"
+										color="blue"
+										visibleFrom="md"
+										h={28}
+										styles={{ label: { textTransform: "none" } }}
+										title={`${fileName} (${(fileSize / 1024).toFixed(1)} KB)`}
+									>
+										💾 {fileName}
+									</Badge>
+								)}
+								<Badge
+									variant="outline"
+									color="brand"
+									visibleFrom="lg"
+									h={28}
+									styles={{ label: { textTransform: "none" } }}
+								>
+									Build {catalog?.game.steam_build_id ?? "catalog loading"}
+								</Badge>
+							</>
 						)}
 						<Button
 							variant="default"
@@ -544,6 +571,15 @@ export const Home = () => {
 							<>
 								{edits.length > 0 && (
 									<>
+										<Button
+											variant="light"
+											color="blue"
+											size="sm"
+											leftSection={<CheckCircle2 size={16} />}
+											onClick={() => setReviewOpen(true)}
+										>
+											Review ({edits.length})
+										</Button>
 										<Button
 											variant="subtle"
 											color="gray"
@@ -752,6 +788,17 @@ export const Home = () => {
 										<Button mt="lg" onClick={() => inputRef.current?.click()}>
 											Choose save file
 										</Button>
+										<Text
+											mt="md"
+											size="xs"
+											c="dimmed"
+											style={{ maxWidth: 460 }}
+										>
+											💡 Default path on Windows:{" "}
+											<Text span ff="monospace" size="xs">
+												%LOCALAPPDATA%\CrimsonDesert\Saved\SaveGames\
+											</Text>
+										</Text>
 									</Box>
 								)}
 							</Box>
@@ -920,6 +967,17 @@ export const Home = () => {
 				busy={loading}
 				onClose={() => setAddOpen(false)}
 				onReveal={revealStaged}
+			/>
+
+			<StagedEditsDrawer
+				opened={reviewOpen}
+				onClose={() => setReviewOpen(false)}
+				edits={edits}
+				nameOf={nameOf}
+				onRemoveEdit={removeStagedEdit}
+				onDiscardAll={() => setDiscardModalOpen(true)}
+				onDownload={downloadEditedSave}
+				busy={loading}
 			/>
 
 			<Modal
