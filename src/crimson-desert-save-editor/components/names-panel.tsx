@@ -1,4 +1,5 @@
 import {
+	ActionIcon,
 	Alert,
 	Badge,
 	Box,
@@ -11,7 +12,7 @@ import {
 	Text,
 	TextInput,
 } from "@mantine/core";
-import { Search, Signature, Undo2 } from "lucide-react";
+import { Search, Signature, Undo2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
 	type CompanionNameDescription,
@@ -167,6 +168,23 @@ export const NamesPanel = ({
 				label="Search the roster"
 				placeholder="Search current, species or number"
 				leftSection={<Search size={16} />}
+				rightSection={
+					query ? (
+						<ActionIcon
+							size="xs"
+							variant="subtle"
+							color="gray"
+							onClick={() => {
+								setQuery("");
+								setPage(0);
+							}}
+							title="Clear search"
+							aria-label="Clear search"
+						>
+							<X size={14} />
+						</ActionIcon>
+					) : null
+				}
 				value={query}
 				onChange={(event) => {
 					setQuery(event.currentTarget.value);
@@ -230,6 +248,20 @@ export const NamesPanel = ({
 														: row.customName
 												}
 												value={edit?.name ?? ""}
+												rightSection={
+													edit ? (
+														<ActionIcon
+															size="xs"
+															variant="subtle"
+															color="gray"
+															onClick={() => stageName(row, "")}
+															title="Revert custom name"
+															aria-label="Revert custom name"
+														>
+															<X size={12} />
+														</ActionIcon>
+													) : null
+												}
 												onChange={(event) =>
 													stageName(row, event.currentTarget.value)
 												}
