@@ -1,8 +1,13 @@
-import { Line } from "@ant-design/charts";
+import {
+	ConfigProvider as ChartConfigProvider,
+	Line,
+} from "@ant-design/charts";
 import { Typography } from "antd";
 import dayjs from "dayjs";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
+import { store } from "./store";
 
 type BiorhythmsChartProps = {
 	birthday: Date;
@@ -10,6 +15,8 @@ type BiorhythmsChartProps = {
 
 export const BiorhythmsChart = ({ birthday }: BiorhythmsChartProps) => {
 	const { t } = useTranslation();
+	const { darkMode } = useSnapshot(store);
+
 	const data = useMemo(() => {
 		const result = [];
 		const start = dayjs().startOf("day");
@@ -39,29 +46,39 @@ export const BiorhythmsChart = ({ birthday }: BiorhythmsChartProps) => {
 	return (
 		<div style={{ marginTop: 16 }}>
 			<Typography.Title level={5}>{t("biorhythms.title")}</Typography.Title>
-			<Line
-				data={data}
-				xField="day"
-				yField="value"
-				colorField="type"
-				height={200}
-				seriesField="type"
-				smooth={true}
-				axis={{
-					y: {
-						labelFormatter: (v: number) => `${Math.round(v)}%`,
-					},
-				}}
-				tooltip={{
-					title: (d) => d.day,
-					items: [
-						{
-							channel: "y",
-							valueFormatter: (v: number) => `${Math.round(v)}%`,
+			<ChartConfigProvider common={{ theme: darkMode ? "dark" : "light" }}>
+				<Line
+					data={data}
+					theme={darkMode ? "dark" : "light"}
+					xField="day"
+					yField="value"
+					colorField="type"
+					height={200}
+					seriesField="type"
+					smooth={true}
+					legend={{
+						color: {
+							itemLabelFill: darkMode
+								? "rgba(255, 255, 255, 0.85)"
+								: "rgba(0, 0, 0, 0.88)",
 						},
-					],
-				}}
-			/>
+					}}
+					axis={{
+						y: {
+							labelFormatter: (v: number) => `${Math.round(v)}%`,
+						},
+					}}
+					tooltip={{
+						title: (d) => d.day,
+						items: [
+							{
+								channel: "y",
+								valueFormatter: (v: number) => `${Math.round(v)}%`,
+							},
+						],
+					}}
+				/>
+			</ChartConfigProvider>
 		</div>
 	);
 };
