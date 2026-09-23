@@ -13,13 +13,9 @@ import {
 import dayjs from "dayjs";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Element } from "./birthdays";
-import {
-	type Birthday,
-	birthdays,
-	getAgeEmoji,
-	getKindColor,
-} from "./birthdays";
+import type { Birthday } from "./birthdays";
+import { birthdays, getAgeEmoji, getKindColor } from "./birthdays";
+import { getCompatibleElements } from "./compatibility";
 import { OnThisDay } from "./OnThisDay";
 import { store } from "./store";
 
@@ -29,12 +25,6 @@ const BiorhythmsChart = lazy(() =>
 
 type BirthdayDetailsProps = {
 	record: Birthday;
-};
-
-const getCompatibleElements = (element: Element): Element[] => {
-	if (element === "fire" || element === "air") return ["fire", "air"];
-	if (element === "earth" || element === "water") return ["earth", "water"];
-	return [];
 };
 
 export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
