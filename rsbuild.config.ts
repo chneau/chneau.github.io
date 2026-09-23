@@ -35,6 +35,9 @@ export default defineConfig({
 				title: "chneau.github.io",
 				tags: [manifestTag, createIconTag("🚀")],
 			},
+			dev: {
+				assetPrefix: "/",
+			},
 			output: {
 				distPath: { root: "dist" },
 				assetPrefix: "/",
@@ -50,6 +53,9 @@ export default defineConfig({
 			html: {
 				title: "Birthday Tracker",
 				tags: [manifestTag, createIconTag("🎂")],
+			},
+			dev: {
+				assetPrefix: "/birthday/",
 			},
 			output: {
 				distPath: { root: "dist/birthday" },
@@ -67,6 +73,9 @@ export default defineConfig({
 				title: "A Day in Scottish Rail | 24h Replay",
 				tags: [manifestTag, createIconTag("🚆")],
 			},
+			dev: {
+				assetPrefix: "/scotland-rail/",
+			},
 			output: {
 				distPath: { root: "dist/scotland-rail" },
 				assetPrefix: "/scotland-rail/",
@@ -82,6 +91,9 @@ export default defineConfig({
 			html: {
 				title: "Crimson Desert Save Editor",
 				tags: [createIconTag("⚔️")],
+			},
+			dev: {
+				assetPrefix: "/crimson-desert-save-editor/",
 			},
 			output: {
 				distPath: { root: "dist/crimson-desert-save-editor" },
