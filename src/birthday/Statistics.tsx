@@ -121,17 +121,18 @@ const StatColumn = <T extends ChartDatum>({
 const AgeDistribution = ({ data }: { data: readonly Birthday[] }) => {
 	const { t } = useTranslation();
 	const distributionData = useMemo(() => {
-		const ages = data.map((b) => b.age);
-		if (ages.length === 0) return [];
+		if (data.length === 0) return [];
+		const byAge = groupBy(data, (b) => b.age);
+		const ages = Object.keys(byAge).map(Number);
 		const minAge = Math.min(...ages);
 		const maxAge = Math.max(...ages);
 		const result = [];
 		for (let i = minAge; i <= maxAge; i++) {
-			const count = data.filter((b) => b.age === i);
+			const items = byAge[i] ?? [];
 			result.push({
 				age: i.toString(),
-				value: count.length,
-				names: count.map((b) => b.name),
+				value: items.length,
+				names: items.map((b) => b.name),
 			});
 		}
 		return result;
@@ -177,16 +178,18 @@ const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
 			"90+",
 		];
 
-		return groups.flatMap((group) => {
-			const range = group === "90+" ? [90, 200] : group.split("-").map(Number);
-			const range0 = range[0] as number;
-			const range1 = range[1] as number;
-			const boys = data.filter(
-				(b) => b.kind === "♂️" && b.age >= range0 && b.age <= range1,
-			);
-			const girls = data.filter(
-				(b) => b.kind === "♀️" && b.age >= range0 && b.age <= range1,
-			);
+		const parsedGroups = groups.map((group) => {
+			const [min, max] =
+				group === "90+"
+					? [90, 200]
+					: (group.split("-").map(Number) as [number, number]);
+			return { group, min, max };
+		});
+
+		return parsedGroups.flatMap(({ group, min, max }) => {
+			const inRange = data.filter((b) => b.age >= min && b.age <= max);
+			const boys = inRange.filter((b) => b.kind === "♂️");
+			const girls = inRange.filter((b) => b.kind === "♀️");
 
 			return [
 				{
@@ -242,12 +245,13 @@ const AgePyramid = ({ data }: { data: readonly Birthday[] }) => {
 const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
 	const { t } = useTranslation();
 	const heatmapData = useMemo(() => {
+		const byDate = groupBy(data, (b) => `${b.month}-${b.day}`);
 		const months = Array.from({ length: 12 }, (_, i) => i);
 		const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
 		return months.flatMap((m) =>
 			days.flatMap((d) => {
-				const births = data.filter((x) => x.month === m + 1 && x.day === d);
+				const births = byDate[`${m + 1}-${d}`] ?? [];
 				if (births.length === 0) return [];
 				const key = monthNames[m];
 				if (!key) throw new Error(`Invalid month index ${m}`);
@@ -359,26 +363,25 @@ export const Statistics = () => {
 						title={t("app.statistics.chinese")}
 						data={stats.chineseZodiac}
 					/>
-					<StatPie title={t("app.statistics.elements")} data={stats.elements} />
-					<StatPie title={t("app.statistics.gender")} data={stats.kinds} />
 					<StatPie
-						title={t("app.statistics.age_groups")}
-						data={stats.ageGroups}
+						title={t("app.statistics.birthstones")}
+						data={stats.birthgems}
 					/>
+					<StatPie title={t("app.statistics.elements")} data={stats.elements} />
+					<StatPie title={t("app.statistics.seasons")} data={stats.seasons} />
 					<StatPie
 						title={t("app.statistics.generations")}
 						data={stats.generations}
 					/>
-					<StatPie title={t("app.statistics.seasons")} data={stats.seasons} />
+					<StatColumn
+						title={t("app.statistics.age_groups")}
+						data={stats.ageGroups}
+					/>
 					<StatColumn
 						title={t("app.statistics.first_letter")}
 						data={stats.letters}
 					/>
 					<StatColumn title={t("app.statistics.month")} data={stats.months} />
-					<StatColumn
-						title={t("app.statistics.birthstones")}
-						data={stats.birthgems}
-					/>
 					<StatColumn
 						title={t("app.statistics.day_of_week")}
 						data={stats.days}
@@ -387,6 +390,7 @@ export const Statistics = () => {
 						title={t("app.statistics.decades")}
 						data={stats.decades}
 					/>
+					<StatColumn title={t("app.statistics.gender")} data={stats.kinds} />
 					<AgeDistribution data={data} />
 					<AgePyramid data={data} />
 					<BirthHeatmap data={data} />

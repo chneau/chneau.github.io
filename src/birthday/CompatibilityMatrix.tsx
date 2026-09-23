@@ -3,19 +3,12 @@ import type { ColumnsType } from "antd/es/table";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
-import { getCompatibilityScore } from "./compatibility";
+import { getCompatibilityScore, getScoreColor } from "./compatibility";
 import { dataStore } from "./store";
 
 type CompatibilityMatrixProps = {
 	data: readonly Birthday[];
 };
-
-const getScoreColor = (score: number) =>
-	[
-		{ limit: 90, color: "#52c41a" },
-		{ limit: 80, color: "#a0d911" },
-		{ limit: 50, color: "#faad14" },
-	].find((s) => score >= s.limit)?.color || "#f5222d";
 
 export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 	const { t } = useTranslation();
