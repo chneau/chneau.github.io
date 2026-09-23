@@ -57,7 +57,7 @@ export const Controls = () => {
 					borderRadius: 12,
 					pointerEvents: "auto",
 				}}
-				bodyStyle={{ padding: "12px 20px" }}
+				styles={{ body: { padding: "12px 20px" } }}
 			>
 				{/* Top Bar: Live Clock & Category Badges */}
 				<div

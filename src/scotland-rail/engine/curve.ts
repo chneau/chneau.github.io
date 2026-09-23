@@ -1,3 +1,5 @@
+type Point2D = { x: number; y: number };
+
 // Catmull-Rom 1D evaluation
 export const catmullRom = (
 	p0: number,
@@ -20,35 +22,36 @@ export const catmullRom = (
 // Draw smooth Catmull-Rom spline path directly onto Canvas 2D context
 export const drawSmoothPath = (
 	ctx: CanvasRenderingContext2D,
-	projectedPoints: { x: number; y: number }[],
+	projectedPoints: readonly Point2D[],
 ) => {
-	if (projectedPoints.length === 0) return;
-	if (projectedPoints.length === 1) {
-		const pt = projectedPoints[0] as { x: number; y: number };
-		ctx.moveTo(pt.x, pt.y);
-		return;
-	}
-	if (projectedPoints.length === 2) {
-		const p0 = projectedPoints[0] as { x: number; y: number };
-		const p1 = projectedPoints[1] as { x: number; y: number };
-		ctx.moveTo(p0.x, p0.y);
-		ctx.lineTo(p1.x, p1.y);
+	const len = projectedPoints.length;
+	if (len === 0) return;
+
+	const first = projectedPoints[0];
+	if (!first) return;
+
+	if (len === 1) {
+		ctx.moveTo(first.x, first.y);
 		return;
 	}
 
-	ctx.moveTo(projectedPoints[0]?.x ?? 0, projectedPoints[0]?.y ?? 0);
+	const second = projectedPoints[1];
+	if (len === 2 && second) {
+		ctx.moveTo(first.x, first.y);
+		ctx.lineTo(second.x, second.y);
+		return;
+	}
 
-	for (let i = 0; i < projectedPoints.length - 1; i++) {
-		const p0 = projectedPoints[Math.max(0, i - 1)] as { x: number; y: number };
-		const p1 = projectedPoints[i] as { x: number; y: number };
-		const p2 = projectedPoints[i + 1] as { x: number; y: number };
-		const p3 = projectedPoints[Math.min(projectedPoints.length - 1, i + 2)] as {
-			x: number;
-			y: number;
-		};
+	ctx.moveTo(first.x, first.y);
 
-		// 6 subdivisions per segment for fluid 60fps high-res curve
-		const steps = 6;
+	// 6 subdivisions per segment for fluid 60fps high-res curve
+	const steps = 6;
+	for (let i = 0; i < len - 1; i++) {
+		const p0 = projectedPoints[Math.max(0, i - 1)] ?? first;
+		const p1 = projectedPoints[i] ?? first;
+		const p2 = projectedPoints[i + 1] ?? p1;
+		const p3 = projectedPoints[Math.min(len - 1, i + 2)] ?? p2;
+
 		for (let s = 1; s <= steps; s++) {
 			const t = s / steps;
 			const sx = catmullRom(p0.x, p1.x, p2.x, p3.x, t);

@@ -36,7 +36,7 @@ export const ServiceDetails = () => {
 				color: "#edf3f5",
 				zIndex: 10,
 			}}
-			bodyStyle={{ padding: 16 }}
+			styles={{ body: { padding: 16 } }}
 		>
 			<div
 				style={{

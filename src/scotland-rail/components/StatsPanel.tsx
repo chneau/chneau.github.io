@@ -243,9 +243,11 @@ export const StatsPanel = () => {
 					color: "#edf3f5",
 					boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
 				}}
-				bodyStyle={{
-					padding: collapsed ? 0 : "8px 12px",
-					display: collapsed ? "none" : "block",
+				styles={{
+					body: {
+						padding: collapsed ? 0 : "8px 12px",
+						display: collapsed ? "none" : "block",
+					},
 				}}
 			>
 				<Space orientation="vertical" style={{ width: "100%" }} size={8}>
