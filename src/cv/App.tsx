@@ -333,7 +333,7 @@ export const App = () => {
 							<Button
 								type="primary"
 								icon={<FilePdfOutlined />}
-								href="/cv.pdf"
+								href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
 								download="Charles_Neau_CV.pdf"
 								target="_blank"
 								aria-label="Download PDF"
@@ -344,7 +344,7 @@ export const App = () => {
 						<Tooltip title="Download Word DOCX Version">
 							<Button
 								icon={<FileWordOutlined />}
-								href="/cv.docx"
+								href="https://raw.githubusercontent.com/chneau/cv/master/cv.docx"
 								download="Charles_Neau_CV.docx"
 								target="_blank"
 								aria-label="Download DOCX"
@@ -903,10 +903,18 @@ export const App = () => {
 				>
 					<Space split="•" wrap style={{ justifyContent: "center" }}>
 						<a href="/">Dashboard</a>
-						<a href="/cv.pdf" target="_blank" rel="noreferrer">
+						<a
+							href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
+							target="_blank"
+							rel="noreferrer"
+						>
 							Download PDF
 						</a>
-						<a href="/cv.docx" target="_blank" rel="noreferrer">
+						<a
+							href="https://raw.githubusercontent.com/chneau/cv/master/cv.docx"
+							target="_blank"
+							rel="noreferrer"
+						>
 							Download DOCX
 						</a>
 						<a
