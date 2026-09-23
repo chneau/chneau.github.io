@@ -258,13 +258,18 @@ export const App = () => {
 					}
 				}
 				@media print {
-					.no-print, header.ant-layout-header, footer.ant-layout-footer, .ant-float-btn {
+					@page {
+						margin: 1.2cm;
+						size: auto;
+					}
+					.no-print, header.ant-layout-header, footer.ant-layout-footer, .ant-float-btn, .ant-typography-copy {
 						display: none !important;
 					}
 					body, .ant-layout {
 						background: #ffffff !important;
 						color: #000000 !important;
 						padding: 0 !important;
+						font-size: 10pt !important;
 					}
 					.ant-layout-content {
 						padding: 0 !important;
@@ -277,6 +282,14 @@ export const App = () => {
 					}
 					.ant-card-body {
 						padding: 0 !important;
+					}
+					section, .experience-item {
+						page-break-inside: avoid !important;
+						break-inside: avoid !important;
+					}
+					h1, h2, h3, h4 {
+						page-break-after: avoid !important;
+						break-after: avoid !important;
 					}
 					a {
 						text-decoration: none !important;
@@ -329,24 +342,24 @@ export const App = () => {
 					</Space>
 
 					<Space size="small">
-						<Tooltip title="Download PDF Version">
+						<Tooltip title="View / Download raw PDF from GitHub">
 							<Button
 								type="primary"
 								icon={<FilePdfOutlined />}
 								href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
-								download="Charles_Neau_CV.pdf"
 								target="_blank"
+								rel="noreferrer"
 								aria-label="Download PDF"
 							>
 								<span className="header-label-hide">PDF</span>
 							</Button>
 						</Tooltip>
-						<Tooltip title="Download Word DOCX Version">
+						<Tooltip title="View / Download raw DOCX from GitHub">
 							<Button
 								icon={<FileWordOutlined />}
 								href="https://raw.githubusercontent.com/chneau/cv/master/cv.docx"
-								download="Charles_Neau_CV.docx"
 								target="_blank"
+								rel="noreferrer"
 								aria-label="Download DOCX"
 							>
 								<span className="header-label-hide">DOCX</span>
@@ -602,7 +615,7 @@ export const App = () => {
 							</Title>
 
 							{/* Celerum Ltd */}
-							<div style={{ marginBottom: 24 }}>
+							<div className="experience-item" style={{ marginBottom: 24 }}>
 								<div
 									style={{
 										display: "flex",
@@ -705,7 +718,7 @@ export const App = () => {
 							<Divider style={{ margin: "20px 0" }} />
 
 							{/* RGU & ARR Craib */}
-							<div>
+							<div className="experience-item">
 								<div
 									style={{
 										display: "flex",
