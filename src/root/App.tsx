@@ -19,13 +19,24 @@ declare const BUILD_DATE: string;
 
 const APPS = [
 	{
+		href: "/cv/",
+		emoji: "📄",
+		title: "Curriculum Vitae",
+		tag: "Senior Full-Stack & Systems",
+		tagColor: "purple",
+		shortcutKey: "Press 1",
+		hotkey: "1",
+		description:
+			"Senior Full-Stack & Systems Engineer — 10+ years experience across Go, TypeScript, React 19, Python, cloud infrastructure & optimization.",
+	},
+	{
 		href: "/birthday/",
 		emoji: "🎂",
 		title: "Birthday Tracker",
 		tag: "Tracker",
 		tagColor: "blue",
-		shortcutKey: "Press 1",
-		hotkey: "1",
+		shortcutKey: "Press 2",
+		hotkey: "2",
 		description:
 			"Track birthdays, milestones, biorhythms, zodiac signs, and export calendar events.",
 	},
@@ -35,8 +46,8 @@ const APPS = [
 		title: "A Day in Scottish Rail",
 		tag: "24h Replay",
 		tagColor: "cyan",
-		shortcutKey: "Press 2",
-		hotkey: "2",
+		shortcutKey: "Press 3",
+		hotkey: "3",
 		description:
 			"Interactive 24-hour time-lapse train replay across Scotland's rail network.",
 	},
@@ -46,8 +57,8 @@ const APPS = [
 		title: "Crimson Desert Save Editor",
 		tag: "100% Client-Side",
 		tagColor: "gold",
-		shortcutKey: "Press 3",
-		hotkey: "3",
+		shortcutKey: "Press 4",
+		hotkey: "4",
 		description:
 			"Edit Crimson Desert save files — inventory, gear, skills, quests and companions — entirely on your device.",
 	},

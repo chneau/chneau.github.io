@@ -3,10 +3,12 @@
 	"type": "module",
 	"scripts": {
 		"start": "rsbuild dev",
+		"start:cv": "rsbuild dev --environment cv",
 		"start:birthday": "rsbuild dev --environment birthday",
 		"start:scotland-rail": "rsbuild dev --environment scotland-rail",
 		"start:crimson-desert-save-editor": "rsbuild dev --environment crimson-desert-save-editor",
 		"build": "bun run src/birthday/_genIcs.ts && rsbuild build && cp README.md dist/",
+		"build:cv": "rsbuild build --environment cv",
 		"build:birthday": "bun run src/birthday/_genIcs.ts && rsbuild build --environment birthday",
 		"build:scotland-rail": "rsbuild build --environment scotland-rail",
 		"build:crimson-desert-save-editor": "rsbuild build --environment crimson-desert-save-editor",

@@ -45,6 +45,25 @@ export default defineConfig({
 				polyfill: "usage",
 			},
 		},
+		cv: {
+			source: {
+				entry: { index: "./src/cv/index.tsx" },
+				define: { BUILD_DATE: JSON.stringify(nowStr) },
+			},
+			html: {
+				title: "Charles Neau | Curriculum Vitae",
+				tags: [manifestTag, createIconTag("📄")],
+			},
+			dev: {
+				assetPrefix: "/cv/",
+			},
+			output: {
+				distPath: { root: "dist/cv" },
+				assetPrefix: "/cv/",
+				overrideBrowserslist: [">0%, defaults"],
+				polyfill: "usage",
+			},
+		},
 		birthday: {
 			source: {
 				entry: { index: "./src/birthday/index.tsx" },
