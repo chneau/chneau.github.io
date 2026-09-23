@@ -1,87 +1,87 @@
-# 🎂 Birthday Tracker
+# 🚀 chneau.github.io
 
-A modern, feature-rich birthday and anniversary tracking application built with
-React, Ant Design, and Valtio.
+A collection of interactive web applications, data visualizations, and client-side tools built and hosted on GitHub Pages.
 
-## ✨ Features
+🔗 **Live Site**: [chneau.github.io](https://chneau.github.io)
 
-- **Automated Calculations**: Calculates age, next birthday, days remaining,
-  zodiac signs (Western & Chinese), birthstones, and more.
-- **Life Statistics**: View "Life Progress" metrics like total days, weeks, and
-  months lived.
-- **Milestone Alerts**: Special highlights for "big" birthdays (1, 10, 18, 21,
-  30, 50, etc.) and wedding anniversaries.
-- **Visual Statistics**: Beautiful charts showing age distribution, zodiac
-  signs, birth months, and generations.
-- **Shareable Cards**: Generate and download personalized birthday cards for
-  friends and family.
-- **Calendar Integration**: Subscribe to your birthdays via `.ics` (iCal/Google
-  Calendar) or download the file directly.
-- **Smart Search**: Fuzzy searching powered by Fuse.js.
-- **PWA Ready**: Installable as a mobile or desktop app with offline support.
-- **Dark Mode**: Supports both light and dark themes.
-- **Notifications**: Optional desktop notifications for today's and tomorrow's
-  celebrations.
+---
 
-## 🚀 Tech Stack
+## 📦 Applications
 
-- **Frontend**: [React 19](https://react.dev/)
-- **UI Framework**: [Ant Design](https://ant.design/)
-- **State Management**: [Valtio](https://valtio.pmnd.rs/)
-- **Build Tool**: [Rsbuild](https://rsbuild.dev/)
-- **Styling**: [Styled Components](https://styled-components.com/)
-- **Data Validation**: [Zod](https://zod.dev/)
-- **Charts**: [@ant-design/charts](https://charts.ant.design/)
-- **Fuzzy Search**: [Fuse.js](https://www.fusejs.io/)
-- **Date Handling**: [Day.js](https://day.js.org/)
+### 1. 🎂 [Birthday Tracker](https://chneau.github.io/birthday/)
+A feature-rich birthday and anniversary tracker with deep statistical insights, planetary ages, and calendar integration.
+- **Automated Calculations**: Computes age, upcoming birthdays, days remaining, Western & Chinese zodiac signs, birthstones, and numerology life paths.
+- **Life Statistics & Biorhythms**: Visualizes 30-day biorhythm cycles (physical, emotional, intellectual), heartbeats, breaths, and cosmic distance traveled.
+- **Milestone Tracking**: Highlights milestone birthdays and wedding anniversaries with personalized cards.
+- **Visual Analytics**: Interactive Ant Design Charts for age distribution, gender breakdown, birth heatmaps, and generations.
+- **Calendar & Weather Integration**: Live iCal/Google Calendar (`.ics`) subscription feed and real-time weather forecasts via `wttr.in`.
+- **PWA & Offline Ready**: Local storage synchronization, multi-language support (English, Scottish Gaelic), and desktop notifications.
 
-## 🛠️ Getting Started
+### 2. 🚆 [A Day in Scottish Rail](https://chneau.github.io/scotland-rail/)
+An interactive 24-hour time-lapse train replay across Scotland's rail network.
+- **High-Performance Canvas Simulation**: Smooth 60fps Catmull-Rom spline interpolation rendering hundreds of active passenger and freight trains.
+- **Interactive Timetable & Calling Points**: Real-time live status, dwell monitoring, route progression, and timeline scrubbing.
+- **Spatial Audio & Sound Effects**: Dynamic audio engine with ambient railway effects.
+- **Analytics & Fleet Statistics**: Live tracking of cruising trains, total distance, fleet speed records, and category breakdown (ScotRail, LNER, Avanti, Caledonian Sleeper, Freight).
+
+### 3. ⚔️ [Crimson Desert Save Editor](https://chneau.github.io/crimson-desert-save-editor/)
+A 100% client-side, privacy-focused save editor for *Crimson Desert*.
+- **Client-Side Binary Engine**: Parses and modifies binary PARC save containers directly in your browser using typed arrays and WebCrypto.
+- **Zero Server Uploads**: Your save files never leave your machine.
+- **Inventory & Equipment**: Add catalog items, edit stack counts, tune equipment refinements, unlock sockets, and customize dyes.
+- **Character Progression & Quests**: Manage player level, bond experience, skill unlocks, quest completions, and companion rosters.
+
+---
+
+## 🛠️ Tech Stack & Architecture
+
+- **Runtime & Package Manager**: [Bun](https://bun.sh/)
+- **Bundler & Build Tool**: [Rsbuild](https://rsbuild.dev/) (Multi-Environment MPA Architecture)
+- **UI & Components**: [React 19](https://react.dev/), [Ant Design v6](https://ant.design/), [Mantine v9](https://mantine.dev/), [Lucide Icons](https://lucide.dev/)
+- **State Management**: [Valtio](https://valtio.pmnd.rs/) (Proxy-based reactive state)
+- **Data & Charts**: [@ant-design/charts](https://charts.ant.design/), [Zod](https://zod.dev/), [Day.js](https://day.js.org/), [Fuse.js](https://www.fusejs.io/)
+- **Code Quality**: [Biome](https://biomejs.dev/), [Oxlint](https://oxc.rs/), [Deno fmt](https://deno.land/), [TypeScript](https://www.typescriptlang.org/)
+
+---
+
+## 💻 Getting Started
 
 ### Prerequisites
-
-- [Bun](https://bun.sh/) (recommended) or Node.js
+- [Bun](https://bun.sh/) $\ge$ 1.2
 
 ### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/chneau/chneau.github.io.git
-   cd chneau.github.io
-   ```
-
-2. Install dependencies:
-   ```bash
-   bun install
-   ```
-
-3. Start the development server:
-   ```bash
-   bun start
-   ```
-
-### Building for Production
-
 ```bash
-bun run build
+git clone https://github.com/chneau/chneau.github.io.git
+cd chneau.github.io
+bun install
 ```
 
-## 📅 Adding Your Own Birthdays
-
-To add or edit birthdays, modify the `src/birthdays.json` file. The format is:
-
-```json
-{
-	"name": "John Doe",
-	"date": "1990-01-01",
-	"kind": "♂️"
-}
+### Development
+Start the unified local development server serving all apps at `http://localhost:3000`:
+```bash
+bun start
 ```
 
-- **name**: The name of the person.
+Or run an isolated app environment:
+```bash
+bun run start:birthday
+bun run start:scotland-rail
+bun run start:crimson-desert-save-editor
+```
 
-- **date**: Birthday in `YYYY-MM-DD` format.
+### Testing & Verification
+```bash
+bun test         # Run unit and integration test suite (116 tests)
+bun run check    # Run comprehensive linting, formatting, export, and type checks
+```
 
-- **kind**: `♂️` (Boy), `♀️` (Girl), or `💒` (Wedding).
+### Production Build & Deployment
+```bash
+bun run build    # Builds all 4 apps concurrently into dist/ in ~3 seconds
+bun run deploy   # Builds and publishes to GitHub Pages (master branch)
+```
+
+---
 
 ## 📄 License
 
