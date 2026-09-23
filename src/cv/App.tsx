@@ -137,6 +137,80 @@ const SKILLS = [
 	},
 ];
 
+const getSkillSearchUrl = (skill: string): string => {
+	const lower = skill.toLowerCase();
+	if (lower === "go" || lower === "go backend") {
+		return "https://github.com/chneau?tab=repositories&language=go";
+	}
+	if (lower === "typescript") {
+		return "https://github.com/chneau?tab=repositories&language=typescript";
+	}
+	if (lower === "javascript") {
+		return "https://github.com/chneau?tab=repositories&language=javascript";
+	}
+	if (lower === "rust") {
+		return "https://github.com/chneau?tab=repositories&language=rust";
+	}
+	if (lower === "python" || lower.includes("simpy")) {
+		return "https://github.com/chneau?tab=repositories&language=python";
+	}
+	if (lower === "c#") {
+		return "https://github.com/chneau?tab=repositories&language=csharp";
+	}
+	if (lower === "c++") {
+		return "https://github.com/chneau?tab=repositories&language=cpp";
+	}
+	if (lower === "bash") {
+		return "https://github.com/chneau?tab=repositories&language=shell";
+	}
+	if (lower === "sql") {
+		return "https://github.com/chneau?tab=repositories&language=sql";
+	}
+	if (
+		lower.includes("osrm") ||
+		lower.includes("gis") ||
+		lower.includes("postgis")
+	) {
+		return "https://github.com/chneau?tab=repositories&q=osrm";
+	}
+	if (lower.includes("react")) {
+		return "https://github.com/chneau?tab=repositories&q=react";
+	}
+	if (lower.includes("bun")) {
+		return "https://github.com/chneau?tab=repositories&q=bun";
+	}
+	if (lower.includes("hono")) {
+		return "https://github.com/chneau?tab=repositories&q=hono";
+	}
+	if (lower.includes("docker")) {
+		return "https://github.com/chneau?tab=repositories&q=docker";
+	}
+	if (lower.includes("kubernetes")) {
+		return "https://github.com/chneau?tab=repositories&q=kubernetes";
+	}
+	if (lower.includes("actions")) {
+		return "https://github.com/chneau?tab=repositories&q=github-actions";
+	}
+	if (
+		lower.includes("csp") ||
+		lower.includes("constraint") ||
+		lower.includes("scheduling")
+	) {
+		return "https://github.com/chneau?tab=repositories&q=timetable";
+	}
+	if (lower.includes("zero-allocation")) {
+		return "https://github.com/chneau?tab=repositories&q=openhours";
+	}
+	const firstWord = lower
+		.replace(/[^a-z0-9]/g, " ")
+		.trim()
+		.split(" ")[0];
+	const clean = firstWord || lower;
+	return `https://github.com/chneau?tab=repositories&q=${encodeURIComponent(
+		clean,
+	)}`;
+};
+
 export const App = () => {
 	const [darkMode, setDarkMode] = useState(() => {
 		const saved = localStorage.getItem("chneau_cv_theme");
@@ -174,6 +248,14 @@ export const App = () => {
 		>
 			<style>
 				{`
+				@media (max-width: 576px) {
+					.header-label-hide {
+						display: none !important;
+					}
+					.header-title-hide {
+						display: none !important;
+					}
+				}
 				@media print {
 					.no-print, header.ant-layout-header, footer.ant-layout-footer {
 						display: none !important;
@@ -218,7 +300,7 @@ export const App = () => {
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "space-between",
-						padding: "0 24px",
+						padding: "0 16px",
 						background: darkMode
 							? "rgba(13, 34, 47, 0.85)"
 							: "rgba(255, 255, 255, 0.85)",
@@ -234,12 +316,13 @@ export const App = () => {
 								type="text"
 								icon={<HomeOutlined />}
 								href="/"
+								aria-label="Return to Dashboard"
 								style={{ fontWeight: 500 }}
 							>
-								Dashboard
+								<span className="header-label-hide">Dashboard</span>
 							</Button>
 						</Tooltip>
-						<Text strong style={{ fontSize: 16 }}>
+						<Text strong className="header-title-hide" style={{ fontSize: 16 }}>
 							Curriculum Vitae
 						</Text>
 					</Space>
@@ -252,8 +335,9 @@ export const App = () => {
 								href="/cv.pdf"
 								download="Charles_Neau_CV.pdf"
 								target="_blank"
+								aria-label="Download PDF"
 							>
-								PDF
+								<span className="header-label-hide">PDF</span>
 							</Button>
 						</Tooltip>
 						<Tooltip title="Download Word DOCX Version">
@@ -262,14 +346,16 @@ export const App = () => {
 								href="/cv.docx"
 								download="Charles_Neau_CV.docx"
 								target="_blank"
+								aria-label="Download DOCX"
 							>
-								DOCX
+								<span className="header-label-hide">DOCX</span>
 							</Button>
 						</Tooltip>
 						<Tooltip title="Print or Save as PDF (Ctrl+P)">
 							<Button
 								icon={<PrinterOutlined />}
 								onClick={() => window.print()}
+								aria-label="Print CV"
 							/>
 						</Tooltip>
 						<Tooltip
@@ -279,6 +365,7 @@ export const App = () => {
 								type="text"
 								icon={darkMode ? <SunOutlined /> : <MoonOutlined />}
 								onClick={() => setDarkMode(!darkMode)}
+								aria-label="Toggle Dark Mode"
 							/>
 						</Tooltip>
 					</Space>
@@ -466,9 +553,7 @@ export const App = () => {
 											{grp.items.map((it) => (
 												<a
 													key={it}
-													href={`https://github.com/chneau?tab=repositories&q=${encodeURIComponent(
-														it.toLowerCase(),
-													)}`}
+													href={getSkillSearchUrl(it)}
 													target="_blank"
 													rel="noreferrer"
 													style={{ textDecoration: "none" }}
@@ -525,9 +610,17 @@ export const App = () => {
 									<Text strong style={{ fontSize: 16 }}>
 										Senior Software Engineer
 									</Text>
-									<Text type="secondary" style={{ fontSize: 14 }}>
-										February 2017 – Present
-									</Text>
+									<Space size="small">
+										<Text type="secondary" style={{ fontSize: 14 }}>
+											February 2017 – Present
+										</Text>
+										<Tag
+											color="blue"
+											style={{ margin: 0, borderRadius: 4, fontSize: 11 }}
+										>
+											9+ yrs
+										</Tag>
+									</Space>
 								</div>
 								<Text
 									italic
@@ -612,9 +705,17 @@ export const App = () => {
 									<Text strong style={{ fontSize: 16 }}>
 										Software Engineer (KTP Associate)
 									</Text>
-									<Text type="secondary" style={{ fontSize: 14 }}>
-										September 2014 – February 2017
-									</Text>
+									<Space size="small">
+										<Text type="secondary" style={{ fontSize: 14 }}>
+											September 2014 – February 2017
+										</Text>
+										<Tag
+											color="cyan"
+											style={{ margin: 0, borderRadius: 4, fontSize: 11 }}
+										>
+											2.5 yrs
+										</Tag>
+									</Space>
 								</div>
 								<Text
 									italic
@@ -730,7 +831,15 @@ export const App = () => {
 								}}
 							>
 								<Text strong style={{ fontSize: 14.5 }}>
-									An Analysis of Indirect Optimisation Strategies for Scheduling
+									<a
+										href="https://ieeexplore.ieee.org/search/searchresult.jsp?newsearch=true&queryText=An%20Analysis%20of%20Indirect%20Optimisation%20Strategies%20for%20Scheduling%20Charles%20Neau"
+										target="_blank"
+										rel="noreferrer"
+										style={{ color: "inherit", textDecoration: "underline" }}
+									>
+										An Analysis of Indirect Optimisation Strategies for
+										Scheduling
+									</a>
 								</Text>
 								<br />
 								<Text type="secondary">
