@@ -1,7 +1,7 @@
 import { Button, Empty, Progress, Table, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { TFunction } from "i18next";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { BirthdayDetails } from "./BirthdayDetails";
@@ -132,6 +132,7 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 	const { search } = useSnapshot(store);
 	const { t } = useTranslation();
+	const [pageSize, setPageSize] = useState(15);
 	const columns = useMemo(() => getColumns(search, t), [search, t]);
 
 	const handleResetFilters = () => {
@@ -147,7 +148,8 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 			columns={columns}
 			dataSource={data as Birthday[]}
 			pagination={{
-				pageSize: 15,
+				pageSize,
+				onShowSizeChange: (_current, size) => setPageSize(size),
 				showSizeChanger: true,
 				pageSizeOptions: ["10", "15", "25", "50", "100"],
 				showTotal: (total) => `${total} ${t("app.birthdays")}`,
