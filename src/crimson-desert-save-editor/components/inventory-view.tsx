@@ -1,4 +1,5 @@
 import {
+	ActionIcon,
 	Alert,
 	Badge,
 	Box,
@@ -27,6 +28,7 @@ import {
 	Search,
 	Sparkles,
 	Wand2,
+	X,
 } from "lucide-react";
 import {
 	type Dispatch,
@@ -423,6 +425,20 @@ export const InventoryView = ({
 						onChange={(event) => setQuery(event.currentTarget.value)}
 						placeholder="Search names, categories, or IDs"
 						leftSection={<Search size={16} />}
+						rightSection={
+							query ? (
+								<ActionIcon
+									size="xs"
+									variant="subtle"
+									color="gray"
+									onClick={() => setQuery("")}
+									title="Clear search"
+									aria-label="Clear search"
+								>
+									<X size={14} />
+								</ActionIcon>
+							) : null
+						}
 						style={{ flex: 1, maxWidth: 384 }}
 						aria-label="Search items"
 					/>
@@ -922,6 +938,13 @@ export const InventoryView = ({
 											}}
 										/>
 									)}
+									{selectedStagedEdit && (
+										<Badge color="blue" size="sm" variant="light" mt="xs">
+											Staged:{" "}
+											{selectedStagedEdit.expectedQuantity.toLocaleString()} ➔{" "}
+											{selectedStagedEdit.newQuantity.toLocaleString()}
+										</Badge>
+									)}
 									<Group mt="sm" gap="xs" align="flex-end">
 										<TextInput
 											aria-label="New quantity"
@@ -930,14 +953,42 @@ export const InventoryView = ({
 											onChange={(event) =>
 												setQuantityDraft(event.currentTarget.value)
 											}
+											onKeyDown={(event) => {
+												if (event.key === "Enter") {
+													stageQuantity();
+												}
+											}}
 											ff="monospace"
 											style={{ flex: 1 }}
 										/>
 										<Button onClick={stageQuantity}>Stage</Button>
 									</Group>
+									<Group gap={4} mt="xs">
+										{[
+											{ label: "+10", add: 10 },
+											{ label: "+100", add: 100 },
+											{ label: "+1000", add: 1000 },
+											{ label: "Set 999", set: 999 },
+											{ label: "Set 9999", set: 9999 },
+										].map((chip) => (
+											<Button
+												key={chip.label}
+												size="compact-xs"
+												variant="light"
+												color="gray"
+												onClick={() => {
+													const curr = Number(displayedQuantity) || 1;
+													const next =
+														chip.set ?? Math.max(1, curr + (chip.add ?? 0));
+													setQuantityDraft(String(next));
+												}}
+											>
+												{chip.label}
+											</Button>
+										))}
+									</Group>
 									<Text mt="xs" size="xs" c="dimmed">
-										Changes are staged only. Your original file is never
-										overwritten.
+										Press Enter or select Stage to queue changes.
 									</Text>
 								</Alert>
 							)}
