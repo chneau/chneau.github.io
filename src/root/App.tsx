@@ -17,30 +17,50 @@ const { Title, Paragraph, Text } = Typography;
 
 declare const BUILD_DATE: string;
 
-const AppCard = ({
-	href,
-	emoji,
-	title,
-	tag,
-	tagColor,
-	shortcutKey,
-	description,
-	darkMode,
-}: {
-	href: string;
-	emoji: string;
-	title: string;
-	tag: string;
-	tagColor: string;
-	shortcutKey: string;
-	description: string;
-	darkMode: boolean;
-}) => {
+const APPS = [
+	{
+		href: "/birthday/",
+		emoji: "🎂",
+		title: "Birthday Tracker",
+		tag: "Tracker",
+		tagColor: "blue",
+		shortcutKey: "Press 1",
+		hotkey: "1",
+		description:
+			"Track birthdays, milestones, biorhythms, zodiac signs, and export calendar events.",
+	},
+	{
+		href: "/scotland-rail/",
+		emoji: "🚆",
+		title: "A Day in Scottish Rail",
+		tag: "24h Replay",
+		tagColor: "cyan",
+		shortcutKey: "Press 2",
+		hotkey: "2",
+		description:
+			"Interactive 24-hour time-lapse train replay across Scotland's rail network.",
+	},
+	{
+		href: "/crimson-desert-save-editor/",
+		emoji: "⚔️",
+		title: "Crimson Desert Save Editor",
+		tag: "In-browser WASM",
+		tagColor: "gold",
+		shortcutKey: "Press 3",
+		hotkey: "3",
+		description:
+			"Edit Crimson Desert save files — inventory, gear, skills, quests and companions — entirely on your device.",
+	},
+] as const;
+
+type AppItem = (typeof APPS)[number];
+
+const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 	const [hovered, setHovered] = useState(false);
 
 	return (
 		<a
-			href={href}
+			href={item.href}
 			style={{
 				textDecoration: "none",
 				display: "block",
@@ -93,7 +113,7 @@ const AppCard = ({
 								marginTop: 2,
 							}}
 						>
-							{emoji}
+							{item.emoji}
 						</span>
 						<div style={{ flex: 1, minWidth: 0 }}>
 							<div
@@ -112,14 +132,14 @@ const AppCard = ({
 										color: darkMode ? "#edf3f5" : "inherit",
 									}}
 								>
-									{title}
+									{item.title}
 								</Text>
 								<Tag
-									color={tagColor}
+									color={item.tagColor}
 									bordered={false}
 									style={{ margin: 0, fontSize: "0.75rem", borderRadius: 4 }}
 								>
-									{tag}
+									{item.tag}
 								</Tag>
 							</div>
 							<Paragraph
@@ -131,7 +151,7 @@ const AppCard = ({
 									lineHeight: 1.5,
 								}}
 							>
-								{description}
+								{item.description}
 							</Paragraph>
 						</div>
 					</div>
@@ -167,7 +187,7 @@ const AppCard = ({
 								color: darkMode ? "#8ca0aa" : "#8c8c8c",
 							}}
 						>
-							{shortcutKey}
+							{item.shortcutKey}
 						</Tag>
 					</div>
 				</div>
@@ -193,7 +213,7 @@ export const App = () => {
 		}
 	}, [darkMode]);
 
-	// Global keyboard navigation: 1, 2, 3 to launch apps, T/D for theme
+	// Global keyboard navigation: 1, 2, 3 to launch apps, T for theme
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (
@@ -202,12 +222,9 @@ export const App = () => {
 			) {
 				return;
 			}
-			if (e.key === "1") {
-				window.location.href = "/birthday/";
-			} else if (e.key === "2") {
-				window.location.href = "/scotland-rail/";
-			} else if (e.key === "3") {
-				window.location.href = "/crimson-desert-save-editor/";
+			const targetApp = APPS.find((app) => app.hotkey === e.key);
+			if (targetApp) {
+				window.location.href = targetApp.href;
 			} else if (e.key.toLowerCase() === "t") {
 				setDarkMode((prev) => !prev);
 			}
@@ -308,7 +325,11 @@ export const App = () => {
 					}}
 				>
 					<div style={{ maxWidth: 640, width: "100%" }}>
-						<Space direction="vertical" size="large" style={{ width: "100%" }}>
+						<Space
+							orientation="vertical"
+							size="large"
+							style={{ width: "100%" }}
+						>
 							<div style={{ textAlign: "center" }}>
 								<Title
 									level={2}
@@ -324,38 +345,9 @@ export const App = () => {
 								</Paragraph>
 							</div>
 
-							<AppCard
-								href="/birthday/"
-								emoji="🎂"
-								title="Birthday Tracker"
-								tag="Tracker"
-								tagColor="blue"
-								shortcutKey="Press 1"
-								description="Track birthdays, milestones, biorhythms, zodiac signs, and export calendar events."
-								darkMode={darkMode}
-							/>
-
-							<AppCard
-								href="/scotland-rail/"
-								emoji="🚆"
-								title="A Day in Scottish Rail"
-								tag="24h Replay"
-								tagColor="cyan"
-								shortcutKey="Press 2"
-								description="Interactive 24-hour time-lapse train replay across Scotland's rail network."
-								darkMode={darkMode}
-							/>
-
-							<AppCard
-								href="/crimson-desert-save-editor/"
-								emoji="⚔️"
-								title="Crimson Desert Save Editor"
-								tag="In-browser WASM"
-								tagColor="gold"
-								shortcutKey="Press 3"
-								description="Edit Crimson Desert save files — inventory, gear, skills, quests and companions — entirely on your device."
-								darkMode={darkMode}
-							/>
+							{APPS.map((item) => (
+								<AppCard key={item.href} item={item} darkMode={darkMode} />
+							))}
 						</Space>
 					</div>
 				</Content>
