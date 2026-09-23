@@ -1,4 +1,5 @@
 import {
+	ActionIcon,
 	Alert,
 	Badge,
 	Box,
@@ -16,7 +17,7 @@ import {
 	Text,
 	TextInput,
 } from "@mantine/core";
-import { Plus, Search, Users } from "lucide-react";
+import { Plus, Search, Users, X } from "lucide-react";
 import { useState } from "react";
 import { Picture } from "@/components/picture";
 import {
@@ -107,6 +108,20 @@ const CompanionBrowser = ({
 						placeholder="Search names or breeds"
 						value={query}
 						leftSection={<Search size={16} />}
+						rightSection={
+							query ? (
+								<ActionIcon
+									size="xs"
+									variant="subtle"
+									color="gray"
+									onClick={() => update(() => setQuery(""))}
+									title="Clear search"
+									aria-label="Clear search"
+								>
+									<X size={14} />
+								</ActionIcon>
+							) : null
+						}
 						onChange={(event) => {
 							const value = event.currentTarget.value;
 							update(() => setQuery(value));
