@@ -1,11 +1,13 @@
 import {
 	EnvironmentOutlined,
+	ExportOutlined,
 	FilePdfOutlined,
 	FileWordOutlined,
 	GithubOutlined,
 	GlobalOutlined,
 	HomeOutlined,
 	LinkedinOutlined,
+	LinkOutlined,
 	MailOutlined,
 	MoonOutlined,
 	PhoneOutlined,
@@ -19,6 +21,7 @@ import {
 	Divider,
 	FloatButton,
 	Layout,
+	message,
 	Space,
 	Tag,
 	Tooltip,
@@ -38,13 +41,13 @@ const SKILLS = [
 		items: [
 			"Go",
 			"TypeScript",
-			"JavaScript",
 			"Rust",
 			"Python",
 			"C#",
 			"C++",
 			"SQL",
 			"Bash",
+			"JavaScript",
 		],
 		color: "blue",
 	},
@@ -52,12 +55,12 @@ const SKILLS = [
 		category: "Backend & Runtimes",
 		items: [
 			"Go Backend",
-			"Node.js",
 			"Bun",
-			".NET",
 			"Hono",
-			"Express",
+			"Node.js",
+			".NET",
 			"Fastify",
+			"Express",
 			"GraphQL",
 			"tRPC",
 			"oRPC",
@@ -72,11 +75,11 @@ const SKILLS = [
 			"React 19",
 			"Next.js",
 			"Vite",
-			"SolidJS",
-			"Blazor",
 			"Tailwind CSS",
 			"Ant Design",
 			"TanStack Query",
+			"SolidJS",
+			"Blazor",
 			"Wouter",
 		],
 		color: "geekblue",
@@ -86,11 +89,11 @@ const SKILLS = [
 		items: [
 			"PostgreSQL",
 			"SQLite",
-			"MongoDB",
 			"Redis",
 			"Supabase",
 			"Prisma",
 			"Drizzle ORM",
+			"MongoDB",
 			"PostGIS",
 			"GIS / OSRM matrices",
 		],
@@ -218,6 +221,7 @@ export const App = () => {
 		if (saved) return saved === "dark";
 		return window.matchMedia("(prefers-color-scheme: dark)").matches;
 	});
+	const [copiedLink, setCopiedLink] = useState(false);
 
 	useEffect(() => {
 		localStorage.setItem("chneau_cv_theme", darkMode ? "dark" : "light");
@@ -234,6 +238,13 @@ export const App = () => {
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, []);
+
+	const handleCopyLink = () => {
+		navigator.clipboard.writeText(window.location.href);
+		setCopiedLink(true);
+		message.success("CV link copied to clipboard!");
+		setTimeout(() => setCopiedLink(false), 2500);
+	};
 
 	return (
 		<ConfigProvider
@@ -361,6 +372,13 @@ export const App = () => {
 					</Space>
 
 					<Space size="small">
+						<Tooltip title={copiedLink ? "Link Copied!" : "Copy CV Link"}>
+							<Button
+								icon={<LinkOutlined />}
+								onClick={handleCopyLink}
+								aria-label="Copy CV Link"
+							/>
+						</Tooltip>
 						<Tooltip title="View / Download raw PDF from GitHub">
 							<Button
 								type="primary"
@@ -448,7 +466,7 @@ export const App = () => {
 										target="_blank"
 										rel="noreferrer"
 									>
-										Edinburgh, UK
+										Edinburgh, UK <ExportOutlined style={{ fontSize: 11 }} />
 									</a>
 								</Text>
 								<Text type="secondary">
@@ -482,7 +500,7 @@ export const App = () => {
 										target="_blank"
 										rel="noreferrer"
 									>
-										chneau.github.io
+										chneau.github.io <ExportOutlined style={{ fontSize: 11 }} />
 									</a>
 								</Text>
 								<Text type="secondary">
@@ -492,7 +510,8 @@ export const App = () => {
 										target="_blank"
 										rel="noreferrer"
 									>
-										github.com/chneau
+										github.com/chneau{" "}
+										<ExportOutlined style={{ fontSize: 11 }} />
 									</a>
 								</Text>
 								<Text type="secondary">
@@ -502,7 +521,8 @@ export const App = () => {
 										target="_blank"
 										rel="noreferrer"
 									>
-										linkedin.com/in/chneau
+										linkedin.com/in/chneau{" "}
+										<ExportOutlined style={{ fontSize: 11 }} />
 									</a>
 								</Text>
 							</Space>
@@ -670,7 +690,7 @@ export const App = () => {
 										rel="noreferrer"
 										style={{ color: "inherit", textDecoration: "underline" }}
 									>
-										Celerum Ltd
+										Celerum Ltd <ExportOutlined style={{ fontSize: 11 }} />
 									</a>{" "}
 									— Aberdeen, UK
 								</Text>
@@ -682,7 +702,7 @@ export const App = () => {
 										fontSize: 14.5,
 									}}
 								>
-									<li>
+									<li style={{ marginBottom: 8 }}>
 										<strong>Cloud-Native Platform Architecture:</strong>{" "}
 										Architected and engineered an enterprise cloud-native marine
 										logistics and offshore supply vessel planning platform,
@@ -691,34 +711,34 @@ export const App = () => {
 										and C# optimization engines as specialized background
 										workers.
 									</li>
-									<li>
+									<li style={{ marginBottom: 8 }}>
 										<strong>Optimization & Simulation Engines:</strong>{" "}
 										Developed discrete-event simulation models and
 										constraint-solving scheduling engines for offshore
 										decommissioning, vessel sharing, and complex cargo logistics
 										across North Sea operations.
 									</li>
-									<li>
+									<li style={{ marginBottom: 8 }}>
 										<strong>High-Performance Microservices & GIS:</strong>{" "}
 										Implemented zero-allocation Go microservices and GIS routing
 										pipelines (OSRM approximation and spatial distance matrices)
 										processing large-scale geospatial and AIS (Automatic
 										Identification System) vessel telemetry data.
 									</li>
-									<li>
+									<li style={{ marginBottom: 8 }}>
 										<strong>Database & Query Optimization:</strong> Architected
 										multi-tenant data tiers across PostgreSQL, SQLite, MongoDB,
 										and Redis; designed optimized schema migrations, spatial
 										indexes, and caching strategies delivering sub-millisecond
 										query latencies.
 									</li>
-									<li>
+									<li style={{ marginBottom: 8 }}>
 										<strong>Full-Stack Web Applications:</strong> Built
 										responsive, reactive enterprise web portals, dashboards, and
 										scheduling tools utilizing React, Vite, Ant Design, Tailwind
 										CSS, and WebSockets for real-time fleet tracking.
 									</li>
-									<li>
+									<li style={{ marginBottom: 8 }}>
 										<strong>DevOps & CI/CD Infrastructure:</strong> Designed
 										containerized deployment pipelines using Docker, Kubernetes,
 										and GitHub Actions; established automated linting,
@@ -773,7 +793,8 @@ export const App = () => {
 										rel="noreferrer"
 										style={{ color: "inherit", textDecoration: "underline" }}
 									>
-										Robert Gordon University
+										Robert Gordon University{" "}
+										<ExportOutlined style={{ fontSize: 11 }} />
 									</a>{" "}
 									& ARR Craib — Aberdeen, UK
 								</Text>
@@ -785,13 +806,13 @@ export const App = () => {
 										fontSize: 14.5,
 									}}
 								>
-									<li>
+									<li style={{ marginBottom: 8 }}>
 										<strong>Fleet Management System:</strong> Designed,
 										developed, and deployed an enterprise-wide real-time fleet
 										logistics and dispatch management system for road haulage
 										operations.
 									</li>
-									<li>
+									<li style={{ marginBottom: 8 }}>
 										<strong>Distributed Services & Scaling:</strong> Engineered
 										load-balanced microservices handling high-concurrency
 										vehicle telemetry, automated job scheduling, and driver
@@ -843,7 +864,8 @@ export const App = () => {
 											rel="noreferrer"
 											style={{ color: "inherit", textDecoration: "underline" }}
 										>
-											Université Blaise Pascal
+											Université Blaise Pascal{" "}
+											<ExportOutlined style={{ fontSize: 11 }} />
 										</a>
 										, Clermont-Ferrand, France
 									</Text>
@@ -866,7 +888,8 @@ export const App = () => {
 											rel="noreferrer"
 											style={{ color: "inherit", textDecoration: "underline" }}
 										>
-											IUT Clermont-Ferrand
+											IUT Clermont-Ferrand{" "}
+											<ExportOutlined style={{ fontSize: 11 }} />
 										</a>
 										, France
 									</Text>
@@ -907,7 +930,7 @@ export const App = () => {
 										style={{ color: "inherit", textDecoration: "underline" }}
 									>
 										An Analysis of Indirect Optimisation Strategies for
-										Scheduling
+										Scheduling <ExportOutlined style={{ fontSize: 12 }} />
 									</a>
 								</Text>
 								<br />
