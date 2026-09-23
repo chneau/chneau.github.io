@@ -44,7 +44,7 @@ const APPS = [
 		href: "/crimson-desert-save-editor/",
 		emoji: "⚔️",
 		title: "Crimson Desert Save Editor",
-		tag: "In-browser WASM",
+		tag: "100% Client-Side",
 		tagColor: "gold",
 		shortcutKey: "Press 3",
 		hotkey: "3",
