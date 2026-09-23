@@ -265,11 +265,34 @@ export const App = () => {
 					.no-print, header.ant-layout-header, footer.ant-layout-footer, .ant-float-btn, .ant-typography-copy {
 						display: none !important;
 					}
-					body, .ant-layout {
+					*, *::before, *::after {
+						color: #000000 !important;
+						text-shadow: none !important;
+						-webkit-print-color-adjust: exact !important;
+						print-color-adjust: exact !important;
+					}
+					body, .ant-layout, .ant-card, .ant-card-body {
 						background: #ffffff !important;
 						color: #000000 !important;
 						padding: 0 !important;
-						font-size: 10pt !important;
+						font-size: 9.5pt !important;
+					}
+					.ant-typography, .ant-typography-secondary, p, span, li, a, em, strong, div {
+						color: #000000 !important;
+					}
+					h1, h2, h3, h4, .ant-typography h1, .ant-typography h2, .ant-typography h3, .ant-typography h4 {
+						color: #000000 !important;
+						page-break-after: avoid !important;
+						break-after: avoid !important;
+					}
+					.ant-tag {
+						background: #f8fafc !important;
+						border: 1px solid #cbd5e1 !important;
+						color: #000000 !important;
+						font-weight: 500 !important;
+					}
+					.ant-divider {
+						border-color: #d1d5db !important;
 					}
 					.ant-layout-content {
 						padding: 0 !important;
@@ -287,13 +310,9 @@ export const App = () => {
 						page-break-inside: avoid !important;
 						break-inside: avoid !important;
 					}
-					h1, h2, h3, h4 {
-						page-break-after: avoid !important;
-						break-after: avoid !important;
-					}
 					a {
 						text-decoration: none !important;
-						color: inherit !important;
+						color: #000000 !important;
 					}
 				}
 			`}
