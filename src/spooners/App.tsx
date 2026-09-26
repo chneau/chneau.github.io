@@ -854,22 +854,6 @@ export const App = () => {
 									: null
 							}
 						/>
-						{areaFilter ? (
-							<Card withBorder padding="xs" radius="md">
-								<Group justify="space-between" gap="xs" wrap="nowrap">
-									<Text size="sm" lineClamp={1}>
-										Showing pubs in <b>{areaFilter}</b>
-									</Text>
-									<Button
-										size="compact-xs"
-										variant="subtle"
-										onClick={() => setAreaFilter(null)}
-									>
-										Clear
-									</Button>
-								</Group>
-							</Card>
-						) : null}
 						<Section title="Prices">
 							<StatsBar
 								pubs={withDistance.length}
@@ -1010,6 +994,8 @@ export const App = () => {
 						onFocus={setFocused}
 						onOpen={setVenueRef}
 						onArea={openArea}
+						area={areaFilter}
+						onClearArea={() => setAreaFilter(null)}
 						view={view}
 						onView={setView}
 						countLabel={
