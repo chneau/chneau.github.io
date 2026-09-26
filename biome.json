@@ -4,7 +4,8 @@
 		"maxSize": 10485760,
 		"includes": [
 			"**",
-			"!**/src/crimson-desert-save-editor/lib/generated/*.json"
+			"!**/src/crimson-desert-save-editor/lib/generated/*.json",
+			"!**/src/spooners/data/*.json"
 		]
 	}
 }

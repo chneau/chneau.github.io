@@ -62,6 +62,17 @@ const APPS = [
 		description:
 			"Edit Crimson Desert save files — inventory, gear, skills, quests and companions — entirely on your device.",
 	},
+	{
+		href: "/spooners/",
+		emoji: "🍺",
+		title: "Spooners",
+		tag: "Price map",
+		tagColor: "green",
+		shortcutKey: "Press 5",
+		hotkey: "5",
+		description:
+			"See what every pub charges for the same drink or dish — searchable map, cheapest-to-dearest rankings and price distribution charts.",
+	},
 ] as const;
 
 type AppItem = (typeof APPS)[number];
