@@ -466,7 +466,9 @@ export const RoundCard = ({
 							{partialCount > 0 ? (
 								<Text size="xs" c="dimmed">
 									{completeCount
-										? `${partialCount} ${partialCount === 1 ? "pub" : "pubs"} miss at least one item and are excluded while this is on.`
+										? `${partialCount} ${
+												partialCount === 1 ? "pub" : "pubs"
+											} miss at least one item and are excluded while this is on.`
 										: `No pub serves every item of this round — turn "Whole round only" off to see partial rounds.`}
 								</Text>
 							) : null}
@@ -508,7 +510,10 @@ export const RoundCard = ({
 							style={{
 								height: 6,
 								borderRadius: 999,
-								background: `linear-gradient(90deg, ${priceColor(scale.min, scale)}, ${priceColor(
+								background: `linear-gradient(90deg, ${priceColor(
+									scale.min,
+									scale,
+								)}, ${priceColor(
 									(scale.min + scale.max) / 2,
 									scale,
 								)}, ${priceColor(scale.max, scale)})`,

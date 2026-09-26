@@ -72,7 +72,9 @@ export const DiscoverPanel = ({
 									</Text>
 									<Text size="xs" c="dimmed" lineClamp={1}>
 										{seller
-											? `${seller.town ?? seller.name} · ${miles(seller.distance)}`
+											? `${seller.town ?? seller.name} · ${miles(
+													seller.distance,
+												)}`
 											: `${item.count} ${item.count === 1 ? "pub" : "pubs"}`}
 										{item.menu ? ` · ${item.menu}` : ""}
 									</Text>

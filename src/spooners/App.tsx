@@ -342,7 +342,9 @@ export const App = () => {
 	const medianPrice = useMemo(() => median(prices), [prices]);
 	const hiddenCount = displayVenues.length - venues.length;
 	const legendLabel = singleName
-		? `${singleName}${displayVenues[0]?.portion ? ` · ${displayVenues[0].portion}` : ""}`
+		? `${singleName}${
+				displayVenues[0]?.portion ? ` · ${displayVenues[0].portion}` : ""
+			}`
 		: resolvedBasket.length > 1
 			? `${resolvedBasket.reduce((sum, item) => sum + item.qty, 0)}-item round`
 			: undefined;
@@ -370,7 +372,10 @@ export const App = () => {
 		)}% more than the rest — median ${money(
 			insight.specialMedian,
 			displayCurrency,
-		)} vs ${money(insight.normalMedian, displayCurrency)} (${insight.specialCount} of ${
+		)} vs ${money(
+			insight.normalMedian,
+			displayCurrency,
+		)} (${insight.specialCount} of ${
 			insight.specialCount + insight.normalCount
 		} pubs)`;
 	}, [completeVenues, displayCurrency]);

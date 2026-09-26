@@ -97,8 +97,9 @@ export const venueSpot = (
 	if (subType === "airport") return "airport";
 	if (subType === "haven") return "haven";
 	if (subType === "concession") return "concession";
-	if (venue.type === "pub_hotel" || venue.hotel || detail?.hotel)
+	if (venue.type === "pub_hotel" || venue.hotel || detail?.hotel) {
 		return "hotel";
+	}
 	return "high-street";
 };
 
@@ -187,6 +188,13 @@ export const venueOpenState = (
 		current < openAt && closeAt > 24 * 60 ? current + 24 * 60 : current;
 	return { open: adjusted >= openAt && adjusted < closeAt, hours };
 };
+
+/** Pub photos from the venue detail, http(s) only. */
+export const venueImages = (detail: VenueDetail | null): string[] =>
+	((detail?.displayImages as unknown[]) ?? []).filter(
+		(image): image is string =>
+			typeof image === "string" && /^https?:\/\//.test(image),
+	);
 
 /** Venue facilities ("Baby change", "Licensed outside area", ...). */
 export const venueFacilities = (detail: VenueDetail | null): string[] =>
@@ -484,6 +492,7 @@ export const venuesWithoutPrices = (
 				entry.detail?.currency?.currencyCode ??
 				"GBP",
 			reason: entry.error ?? "menu not published",
+			images: venueImages(entry.detail),
 		});
 	}
 	return out.sort((a, b) => a.name.localeCompare(b.name));

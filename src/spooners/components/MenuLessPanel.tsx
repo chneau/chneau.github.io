@@ -2,6 +2,7 @@ import { Box, Group, Stack, Text, UnstyledButton } from "@mantine/core";
 import { SPOT_META } from "../derive";
 import { miles } from "../price";
 import type { SparseVenue } from "../types";
+import { VenueImage } from "./VenueImage";
 
 type Props = {
 	venues: SparseVenue[];
@@ -36,6 +37,12 @@ export const MenuLessPanel = ({ venues, onSelect }: Props) => {
 						}}
 					>
 						<Group justify="space-between" gap={8} wrap="nowrap">
+							<VenueImage
+								src={venue.images[0]}
+								alt={venue.name}
+								width={30}
+								height={30}
+							/>
 							<Box style={{ minWidth: 0 }}>
 								<Text size="sm" lineClamp={1}>
 									{venue.spot !== "high-street"

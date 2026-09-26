@@ -83,9 +83,10 @@ export const Distribution = ({
 							return (
 								<Tooltip
 									key={bin.start}
-									label={`${money(bin.start, currency)}–${money(bin.end, currency)}: ${bin.count} ${
-										bin.count === 1 ? "pub" : "pubs"
-									}`}
+									label={`${money(bin.start, currency)}–${money(
+										bin.end,
+										currency,
+									)}: ${bin.count} ${bin.count === 1 ? "pub" : "pubs"}`}
 									withArrow
 									position="top"
 								>

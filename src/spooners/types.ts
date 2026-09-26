@@ -270,6 +270,8 @@ export type PricedVenue = {
 	lines: VenuePriceLine[];
 	/** Round items this venue does not sell. */
 	missing: string[];
+	/** Pub photos from the venue detail. */
+	images: string[];
 	/** ISO code this venue prices in (GBP, EUR...). */
 	currency: string;
 	/** Today's opening state, from the venue detail. */
@@ -321,6 +323,8 @@ export type MapPoint = {
 	canOrder?: boolean;
 	previousPrice?: number | null;
 	previousAt?: string | null;
+	/** Pub photos. */
+	images?: string[];
 };
 
 /** A pub we know about but have no prices for (menu not published by the API). */
@@ -342,5 +346,7 @@ export type SparseVenue = {
 	currency: string;
 	/** Why there are no prices, e.g. "no menus" or "no sales areas". */
 	reason: string | null;
+	/** Pub photos from the venue detail. */
+	images: string[];
 	distance?: number;
 };
