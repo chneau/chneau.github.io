@@ -16,14 +16,14 @@ export type SpoonersSettings = {
 const DEFAULT_SETTINGS: SpoonersSettings = {
 	currency: "GBP",
 	openNow: false,
-	hideSpecial: false,
-	hideClosed: false,
+	hideSpecial: true,
+	hideClosed: true,
 	rankingRows: 5,
 };
 
-/** Persisted in localStorage. */
+/** Persisted in localStorage. Bumped to v3 so the new defaults apply. */
 export const useSettings = () =>
 	useLocalStorage<SpoonersSettings>({
-		key: "spooners.settings.v2",
+		key: "spooners.settings.v3",
 		defaultValue: DEFAULT_SETTINGS,
 	});

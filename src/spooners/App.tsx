@@ -25,7 +25,12 @@ import { DiscoverPanel } from "./components/DiscoverPanel";
 import { Distribution } from "./components/Distribution";
 import { GeographyPanel } from "./components/GeographyPanel";
 import { ItemSearchCard } from "./components/ItemSearchCard";
-import { MapPanel, type MapView } from "./components/MapPanel";
+import {
+	MapPanel,
+	type MapView,
+	UK_CENTER,
+	UK_ZOOM,
+} from "./components/MapPanel";
 import { MenuLessPanel } from "./components/MenuLessPanel";
 import { RankingPanel } from "./components/RankingPanel";
 import { RoundPanel } from "./components/RoundPanel";
@@ -150,6 +155,17 @@ export const App = () => {
 		[data],
 	);
 
+	// the item you land on when the URL says nothing
+	const fallbackName = useMemo(
+		() =>
+			visibleIndex.find((item) =>
+				item.name.toLowerCase().includes(DEFAULT_ITEM_HINT),
+			)?.name ??
+			visibleIndex[0]?.name ??
+			null,
+		[visibleIndex],
+	);
+
 	// keep the selection valid as filters change
 	const effectiveName = useMemo(() => {
 		if (
@@ -158,14 +174,8 @@ export const App = () => {
 		) {
 			return selectedName;
 		}
-		return (
-			visibleIndex.find((item) =>
-				item.name.toLowerCase().includes(DEFAULT_ITEM_HINT),
-			)?.name ??
-			visibleIndex[0]?.name ??
-			null
-		);
-	}, [visibleIndex, selectedName]);
+		return fallbackName;
+	}, [visibleIndex, selectedName, fallbackName]);
 
 	const selectedItem = useMemo(
 		() => index.find((item) => item.name === effectiveName) ?? null,
@@ -561,38 +571,61 @@ export const App = () => {
 		});
 	};
 
-	// keep the URL in sync with everything that changes the view
-	useEffect(() => {
-		writeUrl({
-			item: effectiveName ?? undefined,
-			portion: effectivePortion ?? undefined,
+	// The URL only carries what differs from the landing defaults, so opening the
+	// page (Guinness, pint, travel/closed hidden) keeps a clean address bar.
+	const atDefaultView =
+		!mapView ||
+		(Math.abs(mapView.center[0] - UK_CENTER[0]) < 0.05 &&
+			Math.abs(mapView.center[1] - UK_CENTER[1]) < 0.05 &&
+			Math.abs(mapView.zoom - UK_ZOOM) < 0.05);
+	const urlState = useMemo(
+		() => ({
+			item:
+				effectiveName !== fallbackName
+					? (effectiveName ?? undefined)
+					: undefined,
+			portion:
+				effectivePortion && effectivePortion !== defaultPortion
+					? effectivePortion
+					: undefined,
 			cur: selectedCurrency ?? undefined,
 			filters: activeFilters,
 			facilities: activeFacilities,
-			open: openNowOnly || undefined,
-			special: hideSpecial || undefined,
-			closed: hideClosed || undefined,
+			open: openNowOnly !== settings.openNow ? openNowOnly : undefined,
+			special: hideSpecial !== settings.hideSpecial ? hideSpecial : undefined,
+			closed: hideClosed !== settings.hideClosed ? hideClosed : undefined,
 			round: basket.length ? serializeBasket(basket) : undefined,
 			venue: venueRef ?? undefined,
 			view,
-			lat: mapView?.center[0],
-			lng: mapView?.center[1],
-			z: mapView?.zoom,
-		});
-	}, [
-		effectiveName,
-		effectivePortion,
-		selectedCurrency,
-		activeFilters,
-		activeFacilities,
-		openNowOnly,
-		hideSpecial,
-		hideClosed,
-		basket,
-		venueRef,
-		view,
-		mapView,
-	]);
+			lat: atDefaultView ? undefined : mapView?.center[0],
+			lng: atDefaultView ? undefined : mapView?.center[1],
+			z: atDefaultView ? undefined : mapView?.zoom,
+		}),
+		[
+			effectiveName,
+			fallbackName,
+			effectivePortion,
+			defaultPortion,
+			selectedCurrency,
+			activeFilters,
+			activeFacilities,
+			openNowOnly,
+			hideSpecial,
+			hideClosed,
+			settings.openNow,
+			settings.hideSpecial,
+			settings.hideClosed,
+			basket,
+			venueRef,
+			view,
+			atDefaultView,
+			mapView,
+		],
+	);
+
+	useEffect(() => {
+		writeUrl(urlState);
+	}, [urlState]);
 
 	// focus a venue from a shared link, once its data is available
 	useEffect(() => {
@@ -613,19 +646,7 @@ export const App = () => {
 	};
 
 	const copyShare = async () => {
-		const link = shareUrl({
-			item: effectiveName ?? undefined,
-			portion: effectivePortion ?? undefined,
-			cur: selectedCurrency ?? undefined,
-			filters: activeFilters,
-			facilities: activeFacilities,
-			open: openNowOnly || undefined,
-			special: hideSpecial || undefined,
-			closed: hideClosed || undefined,
-			round: basket.length ? serializeBasket(basket) : undefined,
-			venue: venueRef ?? undefined,
-			view,
-		});
+		const link = shareUrl(urlState);
 		try {
 			await navigator.clipboard.writeText(link);
 			setCopied(true);
