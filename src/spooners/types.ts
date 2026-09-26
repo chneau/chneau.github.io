@@ -10,7 +10,7 @@
 // raw API objects                                                                #
 // --------------------------------------------------------------------------- #
 
-type Keyword = {
+export type Keyword = {
 	type?: string;
 	name?: string;
 	id?: string | number;
@@ -21,10 +21,11 @@ type Keyword = {
 	isAddOn?: boolean;
 	icon?: string;
 	iconUrl?: string;
+	iconColor?: string;
 	tags?: unknown;
 };
 
-type ItemOption = {
+export type ItemOption = {
 	id?: string | number;
 	label?: string;
 	name?: string;
@@ -139,6 +140,21 @@ export type VenueDetail = {
 	/** GBP for Great Britain, EUR for the pubs in the Republic of Ireland. */
 	currency?: CurrencyInfo | null;
 	displayImages?: unknown;
+	allergensUrl?: string | null;
+	canPlaceOrder?: boolean | null;
+	orderingEnabled?: boolean | null;
+	employeeDiscountAllowed?: boolean | null;
+	comingSoon?: boolean | null;
+	isClosed?: boolean | null;
+	closureDates?: unknown;
+	menuUrl?: { dairyFree?: string | null; glutenFree?: string | null } | null;
+	/** Meal-deal drink offsets, e.g. how much a "meal + drink" adds. */
+	pricing?: { includeDrink?: { offset?: number; wineOffset?: number } } | null;
+	salesAreas?:
+		| { id?: number; name?: string; description?: string | null }[]
+		| null;
+	franchise?: string | null;
+	thumbnail?: string | null;
 	[key: string]: unknown;
 };
 

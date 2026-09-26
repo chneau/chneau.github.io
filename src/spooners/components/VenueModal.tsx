@@ -3,6 +3,7 @@ import {
 	Badge,
 	Box,
 	Button,
+	Chip,
 	Divider,
 	Group,
 	Modal,
@@ -11,13 +12,15 @@ import {
 	Text,
 	TextInput,
 	Tooltip,
+	UnstyledButton,
 } from "@mantine/core";
 import { ArrowRight, Check, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { SPOT_META, venueImages, venueSpot } from "../derive";
 import { portionLabel, portionRank } from "../portions";
-import { amount, currencySymbol } from "../price";
+import { amount, currencySymbol, money } from "../price";
 import type { SpoonersCache } from "../types";
+import { ItemFacts } from "./ItemFacts";
 import { VenueImage } from "./VenueImage";
 
 const DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -57,6 +60,8 @@ type Props = {
 	onSelectItem: (name: string) => void;
 	/** Add one of this item to the round. */
 	onAddItem: (name: string) => void;
+	/** Open the full item detail modal. */
+	onItem: (name: string) => void;
 };
 
 const PAGE = 100;
@@ -69,12 +74,15 @@ export const VenueModal = ({
 	cache,
 	onSelectItem,
 	onAddItem,
+	onItem,
 }: Props) => {
 	const [query, setQuery] = useState("");
 	const [sort, setSort] = useState<Sort>("menu");
 	const [limit, setLimit] = useState(PAGE);
 	const [added, setAdded] = useState<string | null>(null);
 	const [hero, setHero] = useState(0);
+	const [expanded, setExpanded] = useState<string | null>(null);
+	const [menuFilter, setMenuFilter] = useState<string | null>(null);
 	const entry = venueRef != null ? cache.venues[String(venueRef)] : undefined;
 
 	useEffect(() => {
@@ -114,16 +122,24 @@ export const VenueModal = ({
 		);
 	}, [entry, cache.items]);
 
+	const menus = useMemo(
+		() => [...new Set(rows.map((row) => row.menu))].sort(),
+		[rows],
+	);
+
 	const filtered = useMemo(() => {
 		const needle = query.trim().toLowerCase();
+		const base = menuFilter
+			? rows.filter((row) => row.menu === menuFilter)
+			: rows;
 		const list = needle
-			? rows.filter(
+			? base.filter(
 					(row) =>
 						row.name.toLowerCase().includes(needle) ||
 						row.category.toLowerCase().includes(needle) ||
 						row.menu.toLowerCase().includes(needle),
 				)
-			: rows;
+			: base;
 		if (sort === "menu") {
 			return list;
 		}
@@ -314,6 +330,94 @@ export const VenueModal = ({
 					) : null}
 				</Group>
 
+				<Divider label="Details" labelPosition="left" />
+				<Group gap={6} wrap="wrap">
+					<Badge
+						size="xs"
+						variant="light"
+						color={detail?.orderingEnabled ? "teal" : "gray"}
+					>
+						{detail?.orderingEnabled ? "ordering enabled" : "ordering off"}
+					</Badge>
+					{detail?.canPlaceOrder ? (
+						<Badge size="xs" variant="light" color="teal">
+							app orders
+						</Badge>
+					) : null}
+					{detail?.comingSoon ? (
+						<Badge size="xs" variant="light" color="grape">
+							coming soon
+						</Badge>
+					) : null}
+					{detail?.employeeDiscountAllowed ? (
+						<Badge size="xs" variant="light" color="blue">
+							staff discount
+						</Badge>
+					) : null}
+					{detail?.isClosed ? (
+						<Badge size="xs" variant="light" color="red">
+							marked closed
+						</Badge>
+					) : null}
+					{(detail?.salesAreas ?? []).map((area) => (
+						<Badge size="xs" variant="light" color="gray" key={area.id}>
+							sales area: {area.name}
+						</Badge>
+					))}
+					{detail?.pricing?.includeDrink ? (
+						<Badge size="xs" variant="light" color="gray">
+							meal-deal drink +
+							{money(detail.pricing.includeDrink.offset ?? 0, currency)}
+							{detail.pricing.includeDrink.wineOffset != null
+								? ` (wine +${money(detail.pricing.includeDrink.wineOffset, currency)})`
+								: ""}
+						</Badge>
+					) : null}
+					{detail?.closureDates ? (
+						<Badge size="xs" variant="light" color="orange">
+							closure dates: {JSON.stringify(detail.closureDates)}
+						</Badge>
+					) : null}
+				</Group>
+				{entry.menus.length ? (
+					<Text size="xs" c="dimmed">
+						Menus here: {entry.menus.map((menu) => menu.name).join(", ")}
+					</Text>
+				) : null}
+				<Group gap="md" wrap="wrap">
+					{detail?.allergensUrl ? (
+						<Text size="sm">
+							🧾{" "}
+							<a href={detail.allergensUrl} target="_blank" rel="noreferrer">
+								Allergen information
+							</a>
+						</Text>
+					) : null}
+					{detail?.menuUrl?.dairyFree ? (
+						<Text size="sm">
+							🥛{" "}
+							<a
+								href={detail.menuUrl.dairyFree}
+								target="_blank"
+								rel="noreferrer"
+							>
+								dairy-free menu
+							</a>
+						</Text>
+					) : null}
+					{detail?.menuUrl?.glutenFree ? (
+						<Text size="sm">
+							🌾{" "}
+							<a
+								href={detail.menuUrl.glutenFree}
+								target="_blank"
+								rel="noreferrer"
+							>
+								gluten-free menu
+							</a>
+						</Text>
+					) : null}
+				</Group>
 				{rows.length ? (
 					<>
 						<Divider
@@ -342,6 +446,21 @@ export const VenueModal = ({
 								onChange={(value) => setSort(value as Sort)}
 							/>
 						</Group>
+						<Chip.Group
+							value={menuFilter}
+							onChange={(value) => {
+								setMenuFilter(value as string | null);
+								setLimit(PAGE);
+							}}
+						>
+							<Group gap={4}>
+								{menus.map((menu) => (
+									<Chip key={menu} size="xs" value={menu}>
+										{menu}
+									</Chip>
+								))}
+							</Group>
+						</Chip.Group>
 						<Box>
 							{filtered.slice(0, limit).map((row) => {
 								const group = `${row.menu} · ${row.category}`;
@@ -367,9 +486,16 @@ export const VenueModal = ({
 											wrap="nowrap"
 											style={{ padding: "4px 0" }}
 										>
-											<Box style={{ minWidth: 0 }}>
+											<UnstyledButton
+												style={{ minWidth: 0, textAlign: "left" }}
+												onClick={() =>
+													setExpanded((current) =>
+														current === row.name ? null : row.name,
+													)
+												}
+											>
 												<Text size="sm" lineClamp={1}>
-													{row.name}
+													{expanded === row.name ? "▾" : "▸"} {row.name}
 												</Text>
 												<Text size="xs" c="dimmed" lineClamp={1}>
 													{[
@@ -379,7 +505,7 @@ export const VenueModal = ({
 														.filter(Boolean)
 														.join(" · ")}
 												</Text>
-											</Box>
+											</UnstyledButton>
 											<Group gap={8} wrap="nowrap">
 												{row.portions.map(([label, price]) => (
 													<Text size="xs" key={label}>
@@ -422,6 +548,23 @@ export const VenueModal = ({
 												</Tooltip>
 											</Group>
 										</Group>
+										{expanded === row.name ? (
+											<Box ml={10} mt={2} mb={4}>
+												<ItemFacts
+													def={cache.items[row.name] ?? null}
+													showOptions
+												/>
+												<Group gap="xs" mt={4}>
+													<Button
+														size="compact-xs"
+														variant="light"
+														onClick={() => onItem(row.name)}
+													>
+														Full details & best value
+													</Button>
+												</Group>
+											</Box>
+										) : null}
 									</Box>
 								);
 							})}
