@@ -14,7 +14,7 @@ import {
 	useMantineColorScheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { Beer, Copy, Moon, Settings, Sun } from "lucide-react";
+import { Beer, Copy, Moon, Settings, Sun, Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
 	type BasketItem,
@@ -64,7 +64,7 @@ import { metricText } from "./portions";
 import { makeScale, median, money } from "./price";
 import { canConvertTo, convert, currencyChoices, useRates } from "./rates";
 import { useSettings } from "./settings";
-import type { MapPoint, PricedVenue } from "./types";
+import type { Formatter, MapPoint, PricedVenue } from "./types";
 import { readUrl, shareUrl, writeUrl } from "./url";
 import { useDataset } from "./useDataset";
 
@@ -76,6 +76,7 @@ export const App = () => {
 	const { data, error, loading } = useDataset();
 	const { colorScheme, setColorScheme } = useMantineColorScheme();
 	const isMobile = useMediaQuery("(max-width: 62em)");
+	const isNarrow = useMediaQuery("(max-width: 30em)");
 	const [settings, setSettings] = useSettings();
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const {
@@ -113,7 +114,11 @@ export const App = () => {
 	const [onlyComplete, setOnlyComplete] = useState(
 		url.complete ?? settings.onlyComplete,
 	);
-	const [cleared, setCleared] = useState<BasketItem[] | null>(null);
+	const [undo, setUndo] = useState<{
+		basket: BasketItem[];
+		text: string;
+	} | null>(null);
+	const [itemFromVenue, setItemFromVenue] = useState<number | null>(null);
 	const [itemModal, setItemModal] = useState<string | null>(null);
 	const [valueOpen, setValueOpen] = useState(false);
 	const [venueRef, setVenueRef] = useState<number | null>(url.venue ?? null);
@@ -178,7 +183,7 @@ export const App = () => {
 	const singleName =
 		resolvedBasket.length === 1 ? (resolvedBasket[0]?.name ?? null) : null;
 	const updateBasket = (update: (current: BasketItem[]) => BasketItem[]) => {
-		setCleared(null);
+		setUndo(null);
 		setBasket((current) =>
 			update(current ?? (fallbackName ? [{ name: fallbackName, qty: 1 }] : [])),
 		);
@@ -196,7 +201,15 @@ export const App = () => {
 		});
 
 	const onlyItem = (name: string) => {
-		setCleared(null);
+		const already =
+			resolvedBasket.length === 1 &&
+			resolvedBasket[0]?.name === name &&
+			resolvedBasket[0]?.qty === 1;
+		if (already || !resolvedBasket.length) {
+			setUndo(null);
+		} else {
+			setUndo({ basket: resolvedBasket, text: "Round replaced" });
+		}
 		setBasket([{ name, qty: 1 }]);
 		setView("pubs");
 	};
@@ -241,22 +254,52 @@ export const App = () => {
 		if (!(converting && convertTo)) {
 			return nativeVenues;
 		}
-		return priced.map((venue) => ({
-			...venue,
-			price: convert(venue.price, venue.currency, convertTo, rates),
-			previousPrice:
-				venue.previousPrice != null
-					? convert(venue.previousPrice, venue.currency, convertTo, rates)
-					: null,
-			lines: venue.lines.map((line) => ({
-				...line,
-				price: convert(line.price, venue.currency, convertTo, rates),
-			})),
-			currency: convertTo,
-		}));
+		return priced.map((venue) => {
+			const rate = convert(1, venue.currency, convertTo, rates);
+			return {
+				...venue,
+				price: convert(venue.price, venue.currency, convertTo, rates),
+				previousPrice:
+					venue.previousPrice != null
+						? convert(venue.previousPrice, venue.currency, convertTo, rates)
+						: null,
+				// kcal/£ and £/unit both scale with the currency
+				metricValue:
+					venue.metricValue == null
+						? null
+						: venue.metricKind === "calorie"
+							? venue.metricValue / rate
+							: venue.metricValue * rate,
+				lines: venue.lines.map((line) => ({
+					...line,
+					price: convert(line.price, venue.currency, convertTo, rates),
+				})),
+				currency: convertTo,
+			};
+		});
 	}, [converting, convertTo, priced, nativeVenues, rates]);
 	const displayCurrency =
 		converting && convertTo ? convertTo : effectiveCurrency;
+
+	// one place that knows how to show a price/metric in the display currency
+	const targetCurrency = converting && convertTo ? convertTo : null;
+	const format = useMemo<Formatter>(
+		() => ({
+			money: (value, from) =>
+				targetCurrency
+					? money(convert(value, from, targetCurrency, rates), targetCurrency)
+					: money(value, from),
+			metric: (kind, value, from) => {
+				if (!targetCurrency) {
+					return metricText({ kind, value }, from);
+				}
+				const rate = convert(1, from, targetCurrency, rates);
+				const converted = kind === "calorie" ? value / rate : value * rate;
+				return metricText({ kind, value: converted }, targetCurrency);
+			},
+		}),
+		[targetCurrency, rates],
+	);
 
 	// only compare pubs that can serve every item of the round
 	const completeVenues = useMemo(
@@ -707,7 +750,7 @@ export const App = () => {
 				<Group gap="xs" wrap="nowrap">
 					{converting ? (
 						<Badge variant="light" color="blue" size="lg">
-							converted → {displayCurrency}
+							{isNarrow ? displayCurrency : `converted → ${displayCurrency}`}
 						</Badge>
 					) : null}
 					<Badge variant="light" size="lg" visibleFrom="md">
@@ -716,25 +759,48 @@ export const App = () => {
 					<Box visibleFrom="md" w={220}>
 						<PubSearch venues={data.venueList} onSelect={setVenueRef} />
 					</Box>
-					<Tooltip label="Find the cheapest alcohol per unit, calories per £…">
-						<Button
-							size="xs"
-							variant="default"
-							onClick={() => setValueOpen(true)}
-						>
-							Best value
-						</Button>
+					<Tooltip label="Cheapest alcohol per unit, calories per £…">
+						{isNarrow ? (
+							<ActionIcon
+								variant="default"
+								size="lg"
+								aria-label="Value charts"
+								onClick={() => setValueOpen(true)}
+							>
+								<Trophy size={16} />
+							</ActionIcon>
+						) : (
+							<Button
+								size="xs"
+								variant="default"
+								onClick={() => setValueOpen(true)}
+							>
+								Value charts
+							</Button>
+						)}
 					</Tooltip>
 					<Tooltip label={copied ? "Link copied" : "Copy a link to this view"}>
-						<Button
-							size="xs"
-							variant={copied ? "filled" : "default"}
-							color={copied ? "teal" : undefined}
-							leftSection={<Copy size={14} />}
-							onClick={copyShare}
-						>
-							{copied ? "Copied" : "Share"}
-						</Button>
+						{isNarrow ? (
+							<ActionIcon
+								variant={copied ? "filled" : "default"}
+								color={copied ? "teal" : undefined}
+								size="lg"
+								aria-label="Share"
+								onClick={copyShare}
+							>
+								<Copy size={16} />
+							</ActionIcon>
+						) : (
+							<Button
+								size="xs"
+								variant={copied ? "filled" : "default"}
+								color={copied ? "teal" : undefined}
+								leftSection={<Copy size={14} />}
+								onClick={copyShare}
+							>
+								{copied ? "Copied" : "Share"}
+							</Button>
+						)}
 					</Tooltip>
 					<Tooltip label="Settings">
 						<ActionIcon
@@ -804,17 +870,18 @@ export const App = () => {
 								)
 							}
 							onClear={() => {
-								setCleared(resolvedBasket);
+								setUndo({ basket: resolvedBasket, text: "Round cleared" });
 								setBasket([]);
 							}}
 							onUndo={
-								cleared
+								undo
 									? () => {
-											setBasket(cleared);
-											setCleared(null);
+											setBasket(undo.basket);
+											setUndo(null);
 										}
 									: null
 							}
+							undoText={undo?.text ?? null}
 							currencies={converting ? [] : currencies}
 							currency={displayCurrency}
 							onCurrency={(currency) => {
@@ -888,7 +955,10 @@ export const App = () => {
 												variant="subtle"
 												color="red"
 												onClick={() => {
-													setCleared(resolvedBasket);
+													setUndo({
+														basket: resolvedBasket,
+														text: "Round cleared",
+													});
 													setBasket([]);
 												}}
 											>
@@ -955,8 +1025,7 @@ export const App = () => {
 									fresh={fresh}
 									sellers={sellers}
 									onSelect={(name) => {
-										setBasket([{ name, qty: 1 }]);
-										setView("pubs");
+										onlyItem(name);
 										setFocused(null);
 									}}
 								/>
@@ -996,6 +1065,7 @@ export const App = () => {
 						onArea={openArea}
 						area={areaFilter}
 						onClearArea={() => setAreaFilter(null)}
+						compact={isMobile}
 						view={view}
 						onView={setView}
 						countLabel={
@@ -1019,20 +1089,39 @@ export const App = () => {
 				cache={data}
 				onSelectItem={onlyItem}
 				onAddItem={addToRound}
-				onItem={(name) => setItemModal(name)}
+				onItem={(name) => {
+					setVenueRef(null);
+					setItemFromVenue(venueRef);
+					setItemModal(name);
+				}}
+				format={format}
 			/>
 
 			<ItemModal
 				opened={itemModal != null}
-				onClose={() => setItemModal(null)}
+				onClose={() => {
+					setItemModal(null);
+					setItemFromVenue(null);
+				}}
 				itemName={itemModal}
 				cache={data}
 				onAdd={addToRound}
 				onOnly={onlyItem}
 				onVenue={(ref) => {
 					setItemModal(null);
+					setItemFromVenue(null);
 					setVenueRef(ref);
 				}}
+				format={format}
+				onBack={
+					itemFromVenue != null
+						? () => {
+								setItemModal(null);
+								setVenueRef(itemFromVenue);
+								setItemFromVenue(null);
+							}
+						: undefined
+				}
 			/>
 
 			<ValueExplorer
@@ -1047,6 +1136,7 @@ export const App = () => {
 					setValueOpen(false);
 					setVenueRef(ref);
 				}}
+				format={format}
 			/>
 
 			<SettingsModal

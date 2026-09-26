@@ -19,7 +19,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SPOT_META, venueImages, venueSpot, venueValues } from "../derive";
 import { metricText, portionLabel, portionRank } from "../portions";
 import { amount, currencySymbol, money } from "../price";
-import type { SpoonersCache } from "../types";
+import type { Formatter, SpoonersCache } from "../types";
 import { ItemFacts } from "./ItemFacts";
 import { VenueImage } from "./VenueImage";
 
@@ -62,6 +62,7 @@ type Props = {
 	onAddItem: (name: string) => void;
 	/** Open the full item detail modal. */
 	onItem: (name: string) => void;
+	format?: Formatter;
 };
 
 const PAGE = 100;
@@ -75,6 +76,7 @@ export const VenueModal = ({
 	onSelectItem,
 	onAddItem,
 	onItem,
+	format,
 }: Props) => {
 	const [query, setQuery] = useState("");
 	const [sort, setSort] = useState<Sort>("menu");
@@ -167,7 +169,7 @@ export const VenueModal = ({
 		return [...list].sort((a, b) =>
 			sort === "cheapest" ? a.from - b.from : b.from - a.from,
 		);
-	}, [rows, query, sort]);
+	}, [rows, query, sort, menuFilter]);
 
 	if (!entry) {
 		return (
@@ -351,6 +353,74 @@ export const VenueModal = ({
 					) : null}
 				</Group>
 
+				{calorieRows.length || unitRows.length ? (
+					<>
+						<Divider label="Best value here" labelPosition="left" />
+						<Group align="flex-start" gap="xl" wrap="wrap">
+							<Stack gap={2} style={{ minWidth: 220, flex: 1 }}>
+								<Text size="xs" c="dimmed" fw={700} tt="uppercase">
+									Most calories per £
+								</Text>
+								{calorieRows.map((row) => (
+									<UnstyledButton
+										key={row.name}
+										onClick={() => onItem(row.name)}
+									>
+										<Group justify="space-between" gap={8} wrap="nowrap">
+											<Text size="sm" lineClamp={1}>
+												{row.name}
+											</Text>
+											<Text size="sm" fw={700}>
+												{format
+													? format.metric("calorie", row.value, currency)
+													: metricText(
+															{ kind: "calorie", value: row.value },
+															currency,
+														)}
+											</Text>
+										</Group>
+									</UnstyledButton>
+								))}
+								{calorieRows.length ? null : (
+									<Text size="xs" c="dimmed">
+										No calorie data.
+									</Text>
+								)}
+							</Stack>
+							<Stack gap={2} style={{ minWidth: 220, flex: 1 }}>
+								<Text size="xs" c="dimmed" fw={700} tt="uppercase">
+									Cheapest per alcohol unit
+								</Text>
+								{unitRows.map((row) => (
+									<UnstyledButton
+										key={row.name}
+										onClick={() => onItem(row.name)}
+									>
+										<Group justify="space-between" gap={8} wrap="nowrap">
+											<Text size="sm" lineClamp={1}>
+												{row.name}
+											</Text>
+											<Text size="sm" fw={700}>
+												{format
+													? format.metric("unit", row.value, currency)
+													: metricText(
+															{ kind: "unit", value: row.value },
+															currency,
+														)}
+											</Text>
+										</Group>
+									</UnstyledButton>
+								))}
+								{unitRows.length ? null : (
+									<Text size="xs" c="dimmed">
+										No alcohol data.
+									</Text>
+								)}
+							</Stack>
+						</Group>
+					</>
+				) : null}
+
 				<Divider label="Details" labelPosition="left" />
 				<Group gap={6} wrap="wrap">
 					<Badge
@@ -387,10 +457,13 @@ export const VenueModal = ({
 					))}
 					{detail?.pricing?.includeDrink ? (
 						<Badge size="xs" variant="light" color="gray">
-							meal-deal drink +
+							Meal deal: any drink +
 							{money(detail.pricing.includeDrink.offset ?? 0, currency)}
 							{detail.pricing.includeDrink.wineOffset != null
-								? ` (wine +${money(detail.pricing.includeDrink.wineOffset, currency)})`
+								? `, wine +${money(
+										detail.pricing.includeDrink.wineOffset,
+										currency,
+									)}`
 								: ""}
 						</Badge>
 					) : null}
@@ -439,70 +512,6 @@ export const VenueModal = ({
 						</Text>
 					) : null}
 				</Group>
-				{calorieRows.length || unitRows.length ? (
-					<>
-						<Divider label="Best value here" labelPosition="left" />
-						<Group align="flex-start" gap="xl" wrap="wrap">
-							<Stack gap={2} style={{ minWidth: 220, flex: 1 }}>
-								<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-									Most calories per £
-								</Text>
-								{calorieRows.map((row) => (
-									<UnstyledButton
-										key={row.name}
-										onClick={() => onItem(row.name)}
-									>
-										<Group justify="space-between" gap={8} wrap="nowrap">
-											<Text size="sm" lineClamp={1}>
-												{row.name}
-											</Text>
-											<Text size="sm" fw={700}>
-												{metricText(
-													{ kind: "calorie", value: row.value },
-													currency,
-												)}
-											</Text>
-										</Group>
-									</UnstyledButton>
-								))}
-								{calorieRows.length ? null : (
-									<Text size="xs" c="dimmed">
-										No calorie data.
-									</Text>
-								)}
-							</Stack>
-							<Stack gap={2} style={{ minWidth: 220, flex: 1 }}>
-								<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-									Cheapest per alcohol unit
-								</Text>
-								{unitRows.map((row) => (
-									<UnstyledButton
-										key={row.name}
-										onClick={() => onItem(row.name)}
-									>
-										<Group justify="space-between" gap={8} wrap="nowrap">
-											<Text size="sm" lineClamp={1}>
-												{row.name}
-											</Text>
-											<Text size="sm" fw={700}>
-												{metricText(
-													{ kind: "unit", value: row.value },
-													currency,
-												)}
-											</Text>
-										</Group>
-									</UnstyledButton>
-								))}
-								{unitRows.length ? null : (
-									<Text size="xs" c="dimmed">
-										No alcohol data.
-									</Text>
-								)}
-							</Stack>
-						</Group>
-					</>
-				) : null}
-
 				{rows.length ? (
 					<>
 						<Divider
@@ -638,6 +647,7 @@ export const VenueModal = ({
 												<ItemFacts
 													def={cache.items[row.name] ?? null}
 													showOptions
+													format={format}
 												/>
 												<Group gap="xs" mt={4}>
 													<Button

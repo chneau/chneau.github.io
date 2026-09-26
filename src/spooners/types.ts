@@ -313,6 +313,13 @@ export type PricedVenue = {
 
 export type ValueKind = "unit" | "volume" | "calorie";
 
+/** Currency-aware formatting shared by the modals. */
+export type Formatter = {
+	money: (value: number, currency: string) => string;
+	/** Converts a value metric into the display currency before formatting. */
+	metric: (kind: ValueKind, value: number, currency: string) => string;
+};
+
 /**
  * The minimum a map marker needs. `PricedVenue` satisfies it directly, and the
  * round calculator / area league map their own rows onto it.

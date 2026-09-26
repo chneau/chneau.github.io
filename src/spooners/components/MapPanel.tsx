@@ -8,8 +8,8 @@ import {
 	Text,
 } from "@mantine/core";
 import type { Map as LeafletMap } from "leaflet";
-import { Crosshair, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { Crosshair, Info, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import {
 	CircleMarker,
 	MapContainer,
@@ -228,6 +228,8 @@ type Props = {
 	onArea?: (name: string) => void;
 	/** County/town currently drilled into, shown next to the mode switch. */
 	area?: string | null;
+	/** Collapse the legend by default (phones). */
+	compact?: boolean;
 	onClearArea?: () => void;
 	countLabel?: string;
 	/** What the circle colour represents, e.g. "Guinness · Pint" or "4-item round". */
@@ -252,6 +254,7 @@ export const MapPanel = ({
 	onArea,
 	area,
 	onClearArea,
+	compact,
 	countLabel,
 	legendLabel,
 	median,
@@ -260,6 +263,7 @@ export const MapPanel = ({
 	initialView,
 }: Props) => {
 	const mapRef = useRef<LeafletMap | null>(null);
+	const [legendOpen, setLegendOpen] = useState(!compact);
 
 	return (
 		<Box
@@ -425,63 +429,90 @@ export const MapPanel = ({
 				</MTooltip>
 			</Group>
 
-			{/* overlay: price legend */}
-			<Box
-				style={{
-					position: "absolute",
-					bottom: 12,
-					left: 12,
-					zIndex: 800,
-					width: 190,
-					padding: "8px 10px",
-					borderRadius: 8,
-					background: "var(--mantine-color-body)",
-					border: "1px solid var(--mantine-color-default-border)",
-					boxShadow: "var(--mantine-shadow-sm)",
-				}}
-			>
-				<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-					{view === "area" ? "Area median" : "Price"}
-				</Text>
-				{legendLabel ? (
-					<Text size="xs" c="dimmed" lineClamp={1}>
-						circle = {legendLabel}
-					</Text>
-				) : null}
+			{/* overlay: price legend (collapsible on phones) */}
+			{compact && !legendOpen ? (
+				<ActionIcon
+					variant="default"
+					size="lg"
+					aria-label="Show map legend"
+					style={{ position: "absolute", bottom: 12, left: 12, zIndex: 800 }}
+					onClick={() => setLegendOpen(true)}
+				>
+					<Info size={16} />
+				</ActionIcon>
+			) : (
 				<Box
 					style={{
-						height: 6,
-						borderRadius: 999,
-						marginTop: 4,
-						background: `linear-gradient(90deg, ${priceColor(
-							scale.min,
-							scale,
-						)}, ${priceColor(
-							(scale.min + scale.max) / 2,
-							scale,
-						)}, ${priceColor(scale.max, scale)})`,
+						position: "absolute",
+						bottom: 12,
+						left: 12,
+						zIndex: 800,
+						width: 190,
+						padding: "8px 10px",
+						borderRadius: 8,
+						background: "var(--mantine-color-body)",
+						border: "1px solid var(--mantine-color-default-border)",
+						boxShadow: "var(--mantine-shadow-sm)",
 					}}
-				/>
-				<Group justify="space-between" mt={2}>
-					<Text size="xs">cheaper</Text>
-					<Text size="xs">dearer</Text>
-				</Group>
-				{median != null ? (
-					<Text size="xs" c="dimmed">
-						median {money(median, currency)}
+				>
+					<Text size="xs" c="dimmed" fw={700} tt="uppercase">
+						{view === "area" ? "Area median" : "Price"}
 					</Text>
-				) : null}
-				{hiddenCount ? (
+					{legendLabel ? (
+						<Text size="xs" c="dimmed" lineClamp={1}>
+							circle = {legendLabel}
+						</Text>
+					) : null}
+					<Box
+						style={{
+							height: 6,
+							borderRadius: 999,
+							marginTop: 4,
+							background: `linear-gradient(90deg, ${priceColor(
+								scale.min,
+								scale,
+							)}, ${priceColor(
+								(scale.min + scale.max) / 2,
+								scale,
+							)}, ${priceColor(scale.max, scale)})`,
+						}}
+					/>
+					<Group justify="space-between" mt={2}>
+						<Text size="xs">cheaper</Text>
+						<Text size="xs">dearer</Text>
+					</Group>
 					<Text size="xs" c="dimmed">
-						{hiddenCount} hidden by round/filters
+						size &amp; colour = price
 					</Text>
-				) : null}
-				{unpriced?.length ? (
-					<Text size="xs" c="dimmed">
-						○ {unpriced.length} no menu
-					</Text>
-				) : null}
-			</Box>
+					{median != null ? (
+						<Text size="xs" c="dimmed">
+							median {money(median, currency)}
+						</Text>
+					) : null}
+					{hiddenCount ? (
+						<Text size="xs" c="dimmed">
+							{hiddenCount} hidden by round/filters
+						</Text>
+					) : null}
+					{unpriced?.length ? (
+						<Text size="xs" c="dimmed">
+							○ {unpriced.length} no menu
+						</Text>
+					) : null}
+					{compact ? (
+						<ActionIcon
+							variant="subtle"
+							color="gray"
+							size="xs"
+							aria-label="Hide map legend"
+							style={{ position: "absolute", top: 4, right: 4 }}
+							onClick={() => setLegendOpen(false)}
+						>
+							<X size={12} />
+						</ActionIcon>
+					) : null}
+				</Box>
+			)}
 		</Box>
 	);
 };

@@ -331,21 +331,16 @@ export const valueDirection = (kind: ValueKind): 1 | -1 =>
 
 export const metricText = (value: Value, currency = "GBP"): string => {
 	if (value.kind === "unit") {
-		return `${currencySymbol(currency)}${amount(value.value, currency)}/unit`;
+		return `${currencySymbol(currency)}${amount(
+			value.value,
+			currency,
+		)} / alcohol unit`;
 	}
 	if (value.kind === "volume") {
-		return `${currencySymbol(currency)}${amount(value.value, currency)}/100ml`;
+		return `${currencySymbol(currency)}${amount(
+			value.value,
+			currency,
+		)} / 100 ml`;
 	}
-	return `${Math.round(value.value)} kcal/${currencySymbol(currency)}`;
-};
-
-/** The metric name, e.g. "per alcohol unit" / "per 100 ml" / "calories per £". */
-export const metricLabel = (kind: ValueKind): string => {
-	if (kind === "unit") {
-		return "per alcohol unit";
-	}
-	if (kind === "volume") {
-		return "per 100 ml";
-	}
-	return "calories per £";
+	return `${Math.round(value.value)} kcal / ${currencySymbol(currency)}`;
 };
