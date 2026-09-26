@@ -228,82 +228,98 @@ export const VenueModal = ({
 					) : null}
 				</Group>
 
-				<Divider label={`Menu (${rows.length} items)`} labelPosition="left" />
-				<TextInput
-					size="xs"
-					placeholder="Filter this pub's menu…"
-					value={query}
-					onChange={(event) => setQuery(event.currentTarget.value)}
-				/>
-				<Box>
-					{filtered.map((row) => {
-						const group = `${row.menu} · ${row.category}`;
-						const header = group !== lastGroup ? group : null;
-						lastGroup = group;
-						return (
-							<Box key={row.name}>
-								{header ? (
-									<Text
-										size="xs"
-										fw={700}
-										c="dimmed"
-										tt="uppercase"
-										mt="sm"
-										mb={2}
-									>
-										{header}
-									</Text>
-								) : null}
-								<UnstyledButton
-									onClick={() => {
-										onSelectItem(row.name);
-										onClose();
-									}}
-									style={{
-										display: "block",
-										width: "100%",
-										padding: "4px 6px",
-										borderRadius: 6,
-									}}
-								>
-									<Group justify="space-between" gap={8} wrap="nowrap">
-										<Box style={{ minWidth: 0 }}>
-											<Text size="sm" lineClamp={1}>
-												{row.name}
+				{rows.length ? (
+					<>
+						<Divider
+							label={`Menu (${rows.length} items)`}
+							labelPosition="left"
+						/>
+						<TextInput
+							size="xs"
+							placeholder="Filter this pub's menu…"
+							value={query}
+							onChange={(event) => setQuery(event.currentTarget.value)}
+						/>
+						<Box>
+							{filtered.map((row) => {
+								const group = `${row.menu} · ${row.category}`;
+								const header = group !== lastGroup ? group : null;
+								lastGroup = group;
+								return (
+									<Box key={row.name}>
+										{header ? (
+											<Text
+												size="xs"
+												fw={700}
+												c="dimmed"
+												tt="uppercase"
+												mt="sm"
+												mb={2}
+											>
+												{header}
 											</Text>
-											<Text size="xs" c="dimmed" lineClamp={1}>
-												{[
-													row.calories ? `${row.calories} kcal` : null,
-													...row.badges,
-												]
-													.filter(Boolean)
-													.join(" · ")}
-											</Text>
-										</Box>
-										<Group gap={8} wrap="nowrap">
-											{row.portions.map(([label, price]) => (
-												<Text size="xs" key={label}>
-													<Text span c="dimmed">
-														{portionLabel(label)}{" "}
+										) : null}
+										<UnstyledButton
+											onClick={() => {
+												onSelectItem(row.name);
+												onClose();
+											}}
+											style={{
+												display: "block",
+												width: "100%",
+												padding: "4px 6px",
+												borderRadius: 6,
+											}}
+										>
+											<Group justify="space-between" gap={8} wrap="nowrap">
+												<Box style={{ minWidth: 0 }}>
+													<Text size="sm" lineClamp={1}>
+														{row.name}
 													</Text>
-													<Text span fw={700}>
-														{currencySymbol(currency)}
-														{amount(price, currency)}
+													<Text size="xs" c="dimmed" lineClamp={1}>
+														{[
+															row.calories ? `${row.calories} kcal` : null,
+															...row.badges,
+														]
+															.filter(Boolean)
+															.join(" · ")}
 													</Text>
-												</Text>
-											))}
-										</Group>
-									</Group>
-								</UnstyledButton>
-							</Box>
-						);
-					})}
-					{filtered.length ? null : (
+												</Box>
+												<Group gap={8} wrap="nowrap">
+													{row.portions.map(([label, price]) => (
+														<Text size="xs" key={label}>
+															<Text span c="dimmed">
+																{portionLabel(label)}{" "}
+															</Text>
+															<Text span fw={700}>
+																{currencySymbol(currency)}
+																{amount(price, currency)}
+															</Text>
+														</Text>
+													))}
+												</Group>
+											</Group>
+										</UnstyledButton>
+									</Box>
+								);
+							})}
+							{filtered.length ? null : (
+								<Text size="sm" c="dimmed">
+									Nothing matched.
+								</Text>
+							)}
+						</Box>
+					</>
+				) : (
+					<>
+						<Divider label="Menu" labelPosition="left" />
 						<Text size="sm" c="dimmed">
-							Nothing matched.
+							This pub's menu is not published by the API, so there are no
+							prices to show. The address, hours and facilities above still
+							apply.
 						</Text>
-					)}
-				</Box>
+					</>
+				)}
 			</Stack>
 		</Modal>
 	);

@@ -304,3 +304,25 @@ export type MapPoint = {
 	previousPrice?: number | null;
 	previousAt?: string | null;
 };
+
+/** A pub we know about but have no prices for (menu not published by the API). */
+export type SparseVenue = {
+	ref: number;
+	name: string;
+	lat: number;
+	lng: number;
+	town: string | null;
+	county: string | null;
+	postcode: string | null;
+	spot: VenueSpot;
+	status: string | null;
+	isClosed: boolean;
+	isOpenNow: boolean;
+	hoursToday: string | null;
+	facilities: string[];
+	phone: string | null;
+	currency: string;
+	/** Why there are no prices, e.g. "no menus" or "no sales areas". */
+	reason: string | null;
+	distance?: number;
+};
