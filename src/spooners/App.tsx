@@ -6,65 +6,36 @@ import {
 	Grid,
 	Group,
 	Loader,
-	Select,
+	SegmentedControl,
 	Stack,
 	Text,
 	Title,
 } from "@mantine/core";
 import { useMemo, useState } from "react";
+import { ItemPicker } from "./components/ItemPicker";
 import { PriceDistribution } from "./components/PriceDistribution";
 import { PriceMap } from "./components/PriceMap";
 import { PriceRanks } from "./components/PriceRanks";
+import {
+	buildItemIndex,
+	cacheStats,
+	commonPortion,
+	portionsFor,
+	pricedVenues,
+} from "./derive";
 import { makeScale, median, money, priceColor } from "./price";
-import type { PricedVenue, SpoonersDataset, SpoonersItem } from "./types";
+import type { ItemInfo, PricedVenue } from "./types";
 import { useDataset } from "./useDataset";
 
 const DEFAULT_ITEM_HINT = "guinness";
 
-const pickDefaultItemId = (dataset: SpoonersDataset): string | null => {
-	const byName = dataset.items.find((item) =>
-		item.name.toLowerCase().includes(DEFAULT_ITEM_HINT),
-	);
-	if (byName) {
-		return String(byName.id);
-	}
-	const mostAvailable = Object.keys(dataset.itemAvailability)[0];
-	const match = dataset.items.find((item) => item.name === mostAvailable);
-	return match
-		? String(match.id)
-		: dataset.items[0]
-			? String(dataset.items[0].id)
-			: null;
-};
-
-const groupedOptions = (dataset: SpoonersDataset) => {
-	const groups = new Map<string, SpoonersItem[]>();
-	for (const item of dataset.items) {
-		const key = item.menu ?? "Other";
-		const list = groups.get(key);
-		if (list) {
-			list.push(item);
-		} else {
-			groups.set(key, [item]);
-		}
-	}
-	return [...groups.entries()].map(([group, items]) => ({
-		group,
-		items: items
-			.sort(
-				(a, b) =>
-					(dataset.itemAvailability[b.name] ?? 0) -
-					(dataset.itemAvailability[a.name] ?? 0),
-			)
-			.map((item) => {
-				const availability = dataset.itemAvailability[item.name] ?? 0;
-				const suffix = item.portion ? ` · ${item.portion}` : "";
-				return {
-					value: String(item.id),
-					label: `${item.name}${suffix} (${availability})`,
-				};
-			}),
-	}));
+/** Badge/flag keywords only - the rest are internal codes like "AL::gluten". */
+const itemBadges = (item: ItemInfo): string[] => {
+	const labels = item.keywords
+		.filter((keyword) => keyword.isFlag || keyword.isBadge)
+		.map((keyword) => keyword.label ?? keyword.name)
+		.filter((label): label is string => Boolean(label));
+	return [...new Set(labels)];
 };
 
 const Stat = ({
@@ -117,50 +88,62 @@ const Legend = ({
 
 export const App = () => {
 	const { data, error, loading } = useDataset();
-	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const [selectedName, setSelectedName] = useState<string | null>(null);
+	const [selectedPortion, setSelectedPortion] = useState<string | null>(null);
 	const [focused, setFocused] = useState<PricedVenue | null>(null);
 
-	const effectiveId = selectedId ?? (data ? pickDefaultItemId(data) : null);
+	const index = useMemo(() => (data ? buildItemIndex(data) : []), [data]);
+	const stats = useMemo(
+		() =>
+			data
+				? cacheStats(data)
+				: { venues: 0, venuesWithData: 0, items: 0, updatedAt: null },
+		[data],
+	);
+	const effectiveName =
+		selectedName ??
+		index.find((item) => item.name.toLowerCase().includes(DEFAULT_ITEM_HINT))
+			?.name ??
+		index[0]?.name ??
+		null;
 
-	const priced = useMemo(() => {
-		if (!data || !effectiveId) {
-			return [] as PricedVenue[];
-		}
-		const itemId = Number(effectiveId);
-		const venues: PricedVenue[] = [];
-		for (const venue of data.venues) {
-			const pair = venue.prices.find(([id]) => id === itemId);
-			if (!pair) {
-				continue;
-			}
-			venues.push({
-				ref: venue.ref,
-				name: venue.name,
-				lat: venue.lat,
-				lng: venue.lng,
-				town: venue.town,
-				postcode: venue.postcode,
-				isClosed: Boolean(venue.isClosed),
-				price: pair[1],
-			});
-		}
-		return venues;
-	}, [data, effectiveId]);
+	const selectedItem = useMemo(
+		() => index.find((item) => item.name === effectiveName) ?? null,
+		[index, effectiveName],
+	);
 
-	const scale = useMemo(() => makeScale(priced.map((v) => v.price)), [priced]);
-	const options = useMemo(() => (data ? groupedOptions(data) : []), [data]);
-	const selectedItem = useMemo(() => {
-		if (!data || !effectiveId) {
+	// portions any venue uses for this item, and the one currently priced
+	const portions = useMemo(
+		() => (data && effectiveName ? portionsFor(data, effectiveName) : []),
+		[data, effectiveName],
+	);
+	const defaultPortion = useMemo(() => {
+		if (!data || !effectiveName) {
 			return null;
 		}
-		return data.items.find((item) => String(item.id) === effectiveId) ?? null;
-	}, [data, effectiveId]);
+		return (
+			commonPortion(pricedVenues(data, effectiveName)) ?? portions[0] ?? null
+		);
+	}, [data, effectiveName, portions]);
+	const effectivePortion =
+		selectedPortion && portions.includes(selectedPortion)
+			? selectedPortion
+			: defaultPortion;
+
+	const priced = useMemo(
+		() =>
+			data && effectiveName
+				? pricedVenues(data, effectiveName, effectivePortion)
+				: [],
+		[data, effectiveName, effectivePortion],
+	);
+	const scale = useMemo(() => makeScale(priced.map((v) => v.price)), [priced]);
 
 	if (loading) {
 		return (
 			<Group justify="center" py="xl">
 				<Loader />
-				<Text>Loading pub prices…</Text>
+				<Text>Loading pub prices… (a few MB)</Text>
 			</Group>
 		);
 	}
@@ -174,7 +157,8 @@ export const App = () => {
 	}
 
 	const prices = priced.map((v) => v.price);
-	const currency = data.currency;
+	const currency = "GBP";
+	const badges = selectedItem ? itemBadges(selectedItem) : [];
 
 	return (
 		<Stack gap="sm" p="md" h="100%">
@@ -189,8 +173,8 @@ export const App = () => {
 					</Text>
 				</Box>
 				<Badge variant="light" size="lg">
-					{data.venueCount} pubs · {data.itemCount} items · updated{" "}
-					{data.generatedAt.slice(0, 10)}
+					{stats.venuesWithData} pubs · {index.length} items selling
+					{stats.updatedAt ? ` · updated ${stats.updatedAt.slice(0, 10)}` : ""}
 				</Badge>
 			</Group>
 
@@ -217,28 +201,56 @@ export const App = () => {
 				<Grid.Col span={{ base: 12, lg: 4 }}>
 					<Stack gap="sm">
 						<Card withBorder padding="md" radius="md">
-							<Select
+							<ItemPicker
 								label="Item"
-								placeholder="Search for a drink or a dish…"
-								data={options}
-								value={effectiveId}
-								onChange={(value) => {
-									setSelectedId(value);
+								items={index}
+								value={effectiveName}
+								onChange={(name) => {
+									setSelectedName(name);
+									setSelectedPortion(null);
 									setFocused(null);
 								}}
-								searchable
-								clearable={false}
-								nothingFoundMessage="Nothing matched that search"
-								leftSection={<span aria-hidden>🔎</span>}
 							/>
 							{selectedItem ? (
-								<Text size="xs" c="dimmed" mt={6}>
-									{selectedItem.name}
-									{selectedItem.portion ? ` · ${selectedItem.portion}` : ""}
-									{selectedItem.description
-										? ` · ${selectedItem.description}`
-										: ""}
-								</Text>
+								<Box mt={8}>
+									<Text size="sm" fw={500}>
+										{selectedItem.category ?? "Item"}
+										{selectedItem.calories
+											? ` · ${selectedItem.calories} kcal`
+											: ""}
+									</Text>
+									{selectedItem.description ? (
+										<Text size="xs" c="dimmed">
+											{selectedItem.description}
+										</Text>
+									) : null}
+									{badges.length ? (
+										<Group gap={4} mt={6}>
+											{badges.map((badge) => (
+												<Badge key={badge} size="xs" variant="light">
+													{badge}
+												</Badge>
+											))}
+										</Group>
+									) : null}
+								</Box>
+							) : null}
+							{portions.length > 1 ? (
+								<Box mt="sm">
+									<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
+										Portion
+									</Text>
+									<SegmentedControl
+										size="xs"
+										fullWidth
+										value={effectivePortion ?? undefined}
+										data={portions.map((label) => ({ label, value: label }))}
+										onChange={(value) => {
+											setSelectedPortion(value);
+											setFocused(null);
+										}}
+									/>
+								</Box>
 							) : null}
 							<Legend scale={scale} currency={currency} />
 						</Card>

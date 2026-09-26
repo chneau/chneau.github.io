@@ -1,18 +1,19 @@
 import { useEffect, useState } from "react";
-import type { SpoonersDataset } from "./types";
+import type { SpoonersCache } from "./types";
 
-type DatasetState = {
-	data: SpoonersDataset | null;
+type CacheState = {
+	data: SpoonersCache | null;
 	error: string | null;
 	loading: boolean;
 };
 
 /**
- * Loads the generated dataset. It lives next to the page at
- * `/spooners/map-data.json`, so a relative fetch works in dev and on Pages.
+ * Loads the deduplicated cache, which sits next to the page at
+ * `/spooners/data.json` (copied there by the rsbuild `output.copy` config), so
+ * a relative fetch works both in dev and on Pages.
  */
-export const useDataset = (): DatasetState => {
-	const [state, setState] = useState<DatasetState>({
+export const useDataset = (): CacheState => {
+	const [state, setState] = useState<CacheState>({
 		data: null,
 		error: null,
 		loading: true,
@@ -23,13 +24,11 @@ export const useDataset = (): DatasetState => {
 
 		const load = async () => {
 			try {
-				const response = await fetch("map-data.json");
+				const response = await fetch("data.json");
 				if (!response.ok) {
-					throw new Error(
-						`Could not load the dataset (HTTP ${response.status})`,
-					);
+					throw new Error(`Could not load the data (HTTP ${response.status})`);
 				}
-				const data = (await response.json()) as SpoonersDataset;
+				const data = (await response.json()) as SpoonersCache;
 				if (!cancelled) {
 					setState({ data, error: null, loading: false });
 				}
