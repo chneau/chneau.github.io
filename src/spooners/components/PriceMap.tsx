@@ -72,9 +72,11 @@ export const PriceMap = ({
 					<Tooltip direction="top" offset={[0, -6]} opacity={1}>
 						<div style={{ fontWeight: 600 }}>{venue.name}</div>
 						<div>
-							{money(venue.price, currency)}
-							{venue.town ? ` · ${venue.town}` : ""}
+							{money(venue.price, currency)} · {venue.portion}
 							{venue.isClosed ? " · closed" : ""}
+						</div>
+						<div style={{ color: "#9aa" }}>
+							{[venue.town, venue.postcode].filter(Boolean).join(", ")}
 						</div>
 					</Tooltip>
 				</CircleMarker>

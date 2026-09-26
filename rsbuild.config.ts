@@ -144,8 +144,8 @@ export default defineConfig({
 				assetPrefix: "/spooners/",
 				copy: [
 					{
-						from: "./src/spooners/data/map-data.json",
-						to: "map-data.json",
+						from: "./src/spooners/data/data.json",
+						to: "data.json",
 					},
 				],
 				overrideBrowserslist: [">0%, defaults"],
