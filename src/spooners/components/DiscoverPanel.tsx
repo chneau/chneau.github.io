@@ -1,7 +1,6 @@
 import {
 	Badge,
 	Box,
-	Card,
 	Group,
 	SegmentedControl,
 	Stack,
@@ -36,7 +35,7 @@ export const DiscoverPanel = ({
 	}
 
 	return (
-		<Card withBorder padding="sm" radius="md">
+		<>
 			<SegmentedControl
 				size="xs"
 				fullWidth
@@ -104,6 +103,6 @@ export const DiscoverPanel = ({
 					);
 				})}
 			</Stack>
-		</Card>
+		</>
 	);
 };

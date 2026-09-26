@@ -35,6 +35,7 @@ import { MenuLessPanel } from "./components/MenuLessPanel";
 import { PubSearch } from "./components/PubSearch";
 import { RankingPanel } from "./components/RankingPanel";
 import { RoundCard } from "./components/RoundCard";
+import { Section } from "./components/Section";
 import { SettingsModal } from "./components/SettingsModal";
 import { StatsBar } from "./components/StatsBar";
 import { VenueModal } from "./components/VenueModal";
@@ -805,14 +806,18 @@ export const App = () => {
 									: null
 							}
 						/>
-						<StatsBar
-							pubs={withDistance.length}
-							cheapest={money(scale.min, displayCurrency)}
-							median={money(medianPrice, displayCurrency)}
-							dearest={money(scale.max, displayCurrency)}
-							portion={singleName ? (completeVenues[0]?.portion ?? null) : null}
-							premium={premium}
-						/>
+						<Section title="Prices">
+							<StatsBar
+								pubs={withDistance.length}
+								cheapest={money(scale.min, displayCurrency)}
+								median={money(medianPrice, displayCurrency)}
+								dearest={money(scale.max, displayCurrency)}
+								portion={
+									singleName ? (completeVenues[0]?.portion ?? null) : null
+								}
+								premium={premium}
+							/>
+						</Section>
 						{withDistance.length === 0 ? (
 							<Card withBorder padding="md" radius="md">
 								<Stack gap="xs">
@@ -846,51 +851,81 @@ export const App = () => {
 								</Stack>
 							</Card>
 						) : null}
-						<Distribution
-							prices={prices}
-							scale={scale}
-							currency={displayCurrency}
-							median={medianPrice}
-							history={
-								singleName ? data.history?.items?.[singleName] : undefined
-							}
-						/>
-						<RankingPanel
-							venues={withDistance}
-							scale={scale}
-							currency={displayCurrency}
-							focused={focused}
-							onFocus={(venue: PricedVenue) => setFocused(venue)}
-							onDetails={(venue: PricedVenue) => setVenueRef(venue.ref)}
-							nearby={nearby}
-							count={settings.rankingRows}
-						/>
-						<GeographyPanel
-							stats={areas}
-							currency={displayCurrency}
-							selected={selectedArea}
-							onSelect={(stat) => {
-								setSelectedArea(stat.area);
-								setView("area");
-								const point = areaPoints.find(
-									(candidate) => candidate.name === stat.area,
-								);
-								if (point) {
-									setFocused(point);
+						<Section title="Price distribution">
+							<Distribution
+								prices={prices}
+								scale={scale}
+								currency={displayCurrency}
+								median={medianPrice}
+								history={
+									singleName ? data.history?.items?.[singleName] : undefined
 								}
-							}}
-						/>
-						<DiscoverPanel
-							rare={rare}
-							fresh={fresh}
-							sellers={sellers}
-							onSelect={(name) => {
-								setBasket([{ name, qty: 1 }]);
-								setView("pubs");
-								setFocused(null);
-							}}
-						/>
-						<MenuLessPanel venues={unpricedAll} onSelect={setVenueRef} />
+							/>
+						</Section>
+						<Section title="Rankings">
+							<RankingPanel
+								venues={withDistance}
+								scale={scale}
+								currency={displayCurrency}
+								focused={focused}
+								onFocus={(venue: PricedVenue) => setFocused(venue)}
+								onDetails={(venue: PricedVenue) => setVenueRef(venue.ref)}
+								nearby={nearby}
+								count={settings.rankingRows}
+							/>
+						</Section>
+						{areas.length >= 2 ? (
+							<Section
+								title="By area"
+								badge={
+									<Text size="xs" c="dimmed">
+										{areas.length} areas
+									</Text>
+								}
+							>
+								<GeographyPanel
+									stats={areas}
+									currency={displayCurrency}
+									selected={selectedArea}
+									onSelect={(stat) => {
+										setSelectedArea(stat.area);
+										setView("area");
+										const point = areaPoints.find(
+											(candidate) => candidate.name === stat.area,
+										);
+										if (point) {
+											setFocused(point);
+										}
+									}}
+								/>
+							</Section>
+						) : null}
+						{rare.length || fresh.length ? (
+							<Section title="Discover">
+								<DiscoverPanel
+									rare={rare}
+									fresh={fresh}
+									sellers={sellers}
+									onSelect={(name) => {
+										setBasket([{ name, qty: 1 }]);
+										setView("pubs");
+										setFocused(null);
+									}}
+								/>
+							</Section>
+						) : null}
+						{unpricedAll.length ? (
+							<Section
+								title="No published menu"
+								badge={
+									<Text size="xs" c="dimmed">
+										{unpricedAll.length}
+									</Text>
+								}
+							>
+								<MenuLessPanel venues={unpricedAll} onSelect={setVenueRef} />
+							</Section>
+						) : null}
 					</Stack>
 				</Box>
 

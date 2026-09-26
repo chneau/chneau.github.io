@@ -1,4 +1,4 @@
-import { Box, Card, Group, Text, Tooltip } from "@mantine/core";
+import { Box, Group, Text, Tooltip } from "@mantine/core";
 import { useMemo } from "react";
 import { money, type PriceScale, priceColor } from "../price";
 import type { HistoryPoint } from "../types";
@@ -62,17 +62,12 @@ export const Distribution = ({
 			: null;
 
 	return (
-		<Card withBorder padding="sm" radius="md">
-			<Group justify="space-between" mb={6}>
-				<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-					Price distribution
+		<>
+			{medianPrice != null ? (
+				<Text size="xs" c="dimmed" ta="right" mb={4}>
+					median {money(medianPrice, currency)}
 				</Text>
-				{medianPrice != null ? (
-					<Text size="xs" c="dimmed">
-						median {money(medianPrice, currency)}
-					</Text>
-				) : null}
-			</Group>
+			) : null}
 			{bins.length && peak ? (
 				<Box style={{ position: "relative" }}>
 					<Box
@@ -140,6 +135,6 @@ export const Distribution = ({
 					<Sparkline points={historyPoints} width={140} height={24} />
 				</Group>
 			) : null}
-		</Card>
+		</>
 	);
 };

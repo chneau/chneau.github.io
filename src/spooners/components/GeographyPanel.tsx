@@ -1,11 +1,4 @@
-import {
-	Box,
-	Card,
-	Group,
-	Progress,
-	Text,
-	UnstyledButton,
-} from "@mantine/core";
+import { Box, Group, Progress, Text, UnstyledButton } from "@mantine/core";
 import type { AreaStat } from "../derive";
 import { amount, currencySymbol, money } from "../price";
 
@@ -34,15 +27,10 @@ export const GeographyPanel = ({
 	const span = maxPrice - minPrice || 1;
 
 	return (
-		<Card withBorder padding="sm" radius="md">
-			<Group justify="space-between" mb={6}>
-				<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-					By area
-				</Text>
-				<Text size="xs" c="dimmed">
-					{stats.length} areas · {min}+ pubs each
-				</Text>
-			</Group>
+		<>
+			<Text size="xs" c="dimmed" mb={6}>
+				{stats.length} areas · {min}+ pubs each
+			</Text>
 			<Text size="xs" c="dimmed" mb={6}>
 				Click an area to see its median on the map and read it here.
 			</Text>
@@ -92,6 +80,6 @@ export const GeographyPanel = ({
 				Cheapest: {stats[0]?.area} at {money(minPrice, currency)} · dearest:{" "}
 				{stats[stats.length - 1]?.area} at {money(maxPrice, currency)}
 			</Text>
-		</Card>
+		</>
 	);
 };
