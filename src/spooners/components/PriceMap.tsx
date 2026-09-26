@@ -26,17 +26,11 @@ const FlyTo = ({ venue }: { venue: PricedVenue | null }) => {
 	return null;
 };
 
-const VenuePopup = ({
-	venue,
-	currency,
-}: {
-	venue: PricedVenue;
-	currency: string;
-}) => (
+const VenuePopup = ({ venue }: { venue: PricedVenue }) => (
 	<div style={{ minWidth: 200, maxWidth: 260 }}>
 		<div style={{ fontWeight: 700, marginBottom: 2 }}>{venue.name}</div>
 		<div>
-			<strong>{money(venue.price, currency)}</strong> · {venue.portion}
+			<strong>{money(venue.price, venue.currency)}</strong> · {venue.portion}
 		</div>
 		<div style={{ color: "#666", fontSize: 12, marginTop: 4 }}>
 			{[venue.line1, venue.town, venue.postcode].filter(Boolean).join(", ")}
@@ -69,18 +63,11 @@ const VenuePopup = ({
 type Props = {
 	venues: PricedVenue[];
 	scale: PriceScale;
-	currency: string;
 	focused: PricedVenue | null;
 	onFocus: (venue: PricedVenue) => void;
 };
 
-export const PriceMap = ({
-	venues,
-	scale,
-	currency,
-	focused,
-	onFocus,
-}: Props) => (
+export const PriceMap = ({ venues, scale, focused, onFocus }: Props) => (
 	<MapContainer
 		className="spooners-map"
 		center={UK_CENTER}
@@ -113,12 +100,12 @@ export const PriceMap = ({
 					<Tooltip direction="top" offset={[0, -6]} opacity={1}>
 						<div style={{ fontWeight: 600 }}>{venue.name}</div>
 						<div>
-							{money(venue.price, currency)} · {venue.portion}
+							{money(venue.price, venue.currency)} · {venue.portion}
 							{venue.isOpenNow ? " · open" : " · closed"}
 						</div>
 					</Tooltip>
 					<Popup>
-						<VenuePopup venue={venue} currency={currency} />
+						<VenuePopup venue={venue} />
 					</Popup>
 				</CircleMarker>
 			);

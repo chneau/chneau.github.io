@@ -20,6 +20,7 @@ import { PriceDistribution } from "./components/PriceDistribution";
 import { PriceMap } from "./components/PriceMap";
 import { PriceRanks } from "./components/PriceRanks";
 import {
+	availableCurrencies,
 	availableFilters,
 	buildItemIndex,
 	cacheStats,
@@ -98,6 +99,7 @@ export const App = () => {
 	const [selectedPortion, setSelectedPortion] = useState<string | null>(null);
 	const [activeFilters, setActiveFilters] = useState<string[]>([]);
 	const [openNowOnly, setOpenNowOnly] = useState(false);
+	const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
 	const [focused, setFocused] = useState<PricedVenue | null>(null);
 	const [userLocation, setUserLocation] = useState<{
 		lat: number;
@@ -169,13 +171,28 @@ export const App = () => {
 		[data, effectiveName, effectivePortion],
 	);
 
+	// the item exists in a few currencies (GBP in GB, EUR in Ireland)
+	const currencies = useMemo(() => availableCurrencies(priced), [priced]);
+	const effectiveCurrency =
+		selectedCurrency && currencies.some((c) => c.code === selectedCurrency)
+			? selectedCurrency
+			: (currencies.find((c) => c.code === "GBP")?.code ??
+				currencies[0]?.code ??
+				"GBP");
+	const pricedCurrency = useMemo(
+		() => priced.filter((venue) => venue.currency === effectiveCurrency),
+		[priced, effectiveCurrency],
+	);
 	const openCount = useMemo(
-		() => priced.filter((venue) => venue.isOpenNow).length,
-		[priced],
+		() => pricedCurrency.filter((venue) => venue.isOpenNow).length,
+		[pricedCurrency],
 	);
 	const venues = useMemo(
-		() => (openNowOnly ? priced.filter((venue) => venue.isOpenNow) : priced),
-		[priced, openNowOnly],
+		() =>
+			openNowOnly
+				? pricedCurrency.filter((venue) => venue.isOpenNow)
+				: pricedCurrency,
+		[pricedCurrency, openNowOnly],
 	);
 	const withDistance = useMemo(
 		() =>
@@ -241,7 +258,7 @@ export const App = () => {
 	}
 
 	const prices = withDistance.map((v) => v.price);
-	const currency = "GBP";
+	const currency = effectiveCurrency;
 	const badges = selectedItem ? itemBadges(selectedItem) : [];
 
 	return (
@@ -274,7 +291,6 @@ export const App = () => {
 							<PriceMap
 								venues={withDistance}
 								scale={scale}
-								currency={currency}
 								focused={focused}
 								onFocus={setFocused}
 							/>
@@ -331,6 +347,26 @@ export const App = () => {
 										data={portions.map((label) => ({ label, value: label }))}
 										onChange={(value) => {
 											setSelectedPortion(value);
+											setFocused(null);
+										}}
+									/>
+								</Box>
+							) : null}
+							{currencies.length > 1 ? (
+								<Box mt="sm">
+									<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
+										Currency
+									</Text>
+									<SegmentedControl
+										size="xs"
+										fullWidth
+										value={effectiveCurrency}
+										data={currencies.map((option) => ({
+											label: `${option.code} (${option.count})`,
+											value: option.code,
+										}))}
+										onChange={(value) => {
+											setSelectedCurrency(value);
 											setFocused(null);
 										}}
 									/>
