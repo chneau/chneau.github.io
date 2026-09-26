@@ -4,6 +4,7 @@ import {
 	Box,
 	Group,
 	Tooltip as MTooltip,
+	SegmentedControl,
 	Text,
 } from "@mantine/core";
 import type { Map as LeafletMap } from "leaflet";
@@ -16,86 +17,129 @@ import {
 	TileLayer,
 	Tooltip,
 	useMap,
+	useMapEvents,
 } from "react-leaflet";
 import { SPOT_META } from "../derive";
 import { miles, money, normalize, type PriceScale, priceColor } from "../price";
-import type { PricedVenue } from "../types";
+import type { MapPoint } from "../types";
 
 const UK_CENTER: [number, number] = [54.4, -3.2];
 const UK_ZOOM = 6;
 
-/** Smoothly recentre the map when a venue is focused from the side panels. */
-const FlyTo = ({ venue }: { venue: PricedVenue | null }) => {
+export type MapView = "item" | "round" | "area";
+
+/** Smoothly recentre the map when a point is focused from the side panels. */
+const FlyTo = ({ point }: { point: MapPoint | null }) => {
 	const map = useMap();
 	useEffect(() => {
-		if (!venue) {
+		if (!point) {
 			return;
 		}
-		map.flyTo([venue.lat, venue.lng], Math.max(map.getZoom(), 13), {
+		map.flyTo([point.lat, point.lng], Math.max(map.getZoom(), 13), {
 			duration: 0.7,
 		});
-	}, [venue, map]);
+	}, [point, map]);
 	return null;
 };
 
-const VenuePopup = ({ venue }: { venue: PricedVenue }) => (
+/** Report the viewport so it can be put in the URL. */
+const Viewport = ({
+	onChange,
+}: {
+	onChange?: (center: [number, number], zoom: number) => void;
+}) => {
+	useMapEvents({
+		moveend(event) {
+			const map = event.target;
+			const center = map.getCenter();
+			onChange?.([center.lat, center.lng], map.getZoom());
+		},
+	});
+	return null;
+};
+
+const PointPopup = ({
+	point,
+	currency,
+}: {
+	point: MapPoint;
+	currency: string;
+}) => (
 	<div style={{ minWidth: 200, maxWidth: 260 }}>
-		<div style={{ fontWeight: 700, marginBottom: 2 }}>{venue.name}</div>
+		<div style={{ fontWeight: 700, marginBottom: 2 }}>{point.name}</div>
 		<div>
-			<strong>{money(venue.price, venue.currency)}</strong> · {venue.portion}
+			<strong>{money(point.price, currency)}</strong>
+			{point.label ? ` · ${point.label}` : ""}
 		</div>
+		{point.previousPrice != null ? (
+			<div style={{ fontSize: 12, marginTop: 2 }}>
+				was {money(point.previousPrice, currency)}
+			</div>
+		) : null}
 		<div style={{ opacity: 0.7, fontSize: 12, marginTop: 4 }}>
-			{[venue.line1, venue.town, venue.postcode].filter(Boolean).join(", ")}
+			{[point.line1, point.town, point.postcode].filter(Boolean).join(", ")}
 		</div>
-		<div style={{ fontSize: 12, marginTop: 4 }}>
-			{venue.isOpenNow ? "🟢 Open now" : "🔴 Closed now"}
-			{venue.hoursToday ? ` · ${venue.hoursToday}` : ""}
-		</div>
-		{venue.spot !== "high-street" || !venue.canOrder ? (
+		{point.hoursToday !== undefined ? (
 			<div style={{ fontSize: 12, marginTop: 4 }}>
-				{venue.spot !== "high-street"
-					? `${SPOT_META[venue.spot].emoji} ${SPOT_META[venue.spot].label}`
+				{point.isOpenNow ? "🟢 Open now" : "🔴 Closed now"}
+				{point.hoursToday ? ` · ${point.hoursToday}` : ""}
+			</div>
+		) : null}
+		{point.spot !== "high-street" || point.canOrder === false ? (
+			<div style={{ fontSize: 12, marginTop: 4 }}>
+				{point.spot !== "high-street"
+					? `${SPOT_META[point.spot].emoji} ${SPOT_META[point.spot].label}`
 					: ""}
-				{!venue.canOrder
-					? `${venue.spot !== "high-street" ? " · " : ""}no ordering`
+				{point.canOrder === false
+					? `${point.spot !== "high-street" ? " · " : ""}no ordering`
 					: ""}
 			</div>
 		) : null}
-		{venue.facilities.length ? (
+		{point.facilities.length ? (
 			<div style={{ fontSize: 12, marginTop: 4, opacity: 0.85 }}>
-				{venue.facilities.slice(0, 5).join(" · ")}
+				{point.facilities.slice(0, 5).join(" · ")}
 			</div>
 		) : null}
-		{venue.distance != null ? (
+		{point.distance != null ? (
 			<div style={{ fontSize: 12, marginTop: 4 }}>
-				{miles(venue.distance)} away
+				{miles(point.distance)} away
 			</div>
 		) : null}
-		{venue.phone ? (
+		{point.phone ? (
 			<a
-				href={`tel:${venue.phone.replace(/\s/g, "")}`}
+				href={`tel:${point.phone.replace(/\s/g, "")}`}
 				style={{ fontSize: 12 }}
 			>
-				{venue.phone}
+				{point.phone}
 			</a>
 		) : null}
 	</div>
 );
 
 type Props = {
-	venues: PricedVenue[];
+	points: MapPoint[];
 	scale: PriceScale;
 	currency: string;
-	focused: PricedVenue | null;
-	onFocus: (venue: PricedVenue) => void;
+	focused: MapPoint | null;
+	onFocus: (point: MapPoint) => void;
+	view: MapView;
+	onView?: (view: MapView) => void;
+	countLabel?: string;
+	onViewport?: (center: [number, number], zoom: number) => void;
+	initialView?: { center: [number, number]; zoom: number } | null;
 };
 
 export const MapPanel = ({
-	venues,
+	points,
 	scale,
 	currency,
 	focused,
 	onFocus,
+	view,
+	onView,
+	countLabel,
+	onViewport,
+	initialView,
 }: Props) => {
 	const mapRef = useRef<LeafletMap | null>(null);
 
@@ -114,8 +158,8 @@ export const MapPanel = ({
 			<MapContainer
 				ref={mapRef}
 				className="spooners-map"
-				center={UK_CENTER}
-				zoom={UK_ZOOM}
+				center={initialView?.center ?? UK_CENTER}
+				zoom={initialView?.zoom ?? UK_ZOOM}
 				scrollWheelZoom
 				style={{ height: "100%", width: "100%" }}
 			>
@@ -124,45 +168,60 @@ export const MapPanel = ({
 					url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
 					maxZoom={19}
 				/>
-				<FlyTo venue={focused} />
-				{venues.map((venue) => {
-					const selected = focused?.ref === venue.ref;
-					const importance = normalize(venue.price, scale);
+				<FlyTo point={focused} />
+				<Viewport onChange={onViewport} />
+				{points.map((point) => {
+					const selected = focused?.ref === point.ref;
+					const importance = normalize(point.price, scale);
 					return (
 						<CircleMarker
-							key={venue.ref}
-							center={[venue.lat, venue.lng]}
+							key={`${point.ref}-${point.name}`}
+							center={[point.lat, point.lng]}
 							radius={selected ? 11 : 5 + importance * 2}
 							pathOptions={{
 								color: selected ? "#ffffff" : "#0b0f10",
 								weight: selected ? 2 : 1,
-								fillColor: priceColor(venue.price, scale),
-								fillOpacity: venue.isClosed ? 0.45 : 0.9,
+								fillColor: priceColor(point.price, scale),
+								fillOpacity: point.isClosed ? 0.45 : 0.9,
 							}}
-							eventHandlers={{ click: () => onFocus(venue) }}
+							eventHandlers={{ click: () => onFocus(point) }}
 						>
 							<Tooltip direction="top" offset={[0, -6]} opacity={1}>
-								<div style={{ fontWeight: 600 }}>{venue.name}</div>
+								<div style={{ fontWeight: 600 }}>{point.name}</div>
 								<div>
-									{money(venue.price, venue.currency)} · {venue.portion}
-									{venue.isOpenNow ? " · open" : " · closed"}
+									{money(point.price, currency)}
+									{point.label ? ` · ${point.label}` : ""}
+									{point.isOpenNow ? " · open" : " · closed"}
 								</div>
 							</Tooltip>
 							<Popup>
-								<VenuePopup venue={venue} />
+								<PointPopup point={point} currency={currency} />
 							</Popup>
 						</CircleMarker>
 					);
 				})}
 			</MapContainer>
 
-			{/* overlay: venue count + reset view */}
+			{/* overlay: view switch, venue count + reset view */}
 			<Group
 				gap={6}
 				style={{ position: "absolute", top: 10, right: 10, zIndex: 800 }}
 			>
+				{onView ? (
+					<SegmentedControl
+						size="xs"
+						value={view}
+						data={[
+							{ label: "Item", value: "item" },
+							{ label: "Round", value: "round" },
+							{ label: "Areas", value: "area" },
+						]}
+						onChange={(value) => onView(value as MapView)}
+					/>
+				) : null}
 				<Badge variant="filled" color="dark" size="lg" radius="sm">
-					{venues.length} {venues.length === 1 ? "pub" : "pubs"}
+					{countLabel ??
+						`${points.length} ${points.length === 1 ? "pub" : "pubs"}`}
 				</Badge>
 				<MTooltip label="Reset view">
 					<ActionIcon
@@ -192,7 +251,11 @@ export const MapPanel = ({
 				}}
 			>
 				<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-					Price
+					{view === "round"
+						? "Round"
+						: view === "area"
+							? "Area median"
+							: "Price"}
 				</Text>
 				<Box
 					style={{

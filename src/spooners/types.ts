@@ -37,7 +37,7 @@ type ItemOption = {
 	keywords?: string[];
 };
 
-type ItemDefinition = {
+export type ItemDefinition = {
 	id: number | string;
 	name: string;
 	description: string | null;
@@ -153,6 +153,30 @@ type VenueEntry = {
 };
 
 // --------------------------------------------------------------------------- #
+// price history                                                                  #
+// --------------------------------------------------------------------------- #
+
+/** One dated snapshot of an item's national price distribution. */
+export type HistoryPoint = {
+	/** ISO date, YYYY-MM-DD. */
+	t: string;
+	median: number;
+	min: number;
+	max: number;
+	n: number;
+};
+
+/**
+ * Optional price history kept by `build_map_data.py`: a national distribution
+ * per item, plus a per-venue change log (only entries where the price changed).
+ */
+type DatasetHistory = {
+	items?: Record<string, HistoryPoint[]>;
+	/** ref -> item -> [date, price][] (only when the price changed). */
+	venues?: Record<string, Record<string, [string, number][]>>;
+};
+
+// --------------------------------------------------------------------------- #
 // cache file                                                                     #
 // --------------------------------------------------------------------------- #
 
@@ -161,6 +185,7 @@ export type SpoonersCache = {
 	items: Record<string, ItemDefinition>;
 	venues: Record<string, VenueEntry>;
 	fetchedAt?: string;
+	history?: DatasetHistory;
 };
 
 // --------------------------------------------------------------------------- #
@@ -177,7 +202,14 @@ export type ItemInfo = {
 	keywords: Keyword[];
 	/** How many venues currently sell it. */
 	count: number;
+	/** What kind of item it is (beer / wine / spirit / soft / food). */
+	nature: ItemNature;
+	/** Percent change of the national median vs the oldest snapshot. */
+	trend: number | null;
 };
+
+/** What kind of item it is - used for portion and value rules. */
+export type ItemNature = "beer" | "wine" | "spirit" | "soft" | "food" | "other";
 
 export type CacheStats = {
 	venues: number;
@@ -213,9 +245,12 @@ export type PricedVenue = {
 	/** False for venues the app cannot take orders at (`selectHandler` "message"). */
 	canOrder: boolean;
 	isClosed: boolean;
-	/** Canonical price (the pint, else the largest portion). */
+	/** "open" | "closing_temporary" | "opening_soon" | ... */
+	status: string | null;
+	/** Canonical price for the chosen portion. */
 	price: number;
 	portion: string;
+	/** Canonical portion labels -> price. */
 	portions: Record<string, number>;
 	/** ISO code this venue prices in (GBP, EUR...). */
 	currency: string;
@@ -224,6 +259,48 @@ export type PricedVenue = {
 	hoursToday: string | null;
 	facilities: string[];
 	phone: string | null;
+	/** ml of the chosen portion, when known. */
+	volumeMl: number | null;
+	/** Alcohol units of the chosen portion, when known. */
+	units: number | null;
+	abv: number | null;
+	calories: number | null;
+	/** The comparable metric for this portion (per unit / per 100ml / kcal). */
+	metricKind: ValueKind | null;
+	metricValue: number | null;
+	/** The price recorded before this one, when the history has an older entry. */
+	previousPrice: number | null;
+	previousAt: string | null;
 	/** Miles from the user, only when they shared their location. */
 	distance?: number;
+};
+
+export type ValueKind = "unit" | "volume" | "calorie";
+
+/**
+ * The minimum a map marker needs. `PricedVenue` satisfies it directly, and the
+ * round calculator / area league map their own rows onto it.
+ */
+export type MapPoint = {
+	ref: number;
+	name: string;
+	lat: number;
+	lng: number;
+	price: number;
+	currency: string;
+	/** What the price is for: "Pint", "200ml bottle", "round of 4", "Camden". */
+	label?: string;
+	line1: string | null;
+	town: string | null;
+	postcode: string | null;
+	facilities: string[];
+	phone: string | null;
+	distance?: number;
+	spot: VenueSpot;
+	isClosed: boolean;
+	isOpenNow: boolean;
+	hoursToday: string | null;
+	canOrder?: boolean;
+	previousPrice?: number | null;
+	previousAt?: string | null;
 };

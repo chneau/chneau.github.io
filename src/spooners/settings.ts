@@ -7,6 +7,8 @@ export type SpoonersSettings = {
 	openNow: boolean;
 	/** Hide airports, havens, hotels and other special venues. */
 	hideSpecial: boolean;
+	/** Hide pubs that are temporarily closed or not open yet. */
+	hideClosed: boolean;
 	/** How many venues each ranking list shows. */
 	rankingRows: number;
 };
@@ -15,6 +17,7 @@ const DEFAULT_SETTINGS: SpoonersSettings = {
 	currency: "GBP",
 	openNow: false,
 	hideSpecial: false,
+	hideClosed: false,
 	rankingRows: 5,
 };
 
