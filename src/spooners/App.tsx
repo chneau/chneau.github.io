@@ -343,12 +343,25 @@ export const App = () => {
 
 	const areas = useMemo(() => areaStats(withDistance), [withDistance]);
 
-	// pubs whose menu is not published at all - still worth showing
-	const unpriced = useMemo(() => {
+	// pubs whose menu is not published at all - the panel lists every one,
+	// whatever the map filters, while the grey markers follow the filters
+	const unpricedAll = useMemo(() => {
 		if (!data) {
 			return [];
 		}
-		let list = venuesWithoutPrices(data);
+		const list = venuesWithoutPrices(data);
+		return userLocation
+			? list.map((venue) => ({
+					...venue,
+					distance: haversineMiles(userLocation, {
+						lat: venue.lat,
+						lng: venue.lng,
+					}),
+				}))
+			: list;
+	}, [data, userLocation]);
+	const unpricedMap = useMemo(() => {
+		let list = unpricedAll;
 		if (openNowOnly) {
 			list = list.filter((venue) => venue.isOpenNow);
 		}
@@ -367,26 +380,11 @@ export const App = () => {
 				),
 			);
 		}
-		return userLocation
-			? list.map((venue) => ({
-					...venue,
-					distance: haversineMiles(userLocation, {
-						lat: venue.lat,
-						lng: venue.lng,
-					}),
-				}))
-			: list;
-	}, [
-		data,
-		openNowOnly,
-		hideSpecial,
-		hideClosed,
-		activeFacilities,
-		userLocation,
-	]);
+		return list;
+	}, [unpricedAll, openNowOnly, hideSpecial, hideClosed, activeFacilities]);
 	const unpricedPoints = useMemo<MapPoint[]>(
 		() =>
-			unpriced.map((venue) => ({
+			unpricedMap.map((venue) => ({
 				ref: venue.ref,
 				name: venue.name,
 				lat: venue.lat,
@@ -405,7 +403,7 @@ export const App = () => {
 				hoursToday: venue.hoursToday,
 				distance: venue.distance,
 			})),
-		[unpriced],
+		[unpricedMap],
 	);
 
 	// discovery: rare guest ales and new items
@@ -806,7 +804,7 @@ export const App = () => {
 								setFocused(null);
 							}}
 						/>
-						<MenuLessPanel venues={unpriced} onSelect={setVenueRef} />
+						<MenuLessPanel venues={unpricedAll} onSelect={setVenueRef} />
 					</Stack>
 				</Box>
 
