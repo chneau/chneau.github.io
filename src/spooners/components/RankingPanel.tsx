@@ -2,7 +2,6 @@ import {
 	ActionIcon,
 	Badge,
 	Box,
-	Card,
 	Group,
 	Progress,
 	SegmentedControl,
@@ -233,7 +232,7 @@ export const RankingPanel = ({
 	];
 
 	return (
-		<Card withBorder padding="sm" radius="md">
+		<>
 			<SegmentedControl
 				size="xs"
 				fullWidth
@@ -266,6 +265,6 @@ export const RankingPanel = ({
 					</Text>
 				)}
 			</Stack>
-		</Card>
+		</>
 	);
 };

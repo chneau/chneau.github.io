@@ -1,12 +1,4 @@
-import {
-	Badge,
-	Box,
-	Card,
-	Group,
-	Stack,
-	Text,
-	UnstyledButton,
-} from "@mantine/core";
+import { Box, Group, Stack, Text, UnstyledButton } from "@mantine/core";
 import { SPOT_META } from "../derive";
 import { miles } from "../price";
 import type { SparseVenue } from "../types";
@@ -25,15 +17,7 @@ export const MenuLessPanel = ({ venues, onSelect }: Props) => {
 		return null;
 	}
 	return (
-		<Card withBorder padding="sm" radius="md">
-			<Group justify="space-between" mb={4}>
-				<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-					No published menu
-				</Text>
-				<Badge size="xs" variant="light" color="gray">
-					{venues.length}
-				</Badge>
-			</Group>
+		<>
 			<Text size="xs" c="dimmed" mb={6}>
 				These pubs exist but the API gives no menu, so they have no prices to
 				plot. Listed regardless of the map filters (airports included); the grey
@@ -69,6 +53,6 @@ export const MenuLessPanel = ({ venues, onSelect }: Props) => {
 					</UnstyledButton>
 				))}
 			</Stack>
-		</Card>
+		</>
 	);
 };

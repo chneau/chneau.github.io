@@ -1,4 +1,4 @@
-import { Card, Group, Text, Tooltip } from "@mantine/core";
+import { Group, Text, Tooltip } from "@mantine/core";
 
 type Props = {
 	pubs: number;
@@ -48,7 +48,7 @@ export const StatsBar = ({
 	portion,
 	premium,
 }: Props) => (
-	<Card withBorder padding="sm" radius="md">
+	<>
 		<Group justify="space-between" align="flex-start" wrap="nowrap">
 			<Tile
 				label="Shown"
@@ -73,5 +73,5 @@ export const StatsBar = ({
 				{premium}
 			</Text>
 		) : null}
-	</Card>
+	</>
 );

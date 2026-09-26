@@ -12,6 +12,7 @@ import {
 	Switch,
 	Text,
 	Tooltip,
+	UnstyledButton,
 } from "@mantine/core";
 import {
 	ChevronDown,
@@ -81,7 +82,16 @@ type Props = {
 
 const Hint = ({ label }: { label: string }) => (
 	<Tooltip label={label} withArrow multiline w={220}>
-		<ActionIcon size="xs" variant="subtle" color="gray" aria-label={label}>
+		<ActionIcon
+			size="xs"
+			variant="subtle"
+			color="gray"
+			aria-label={label}
+			onClick={(event) => {
+				event.preventDefault();
+				event.stopPropagation();
+			}}
+		>
 			<CircleHelp size={13} />
 		</ActionIcon>
 	</Tooltip>
@@ -180,6 +190,7 @@ export const RoundCard = ({
 	converted,
 }: Props) => {
 	const [filtersOpen, setFiltersOpen] = useState(false);
+	const [open, setOpen] = useState(true);
 	const totalQty = basket.reduce((sum, item) => sum + item.qty, 0);
 	const single =
 		basket.length === 1
@@ -191,11 +202,26 @@ export const RoundCard = ({
 	return (
 		<Card withBorder padding="md" radius="md">
 			<Stack gap="sm">
-				<Group justify="space-between">
-					<Group gap={4}>
-						<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-							Round
-						</Text>
+				<Group justify="space-between" gap="xs" wrap="nowrap">
+					<Group gap={6} wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
+						<UnstyledButton
+							onClick={() => setOpen((value) => !value)}
+							aria-expanded={open}
+						>
+							<Group gap={6} wrap="nowrap">
+								<ChevronDown
+									size={14}
+									style={{
+										transform: open ? undefined : "rotate(-90deg)",
+										transition: "transform 150ms",
+										flexShrink: 0,
+									}}
+								/>
+								<Text size="xs" c="dimmed" fw={700} tt="uppercase">
+									Round
+								</Text>
+							</Group>
+						</UnstyledButton>
 						<Hint label="Pick what you're ordering. Every pub is priced for the whole round, so you compare like for like." />
 					</Group>
 					{basket.length ? (
@@ -210,288 +236,300 @@ export const RoundCard = ({
 					) : null}
 				</Group>
 
-				{onUndo ? (
-					<Group
-						justify="space-between"
-						gap="xs"
-						p="xs"
-						style={{
-							borderRadius: 6,
-							background: "var(--mantine-color-default-hover)",
-						}}
-					>
-						<Text size="xs">Round cleared</Text>
-						<Button
-							size="compact-xs"
-							variant="light"
-							leftSection={<RotateCcw size={12} />}
-							onClick={onUndo}
+				<Collapse expanded={open}>
+					{onUndo ? (
+						<Group
+							justify="space-between"
+							gap="xs"
+							p="xs"
+							style={{
+								borderRadius: 6,
+								background: "var(--mantine-color-default-hover)",
+							}}
 						>
-							Undo
-						</Button>
-					</Group>
-				) : null}
+							<Text size="xs">Round cleared</Text>
+							<Button
+								size="compact-xs"
+								variant="light"
+								leftSection={<RotateCcw size={12} />}
+								onClick={onUndo}
+							>
+								Undo
+							</Button>
+						</Group>
+					) : null}
 
-				<Stack gap={4}>
-					{basket.map((item) => (
-						<Stepper
-							key={item.name}
-							name={item.name}
-							qty={item.qty}
-							onQty={onQty}
-							onRemove={onRemove}
-						/>
-					))}
-					{basket.length ? null : (
-						<Text size="xs" c="dimmed">
-							Nothing yet - search below to build a round, or a single drink.
-						</Text>
-					)}
-				</Stack>
-
-				<ItemPicker
-					label="Add a drink or a dish"
-					items={items}
-					value={null}
-					onChange={onAdd}
-				/>
-
-				{single ? (
-					<Box>
-						<Group gap={6} align="baseline">
-							<Text size="sm" fw={600}>
-								{single.category ?? "Item"}
-							</Text>
+					<Stack gap={4}>
+						{basket.map((item) => (
+							<Stepper
+								key={item.name}
+								name={item.name}
+								qty={item.qty}
+								onQty={onQty}
+								onRemove={onRemove}
+							/>
+						))}
+						{basket.length ? null : (
 							<Text size="xs" c="dimmed">
-								{single.menu}
+								Nothing yet - search below to build a round, or a single drink.
 							</Text>
-							{single.calories ? (
+						)}
+					</Stack>
+
+					<ItemPicker
+						label="Add a drink or a dish"
+						items={items}
+						value={null}
+						onChange={onAdd}
+					/>
+
+					{single ? (
+						<Box>
+							<Group gap={6} align="baseline">
+								<Text size="sm" fw={600}>
+									{single.category ?? "Item"}
+								</Text>
 								<Text size="xs" c="dimmed">
-									· {single.calories} kcal
+									{single.menu}
+								</Text>
+								{single.calories ? (
+									<Text size="xs" c="dimmed">
+										· {single.calories} kcal
+									</Text>
+								) : null}
+								{metric ? (
+									<Group gap={2} align="center">
+										<Text size="xs" c="teal" fw={600}>
+											{metric}
+										</Text>
+										<Hint label="Value: price per alcohol unit, per 100 ml, or calories per pound. The Value tab ranks by it." />
+									</Group>
+								) : null}
+							</Group>
+							{single.description ? (
+								<Text size="xs" c="dimmed">
+									{single.description}
 								</Text>
 							) : null}
-							{metric ? (
-								<Group gap={2} align="center">
-									<Text size="xs" c="teal" fw={600}>
-										{metric}
+							{trend ? (
+								<Group gap={8} mt={6} align="center">
+									<Sparkline
+										points={trend.points.map((point) => point.median)}
+									/>
+									<Text size="xs" c="dimmed">
+										median {trend.percent >= 0 ? "+" : "−"}
+										{Math.abs(Math.round(trend.percent))}% since{" "}
+										{trend.points[0]?.t}
 									</Text>
-									<Hint label="Value: price per alcohol unit, per 100 ml, or calories per pound. The Value tab ranks by it." />
 								</Group>
 							) : null}
-						</Group>
-						{single.description ? (
-							<Text size="xs" c="dimmed">
-								{single.description}
+						</Box>
+					) : basket.length > 1 ? (
+						<Badge variant="light" color="blue">
+							{totalQty} items · map shows the whole round
+						</Badge>
+					) : null}
+
+					{currencies && currencies.length > 1 && currency && onCurrency ? (
+						<Box>
+							<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
+								Currency
 							</Text>
-						) : null}
-						{trend ? (
-							<Group gap={8} mt={6} align="center">
-								<Sparkline points={trend.points.map((point) => point.median)} />
-								<Text size="xs" c="dimmed">
-									median {trend.percent >= 0 ? "+" : "−"}
-									{Math.abs(Math.round(trend.percent))}% since{" "}
-									{trend.points[0]?.t}
-								</Text>
+							<SegmentedControl
+								size="xs"
+								fullWidth
+								value={currency}
+								data={currencies.map((option) => ({
+									label: `${option.code} (${option.count})`,
+									value: option.code,
+								}))}
+								onChange={onCurrency}
+							/>
+						</Box>
+					) : null}
+
+					<Button
+						variant="default"
+						size="sm"
+						fullWidth
+						justify="space-between"
+						leftSection={<SlidersHorizontal size={14} />}
+						rightSection={
+							<Group gap={6}>
+								{activeFilterCount ? (
+									<Badge size="xs" variant="filled" color="teal">
+										{activeFilterCount}
+									</Badge>
+								) : null}
+								<ChevronDown
+									size={14}
+									style={{
+										transform: filtersOpen ? "rotate(180deg)" : undefined,
+										transition: "transform 150ms",
+									}}
+								/>
 							</Group>
-						) : null}
-					</Box>
-				) : basket.length > 1 ? (
-					<Badge variant="light" color="blue">
-						{totalQty} items · map shows the whole round
-					</Badge>
-				) : null}
+						}
+						onClick={() => setFiltersOpen((open) => !open)}
+					>
+						Filters
+					</Button>
 
-				{currencies && currencies.length > 1 && currency && onCurrency ? (
-					<Box>
-						<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
-							Currency
-						</Text>
-						<SegmentedControl
-							size="xs"
-							fullWidth
-							value={currency}
-							data={currencies.map((option) => ({
-								label: `${option.code} (${option.count})`,
-								value: option.code,
-							}))}
-							onChange={onCurrency}
-						/>
-					</Box>
-				) : null}
-
-				<Button
-					variant="default"
-					size="sm"
-					fullWidth
-					justify="space-between"
-					leftSection={<SlidersHorizontal size={14} />}
-					rightSection={
-						<Group gap={6}>
-							{activeFilterCount ? (
-								<Badge size="xs" variant="filled" color="teal">
-									{activeFilterCount}
-								</Badge>
+					<Collapse expanded={filtersOpen}>
+						<Stack gap="sm">
+							{dietaryRelevant && filters.length ? (
+								<Box>
+									<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
+										Dietary
+									</Text>
+									<Chip.Group
+										multiple
+										value={activeFilters}
+										onChange={onFilters}
+									>
+										<Group gap={4}>
+											{filters.map((filter) => (
+												<Chip key={filter.id} size="xs" value={filter.id}>
+													{filter.label} ({filter.count})
+												</Chip>
+											))}
+										</Group>
+									</Chip.Group>
+								</Box>
 							) : null}
-							<ChevronDown
-								size={14}
-								style={{
-									transform: filtersOpen ? "rotate(180deg)" : undefined,
-									transition: "transform 150ms",
-								}}
-							/>
-						</Group>
-					}
-					onClick={() => setFiltersOpen((open) => !open)}
-				>
-					Filters
-				</Button>
 
-				<Collapse expanded={filtersOpen}>
-					<Stack gap="sm">
-						{dietaryRelevant && filters.length ? (
-							<Box>
-								<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
-									Dietary
-								</Text>
-								<Chip.Group multiple value={activeFilters} onChange={onFilters}>
-									<Group gap={4}>
-										{filters.map((filter) => (
-											<Chip key={filter.id} size="xs" value={filter.id}>
-												{filter.label} ({filter.count})
-											</Chip>
-										))}
-									</Group>
-								</Chip.Group>
-							</Box>
-						) : null}
+							{facilities.length ? (
+								<Box>
+									<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
+										Pub facilities
+									</Text>
+									<Chip.Group
+										multiple
+										value={activeFacilities}
+										onChange={onFacilities}
+									>
+										<Group gap={4}>
+											{facilities.map((facility) => (
+												<Chip
+													key={facility.label}
+													size="xs"
+													value={facility.label}
+												>
+													{facility.label} ({facility.count})
+												</Chip>
+											))}
+										</Group>
+									</Chip.Group>
+								</Box>
+							) : null}
 
-						{facilities.length ? (
-							<Box>
-								<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
-									Pub facilities
-								</Text>
-								<Chip.Group
-									multiple
-									value={activeFacilities}
-									onChange={onFacilities}
-								>
-									<Group gap={4}>
-										{facilities.map((facility) => (
-											<Chip
-												key={facility.label}
-												size="xs"
-												value={facility.label}
-											>
-												{facility.label} ({facility.count})
-											</Chip>
-										))}
-									</Group>
-								</Chip.Group>
-							</Box>
-						) : null}
-
-						<Group gap="md" wrap="wrap">
-							<Switch
-								size="xs"
-								checked={openNow}
-								onChange={(event) => onOpenNow(event.currentTarget.checked)}
-								label={`Open now (${openCount})`}
-							/>
-							<Switch
-								size="xs"
-								checked={hideSpecial}
-								onChange={(event) => onHideSpecial(event.currentTarget.checked)}
-								label={`Hide airport & travel (${specialCount})`}
-							/>
-							<Switch
-								size="xs"
-								checked={hideClosed}
-								onChange={(event) => onHideClosed(event.currentTarget.checked)}
-								label={`Hide closed (${closedCount})`}
-							/>
-							{partialCount > 0 ? (
+							<Group gap="md" wrap="wrap">
 								<Switch
 									size="xs"
-									checked={onlyComplete}
-									onChange={(event) =>
-										onOnlyComplete(event.currentTarget.checked)
-									}
-									label={
-										<Group gap={4} component="span">
-											<span>Whole round only ({completeCount})</span>
-											<Hint label="Only compare pubs that can serve every item, so a pub missing a drink does not look cheaper." />
-										</Group>
-									}
+									checked={openNow}
+									onChange={(event) => onOpenNow(event.currentTarget.checked)}
+									label={`Open now (${openCount})`}
 								/>
+								<Switch
+									size="xs"
+									checked={hideSpecial}
+									onChange={(event) =>
+										onHideSpecial(event.currentTarget.checked)
+									}
+									label={`Hide airport & travel (${specialCount})`}
+								/>
+								<Switch
+									size="xs"
+									checked={hideClosed}
+									onChange={(event) =>
+										onHideClosed(event.currentTarget.checked)
+									}
+									label={`Hide closed (${closedCount})`}
+								/>
+								{partialCount > 0 ? (
+									<Switch
+										size="xs"
+										checked={onlyComplete}
+										onChange={(event) =>
+											onOnlyComplete(event.currentTarget.checked)
+										}
+										label={
+											<Group gap={4} component="span">
+												<span>Whole round only ({completeCount})</span>
+												<Hint label="Only compare pubs that can serve every item, so a pub missing a drink does not look cheaper." />
+											</Group>
+										}
+									/>
+								) : null}
+							</Group>
+
+							{partialCount > 0 ? (
+								<Text size="xs" c="dimmed">
+									{completeCount
+										? `${partialCount} ${partialCount === 1 ? "pub" : "pubs"} miss at least one item and are excluded while this is on.`
+										: `No pub serves every item of this round — turn "Whole round only" off to see partial rounds.`}
+								</Text>
 							) : null}
+						</Stack>
+					</Collapse>
+
+					{hasLocation ? (
+						<Group gap={6}>
+							<Badge variant="light" color="teal" leftSection="📍">
+								Location on
+							</Badge>
+							<Button
+								size="compact-xs"
+								variant="subtle"
+								onClick={onClearLocation}
+							>
+								Turn off
+							</Button>
 						</Group>
-
-						{partialCount > 0 ? (
-							<Text size="xs" c="dimmed">
-								{completeCount
-									? `${partialCount} ${partialCount === 1 ? "pub" : "pubs"} miss at least one item and are excluded while this is on.`
-									: `No pub serves every item of this round — turn "Whole round only" off to see partial rounds.`}
-							</Text>
-						) : null}
-					</Stack>
-				</Collapse>
-
-				{hasLocation ? (
-					<Group gap={6}>
-						<Badge variant="light" color="teal" leftSection="📍">
-							Location on
-						</Badge>
+					) : (
 						<Button
-							size="compact-xs"
-							variant="subtle"
-							onClick={onClearLocation}
+							size="xs"
+							variant="light"
+							leftSection={<LocateFixed size={14} />}
+							loading={geoState === "loading"}
+							onClick={onNearMe}
 						>
-							Turn off
+							Near me
 						</Button>
-					</Group>
-				) : (
-					<Button
-						size="xs"
-						variant="light"
-						leftSection={<LocateFixed size={14} />}
-						loading={geoState === "loading"}
-						onClick={onNearMe}
-					>
-						Near me
-					</Button>
-				)}
-				{geoState === "error" ? (
-					<Text size="xs" c="red">
-						Location unavailable — check browser permissions.
-					</Text>
-				) : null}
+					)}
+					{geoState === "error" ? (
+						<Text size="xs" c="red">
+							Location unavailable — check browser permissions.
+						</Text>
+					) : null}
 
-				<Box mt="xs">
-					<Box
-						style={{
-							height: 6,
-							borderRadius: 999,
-							background: `linear-gradient(90deg, ${priceColor(scale.min, scale)}, ${priceColor(
-								(scale.min + scale.max) / 2,
-								scale,
-							)}, ${priceColor(scale.max, scale)})`,
-						}}
-					/>
-					<Group justify="space-between" mt={2}>
+					<Box mt="xs">
+						<Box
+							style={{
+								height: 6,
+								borderRadius: 999,
+								background: `linear-gradient(90deg, ${priceColor(scale.min, scale)}, ${priceColor(
+									(scale.min + scale.max) / 2,
+									scale,
+								)}, ${priceColor(scale.max, scale)})`,
+							}}
+						/>
+						<Group justify="space-between" mt={2}>
+							<Text size="xs" c="dimmed">
+								{money(scale.min, currency ?? "GBP")}
+							</Text>
+							<Text size="xs" c="dimmed">
+								{money(scale.max, currency ?? "GBP")}
+							</Text>
+						</Group>
+					</Box>
+					{converted ? (
 						<Text size="xs" c="dimmed">
-							{money(scale.min, currency ?? "GBP")}
+							converted to {converted.currency}
+							{converted.rateDate ? ` at ${converted.rateDate} ECB rates` : ""}
 						</Text>
-						<Text size="xs" c="dimmed">
-							{money(scale.max, currency ?? "GBP")}
-						</Text>
-					</Group>
-				</Box>
-				{converted ? (
-					<Text size="xs" c="dimmed">
-						converted to {converted.currency}
-						{converted.rateDate ? ` at ${converted.rateDate} ECB rates` : ""}
-					</Text>
-				) : null}
+					) : null}
+				</Collapse>
 			</Stack>
 		</Card>
 	);
