@@ -121,6 +121,7 @@ export const App = () => {
 		url.view === "area" ? "area" : "pubs",
 	);
 	const [selectedArea, setSelectedArea] = useState<string | null>(null);
+	const [areaFilter, setAreaFilter] = useState<string | null>(url.area ?? null);
 	const [focused, setFocused] = useState<MapPoint | null>(null);
 	const [mapView, setMapView] = useState<{
 		center: [number, number];
@@ -311,7 +312,7 @@ export const App = () => {
 		[completeVenues],
 	);
 
-	const venues = useMemo(() => {
+	const baseVenues = useMemo(() => {
 		let list = completeVenues;
 		if (openNowOnly) {
 			list = list.filter((venue) => venue.isOpenNow);
@@ -329,6 +330,17 @@ export const App = () => {
 		}
 		return list;
 	}, [completeVenues, openNowOnly, hideSpecial, hideClosed, activeFacilities]);
+
+	// optional drill-down from an area marker / the area panel
+	const venues = useMemo(
+		() =>
+			areaFilter
+				? baseVenues.filter(
+						(venue) => venue.county === areaFilter || venue.town === areaFilter,
+					)
+				: baseVenues,
+		[baseVenues, areaFilter],
+	);
 
 	const withDistance = useMemo(
 		() =>
@@ -371,6 +383,7 @@ export const App = () => {
 			: undefined;
 
 	const resetFilters = () => {
+		setAreaFilter(null);
 		setActiveFilters([]);
 		setActiveFacilities([]);
 		setOpenNowOnly(settings.openNow);
@@ -401,7 +414,7 @@ export const App = () => {
 		} pubs)`;
 	}, [completeVenues, displayCurrency]);
 
-	const areas = useMemo(() => areaStats(withDistance), [withDistance]);
+	const areas = useMemo(() => areaStats(baseVenues), [baseVenues]);
 
 	// pubs whose menu is not published at all - the panel lists every one,
 	// whatever the map filters, while the grey markers follow the filters
@@ -508,6 +521,7 @@ export const App = () => {
 				facilities: [],
 				phone: null,
 				spot: "high-street" as const,
+				kind: "area" as const,
 				isClosed: false,
 				isOpenNow: false,
 				hoursToday: null,
@@ -555,6 +569,15 @@ export const App = () => {
 		setSettings(next);
 	};
 
+	const openArea = (name: string) => {
+		setAreaFilter(name);
+		setView("pubs");
+		const point = areaPoints.find((candidate) => candidate.name === name);
+		if (point) {
+			setFocused(point);
+		}
+	};
+
 	const defaultBasket = fallbackName ? [{ name: fallbackName, qty: 1 }] : [];
 	const isDefaultBasket =
 		serializeBasket(resolvedBasket) === serializeBasket(defaultBasket);
@@ -580,6 +603,7 @@ export const App = () => {
 				onlyComplete !== settings.onlyComplete ? onlyComplete : undefined,
 			venue: venueRef ?? undefined,
 			view,
+			area: areaFilter ?? undefined,
 			lat: atDefaultView ? undefined : mapView?.center[0],
 			lng: atDefaultView ? undefined : mapView?.center[1],
 			z: atDefaultView ? undefined : mapView?.zoom,
@@ -600,6 +624,7 @@ export const App = () => {
 			settings.onlyComplete,
 			venueRef,
 			view,
+			areaFilter,
 			atDefaultView,
 			mapView,
 		],
@@ -829,6 +854,22 @@ export const App = () => {
 									: null
 							}
 						/>
+						{areaFilter ? (
+							<Card withBorder padding="xs" radius="md">
+								<Group justify="space-between" gap="xs" wrap="nowrap">
+									<Text size="sm" lineClamp={1}>
+										Showing pubs in <b>{areaFilter}</b>
+									</Text>
+									<Button
+										size="compact-xs"
+										variant="subtle"
+										onClick={() => setAreaFilter(null)}
+									>
+										Clear
+									</Button>
+								</Group>
+							</Card>
+						) : null}
 						<Section title="Prices">
 							<StatsBar
 								pubs={withDistance.length}
@@ -968,6 +1009,7 @@ export const App = () => {
 						focused={focused}
 						onFocus={setFocused}
 						onOpen={setVenueRef}
+						onArea={openArea}
 						view={view}
 						onView={setView}
 						countLabel={
