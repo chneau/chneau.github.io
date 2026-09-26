@@ -127,5 +127,30 @@ export default defineConfig({
 				polyfill: "usage",
 			},
 		},
+		spooners: {
+			source: {
+				entry: { index: "./src/spooners/index.tsx" },
+				define: { BUILD_DATE: JSON.stringify(nowStr) },
+			},
+			html: {
+				title: "Spooners | Pub prices on a map",
+				tags: [createIconTag("🍺")],
+			},
+			dev: {
+				assetPrefix: "/spooners/",
+			},
+			output: {
+				distPath: { root: "dist/spooners" },
+				assetPrefix: "/spooners/",
+				copy: [
+					{
+						from: "./src/spooners/data/map-data.json",
+						to: "map-data.json",
+					},
+				],
+				overrideBrowserslist: [">0%, defaults"],
+				polyfill: "usage",
+			},
+		},
 	},
 });
