@@ -44,6 +44,12 @@ const number = (params: URLSearchParams, key: string): number | undefined => {
 	return Number.isFinite(parsed) ? parsed : undefined;
 };
 
+/** "1" -> true, "0" -> false, absent -> undefined (use the default). */
+const bool = (params: URLSearchParams, key: string): boolean | undefined => {
+	const value = params.get(key);
+	return value == null ? undefined : value === "1";
+};
+
 export const readUrl = (): UrlState => {
 	const params = new URLSearchParams(window.location.search);
 	return {
@@ -52,9 +58,9 @@ export const readUrl = (): UrlState => {
 		cur: params.get("cur") ?? undefined,
 		filters: list(params, "filters"),
 		facilities: list(params, "facilities"),
-		open: params.get("open") === "1" ? true : undefined,
-		special: params.get("special") === "1" ? true : undefined,
-		closed: params.get("closed") === "1" ? true : undefined,
+		open: bool(params, "open"),
+		special: bool(params, "special"),
+		closed: bool(params, "closed"),
 		round: params.get("round") ?? undefined,
 		venue: number(params, "venue"),
 		view: params.get("view") ?? undefined,
@@ -76,9 +82,13 @@ const buildQuery = (state: UrlState): string => {
 	put("cur", state.cur);
 	put("filters", state.filters?.join(","));
 	put("facilities", state.facilities?.join(","));
-	if (state.open) params.set("open", "1");
-	if (state.special) params.set("special", "1");
-	if (state.closed) params.set("closed", "1");
+	const putBool = (key: string, value: boolean | undefined) => {
+		if (value === true) params.set(key, "1");
+		else if (value === false) params.set(key, "0");
+	};
+	putBool("open", state.open);
+	putBool("special", state.special);
+	putBool("closed", state.closed);
 	put("round", state.round);
 	put("venue", state.venue);
 	put("view", state.view === "item" ? undefined : state.view);

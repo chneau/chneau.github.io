@@ -23,8 +23,8 @@ import { SPOT_META } from "../derive";
 import { miles, money, normalize, type PriceScale, priceColor } from "../price";
 import type { MapPoint } from "../types";
 
-const UK_CENTER: [number, number] = [54.4, -3.2];
-const UK_ZOOM = 6;
+export const UK_CENTER: [number, number] = [54.4, -3.2];
+export const UK_ZOOM = 6;
 
 export type MapView = "item" | "round" | "area";
 
