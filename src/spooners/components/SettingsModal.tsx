@@ -75,6 +75,14 @@ export const SettingsModal = ({
 				}
 			/>
 
+			<Switch
+				label="Hide airport & travel venues by default"
+				checked={settings.hideSpecial}
+				onChange={(event) =>
+					onChange({ ...settings, hideSpecial: event.currentTarget.checked })
+				}
+			/>
+
 			<Select
 				label="Ranking list length"
 				data={ROW_OPTIONS}

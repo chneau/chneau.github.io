@@ -17,6 +17,7 @@ import {
 	Tooltip,
 	useMap,
 } from "react-leaflet";
+import { SPOT_META } from "../derive";
 import { miles, money, normalize, type PriceScale, priceColor } from "../price";
 import type { PricedVenue } from "../types";
 
@@ -50,6 +51,16 @@ const VenuePopup = ({ venue }: { venue: PricedVenue }) => (
 			{venue.isOpenNow ? "🟢 Open now" : "🔴 Closed now"}
 			{venue.hoursToday ? ` · ${venue.hoursToday}` : ""}
 		</div>
+		{venue.spot !== "high-street" || !venue.canOrder ? (
+			<div style={{ fontSize: 12, marginTop: 4 }}>
+				{venue.spot !== "high-street"
+					? `${SPOT_META[venue.spot].emoji} ${SPOT_META[venue.spot].label}`
+					: ""}
+				{!venue.canOrder
+					? `${venue.spot !== "high-street" ? " · " : ""}no ordering`
+					: ""}
+			</div>
+		) : null}
 		{venue.facilities.length ? (
 			<div style={{ fontSize: 12, marginTop: 4, opacity: 0.85 }}>
 				{venue.facilities.slice(0, 5).join(" · ")}

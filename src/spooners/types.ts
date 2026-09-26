@@ -72,7 +72,7 @@ type VenueAddress = {
 	distance?: number;
 };
 
-type VenueInfo = {
+export type VenueInfo = {
 	franchise?: string;
 	id: number;
 	venueRef: number;
@@ -186,6 +186,17 @@ export type CacheStats = {
 	updatedAt: string | null;
 };
 
+/**
+ * What kind of site a pub is. Airports/havens/concessions are captive-audience
+ * venues and are usually priced above the high street.
+ */
+export type VenueSpot =
+	| "high-street"
+	| "airport"
+	| "haven"
+	| "concession"
+	| "hotel";
+
 /** A venue with the price of the currently selected item resolved. */
 export type PricedVenue = {
 	ref: number;
@@ -197,6 +208,10 @@ export type PricedVenue = {
 	county: string | null;
 	postcode: string | null;
 	type: string | null;
+	/** Airport / haven / concession / hotel / high street. */
+	spot: VenueSpot;
+	/** False for venues the app cannot take orders at (`selectHandler` "message"). */
+	canOrder: boolean;
 	isClosed: boolean;
 	/** Canonical price (the pint, else the largest portion). */
 	price: number;
