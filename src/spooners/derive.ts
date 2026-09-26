@@ -598,3 +598,64 @@ export const valueLeaders = (cache: SpoonersCache): ValueLeader[] => {
 	}
 	return out;
 };
+
+type VenueValue = {
+	name: string;
+	menu: string | null;
+	kind: ValueKind;
+	value: number;
+	price: number;
+	portion: string;
+};
+
+/**
+ * The value metric of every item one pub sells, so its own best value rows can
+ * be listed (cheapest per alcohol unit, most calories per pound, ...).
+ */
+export const venueValues = (
+	cache: SpoonersCache,
+	ref: number | null,
+): VenueValue[] => {
+	if (ref == null) {
+		return [];
+	}
+	const entry = cache.venues[String(ref)];
+	if (!entry) {
+		return [];
+	}
+	const out: VenueValue[] = [];
+	for (const [name, portions] of Object.entries(entry.items ?? {})) {
+		const definition = cache.items[name] ?? null;
+		const nature = itemNature(definition);
+		const picked = choosePrice(portions, null, nature);
+		if (!picked) {
+			continue;
+		}
+		const kind = classifyPortion(picked.portion);
+		const ml =
+			portionMl(picked.portion) ??
+			(kind === "bottle" || kind === "can" || kind === "glass"
+				? parseVolumeMl(definition?.description)
+				: null);
+		const value = computeValue({
+			nature,
+			price: picked.price,
+			abv: parseAbv(definition?.description),
+			ml,
+			calories: definition?.calories ?? null,
+			descriptionUnits: parseUnits(definition?.description),
+		});
+		if (!value) {
+			continue;
+		}
+		out.push({
+			name,
+			menu: definition?.menu ?? null,
+			kind: value.kind,
+			value: value.value,
+			price: picked.price,
+			portion: picked.portion,
+		});
+	}
+	return out;
+};
