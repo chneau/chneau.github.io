@@ -5,6 +5,8 @@ export type SpoonersSettings = {
 	currency: string;
 	/** Start with the "open now" filter on. */
 	openNow: boolean;
+	/** Hide airports, havens, hotels and other special venues. */
+	hideSpecial: boolean;
 	/** How many venues each ranking list shows. */
 	rankingRows: number;
 };
@@ -12,6 +14,7 @@ export type SpoonersSettings = {
 const DEFAULT_SETTINGS: SpoonersSettings = {
 	currency: "GBP",
 	openNow: false,
+	hideSpecial: false,
 	rankingRows: 5,
 };
 

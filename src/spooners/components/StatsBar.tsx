@@ -6,6 +6,8 @@ type Props = {
 	median: string;
 	dearest: string;
 	portion: string | null;
+	/** Insight about special venues, when there are some. */
+	premium?: string | null;
 };
 
 const Tile = ({
@@ -33,6 +35,7 @@ export const StatsBar = ({
 	median,
 	dearest,
 	portion,
+	premium,
 }: Props) => (
 	<Card withBorder padding="sm" radius="md">
 		<Group justify="space-between" align="flex-start" wrap="nowrap">
@@ -44,6 +47,11 @@ export const StatsBar = ({
 		{portion ? (
 			<Text size="xs" c="dimmed" mt={6}>
 				per {portion.toLowerCase()}
+			</Text>
+		) : null}
+		{premium ? (
+			<Text size="xs" c="dimmed" mt={2}>
+				{premium}
 			</Text>
 		) : null}
 	</Card>

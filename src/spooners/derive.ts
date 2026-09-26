@@ -1,9 +1,12 @@
+import { median } from "./price";
 import type {
 	CacheStats,
 	ItemInfo,
 	PricedVenue,
 	SpoonersCache,
 	VenueDetail,
+	VenueInfo,
+	VenueSpot,
 } from "./types";
 
 /**
@@ -139,6 +142,10 @@ export const pricedVenues = (
 			county: entry.venue.address?.county ?? null,
 			postcode: entry.venue.address?.postcode ?? null,
 			type: entry.venue.type ?? null,
+			spot: venueSpot(entry.venue, entry.detail),
+			canOrder:
+				entry.venue.selectHandler?.type !== "message" &&
+				entry.detail?.canPlaceOrder !== false,
 			isClosed: Boolean(entry.venue.isClosed),
 			price: picked.price,
 			portion: picked.portion,
@@ -186,6 +193,65 @@ export const availableCurrencies = (
 	return [...counts.entries()]
 		.map(([code, count]) => ({ code, count }))
 		.sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
+};
+
+// --------------------------------------------------------------------------- #
+// special venues (airports, havens, hotels, ...)                                 #
+// --------------------------------------------------------------------------- #
+
+export const SPOT_META: Record<VenueSpot, { label: string; emoji: string }> = {
+	"high-street": { label: "High street", emoji: "🏙" },
+	airport: { label: "Airport", emoji: "✈️" },
+	haven: { label: "Haven park", emoji: "⛱️" },
+	concession: { label: "Concession", emoji: "🏪" },
+	hotel: { label: "Hotel", emoji: "🏨" },
+};
+
+const venueSpot = (venue: VenueInfo, detail: VenueDetail | null): VenueSpot => {
+	const subType = (venue.subType ?? "").toLowerCase();
+	if (subType === "airport") return "airport";
+	if (subType === "haven") return "haven";
+	if (subType === "concession") return "concession";
+	if (venue.type === "pub_hotel" || venue.hotel || detail?.hotel)
+		return "hotel";
+	return "high-street";
+};
+
+/**
+ * Airport / haven / concession - venues with a captive audience. Hotels are
+ * flagged as special too, but priced like the high street, so they stay out of
+ * the premium comparison (and of the "hide" filter).
+ */
+export const isCaptiveSpot = (spot: VenueSpot): boolean =>
+	spot === "airport" || spot === "haven" || spot === "concession";
+
+type Premium = {
+	normalMedian: number;
+	specialMedian: number;
+	premiumPercent: number;
+	specialCount: number;
+	normalCount: number;
+};
+
+/** How much the captive venues charge over everywhere else, for this item. */
+export const specialPremium = (venues: PricedVenue[]): Premium | null => {
+	const normal = venues
+		.filter((v) => !isCaptiveSpot(v.spot))
+		.map((v) => v.price);
+	const special = venues
+		.filter((v) => isCaptiveSpot(v.spot))
+		.map((v) => v.price);
+	if (!normal.length || !special.length) return null;
+	const normalMedian = median(normal);
+	const specialMedian = median(special);
+	if (!normalMedian) return null;
+	return {
+		normalMedian,
+		specialMedian,
+		premiumPercent: ((specialMedian - normalMedian) / normalMedian) * 100,
+		specialCount: special.length,
+		normalCount: normal.length,
+	};
 };
 
 // --------------------------------------------------------------------------- #

@@ -34,6 +34,9 @@ type Props = {
 	openNow: boolean;
 	onOpenNow: (value: boolean) => void;
 	openCount: number;
+	hideSpecial: boolean;
+	onHideSpecial: (value: boolean) => void;
+	specialCount: number;
 	hasLocation: boolean;
 	geoState: "idle" | "loading" | "error";
 	onNearMe: () => void;
@@ -89,6 +92,9 @@ export const ItemSearchCard = ({
 	openNow,
 	onOpenNow,
 	openCount,
+	hideSpecial,
+	onHideSpecial,
+	specialCount,
 	hasLocation,
 	geoState,
 	onNearMe,
@@ -186,13 +192,21 @@ export const ItemSearchCard = ({
 				</Box>
 			) : null}
 
-			<Group justify="space-between" align="center">
+			<Group gap="md" wrap="wrap">
 				<Switch
 					size="xs"
 					checked={openNow}
 					onChange={(event) => onOpenNow(event.currentTarget.checked)}
 					label={`Open now (${openCount})`}
 				/>
+				<Switch
+					size="xs"
+					checked={hideSpecial}
+					onChange={(event) => onHideSpecial(event.currentTarget.checked)}
+					label={`Hide airport & travel (${specialCount})`}
+				/>
+			</Group>
+			<Group justify="space-between" align="center">
 				<Button
 					size="xs"
 					variant={hasLocation ? "filled" : "light"}

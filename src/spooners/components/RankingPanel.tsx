@@ -1,4 +1,5 @@
 import {
+	Badge,
 	Box,
 	Card,
 	Group,
@@ -9,6 +10,7 @@ import {
 	UnstyledButton,
 } from "@mantine/core";
 import { useState } from "react";
+import { SPOT_META } from "../derive";
 import {
 	amount,
 	currencySymbol,
@@ -63,13 +65,21 @@ const Row = ({
 					{rank}
 				</Text>
 				<Box style={{ minWidth: 0 }}>
-					<Text size="sm" lineClamp={1}>
-						{venue.isOpenNow ? "" : "🔴 "}
-						{venue.name}
-					</Text>
+					<Group gap={6} wrap="nowrap" align="center" style={{ minWidth: 0 }}>
+						<Text size="sm" lineClamp={1}>
+							{venue.isOpenNow ? "" : "🔴 "}
+							{venue.name}
+						</Text>
+						{venue.spot !== "high-street" ? (
+							<Badge size="xs" variant="light" color="grape">
+								{SPOT_META[venue.spot].emoji} {SPOT_META[venue.spot].label}
+							</Badge>
+						) : null}
+					</Group>
 					<Text size="xs" c="dimmed" lineClamp={1}>
 						{[venue.town, venue.postcode].filter(Boolean).join(", ")}
 						{venue.distance != null ? ` · ${miles(venue.distance)}` : ""}
+						{venue.canOrder ? "" : " · no ordering"}
 					</Text>
 				</Box>
 			</Group>

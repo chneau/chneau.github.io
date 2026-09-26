@@ -27,9 +27,11 @@ import {
 	cacheStats,
 	commonPortion,
 	haversineMiles,
+	isCaptiveSpot,
 	matchesFilters,
 	portionsFor,
 	pricedVenues,
+	specialPremium,
 } from "./derive";
 import { makeScale, median, money } from "./price";
 import { canConvertTo, convert, currencyChoices, useRates } from "./rates";
@@ -67,6 +69,7 @@ export const App = () => {
 	const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
 	const [activeFilters, setActiveFilters] = useState<string[]>([]);
 	const [openNowOnly, setOpenNowOnly] = useState(settings.openNow);
+	const [hideSpecial, setHideSpecial] = useState(settings.hideSpecial);
 	const [focused, setFocused] = useState<PricedVenue | null>(null);
 	const [userLocation, setUserLocation] = useState<{
 		lat: number;
@@ -174,13 +177,20 @@ export const App = () => {
 		() => displayVenues.filter((venue) => venue.isOpenNow).length,
 		[displayVenues],
 	);
-	const venues = useMemo(
-		() =>
-			openNowOnly
-				? displayVenues.filter((venue) => venue.isOpenNow)
-				: displayVenues,
-		[displayVenues, openNowOnly],
+	const specialCount = useMemo(
+		() => displayVenues.filter((venue) => isCaptiveSpot(venue.spot)).length,
+		[displayVenues],
 	);
+	const venues = useMemo(() => {
+		let list = displayVenues;
+		if (openNowOnly) {
+			list = list.filter((venue) => venue.isOpenNow);
+		}
+		if (hideSpecial) {
+			list = list.filter((venue) => !isCaptiveSpot(venue.spot));
+		}
+		return list;
+	}, [displayVenues, openNowOnly, hideSpecial]);
 	const withDistance = useMemo(
 		() =>
 			userLocation
@@ -212,6 +222,25 @@ export const App = () => {
 		[withDistance],
 	);
 
+	const premium = useMemo(() => {
+		const insight = specialPremium(displayVenues);
+		if (!insight) {
+			return null;
+		}
+		const sign = insight.premiumPercent >= 0 ? "+" : "−";
+		const where = displayVenues.some((venue) => venue.spot === "airport")
+			? "✈️ Airport"
+			: "⛱️ Travel";
+		return `${where} venues charge ${sign}${Math.abs(
+			Math.round(insight.premiumPercent),
+		)}% more than the rest — median ${money(
+			insight.specialMedian,
+			displayCurrency,
+		)} vs ${money(insight.normalMedian, displayCurrency)} (${insight.specialCount} of ${
+			insight.specialCount + insight.normalCount
+		} pubs)`;
+	}, [displayVenues, displayCurrency]);
+
 	const requestLocation = () => {
 		if (!navigator.geolocation) {
 			setGeoState("error");
@@ -234,6 +263,9 @@ export const App = () => {
 	const updateSettings = (next: typeof settings) => {
 		if (next.openNow !== settings.openNow) {
 			setOpenNowOnly(next.openNow);
+		}
+		if (next.hideSpecial !== settings.hideSpecial) {
+			setHideSpecial(next.hideSpecial);
 		}
 		setSettings(next);
 	};
@@ -374,6 +406,9 @@ export const App = () => {
 							openNow={openNowOnly}
 							onOpenNow={setOpenNowOnly}
 							openCount={openCount}
+							hideSpecial={hideSpecial}
+							onHideSpecial={setHideSpecial}
+							specialCount={specialCount}
 							hasLocation={Boolean(userLocation)}
 							geoState={geoState}
 							onNearMe={requestLocation}
@@ -390,6 +425,7 @@ export const App = () => {
 							median={money(median(prices), displayCurrency)}
 							dearest={money(scale.max, displayCurrency)}
 							portion={effectivePortion}
+							premium={premium}
 						/>
 						<Distribution
 							prices={prices}
