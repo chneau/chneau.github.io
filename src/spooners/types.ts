@@ -121,12 +121,23 @@ type PaymentMethod = {
 	enabled?: boolean;
 };
 
+type CurrencyInfo = {
+	code?: string;
+	currencyCode?: string;
+	countryCode?: string;
+	symbol?: string;
+	htmlName?: string;
+	htmlNumber?: string;
+};
+
 /** The venue detail endpoint: fields we read are typed, the rest kept as-is. */
 export type VenueDetail = {
 	facilities?: string[] | null;
 	openingTimes?: OpeningTimes | null;
 	contactDetails?: ContactDetails | null;
 	paymentConfig?: { methods?: Record<string, PaymentMethod> } | null;
+	/** GBP for Great Britain, EUR for the pubs in the Republic of Ireland. */
+	currency?: CurrencyInfo | null;
 	displayImages?: unknown;
 	[key: string]: unknown;
 };
@@ -191,6 +202,8 @@ export type PricedVenue = {
 	price: number;
 	portion: string;
 	portions: Record<string, number>;
+	/** ISO code this venue prices in (GBP, EUR...). */
+	currency: string;
 	/** Today's opening state, from the venue detail. */
 	isOpenNow: boolean;
 	hoursToday: string | null;

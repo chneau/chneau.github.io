@@ -143,6 +143,10 @@ export const pricedVenues = (
 			price: picked.price,
 			portion: picked.portion,
 			portions,
+			currency:
+				entry.detail?.currency?.code ??
+				entry.detail?.currency?.currencyCode ??
+				"GBP",
 			isOpenNow: open.open,
 			hoursToday: open.hours,
 			facilities: venueFacilities(entry.detail),
@@ -152,21 +156,36 @@ export const pricedVenues = (
 	return venues;
 };
 
-/** The portion label most venues use, e.g. "Pint". */
-export const commonPortion = (venues: PricedVenue[]): string | null => {
+/** The portion label most venues use, e.g. "Pint". */ export const commonPortion =
+	(venues: PricedVenue[]): string | null => {
+		const counts = new Map<string, number>();
+		for (const venue of venues) {
+			counts.set(venue.portion, (counts.get(venue.portion) ?? 0) + 1);
+		}
+		let best: string | null = null;
+		let bestCount = 0;
+		for (const [portion, count] of counts) {
+			if (count > bestCount) {
+				best = portion;
+				bestCount = count;
+			}
+		}
+		return best;
+	};
+
+type CurrencyOption = { code: string; count: number };
+
+/** Currencies present among these venues (GBP for GB, EUR for Ireland). */
+export const availableCurrencies = (
+	venues: PricedVenue[],
+): CurrencyOption[] => {
 	const counts = new Map<string, number>();
 	for (const venue of venues) {
-		counts.set(venue.portion, (counts.get(venue.portion) ?? 0) + 1);
+		counts.set(venue.currency, (counts.get(venue.currency) ?? 0) + 1);
 	}
-	let best: string | null = null;
-	let bestCount = 0;
-	for (const [portion, count] of counts) {
-		if (count > bestCount) {
-			best = portion;
-			bestCount = count;
-		}
-	}
-	return best;
+	return [...counts.entries()]
+		.map(([code, count]) => ({ code, count }))
+		.sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
 };
 
 // --------------------------------------------------------------------------- #
