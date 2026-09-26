@@ -46,6 +46,10 @@ export const SettingsModal = ({
 	onRefreshRates,
 }: Props) => (
 	<Modal opened={opened} onClose={onClose} title="Settings" centered size="md">
+		<Text size="xs" c="dimmed" mb="sm">
+			These are the defaults for when you open Spooners. The switches in the
+			sidebar change the view you are looking at right now.
+		</Text>
 		<Stack gap="md">
 			<Select
 				label="Prices shown in"

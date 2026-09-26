@@ -4,6 +4,7 @@ import {
 	Badge,
 	Box,
 	Button,
+	Card,
 	Group,
 	Loader,
 	Stack,
@@ -31,6 +32,7 @@ import {
 	UK_ZOOM,
 } from "./components/MapPanel";
 import { MenuLessPanel } from "./components/MenuLessPanel";
+import { PubSearch } from "./components/PubSearch";
 import { RankingPanel } from "./components/RankingPanel";
 import { RoundCard } from "./components/RoundCard";
 import { SettingsModal } from "./components/SettingsModal";
@@ -108,6 +110,7 @@ export const App = () => {
 	const [onlyComplete, setOnlyComplete] = useState(
 		url.complete ?? settings.onlyComplete,
 	);
+	const [cleared, setCleared] = useState<BasketItem[] | null>(null);
 	const [venueRef, setVenueRef] = useState<number | null>(url.venue ?? null);
 	const [view, setView] = useState<MapView>(
 		url.view === "area" ? "area" : "pubs",
@@ -168,10 +171,25 @@ export const App = () => {
 	);
 	const singleName =
 		resolvedBasket.length === 1 ? (resolvedBasket[0]?.name ?? null) : null;
-	const updateBasket = (update: (current: BasketItem[]) => BasketItem[]) =>
+	const updateBasket = (update: (current: BasketItem[]) => BasketItem[]) => {
+		setCleared(null);
 		setBasket((current) =>
 			update(current ?? (fallbackName ? [{ name: fallbackName, qty: 1 }] : [])),
 		);
+	};
+
+	// dietary filters only make sense when a round item actually carries a tag
+	const dietaryRelevant = useMemo(() => {
+		if (!data) {
+			return false;
+		}
+		const types = new Set(["Vegan", "Vegetarian", "under500", "5fat"]);
+		return resolvedBasket.some((item) =>
+			(data.items[item.name]?.keywords ?? []).some((keyword) =>
+				types.has(keyword.type ?? ""),
+			),
+		);
+	}, [data, resolvedBasket]);
 
 	const priced = useMemo(
 		() =>
@@ -321,6 +339,21 @@ export const App = () => {
 		[withDistance],
 	);
 	const medianPrice = useMemo(() => median(prices), [prices]);
+	const hiddenCount = displayVenues.length - venues.length;
+	const legendLabel = singleName
+		? `${singleName}${displayVenues[0]?.portion ? ` · ${displayVenues[0].portion}` : ""}`
+		: resolvedBasket.length > 1
+			? `${resolvedBasket.reduce((sum, item) => sum + item.qty, 0)}-item round`
+			: undefined;
+
+	const resetFilters = () => {
+		setActiveFilters([]);
+		setActiveFacilities([]);
+		setOpenNowOnly(settings.openNow);
+		setHideSpecial(settings.hideSpecial);
+		setHideClosed(settings.hideClosed);
+		setOnlyComplete(settings.onlyComplete);
+	};
 
 	const premium = useMemo(() => {
 		const insight = specialPremium(completeVenues);
@@ -595,8 +628,7 @@ export const App = () => {
 			style={{
 				display: "flex",
 				flexDirection: "column",
-				height: isMobile ? "auto" : "100vh",
-				minHeight: "100vh",
+				height: "100dvh",
 			}}
 		>
 			<Group
@@ -629,6 +661,9 @@ export const App = () => {
 					<Badge variant="light" size="lg" visibleFrom="md">
 						{stats.venuesWithData} pubs · {index.length} items
 					</Badge>
+					<Box visibleFrom="md" w={220}>
+						<PubSearch venues={data.venueList} onSelect={setVenueRef} />
+					</Box>
 					<Tooltip label={copied ? "Link copied" : "Copy a link to this view"}>
 						<Button
 							size="xs"
@@ -675,8 +710,10 @@ export const App = () => {
 					className="spooners-scroll"
 					style={{
 						width: isMobile ? "100%" : 400,
-						flexShrink: 0,
-						overflowY: isMobile ? "visible" : "auto",
+						flex: isMobile ? 1 : undefined,
+						flexShrink: isMobile ? 1 : 0,
+						minHeight: 0,
+						overflowY: "auto",
 						borderRight: isMobile
 							? undefined
 							: "1px solid var(--mantine-color-default-border)",
@@ -684,6 +721,9 @@ export const App = () => {
 					}}
 				>
 					<Stack gap="sm">
+						<Box hiddenFrom="md">
+							<PubSearch venues={data.venueList} onSelect={setVenueRef} />
+						</Box>
 						<RoundCard
 							items={visibleIndex}
 							basket={resolvedBasket}
@@ -714,7 +754,18 @@ export const App = () => {
 									current.filter((item) => item.name !== name),
 								)
 							}
-							onClear={() => setBasket([])}
+							onClear={() => {
+								setCleared(resolvedBasket);
+								setBasket([]);
+							}}
+							onUndo={
+								cleared
+									? () => {
+											setBasket(cleared);
+											setCleared(null);
+										}
+									: null
+							}
 							currencies={converting ? [] : currencies}
 							currency={displayCurrency}
 							onCurrency={(currency) => {
@@ -724,6 +775,7 @@ export const App = () => {
 							filters={filters}
 							activeFilters={activeFilters}
 							onFilters={setActiveFilters}
+							dietaryRelevant={dietaryRelevant}
 							facilities={facilityOptions}
 							activeFacilities={activeFacilities}
 							onFacilities={setActiveFacilities}
@@ -743,6 +795,7 @@ export const App = () => {
 							hasLocation={Boolean(userLocation)}
 							geoState={geoState}
 							onNearMe={requestLocation}
+							onClearLocation={() => setUserLocation(null)}
 							scale={scale}
 							metric={itemMetric}
 							trend={trend}
@@ -760,6 +813,39 @@ export const App = () => {
 							portion={singleName ? (completeVenues[0]?.portion ?? null) : null}
 							premium={premium}
 						/>
+						{withDistance.length === 0 ? (
+							<Card withBorder padding="md" radius="md">
+								<Stack gap="xs">
+									<Text fw={600}>No pubs match</Text>
+									<Text size="sm" c="dimmed">
+										Nothing serves this round with the current filters.
+									</Text>
+									<Group gap="xs">
+										{partialCount > 0 && onlyComplete ? (
+											<Button size="xs" onClick={() => setOnlyComplete(false)}>
+												Include partial pubs ({partialCount})
+											</Button>
+										) : null}
+										<Button size="xs" variant="light" onClick={resetFilters}>
+											Reset filters
+										</Button>
+										{resolvedBasket.length ? (
+											<Button
+												size="xs"
+												variant="subtle"
+												color="red"
+												onClick={() => {
+													setCleared(resolvedBasket);
+													setBasket([]);
+												}}
+											>
+												Clear round
+											</Button>
+										) : null}
+									</Group>
+								</Stack>
+							</Card>
+						) : null}
 						<Distribution
 							prices={prices}
 							scale={scale}
@@ -810,9 +896,10 @@ export const App = () => {
 
 				<Box
 					style={{
-						flex: 1,
+						flex: isMobile ? undefined : 1,
+						flexShrink: 0,
 						minWidth: 0,
-						height: isMobile ? "55vh" : "auto",
+						height: isMobile ? "45vh" : "auto",
 					}}
 				>
 					<MapPanel
@@ -829,6 +916,9 @@ export const App = () => {
 								? `${areaPoints.length} areas`
 								: `${mapData.length} pubs`
 						}
+						legendLabel={view === "area" ? "median of the area" : legendLabel}
+						median={view === "area" ? null : medianPrice}
+						hiddenCount={view === "area" ? undefined : hiddenCount}
 						initialView={mapView}
 						onViewport={(center, zoom) => setMapView({ center, zoom })}
 					/>
@@ -841,9 +931,21 @@ export const App = () => {
 				venueRef={venueRef}
 				cache={data}
 				onSelectItem={(name) => {
+					setCleared(null);
 					setBasket([{ name, qty: 1 }]);
 					setView("pubs");
 				}}
+				onAddItem={(name) =>
+					updateBasket((current) => {
+						const existing = current.find((item) => item.name === name);
+						if (existing) {
+							return current.map((item) =>
+								item.name === name ? { ...item, qty: item.qty + 1 } : item,
+							);
+						}
+						return [...current, { name, qty: 1 }];
+					})
+				}
 			/>
 
 			<SettingsModal
