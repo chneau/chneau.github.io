@@ -47,3 +47,7 @@ export const median = (values: number[]): number => {
 	const lower = sorted[middle - 1] ?? upper;
 	return sorted.length % 2 ? upper : (upper + lower) / 2;
 };
+
+/** "0.4 mi" / "12 mi" */
+export const miles = (value: number): string =>
+	value < 10 ? `${value.toFixed(1)} mi` : `${Math.round(value)} mi`;

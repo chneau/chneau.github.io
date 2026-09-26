@@ -94,9 +94,41 @@ type VenueMenu = {
 	sortOrder?: number;
 };
 
-/** The venue detail endpoint: we only read a few fields, keep the rest as-is. */
-type VenueDetail = {
-	[field: string]: unknown;
+type OpeningDay = {
+	open?: string | null;
+	close?: string | null;
+	label?: string | null;
+	isClosed?: boolean | null;
+};
+
+type OpeningTimes = {
+	/** keyed mon..sun */
+	days?: Record<string, OpeningDay>;
+	/** keyed YYYY-MM-DD (holidays/one-offs) */
+	dates?: Record<string, OpeningDay>;
+	children?: unknown;
+};
+
+type ContactDetails = {
+	email?: string;
+	telephone?: string;
+	website?: string;
+};
+
+type PaymentMethod = {
+	label?: string;
+	name?: string;
+	enabled?: boolean;
+};
+
+/** The venue detail endpoint: fields we read are typed, the rest kept as-is. */
+export type VenueDetail = {
+	facilities?: string[] | null;
+	openingTimes?: OpeningTimes | null;
+	contactDetails?: ContactDetails | null;
+	paymentConfig?: { methods?: Record<string, PaymentMethod> } | null;
+	displayImages?: unknown;
+	[key: string]: unknown;
 };
 
 type VenueEntry = {
@@ -149,6 +181,7 @@ export type PricedVenue = {
 	name: string;
 	lat: number;
 	lng: number;
+	line1: string | null;
 	town: string | null;
 	county: string | null;
 	postcode: string | null;
@@ -158,4 +191,11 @@ export type PricedVenue = {
 	price: number;
 	portion: string;
 	portions: Record<string, number>;
+	/** Today's opening state, from the venue detail. */
+	isOpenNow: boolean;
+	hoursToday: string | null;
+	facilities: string[];
+	phone: string | null;
+	/** Miles from the user, only when they shared their location. */
+	distance?: number;
 };

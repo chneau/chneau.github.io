@@ -2,12 +2,15 @@ import {
 	Alert,
 	Badge,
 	Box,
+	Button,
 	Card,
+	Chip,
 	Grid,
 	Group,
 	Loader,
 	SegmentedControl,
 	Stack,
+	Switch,
 	Text,
 	Title,
 } from "@mantine/core";
@@ -17,9 +20,12 @@ import { PriceDistribution } from "./components/PriceDistribution";
 import { PriceMap } from "./components/PriceMap";
 import { PriceRanks } from "./components/PriceRanks";
 import {
+	availableFilters,
 	buildItemIndex,
 	cacheStats,
 	commonPortion,
+	haversineMiles,
+	matchesFilters,
 	portionsFor,
 	pricedVenues,
 } from "./derive";
@@ -90,9 +96,23 @@ export const App = () => {
 	const { data, error, loading } = useDataset();
 	const [selectedName, setSelectedName] = useState<string | null>(null);
 	const [selectedPortion, setSelectedPortion] = useState<string | null>(null);
+	const [activeFilters, setActiveFilters] = useState<string[]>([]);
+	const [openNowOnly, setOpenNowOnly] = useState(false);
 	const [focused, setFocused] = useState<PricedVenue | null>(null);
+	const [userLocation, setUserLocation] = useState<{
+		lat: number;
+		lng: number;
+	} | null>(null);
+	const [geoState, setGeoState] = useState<"idle" | "loading" | "error">(
+		"idle",
+	);
 
 	const index = useMemo(() => (data ? buildItemIndex(data) : []), [data]);
+	const filters = useMemo(() => availableFilters(index), [index]);
+	const visibleIndex = useMemo(
+		() => index.filter((item) => matchesFilters(item, activeFilters)),
+		[index, activeFilters],
+	);
 	const stats = useMemo(
 		() =>
 			data
@@ -100,12 +120,23 @@ export const App = () => {
 				: { venues: 0, venuesWithData: 0, items: 0, updatedAt: null },
 		[data],
 	);
-	const effectiveName =
-		selectedName ??
-		index.find((item) => item.name.toLowerCase().includes(DEFAULT_ITEM_HINT))
-			?.name ??
-		index[0]?.name ??
-		null;
+
+	// keep the selection valid as filters change
+	const effectiveName = useMemo(() => {
+		if (
+			selectedName &&
+			visibleIndex.some((item) => item.name === selectedName)
+		) {
+			return selectedName;
+		}
+		return (
+			visibleIndex.find((item) =>
+				item.name.toLowerCase().includes(DEFAULT_ITEM_HINT),
+			)?.name ??
+			visibleIndex[0]?.name ??
+			null
+		);
+	}, [visibleIndex, selectedName]);
 
 	const selectedItem = useMemo(
 		() => index.find((item) => item.name === effectiveName) ?? null,
@@ -137,7 +168,60 @@ export const App = () => {
 				: [],
 		[data, effectiveName, effectivePortion],
 	);
-	const scale = useMemo(() => makeScale(priced.map((v) => v.price)), [priced]);
+
+	const openCount = useMemo(
+		() => priced.filter((venue) => venue.isOpenNow).length,
+		[priced],
+	);
+	const venues = useMemo(
+		() => (openNowOnly ? priced.filter((venue) => venue.isOpenNow) : priced),
+		[priced, openNowOnly],
+	);
+	const withDistance = useMemo(
+		() =>
+			userLocation
+				? venues.map((venue) => ({
+						...venue,
+						distance: haversineMiles(userLocation, {
+							lat: venue.lat,
+							lng: venue.lng,
+						}),
+					}))
+				: venues,
+		[venues, userLocation],
+	);
+	const nearby = useMemo(
+		() =>
+			userLocation
+				? [...withDistance]
+						.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0))
+						.slice(0, 12)
+				: undefined,
+		[withDistance, userLocation],
+	);
+	const scale = useMemo(
+		() => makeScale(withDistance.map((v) => v.price)),
+		[withDistance],
+	);
+
+	const requestLocation = () => {
+		if (!navigator.geolocation) {
+			setGeoState("error");
+			return;
+		}
+		setGeoState("loading");
+		navigator.geolocation.getCurrentPosition(
+			(position) => {
+				setUserLocation({
+					lat: position.coords.latitude,
+					lng: position.coords.longitude,
+				});
+				setGeoState("idle");
+			},
+			() => setGeoState("error"),
+			{ timeout: 8000 },
+		);
+	};
 
 	if (loading) {
 		return (
@@ -156,7 +240,7 @@ export const App = () => {
 		);
 	}
 
-	const prices = priced.map((v) => v.price);
+	const prices = withDistance.map((v) => v.price);
 	const currency = "GBP";
 	const badges = selectedItem ? itemBadges(selectedItem) : [];
 
@@ -188,7 +272,7 @@ export const App = () => {
 					>
 						<Box style={{ height: "min(72vh, 780px)" }}>
 							<PriceMap
-								venues={priced}
+								venues={withDistance}
 								scale={scale}
 								currency={currency}
 								focused={focused}
@@ -203,7 +287,7 @@ export const App = () => {
 						<Card withBorder padding="md" radius="md">
 							<ItemPicker
 								label="Item"
-								items={index}
+								items={visibleIndex}
 								value={effectiveName}
 								onChange={(name) => {
 									setSelectedName(name);
@@ -252,12 +336,55 @@ export const App = () => {
 									/>
 								</Box>
 							) : null}
+							{filters.length ? (
+								<Box mt="sm">
+									<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
+										Filters
+									</Text>
+									<Chip.Group
+										multiple
+										value={activeFilters}
+										onChange={setActiveFilters}
+									>
+										<Group gap={4}>
+											{filters.map((filter) => (
+												<Chip key={filter.id} size="xs" value={filter.id}>
+													{filter.label} ({filter.count})
+												</Chip>
+											))}
+										</Group>
+									</Chip.Group>
+								</Box>
+							) : null}
+							<Group justify="space-between" mt="sm" align="center">
+								<Switch
+									size="xs"
+									checked={openNowOnly}
+									onChange={(event) =>
+										setOpenNowOnly(event.currentTarget.checked)
+									}
+									label={`Open now (${openCount})`}
+								/>
+								<Button
+									size="xs"
+									variant="light"
+									loading={geoState === "loading"}
+									onClick={requestLocation}
+								>
+									Near me
+								</Button>
+							</Group>
+							{geoState === "error" ? (
+								<Text size="xs" c="red" mt={4}>
+									Location unavailable — check browser permissions.
+								</Text>
+							) : null}
 							<Legend scale={scale} currency={currency} />
 						</Card>
 
 						<Card withBorder padding="md" radius="md">
 							<Group justify="space-between" align="flex-start">
-								<Stat label="Pubs" value={String(priced.length)} />
+								<Stat label="Pubs" value={String(withDistance.length)} />
 								<Stat
 									label="Cheapest"
 									value={money(scale.min, currency)}
@@ -270,14 +397,20 @@ export const App = () => {
 									color="red"
 								/>
 							</Group>
+							{effectivePortion ? (
+								<Text size="xs" c="dimmed" mt={6}>
+									prices per {effectivePortion.toLowerCase()}
+								</Text>
+							) : null}
 						</Card>
 
 						<PriceRanks
-							venues={priced}
+							venues={withDistance}
 							scale={scale}
 							currency={currency}
 							focused={focused}
 							onFocus={setFocused}
+							nearby={nearby}
 						/>
 					</Stack>
 				</Grid.Col>

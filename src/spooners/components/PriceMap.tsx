@@ -2,11 +2,12 @@ import { useEffect } from "react";
 import {
 	CircleMarker,
 	MapContainer,
+	Popup,
 	TileLayer,
 	Tooltip,
 	useMap,
 } from "react-leaflet";
-import { money, normalize, type PriceScale, priceColor } from "../price";
+import { miles, money, normalize, type PriceScale, priceColor } from "../price";
 import type { PricedVenue } from "../types";
 
 const UK_CENTER: [number, number] = [54.4, -3.2];
@@ -24,6 +25,46 @@ const FlyTo = ({ venue }: { venue: PricedVenue | null }) => {
 	}, [venue, map]);
 	return null;
 };
+
+const VenuePopup = ({
+	venue,
+	currency,
+}: {
+	venue: PricedVenue;
+	currency: string;
+}) => (
+	<div style={{ minWidth: 200, maxWidth: 260 }}>
+		<div style={{ fontWeight: 700, marginBottom: 2 }}>{venue.name}</div>
+		<div>
+			<strong>{money(venue.price, currency)}</strong> · {venue.portion}
+		</div>
+		<div style={{ color: "#666", fontSize: 12, marginTop: 4 }}>
+			{[venue.line1, venue.town, venue.postcode].filter(Boolean).join(", ")}
+		</div>
+		<div style={{ fontSize: 12, marginTop: 4 }}>
+			{venue.isOpenNow ? "🟢 Open now" : "🔴 Closed now"}
+			{venue.hoursToday ? ` · ${venue.hoursToday}` : ""}
+		</div>
+		{venue.facilities.length ? (
+			<div style={{ fontSize: 12, marginTop: 4, color: "#444" }}>
+				{venue.facilities.slice(0, 5).join(" · ")}
+			</div>
+		) : null}
+		{venue.distance != null ? (
+			<div style={{ fontSize: 12, marginTop: 4 }}>
+				{miles(venue.distance)} away
+			</div>
+		) : null}
+		{venue.phone ? (
+			<a
+				href={`tel:${venue.phone.replace(/\s/g, "")}`}
+				style={{ fontSize: 12 }}
+			>
+				{venue.phone}
+			</a>
+		) : null}
+	</div>
+);
 
 type Props = {
 	venues: PricedVenue[];
@@ -73,12 +114,12 @@ export const PriceMap = ({
 						<div style={{ fontWeight: 600 }}>{venue.name}</div>
 						<div>
 							{money(venue.price, currency)} · {venue.portion}
-							{venue.isClosed ? " · closed" : ""}
-						</div>
-						<div style={{ color: "#9aa" }}>
-							{[venue.town, venue.postcode].filter(Boolean).join(", ")}
+							{venue.isOpenNow ? " · open" : " · closed"}
 						</div>
 					</Tooltip>
+					<Popup>
+						<VenuePopup venue={venue} currency={currency} />
+					</Popup>
 				</CircleMarker>
 			);
 		})}
