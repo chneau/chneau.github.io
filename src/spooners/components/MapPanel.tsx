@@ -89,7 +89,17 @@ export const MapPanel = ({
 	const mapRef = useRef<LeafletMap | null>(null);
 
 	return (
-		<Box style={{ position: "relative", height: "100%", width: "100%" }}>
+		<Box
+			style={{
+				position: "relative",
+				height: "100%",
+				width: "100%",
+				// contain Leaflet's z-indexes (its controls go up to 1000) so they can
+				// never sit above Mantine portals such as the settings modal
+				isolation: "isolate",
+				zIndex: 0,
+			}}
+		>
 			<MapContainer
 				ref={mapRef}
 				className="spooners-map"

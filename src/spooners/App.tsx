@@ -12,12 +12,13 @@ import {
 	useMantineColorScheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { Beer, Moon, Sun } from "lucide-react";
+import { Beer, Moon, Settings, Sun } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Distribution } from "./components/Distribution";
 import { ItemSearchCard } from "./components/ItemSearchCard";
 import { MapPanel } from "./components/MapPanel";
 import { RankingPanel } from "./components/RankingPanel";
+import { SettingsModal } from "./components/SettingsModal";
 import { StatsBar } from "./components/StatsBar";
 import {
 	availableCurrencies,
@@ -31,10 +32,13 @@ import {
 	pricedVenues,
 } from "./derive";
 import { makeScale, median, money } from "./price";
+import { canConvertTo, convert, currencyChoices, useRates } from "./rates";
+import { useSettings } from "./settings";
 import type { ItemInfo, PricedVenue } from "./types";
 import { useDataset } from "./useDataset";
 
 const DEFAULT_ITEM_HINT = "guinness";
+const RATE_SOURCE = "European Central Bank, via frankfurter.dev";
 
 /** Badge/flag keywords only - the rest are internal codes like "AL::gluten". */
 const itemBadges = (item: ItemInfo): string[] => {
@@ -49,12 +53,20 @@ export const App = () => {
 	const { data, error, loading } = useDataset();
 	const { colorScheme, setColorScheme } = useMantineColorScheme();
 	const isMobile = useMediaQuery("(max-width: 62em)");
+	const [settings, setSettings] = useSettings();
+	const [settingsOpen, setSettingsOpen] = useState(false);
+	const {
+		table: rates,
+		loading: ratesLoading,
+		error: ratesError,
+		refresh: refreshRates,
+	} = useRates();
 
 	const [selectedName, setSelectedName] = useState<string | null>(null);
 	const [selectedPortion, setSelectedPortion] = useState<string | null>(null);
 	const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
 	const [activeFilters, setActiveFilters] = useState<string[]>([]);
-	const [openNowOnly, setOpenNowOnly] = useState(false);
+	const [openNowOnly, setOpenNowOnly] = useState(settings.openNow);
 	const [focused, setFocused] = useState<PricedVenue | null>(null);
 	const [userLocation, setUserLocation] = useState<{
 		lat: number;
@@ -126,6 +138,8 @@ export const App = () => {
 				: [],
 		[data, effectiveName, effectivePortion],
 	);
+
+	// native mode: each pub keeps its own currency (switch between them)
 	const currencies = useMemo(() => availableCurrencies(priced), [priced]);
 	const effectiveCurrency =
 		selectedCurrency &&
@@ -134,21 +148,38 @@ export const App = () => {
 			: (currencies.find((option) => option.code === "GBP")?.code ??
 				currencies[0]?.code ??
 				"GBP");
-	const pricedCurrency = useMemo(
+	const nativeVenues = useMemo(
 		() => priced.filter((venue) => venue.currency === effectiveCurrency),
 		[priced, effectiveCurrency],
 	);
 
+	// converted mode: everything into one currency, so EUR pubs show up too
+	const convertTo = settings.currency !== "native" ? settings.currency : null;
+	const converting = Boolean(convertTo && canConvertTo(convertTo, rates));
+	const displayVenues = useMemo(
+		() =>
+			converting && convertTo
+				? priced.map((venue) => ({
+						...venue,
+						price: convert(venue.price, venue.currency, convertTo, rates),
+						currency: convertTo,
+					}))
+				: nativeVenues,
+		[converting, convertTo, priced, nativeVenues, rates],
+	);
+	const displayCurrency =
+		converting && convertTo ? convertTo : effectiveCurrency;
+
 	const openCount = useMemo(
-		() => pricedCurrency.filter((venue) => venue.isOpenNow).length,
-		[pricedCurrency],
+		() => displayVenues.filter((venue) => venue.isOpenNow).length,
+		[displayVenues],
 	);
 	const venues = useMemo(
 		() =>
 			openNowOnly
-				? pricedCurrency.filter((venue) => venue.isOpenNow)
-				: pricedCurrency,
-		[pricedCurrency, openNowOnly],
+				? displayVenues.filter((venue) => venue.isOpenNow)
+				: displayVenues,
+		[displayVenues, openNowOnly],
 	);
 	const withDistance = useMemo(
 		() =>
@@ -198,6 +229,13 @@ export const App = () => {
 			() => setGeoState("error"),
 			{ timeout: 8000 },
 		);
+	};
+
+	const updateSettings = (next: typeof settings) => {
+		if (next.openNow !== settings.openNow) {
+			setOpenNowOnly(next.openNow);
+		}
+		setSettings(next);
 	};
 
 	if (loading) {
@@ -251,6 +289,11 @@ export const App = () => {
 					</Box>
 				</Group>
 				<Group gap="xs" wrap="nowrap">
+					{converting ? (
+						<Badge variant="light" color="blue" size="lg">
+							converted → {displayCurrency}
+						</Badge>
+					) : null}
 					<Badge variant="light" size="lg">
 						{stats.venuesWithData} pubs · {index.length} items
 					</Badge>
@@ -259,6 +302,16 @@ export const App = () => {
 							updated {stats.updatedAt.slice(0, 10)}
 						</Badge>
 					) : null}
+					<Tooltip label="Settings">
+						<ActionIcon
+							variant="default"
+							size="lg"
+							aria-label="Settings"
+							onClick={() => setSettingsOpen(true)}
+						>
+							<Settings size={16} />
+						</ActionIcon>
+					</Tooltip>
 					<Tooltip label={dark ? "Light mode" : "Dark mode"}>
 						<ActionIcon
 							variant="default"
@@ -309,8 +362,8 @@ export const App = () => {
 								setSelectedPortion(portion);
 								setFocused(null);
 							}}
-							currencies={currencies}
-							currency={effectiveCurrency}
+							currencies={converting ? [] : currencies}
+							currency={displayCurrency}
 							onCurrency={(currency) => {
 								setSelectedCurrency(currency);
 								setFocused(null);
@@ -325,26 +378,32 @@ export const App = () => {
 							geoState={geoState}
 							onNearMe={requestLocation}
 							scale={scale}
+							converted={
+								converting
+									? { currency: displayCurrency, rateDate: rates?.date ?? null }
+									: null
+							}
 						/>
 						<StatsBar
 							pubs={withDistance.length}
-							cheapest={money(scale.min, effectiveCurrency)}
-							median={money(median(prices), effectiveCurrency)}
-							dearest={money(scale.max, effectiveCurrency)}
+							cheapest={money(scale.min, displayCurrency)}
+							median={money(median(prices), displayCurrency)}
+							dearest={money(scale.max, displayCurrency)}
 							portion={effectivePortion}
 						/>
 						<Distribution
 							prices={prices}
 							scale={scale}
-							currency={effectiveCurrency}
+							currency={displayCurrency}
 						/>
 						<RankingPanel
 							venues={withDistance}
 							scale={scale}
-							currency={effectiveCurrency}
+							currency={displayCurrency}
 							focused={focused}
 							onFocus={setFocused}
 							nearby={nearby}
+							count={settings.rankingRows}
 						/>
 					</Stack>
 				</Box>
@@ -359,12 +418,25 @@ export const App = () => {
 					<MapPanel
 						venues={withDistance}
 						scale={scale}
-						currency={effectiveCurrency}
+						currency={displayCurrency}
 						focused={focused}
 						onFocus={setFocused}
 					/>
 				</Box>
 			</Box>
+
+			<SettingsModal
+				opened={settingsOpen}
+				onClose={() => setSettingsOpen(false)}
+				settings={settings}
+				onChange={updateSettings}
+				currencies={currencyChoices(rates)}
+				rateDate={rates?.date ?? null}
+				rateSource={RATE_SOURCE}
+				ratesLoading={ratesLoading}
+				ratesError={ratesError}
+				onRefreshRates={refreshRates}
+			/>
 		</Box>
 	);
 };
