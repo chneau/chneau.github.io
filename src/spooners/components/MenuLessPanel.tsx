@@ -36,7 +36,8 @@ export const MenuLessPanel = ({ venues, onSelect }: Props) => {
 			</Group>
 			<Text size="xs" c="dimmed" mb={6}>
 				These pubs exist but the API gives no menu, so they have no prices to
-				plot. Shown as grey markers on the map.
+				plot. Listed regardless of the map filters (airports included); the grey
+				markers follow them.
 			</Text>
 			<Stack gap={2}>
 				{venues.map((venue) => (
