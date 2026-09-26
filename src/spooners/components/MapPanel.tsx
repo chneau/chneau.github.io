@@ -118,6 +118,8 @@ const PointPopup = ({
 
 type Props = {
 	points: MapPoint[];
+	/** Pubs with no published menu - drawn as grey hollow markers. */
+	unpriced?: MapPoint[];
 	scale: PriceScale;
 	currency: string;
 	focused: MapPoint | null;
@@ -131,6 +133,7 @@ type Props = {
 
 export const MapPanel = ({
 	points,
+	unpriced,
 	scale,
 	currency,
 	focused,
@@ -170,6 +173,26 @@ export const MapPanel = ({
 				/>
 				<FlyTo point={focused} />
 				<Viewport onChange={onViewport} />
+				{unpriced?.map((point) => (
+					<CircleMarker
+						key={`unpriced-${point.ref}`}
+						center={[point.lat, point.lng]}
+						radius={4}
+						pathOptions={{
+							color: "#9aa0a6",
+							weight: 1,
+							fillColor: "#9aa0a6",
+							fillOpacity: 0.15,
+							dashArray: "2 2",
+						}}
+						eventHandlers={{ click: () => onFocus(point) }}
+					>
+						<Tooltip direction="top" offset={[0, -6]} opacity={1}>
+							<div style={{ fontWeight: 600 }}>{point.name}</div>
+							<div>no prices published</div>
+						</Tooltip>
+					</CircleMarker>
+				))}
 				{points.map((point) => {
 					const selected = focused?.ref === point.ref;
 					const importance = normalize(point.price, scale);

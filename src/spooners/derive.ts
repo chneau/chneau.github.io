@@ -17,6 +17,7 @@ import type {
 	HistoryPoint,
 	ItemInfo,
 	PricedVenue,
+	SparseVenue,
 	SpoonersCache,
 	VenueDetail,
 	VenueInfo,
@@ -584,3 +585,48 @@ export const isTemporarilyClosed = (
 	status === "closed_temporary" ||
 	status === "opening_soon" ||
 	status === "closed";
+
+/**
+ * Pubs that exist in the venue list but have no prices at all - the API either
+ * failed to publish a menu or gives them no sales area. They are shown as
+ * "no menu published" so they are not simply invisible.
+ */
+export const venuesWithoutPrices = (
+	cache: SpoonersCache,
+	now: Date = new Date(),
+): SparseVenue[] => {
+	const out: SparseVenue[] = [];
+	for (const entry of Object.values(cache.venues)) {
+		const items = entry.items ?? {};
+		if (Object.keys(items).length) {
+			continue;
+		}
+		const location = entry.venue.address?.location;
+		if (!location || location.latitude == null || location.longitude == null) {
+			continue;
+		}
+		const open = venueOpenState(entry.detail, now);
+		out.push({
+			ref: entry.venue.venueRef,
+			name: entry.venue.name,
+			lat: location.latitude,
+			lng: location.longitude,
+			town: entry.venue.address?.town ?? null,
+			county: entry.venue.address?.county ?? null,
+			postcode: entry.venue.address?.postcode ?? null,
+			spot: venueSpot(entry.venue, entry.detail),
+			status: entry.venue.status ?? null,
+			isClosed: Boolean(entry.venue.isClosed),
+			isOpenNow: open.open,
+			hoursToday: open.hours,
+			facilities: venueFacilities(entry.detail),
+			phone: entry.detail?.contactDetails?.telephone || null,
+			currency:
+				entry.detail?.currency?.code ??
+				entry.detail?.currency?.currencyCode ??
+				"GBP",
+			reason: entry.error ?? "menu not published",
+		});
+	}
+	return out.sort((a, b) => a.name.localeCompare(b.name));
+};

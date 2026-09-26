@@ -26,6 +26,7 @@ import { Distribution } from "./components/Distribution";
 import { GeographyPanel } from "./components/GeographyPanel";
 import { ItemSearchCard } from "./components/ItemSearchCard";
 import { MapPanel, type MapView } from "./components/MapPanel";
+import { MenuLessPanel } from "./components/MenuLessPanel";
 import { RankingPanel } from "./components/RankingPanel";
 import { RoundPanel } from "./components/RoundPanel";
 import { SettingsModal } from "./components/SettingsModal";
@@ -51,6 +52,7 @@ import {
 	pricedVenues,
 	rareItems,
 	specialPremium,
+	venuesWithoutPrices,
 } from "./derive";
 import { metricText } from "./portions";
 import { makeScale, median, money } from "./price";
@@ -334,6 +336,71 @@ export const App = () => {
 	}, [displayVenues, displayCurrency]);
 
 	const areas = useMemo(() => areaStats(withDistance), [withDistance]);
+
+	// pubs whose menu is not published at all - still worth showing
+	const unpriced = useMemo(() => {
+		if (!data) {
+			return [];
+		}
+		let list = venuesWithoutPrices(data);
+		if (openNowOnly) {
+			list = list.filter((venue) => venue.isOpenNow);
+		}
+		if (hideSpecial) {
+			list = list.filter((venue) => !isCaptiveSpot(venue.spot));
+		}
+		if (hideClosed) {
+			list = list.filter(
+				(venue) => !venue.isClosed && !isTemporarilyClosed(venue.status),
+			);
+		}
+		if (activeFacilities.length) {
+			list = list.filter((venue) =>
+				activeFacilities.every((facility) =>
+					venue.facilities.includes(facility),
+				),
+			);
+		}
+		return userLocation
+			? list.map((venue) => ({
+					...venue,
+					distance: haversineMiles(userLocation, {
+						lat: venue.lat,
+						lng: venue.lng,
+					}),
+				}))
+			: list;
+	}, [
+		data,
+		openNowOnly,
+		hideSpecial,
+		hideClosed,
+		activeFacilities,
+		userLocation,
+	]);
+	const unpricedPoints = useMemo<MapPoint[]>(
+		() =>
+			unpriced.map((venue) => ({
+				ref: venue.ref,
+				name: venue.name,
+				lat: venue.lat,
+				lng: venue.lng,
+				price: 0,
+				currency: venue.currency,
+				label: "no prices published",
+				line1: null,
+				town: venue.town,
+				postcode: venue.postcode,
+				facilities: venue.facilities,
+				phone: venue.phone,
+				spot: venue.spot,
+				isClosed: venue.isClosed,
+				isOpenNow: venue.isOpenNow,
+				hoursToday: venue.hoursToday,
+				distance: venue.distance,
+			})),
+		[unpriced],
+	);
 
 	// discovery: rare guest ales and new items
 	const rare = useMemo(
@@ -819,6 +886,7 @@ export const App = () => {
 								setFocused(null);
 							}}
 						/>
+						<MenuLessPanel venues={unpriced} onSelect={setVenueRef} />
 					</Stack>
 				</Box>
 
@@ -831,6 +899,7 @@ export const App = () => {
 				>
 					<MapPanel
 						points={mapData}
+						unpriced={view === "item" ? unpricedPoints : undefined}
 						scale={mapScale}
 						currency={displayCurrency}
 						focused={focused}
