@@ -1,14 +1,18 @@
 import {
+	ActionIcon,
 	Badge,
 	Box,
+	Button,
 	Divider,
 	Group,
 	Modal,
+	SegmentedControl,
 	Stack,
 	Text,
 	TextInput,
-	UnstyledButton,
+	Tooltip,
 } from "@mantine/core";
+import { ArrowRight, Check, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { SPOT_META, venueSpot } from "../derive";
 import { portionLabel, portionRank } from "../portions";
@@ -25,6 +29,9 @@ const DAY_LABEL: Record<string, string> = {
 	sat: "Saturday",
 	sun: "Sunday",
 };
+const TODAY = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
+	new Date().getDay()
+];
 
 type MenuRow = {
 	name: string;
@@ -34,15 +41,24 @@ type MenuRow = {
 	calories: number | null;
 	badges: string[];
 	portions: [string, number][];
+	/** Price of the pub's canonical portion, for sorting. */
+	from: number;
 };
+
+type Sort = "menu" | "cheapest" | "dearest";
 
 type Props = {
 	opened: boolean;
 	onClose: () => void;
 	venueRef: number | null;
 	cache: SpoonersCache;
+	/** Replace the whole round with this item. */
 	onSelectItem: (name: string) => void;
+	/** Add one of this item to the round. */
+	onAddItem: (name: string) => void;
 };
+
+const PAGE = 100;
 
 /** Everything known about one pub: address, hours, facilities and full menu. */
 export const VenueModal = ({
@@ -51,8 +67,12 @@ export const VenueModal = ({
 	venueRef,
 	cache,
 	onSelectItem,
+	onAddItem,
 }: Props) => {
 	const [query, setQuery] = useState("");
+	const [sort, setSort] = useState<Sort>("menu");
+	const [limit, setLimit] = useState(PAGE);
+	const [added, setAdded] = useState<string | null>(null);
 	const entry = venueRef != null ? cache.venues[String(venueRef)] : undefined;
 
 	const rows = useMemo<MenuRow[]>(() => {
@@ -62,6 +82,10 @@ export const VenueModal = ({
 		const out: MenuRow[] = [];
 		for (const [name, portions] of Object.entries(entry.items)) {
 			const definition = cache.items[name];
+			const sorted = Object.entries(portions).sort(
+				(a, b) =>
+					portionRank(a[0]) - portionRank(b[0]) || a[0].localeCompare(b[0]),
+			);
 			out.push({
 				name,
 				menu: definition?.menu ?? "Other",
@@ -72,10 +96,8 @@ export const VenueModal = ({
 					.filter((keyword) => keyword.isFlag || keyword.isBadge)
 					.map((keyword) => keyword.label ?? keyword.name ?? "")
 					.filter(Boolean),
-				portions: Object.entries(portions).sort(
-					(a, b) =>
-						portionRank(a[0]) - portionRank(b[0]) || a[0].localeCompare(b[0]),
-				),
+				portions: sorted,
+				from: sorted[0]?.[1] ?? 0,
 			});
 		}
 		return out.sort(
@@ -88,16 +110,21 @@ export const VenueModal = ({
 
 	const filtered = useMemo(() => {
 		const needle = query.trim().toLowerCase();
-		if (!needle) {
-			return rows;
+		const list = needle
+			? rows.filter(
+					(row) =>
+						row.name.toLowerCase().includes(needle) ||
+						row.category.toLowerCase().includes(needle) ||
+						row.menu.toLowerCase().includes(needle),
+				)
+			: rows;
+		if (sort === "menu") {
+			return list;
 		}
-		return rows.filter(
-			(row) =>
-				row.name.toLowerCase().includes(needle) ||
-				row.category.toLowerCase().includes(needle) ||
-				row.menu.toLowerCase().includes(needle),
+		return [...list].sort((a, b) =>
+			sort === "cheapest" ? a.from - b.from : b.from - a.from,
 		);
-	}, [rows, query]);
+	}, [rows, query, sort]);
 
 	if (!entry) {
 		return (
@@ -125,7 +152,15 @@ export const VenueModal = ({
 		venue.status === "closed_temporary" ||
 		venue.status === "opening_soon";
 
-	// keep menu order stable but grouped for display
+	const add = (name: string) => {
+		onAddItem(name);
+		setAdded(name);
+		window.setTimeout(
+			() => setAdded((current) => (current === name ? null : current)),
+			1200,
+		);
+	};
+
 	let lastGroup = "";
 
 	return (
@@ -199,10 +234,17 @@ export const VenueModal = ({
 					<Stack gap={0}>
 						{DAY_ORDER.map((key) => {
 							const day = days[key];
+							const today = key === TODAY;
 							return (
-								<Text size="xs" key={key}>
+								<Text
+									size="xs"
+									key={key}
+									fw={today ? 700 : undefined}
+									c={today ? "teal" : undefined}
+								>
 									<strong>{DAY_LABEL[key]}</strong>{" "}
 									{day?.open ? `${day.open}–${day.close ?? ""}` : "closed"}
+									{today ? "  ← today" : ""}
 								</Text>
 							);
 						})}
@@ -234,14 +276,30 @@ export const VenueModal = ({
 							label={`Menu (${rows.length} items)`}
 							labelPosition="left"
 						/>
-						<TextInput
-							size="xs"
-							placeholder="Filter this pub's menu…"
-							value={query}
-							onChange={(event) => setQuery(event.currentTarget.value)}
-						/>
+						<Group gap="xs" wrap="nowrap">
+							<TextInput
+								size="xs"
+								placeholder="Filter this pub's menu…"
+								value={query}
+								style={{ flex: 1 }}
+								onChange={(event) => {
+									setQuery(event.currentTarget.value);
+									setLimit(PAGE);
+								}}
+							/>
+							<SegmentedControl
+								size="xs"
+								value={sort}
+								data={[
+									{ label: "Menu", value: "menu" },
+									{ label: "Cheapest", value: "cheapest" },
+									{ label: "Dearest", value: "dearest" },
+								]}
+								onChange={(value) => setSort(value as Sort)}
+							/>
+						</Group>
 						<Box>
-							{filtered.map((row) => {
+							{filtered.slice(0, limit).map((row) => {
 								const group = `${row.menu} · ${row.category}`;
 								const header = group !== lastGroup ? group : null;
 								lastGroup = group;
@@ -259,50 +317,82 @@ export const VenueModal = ({
 												{header}
 											</Text>
 										) : null}
-										<UnstyledButton
-											onClick={() => {
-												onSelectItem(row.name);
-												onClose();
-											}}
-											style={{
-												display: "block",
-												width: "100%",
-												padding: "4px 6px",
-												borderRadius: 6,
-											}}
+										<Group
+											justify="space-between"
+											gap={8}
+											wrap="nowrap"
+											style={{ padding: "4px 0" }}
 										>
-											<Group justify="space-between" gap={8} wrap="nowrap">
-												<Box style={{ minWidth: 0 }}>
-													<Text size="sm" lineClamp={1}>
-														{row.name}
-													</Text>
-													<Text size="xs" c="dimmed" lineClamp={1}>
-														{[
-															row.calories ? `${row.calories} kcal` : null,
-															...row.badges,
-														]
-															.filter(Boolean)
-															.join(" · ")}
-													</Text>
-												</Box>
-												<Group gap={8} wrap="nowrap">
-													{row.portions.map(([label, price]) => (
-														<Text size="xs" key={label}>
-															<Text span c="dimmed">
-																{portionLabel(label)}{" "}
-															</Text>
-															<Text span fw={700}>
-																{currencySymbol(currency)}
-																{amount(price, currency)}
-															</Text>
+											<Box style={{ minWidth: 0 }}>
+												<Text size="sm" lineClamp={1}>
+													{row.name}
+												</Text>
+												<Text size="xs" c="dimmed" lineClamp={1}>
+													{[
+														row.calories ? `${row.calories} kcal` : null,
+														...row.badges,
+													]
+														.filter(Boolean)
+														.join(" · ")}
+												</Text>
+											</Box>
+											<Group gap={8} wrap="nowrap">
+												{row.portions.map(([label, price]) => (
+													<Text size="xs" key={label}>
+														<Text span c="dimmed">
+															{portionLabel(label)}{" "}
 														</Text>
-													))}
-												</Group>
+														<Text span fw={700}>
+															{currencySymbol(currency)}
+															{amount(price, currency)}
+														</Text>
+													</Text>
+												))}
+												<Tooltip label="Add one to the round">
+													<ActionIcon
+														size="sm"
+														variant={added === row.name ? "filled" : "light"}
+														color={added === row.name ? "teal" : "blue"}
+														aria-label={`Add ${row.name} to the round`}
+														onClick={() => add(row.name)}
+													>
+														{added === row.name ? (
+															<Check size={13} />
+														) : (
+															<Plus size={13} />
+														)}
+													</ActionIcon>
+												</Tooltip>
+												<Tooltip label="Show this drink on its own">
+													<ActionIcon
+														size="sm"
+														variant="subtle"
+														aria-label={`Show only ${row.name}`}
+														onClick={() => {
+															onSelectItem(row.name);
+															onClose();
+														}}
+													>
+														<ArrowRight size={13} />
+													</ActionIcon>
+												</Tooltip>
 											</Group>
-										</UnstyledButton>
+										</Group>
 									</Box>
 								);
 							})}
+							{filtered.length > limit ? (
+								<Button
+									variant="subtle"
+									size="xs"
+									fullWidth
+									mt="sm"
+									onClick={() => setLimit((value) => value + PAGE)}
+								>
+									Show {Math.min(PAGE, filtered.length - limit)} more (
+									{filtered.length - limit} left)
+								</Button>
+							) : null}
 							{filtered.length ? null : (
 								<Text size="sm" c="dimmed">
 									Nothing matched.

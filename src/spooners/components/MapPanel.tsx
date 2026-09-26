@@ -127,6 +127,11 @@ type Props = {
 	view: MapView;
 	onView?: (view: MapView) => void;
 	countLabel?: string;
+	/** What the circle colour represents, e.g. "Guinness · Pint" or "4-item round". */
+	legendLabel?: string;
+	median?: number | null;
+	/** Pubs excluded by the round / filters, shown in the legend. */
+	hiddenCount?: number;
 	onViewport?: (center: [number, number], zoom: number) => void;
 	initialView?: { center: [number, number]; zoom: number } | null;
 };
@@ -141,6 +146,9 @@ export const MapPanel = ({
 	view,
 	onView,
 	countLabel,
+	legendLabel,
+	median,
+	hiddenCount,
 	onViewport,
 	initialView,
 }: Props) => {
@@ -264,7 +272,7 @@ export const MapPanel = ({
 					bottom: 12,
 					left: 12,
 					zIndex: 800,
-					width: 150,
+					width: 190,
 					padding: "8px 10px",
 					borderRadius: 8,
 					background: "var(--mantine-color-body)",
@@ -273,8 +281,13 @@ export const MapPanel = ({
 				}}
 			>
 				<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-					{view === "area" ? "Area median" : "Round"}
+					{view === "area" ? "Area median" : "Price"}
 				</Text>
+				{legendLabel ? (
+					<Text size="xs" c="dimmed" lineClamp={1}>
+						circle = {legendLabel}
+					</Text>
+				) : null}
 				<Box
 					style={{
 						height: 6,
@@ -287,9 +300,24 @@ export const MapPanel = ({
 					}}
 				/>
 				<Group justify="space-between" mt={2}>
-					<Text size="xs">{money(scale.min, currency)}</Text>
-					<Text size="xs">{money(scale.max, currency)}</Text>
+					<Text size="xs">cheaper</Text>
+					<Text size="xs">dearer</Text>
 				</Group>
+				{median != null ? (
+					<Text size="xs" c="dimmed">
+						median {money(median, currency)}
+					</Text>
+				) : null}
+				{hiddenCount ? (
+					<Text size="xs" c="dimmed">
+						{hiddenCount} hidden by round/filters
+					</Text>
+				) : null}
+				{unpriced?.length ? (
+					<Text size="xs" c="dimmed">
+						○ {unpriced.length} no menu
+					</Text>
+				) : null}
 			</Box>
 		</Box>
 	);
