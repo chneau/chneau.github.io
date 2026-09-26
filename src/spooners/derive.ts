@@ -1,4 +1,14 @@
-import { choosePrice, itemNature } from "./portions";
+import {
+	choosePrice,
+	classifyPortion,
+	computeValue,
+	itemNature,
+	parseAbv,
+	parseUnits,
+	parseVolumeMl,
+	portionMl,
+	valueDirection,
+} from "./portions";
 import { median } from "./price";
 import type {
 	CacheStats,
@@ -7,6 +17,7 @@ import type {
 	PricedVenue,
 	SparseVenue,
 	SpoonersCache,
+	ValueKind,
 	VenueDetail,
 	VenueInfo,
 	VenueSpot,
@@ -496,4 +507,94 @@ export const venuesWithoutPrices = (
 		});
 	}
 	return out.sort((a, b) => a.name.localeCompare(b.name));
+};
+
+// --------------------------------------------------------------------------- #
+// cross-item "value" leaderboards                                                #
+// --------------------------------------------------------------------------- #
+
+export type ValueLeader = {
+	name: string;
+	menu: string | null;
+	category: string | null;
+	nature: string;
+	kind: ValueKind;
+	/** lower is better for £/unit and £/100ml, higher for kcal/£ */
+	value: number;
+	price: number;
+	portion: string;
+	currency: string;
+	venueRef: number;
+	venueName: string;
+	/** how many venues sell the item at all */
+	count: number;
+};
+
+/**
+ * Best value per item across the country, on the item's canonical portion.
+ * Used to answer "cheapest per alcohol unit" / "most calories per pound".
+ */
+export const valueLeaders = (cache: SpoonersCache): ValueLeader[] => {
+	const out: ValueLeader[] = [];
+	for (const [name, definition] of Object.entries(cache.items)) {
+		const nature = itemNature(definition);
+		const abv = parseAbv(definition?.description);
+		const descriptionUnits = parseUnits(definition?.description);
+		const calories = definition?.calories ?? null;
+		let best: ValueLeader | null = null;
+		let count = 0;
+		for (const entry of Object.values(cache.venues)) {
+			const portions = entry.items[name];
+			if (!portions) {
+				continue;
+			}
+			const picked = choosePrice(portions, null, nature);
+			if (!picked) {
+				continue;
+			}
+			count += 1;
+			const kind = classifyPortion(picked.portion);
+			const ml =
+				portionMl(picked.portion) ??
+				(kind === "bottle" || kind === "can" || kind === "glass"
+					? parseVolumeMl(definition?.description)
+					: null);
+			const value = computeValue({
+				nature,
+				price: picked.price,
+				abv,
+				ml,
+				calories,
+				descriptionUnits,
+			});
+			if (!value) {
+				continue;
+			}
+			const better =
+				!best || valueDirection(value.kind) * (value.value - best.value) < 0;
+			if (better) {
+				best = {
+					name,
+					menu: definition?.menu ?? null,
+					category: definition?.category ?? null,
+					nature,
+					kind: value.kind,
+					value: value.value,
+					price: picked.price,
+					portion: picked.portion,
+					currency:
+						entry.detail?.currency?.code ??
+						entry.detail?.currency?.currencyCode ??
+						"GBP",
+					venueRef: entry.venue.venueRef,
+					venueName: entry.venue.name,
+					count,
+				};
+			}
+		}
+		if (best) {
+			out.push({ ...best, count });
+		}
+	}
+	return out;
 };

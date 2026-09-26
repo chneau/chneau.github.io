@@ -25,6 +25,7 @@ import {
 import { DiscoverPanel } from "./components/DiscoverPanel";
 import { Distribution } from "./components/Distribution";
 import { GeographyPanel } from "./components/GeographyPanel";
+import { ItemModal } from "./components/ItemModal";
 import {
 	MapPanel,
 	type MapView,
@@ -38,6 +39,7 @@ import { RoundCard } from "./components/RoundCard";
 import { Section } from "./components/Section";
 import { SettingsModal } from "./components/SettingsModal";
 import { StatsBar } from "./components/StatsBar";
+import { ValueExplorer } from "./components/ValueExplorer";
 import { VenueModal } from "./components/VenueModal";
 import {
 	areaStats,
@@ -112,6 +114,8 @@ export const App = () => {
 		url.complete ?? settings.onlyComplete,
 	);
 	const [cleared, setCleared] = useState<BasketItem[] | null>(null);
+	const [itemModal, setItemModal] = useState<string | null>(null);
+	const [valueOpen, setValueOpen] = useState(false);
 	const [venueRef, setVenueRef] = useState<number | null>(url.venue ?? null);
 	const [view, setView] = useState<MapView>(
 		url.view === "area" ? "area" : "pubs",
@@ -177,6 +181,23 @@ export const App = () => {
 		setBasket((current) =>
 			update(current ?? (fallbackName ? [{ name: fallbackName, qty: 1 }] : [])),
 		);
+	};
+
+	const addToRound = (name: string) =>
+		updateBasket((current) => {
+			const existing = current.find((item) => item.name === name);
+			if (existing) {
+				return current.map((item) =>
+					item.name === name ? { ...item, qty: item.qty + 1 } : item,
+				);
+			}
+			return [...current, { name, qty: 1 }];
+		});
+
+	const onlyItem = (name: string) => {
+		setCleared(null);
+		setBasket([{ name, qty: 1 }]);
+		setView("pubs");
 	};
 
 	// dietary filters only make sense when a round item actually carries a tag
@@ -670,6 +691,15 @@ export const App = () => {
 					<Box visibleFrom="md" w={220}>
 						<PubSearch venues={data.venueList} onSelect={setVenueRef} />
 					</Box>
+					<Tooltip label="Find the cheapest alcohol per unit, calories per £…">
+						<Button
+							size="xs"
+							variant="default"
+							onClick={() => setValueOpen(true)}
+						>
+							Best value
+						</Button>
+					</Tooltip>
 					<Tooltip label={copied ? "Link copied" : "Copy a link to this view"}>
 						<Button
 							size="xs"
@@ -733,19 +763,7 @@ export const App = () => {
 						<RoundCard
 							items={visibleIndex}
 							basket={resolvedBasket}
-							onAdd={(name) =>
-								updateBasket((current) => {
-									const existing = current.find((item) => item.name === name);
-									if (existing) {
-										return current.map((item) =>
-											item.name === name
-												? { ...item, qty: item.qty + 1 }
-												: item,
-										);
-									}
-									return [...current, { name, qty: 1 }];
-								})
-							}
+							onAdd={addToRound}
 							onQty={(name, qty) =>
 								updateBasket((current) =>
 									current
@@ -949,6 +967,7 @@ export const App = () => {
 						currency={displayCurrency}
 						focused={focused}
 						onFocus={setFocused}
+						onOpen={setVenueRef}
 						view={view}
 						onView={setView}
 						countLabel={
@@ -970,22 +989,36 @@ export const App = () => {
 				onClose={() => setVenueRef(null)}
 				venueRef={venueRef}
 				cache={data}
-				onSelectItem={(name) => {
-					setCleared(null);
-					setBasket([{ name, qty: 1 }]);
-					setView("pubs");
+				onSelectItem={onlyItem}
+				onAddItem={addToRound}
+				onItem={(name) => setItemModal(name)}
+			/>
+
+			<ItemModal
+				opened={itemModal != null}
+				onClose={() => setItemModal(null)}
+				itemName={itemModal}
+				cache={data}
+				onAdd={addToRound}
+				onOnly={onlyItem}
+				onVenue={(ref) => {
+					setItemModal(null);
+					setVenueRef(ref);
 				}}
-				onAddItem={(name) =>
-					updateBasket((current) => {
-						const existing = current.find((item) => item.name === name);
-						if (existing) {
-							return current.map((item) =>
-								item.name === name ? { ...item, qty: item.qty + 1 } : item,
-							);
-						}
-						return [...current, { name, qty: 1 }];
-					})
-				}
+			/>
+
+			<ValueExplorer
+				opened={valueOpen}
+				onClose={() => setValueOpen(false)}
+				cache={data}
+				onItem={(name) => {
+					setValueOpen(false);
+					setItemModal(name);
+				}}
+				onVenue={(ref) => {
+					setValueOpen(false);
+					setVenueRef(ref);
+				}}
 			/>
 
 			<SettingsModal

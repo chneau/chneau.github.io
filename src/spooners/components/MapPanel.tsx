@@ -59,12 +59,45 @@ const Viewport = ({
 	return null;
 };
 
+const DetailsButton = ({
+	point,
+	onOpen,
+}: {
+	point: MapPoint;
+	onOpen?: (ref: number) => void;
+}) =>
+	onOpen ? (
+		<button
+			type="button"
+			onClick={(event) => {
+				event.stopPropagation();
+				onOpen(point.ref);
+			}}
+			style={{
+				marginTop: 8,
+				width: "100%",
+				padding: "5px 8px",
+				borderRadius: 6,
+				border: "1px solid var(--mantine-color-default-border)",
+				background: "var(--mantine-color-default)",
+				color: "inherit",
+				cursor: "pointer",
+				fontSize: 12,
+				fontWeight: 600,
+			}}
+		>
+			Pub details ▸
+		</button>
+	) : null;
+
 const PointPopup = ({
 	point,
 	currency,
+	onOpen,
 }: {
 	point: MapPoint;
 	currency: string;
+	onOpen?: (ref: number) => void;
 }) => (
 	<div style={{ minWidth: 200, maxWidth: 260 }}>
 		{point.images?.[0] ? (
@@ -124,6 +157,7 @@ const PointPopup = ({
 				{point.phone}
 			</a>
 		) : null}
+		<DetailsButton point={point} onOpen={onOpen} />
 	</div>
 );
 
@@ -137,6 +171,8 @@ type Props = {
 	onFocus: (point: MapPoint) => void;
 	view: MapView;
 	onView?: (view: MapView) => void;
+	/** Open the full pub page. */
+	onOpen?: (ref: number) => void;
 	countLabel?: string;
 	/** What the circle colour represents, e.g. "Guinness · Pint" or "4-item round". */
 	legendLabel?: string;
@@ -156,6 +192,7 @@ export const MapPanel = ({
 	onFocus,
 	view,
 	onView,
+	onOpen,
 	countLabel,
 	legendLabel,
 	median,
@@ -210,6 +247,20 @@ export const MapPanel = ({
 							<div style={{ fontWeight: 600 }}>{point.name}</div>
 							<div>no prices published</div>
 						</Tooltip>
+						<Popup>
+							<div style={{ minWidth: 180 }}>
+								<div style={{ fontWeight: 700, marginBottom: 2 }}>
+									{point.name}
+								</div>
+								<div style={{ fontSize: 12, opacity: 0.7 }}>
+									{[point.town, point.postcode].filter(Boolean).join(", ")}
+								</div>
+								<div style={{ fontSize: 12, marginTop: 4 }}>
+									no prices published
+								</div>
+								<DetailsButton point={point} onOpen={onOpen} />
+							</div>
+						</Popup>
 					</CircleMarker>
 				))}
 				{points.map((point) => {
@@ -237,7 +288,7 @@ export const MapPanel = ({
 								</div>
 							</Tooltip>
 							<Popup>
-								<PointPopup point={point} currency={currency} />
+								<PointPopup point={point} currency={currency} onOpen={onOpen} />
 							</Popup>
 						</CircleMarker>
 					);
