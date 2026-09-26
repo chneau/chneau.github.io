@@ -12,6 +12,8 @@ type UrlState = {
 	open?: boolean;
 	special?: boolean;
 	closed?: boolean;
+	/** Only pubs that can serve the whole round (default true). */
+	complete?: boolean;
 	/** Serialised round, e.g. "Guinness:2,Budweiser:1". */
 	round?: string;
 	/** Focused venue ref. */
@@ -61,6 +63,7 @@ export const readUrl = (): UrlState => {
 		open: bool(params, "open"),
 		special: bool(params, "special"),
 		closed: bool(params, "closed"),
+		complete: bool(params, "complete"),
 		round: params.get("round") ?? undefined,
 		venue: number(params, "venue"),
 		view: params.get("view") ?? undefined,
@@ -89,9 +92,10 @@ const buildQuery = (state: UrlState): string => {
 	putBool("open", state.open);
 	putBool("special", state.special);
 	putBool("closed", state.closed);
+	putBool("complete", state.complete);
 	put("round", state.round);
 	put("venue", state.venue);
-	put("view", state.view === "item" ? undefined : state.view);
+	put("view", state.view === "pubs" ? undefined : state.view);
 	if (state.lat != null && state.lng != null && state.z != null) {
 		params.set("lat", state.lat.toFixed(4));
 		params.set("lng", state.lng.toFixed(4));

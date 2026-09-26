@@ -120,11 +120,19 @@ const Row = ({
 									⛔ {venue.status?.replace("_", " ")}
 								</Badge>
 							) : null}
+							{venue.missing.length ? (
+								<Badge size="xs" variant="light" color="orange">
+									partial
+								</Badge>
+							) : null}
 						</Group>
 						<Text size="xs" c="dimmed" lineClamp={1}>
 							{[venue.town, venue.postcode].filter(Boolean).join(", ")}
 							{venue.distance != null ? ` · ${miles(venue.distance)}` : ""}
 							{venue.canOrder ? "" : " · no ordering"}
+							{venue.missing.length
+								? ` · missing ${venue.missing.join(", ")}`
+								: ""}
 							{venue.metricValue != null && metricKind && !value
 								? ` · ${metricText(
 										{ kind: metricKind, value: venue.metricValue },

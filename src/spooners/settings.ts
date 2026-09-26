@@ -9,6 +9,8 @@ export type SpoonersSettings = {
 	hideSpecial: boolean;
 	/** Hide pubs that are temporarily closed or not open yet. */
 	hideClosed: boolean;
+	/** Only compare pubs that can serve every item of the round. */
+	onlyComplete: boolean;
 	/** How many venues each ranking list shows. */
 	rankingRows: number;
 };
@@ -18,12 +20,13 @@ const DEFAULT_SETTINGS: SpoonersSettings = {
 	openNow: false,
 	hideSpecial: true,
 	hideClosed: true,
+	onlyComplete: true,
 	rankingRows: 5,
 };
 
-/** Persisted in localStorage. Bumped to v3 so the new defaults apply. */
+/** Persisted in localStorage. Bumped to v4 so the new default applies. */
 export const useSettings = () =>
 	useLocalStorage<SpoonersSettings>({
-		key: "spooners.settings.v3",
+		key: "spooners.settings.v4",
 		defaultValue: DEFAULT_SETTINGS,
 	});

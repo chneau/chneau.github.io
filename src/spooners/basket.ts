@@ -1,90 +1,132 @@
 /**
- * The round calculator: pick drinks and quantities, see what the whole round
- * costs at every venue. Each line uses the venue's own canonical portion for
- * that item, so the total is comparable across pubs.
+ * The round: a list of drinks (or dishes) with quantities. A round with a
+ * single line is the "what does one pint cost" case, so the whole app is built
+ * on this and there is no separate single-item code path.
+ *
+ * Each line uses the venue's own canonical portion for that item, so the total
+ * is comparable across pubs.
  */
 
 import { venueFacilities, venueOpenState, venueSpot } from "./derive";
-import { choosePrice, itemNature } from "./portions";
-import type { SpoonersCache, VenueSpot } from "./types";
+import {
+	choosePrice,
+	classifyPortion,
+	computeValue,
+	itemNature,
+	parseAbv,
+	parseUnits,
+	parseVolumeMl,
+	portionMl,
+} from "./portions";
+import type { PricedVenue, SpoonersCache, VenuePriceLine } from "./types";
 
 export type BasketItem = { name: string; qty: number };
-
-type BasketLine = {
-	name: string;
-	portion: string;
-	/** Unit price at this venue, in the venue's own currency. */
-	price: number;
-};
-
-export type BasketVenue = {
-	ref: number;
-	name: string;
-	lat: number;
-	lng: number;
-	line1: string | null;
-	town: string | null;
-	county: string | null;
-	postcode: string | null;
-	spot: VenueSpot;
-	status: string | null;
-	isClosed: boolean;
-	canOrder: boolean;
-	isOpenNow: boolean;
-	hoursToday: string | null;
-	facilities: string[];
-	phone: string | null;
-	currency: string;
-	/** Total for the whole round, in the venue's own currency. */
-	total: number;
-	lines: BasketLine[];
-	/** Items of the round this venue does not sell. */
-	missing: string[];
-	distance?: number;
-};
 
 /** Every venue that sells at least one line of the round, with the total. */
 export const basketVenues = (
 	cache: SpoonersCache,
 	basket: BasketItem[],
 	now: Date = new Date(),
-): BasketVenue[] => {
+): PricedVenue[] => {
 	const wanted = basket.filter((item) => item.qty > 0);
 	if (!wanted.length) {
 		return [];
 	}
-	const nature = new Map(
+	const definitions = new Map(
+		wanted.map((item) => [item.name, cache.items[item.name] ?? null]),
+	);
+	const natures = new Map(
 		wanted.map((item) => [
 			item.name,
 			itemNature(cache.items[item.name] ?? null),
 		]),
 	);
+	const single = wanted.length === 1 ? (wanted[0]?.name ?? null) : null;
+	const totalQty = wanted.reduce((sum, item) => sum + item.qty, 0);
 
-	const venues: BasketVenue[] = [];
+	const venues: PricedVenue[] = [];
 	for (const entry of Object.values(cache.venues)) {
 		const location = entry.venue.address?.location;
 		if (!location || location.latitude == null || location.longitude == null) {
 			continue;
 		}
 		let total = 0;
-		const lines: BasketLine[] = [];
+		const lines: VenuePriceLine[] = [];
 		const missing: string[] = [];
+		// filled in when the round is a single item
+		let volumeMl: number | null = null;
+		let units: number | null = null;
+		let abvValue: number | null = null;
+		let calories: number | null = null;
+		let metricKind: VenuePriceLine["metricKind"] = null;
+		let metricValue: number | null = null;
+		let portion = `${totalQty} items`;
+
 		for (const { name, qty } of wanted) {
 			const portions = entry.items[name];
-			const picked = portions
-				? choosePrice(portions, null, nature.get(name) ?? "other")
-				: null;
+			const nature = natures.get(name) ?? "other";
+			const picked = portions ? choosePrice(portions, null, nature) : null;
 			if (!picked) {
 				missing.push(name);
 				continue;
 			}
+			const definition = definitions.get(name) ?? null;
+			const kind = classifyPortion(picked.portion);
+			const ml =
+				portionMl(picked.portion) ??
+				(kind === "bottle" || kind === "can" || kind === "glass"
+					? parseVolumeMl(definition?.description)
+					: null);
+			const abv = parseAbv(definition?.description);
+			const descriptionUnits = parseUnits(definition?.description);
+			const lineUnits =
+				abv != null && ml != null
+					? (abv * ml) / 1000
+					: nature === "spirit"
+						? null
+						: descriptionUnits;
+			const value = computeValue({
+				nature,
+				price: picked.price,
+				abv,
+				ml,
+				calories: definition?.calories ?? null,
+				descriptionUnits,
+			});
+			if (single === name) {
+				portion = picked.portion;
+				volumeMl = ml;
+				units = lineUnits;
+				abvValue = abv;
+				calories = definition?.calories ?? null;
+				metricKind = value?.kind ?? null;
+				metricValue = value?.value ?? null;
+			}
 			total += picked.price * qty;
-			lines.push({ name, portion: picked.portion, price: picked.price });
+			lines.push({
+				name,
+				portion: picked.portion,
+				price: picked.price,
+				metricKind: value?.kind ?? null,
+				metricValue: value?.value ?? null,
+			});
 		}
 		if (!lines.length) {
 			continue;
 		}
 		const open = venueOpenState(entry.detail, now);
+		let previousPrice: number | null = null;
+		let previousAt: string | null = null;
+		if (single) {
+			const changes =
+				cache.history?.venues?.[String(entry.venue.venueRef)]?.[single] ?? [];
+			for (const [at, price] of changes) {
+				if (price !== (lines[0]?.price ?? 0)) {
+					previousPrice = price;
+					previousAt = at;
+				}
+			}
+		}
 		venues.push({
 			ref: entry.venue.venueRef,
 			name: entry.venue.name,
@@ -94,29 +136,40 @@ export const basketVenues = (
 			town: entry.venue.address?.town ?? null,
 			county: entry.venue.address?.county ?? null,
 			postcode: entry.venue.address?.postcode ?? null,
+			type: entry.venue.type ?? null,
 			spot: venueSpot(entry.venue, entry.detail),
-			status: entry.venue.status ?? null,
-			isClosed: Boolean(entry.venue.isClosed),
 			canOrder:
 				entry.venue.selectHandler?.type !== "message" &&
 				entry.detail?.canPlaceOrder !== false,
-			isOpenNow: open.open,
-			hoursToday: open.hours,
-			facilities: venueFacilities(entry.detail),
-			phone: entry.detail?.contactDetails?.telephone || null,
+			isClosed: Boolean(entry.venue.isClosed),
+			status: entry.venue.status ?? null,
+			price: total,
+			portion,
+			portions: {},
+			lines,
+			missing,
 			currency:
 				entry.detail?.currency?.code ??
 				entry.detail?.currency?.currencyCode ??
 				"GBP",
-			total,
-			lines,
-			missing,
+			isOpenNow: open.open,
+			hoursToday: open.hours,
+			facilities: venueFacilities(entry.detail),
+			phone: entry.detail?.contactDetails?.telephone || null,
+			volumeMl,
+			units,
+			abv: abvValue,
+			calories,
+			metricKind,
+			metricValue,
+			previousPrice,
+			previousAt,
 		});
 	}
 	return venues;
 };
 
-/** "Guinness:2,Stowford Press Apple cider:1" <-> BasketItem[] */
+/** "Guinness:2,Budweiser:1" <-> BasketItem[] */
 export const parseBasket = (value: string | null): BasketItem[] => {
 	if (!value) {
 		return [];

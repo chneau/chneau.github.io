@@ -1,16 +1,4 @@
-import {
-	canonicalPortion,
-	choosePrice,
-	classifyPortion,
-	computeValue,
-	itemNature,
-	mergePortions,
-	normalizePortions,
-	parseAbv,
-	parseUnits,
-	parseVolumeMl,
-	portionMl,
-} from "./portions";
+import { choosePrice, itemNature } from "./portions";
 import { median } from "./price";
 import type {
 	CacheStats,
@@ -73,129 +61,6 @@ export const buildItemIndex = (cache: SpoonersCache): ItemInfo[] => {
 	items.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 	return items;
 };
-
-/** Every portion label any venue uses for this item (for the portion switcher). */
-export const portionsFor = (cache: SpoonersCache, itemName: string): string[] =>
-	mergePortions(
-		Object.values(cache.venues)
-			.map((entry) => entry.items[itemName])
-			.filter((portions): portions is Record<string, number> =>
-				Boolean(portions),
-			),
-	);
-
-/** All venues selling `itemName`, with their canonical price. */
-export const pricedVenues = (
-	cache: SpoonersCache,
-	itemName: string,
-	/** When set, use that portion's price (venues without it are skipped). */
-	portion?: string | null,
-	now: Date = new Date(),
-): PricedVenue[] => {
-	const definition = cache.items[itemName] ?? null;
-	const nature = itemNature(definition);
-	const descriptionUnits = parseUnits(definition?.description);
-	const abv = parseAbv(definition?.description);
-	const calories = definition?.calories ?? null;
-	const venues: PricedVenue[] = [];
-	for (const entry of Object.values(cache.venues)) {
-		const portions = entry.items[itemName];
-		if (!portions) {
-			continue;
-		}
-		const location = entry.venue.address?.location;
-		if (!location || location.latitude == null || location.longitude == null) {
-			continue;
-		}
-		const picked = choosePrice(portions, portion ?? null, nature);
-		if (!picked) {
-			continue;
-		}
-		const portionKind = classifyPortion(picked.portion);
-		const volumeMl =
-			portionMl(picked.portion) ??
-			(portionKind === "bottle" ||
-			portionKind === "can" ||
-			portionKind === "glass"
-				? parseVolumeMl(definition?.description)
-				: null);
-		const units =
-			abv != null && volumeMl != null
-				? (abv * volumeMl) / 1000
-				: nature === "spirit"
-					? null
-					: descriptionUnits;
-		const value = computeValue({
-			nature,
-			price: picked.price,
-			abv,
-			ml: volumeMl,
-			calories,
-			descriptionUnits,
-		});
-		const changes = historyFor(cache, entry.venue.venueRef, itemName);
-		let previousPrice: number | null = null;
-		let previousAt: string | null = null;
-		for (const [at, price] of changes) {
-			if (price !== picked.price) {
-				previousPrice = price;
-				previousAt = at;
-			}
-		}
-		const open = venueOpenState(entry.detail, now);
-		venues.push({
-			ref: entry.venue.venueRef,
-			name: entry.venue.name,
-			lat: location.latitude,
-			lng: location.longitude,
-			line1: entry.venue.address?.line1 ?? null,
-			town: entry.venue.address?.town ?? null,
-			county: entry.venue.address?.county ?? null,
-			postcode: entry.venue.address?.postcode ?? null,
-			type: entry.venue.type ?? null,
-			spot: venueSpot(entry.venue, entry.detail),
-			canOrder:
-				entry.venue.selectHandler?.type !== "message" &&
-				entry.detail?.canPlaceOrder !== false,
-			isClosed: Boolean(entry.venue.isClosed),
-			status: entry.venue.status ?? null,
-			price: picked.price,
-			portion: picked.portion,
-			portions: normalizePortions(portions),
-			currency:
-				entry.detail?.currency?.code ??
-				entry.detail?.currency?.currencyCode ??
-				"GBP",
-			isOpenNow: open.open,
-			hoursToday: open.hours,
-			facilities: venueFacilities(entry.detail),
-			phone: entry.detail?.contactDetails?.telephone || null,
-			volumeMl,
-			units,
-			abv,
-			calories,
-			metricKind: value?.kind ?? null,
-			metricValue: value?.value ?? null,
-			previousPrice,
-			previousAt,
-		});
-	}
-	return venues;
-};
-
-/** The portion most venues use for this item (data-driven, format-aware). */
-export const commonPortion = (
-	cache: SpoonersCache,
-	itemName: string,
-): string | null =>
-	canonicalPortion(
-		itemNature(cache.items[itemName] ?? null),
-		Object.values(cache.venues)
-			.map((entry) => entry.items[itemName])
-			.filter((portions): portions is Record<string, number> =>
-				Boolean(portions),
-			),
-	);
 
 export type CurrencyOption = { code: string; count: number };
 
@@ -386,13 +251,6 @@ export const matchesFilters = (item: ItemInfo, active: string[]): boolean =>
 /** National distribution snapshots for one item. */
 const historyOf = (cache: SpoonersCache, itemName: string): HistoryPoint[] =>
 	cache.history?.items?.[itemName] ?? [];
-
-/** The recorded price changes of one item at one venue. */
-const historyFor = (
-	cache: SpoonersCache,
-	ref: number,
-	itemName: string,
-): [string, number][] => cache.history?.venues?.[String(ref)]?.[itemName] ?? [];
 
 const trendPercent = (points: HistoryPoint[]): number | null => {
 	if (points.length < 2) {
