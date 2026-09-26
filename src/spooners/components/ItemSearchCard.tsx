@@ -38,6 +38,8 @@ type Props = {
 	geoState: "idle" | "loading" | "error";
 	onNearMe: () => void;
 	scale: ReturnType<typeof makeScale>;
+	/** Set when prices are being converted into another currency. */
+	converted: { currency: string; rateDate: string | null } | null;
 };
 
 const Legend = ({
@@ -91,6 +93,7 @@ export const ItemSearchCard = ({
 	geoState,
 	onNearMe,
 	scale,
+	converted,
 }: Props) => (
 	<Card withBorder padding="md" radius="md">
 		<Stack gap="sm">
@@ -207,6 +210,12 @@ export const ItemSearchCard = ({
 			) : null}
 
 			<Legend scale={scale} currency={currency} />
+			{converted ? (
+				<Text size="xs" c="dimmed">
+					converted to {converted.currency}
+					{converted.rateDate ? ` at ${converted.rateDate} ECB rates` : ""}
+				</Text>
+			) : null}
 		</Stack>
 	</Card>
 );

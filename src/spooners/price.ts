@@ -48,6 +48,40 @@ export const median = (values: number[]): number => {
 	return sorted.length % 2 ? upper : (upper + lower) / 2;
 };
 
+/** The currency's symbol ("£", "€", "US$"), falling back to the code. */
+export const currencySymbol = (currency: string): string => {
+	try {
+		return (
+			new Intl.NumberFormat("en-GB", { style: "currency", currency })
+				.formatToParts(0)
+				.find((part) => part.type === "currency")?.value ?? currency
+		);
+	} catch {
+		return currency;
+	}
+};
+
+/** "3.10" — the amount alone, for when the symbol is displayed separately.
+ *  Uses the currency's own number of decimals (JPY has none, GBP/EUR have 2). */
+export const amount = (value: number, currency?: string): string => {
+	let digits = 2;
+	try {
+		if (currency) {
+			digits =
+				new Intl.NumberFormat("en-GB", {
+					style: "currency",
+					currency,
+				}).resolvedOptions().maximumFractionDigits ?? 2;
+		}
+	} catch {
+		digits = 2;
+	}
+	return new Intl.NumberFormat("en-GB", {
+		minimumFractionDigits: digits,
+		maximumFractionDigits: digits,
+	}).format(value);
+};
+
 /** "0.4 mi" / "12 mi" */
 export const miles = (value: number): string =>
 	value < 10 ? `${value.toFixed(1)} mi` : `${Math.round(value)} mi`;

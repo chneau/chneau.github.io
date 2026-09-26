@@ -9,7 +9,14 @@ import {
 	UnstyledButton,
 } from "@mantine/core";
 import { useState } from "react";
-import { miles, money, normalize, type PriceScale, priceColor } from "../price";
+import {
+	amount,
+	currencySymbol,
+	miles,
+	normalize,
+	type PriceScale,
+	priceColor,
+} from "../price";
 import type { PricedVenue } from "../types";
 
 type Mode = "cheapest" | "dearest" | "nearest";
@@ -66,13 +73,22 @@ const Row = ({
 					</Text>
 				</Box>
 			</Group>
-			<Text
-				size="sm"
-				fw={700}
-				style={{ color: priceColor(venue.price, scale) }}
-			>
-				{money(venue.price, currency)}
-			</Text>
+			<Group gap={3} wrap="nowrap" align="baseline">
+				<Text
+					size="xs"
+					fw={600}
+					style={{ color: priceColor(venue.price, scale) }}
+				>
+					{currencySymbol(currency)}
+				</Text>
+				<Text
+					size="sm"
+					fw={700}
+					style={{ color: priceColor(venue.price, scale) }}
+				>
+					{amount(venue.price, currency)}
+				</Text>
+			</Group>
 		</Group>
 		<Progress
 			value={Math.max(3, normalize(venue.price, scale) * 100)}
@@ -92,7 +108,7 @@ export const RankingPanel = ({
 	focused,
 	onFocus,
 	nearby,
-	count = 12,
+	count = 5,
 }: Props) => {
 	const [mode, setMode] = useState<Mode>("cheapest");
 
@@ -124,6 +140,9 @@ export const RankingPanel = ({
 				data={options}
 				onChange={(value) => setMode(value as Mode)}
 			/>
+			<Text size="xs" c="dimmed" mt={6}>
+				prices in {currencySymbol(currency)} {currency}
+			</Text>
 			<Stack gap={2} mt="xs">
 				{rows.map((venue, index) => (
 					<Row
