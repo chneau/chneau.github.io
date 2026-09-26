@@ -11,10 +11,16 @@ import {
 	Text,
 } from "@mantine/core";
 import { LocateFixed } from "lucide-react";
-import type { CurrencyOption, FilterOption } from "../derive";
+import type {
+	CurrencyOption,
+	FacilityOption,
+	FilterOption,
+	Trend,
+} from "../derive";
 import { type makeScale, money, priceColor } from "../price";
 import type { ItemInfo } from "../types";
 import { ItemPicker } from "./ItemPicker";
+import { Sparkline } from "./Sparkline";
 
 type Props = {
 	items: ItemInfo[];
@@ -22,6 +28,9 @@ type Props = {
 	onSelect: (name: string) => void;
 	item: ItemInfo | null;
 	badges: string[];
+	trend: Trend | null;
+	/** e.g. "£1.63 per alcohol unit". */
+	metric: string | null;
 	portions: string[];
 	portion: string | null;
 	onPortion: (portion: string) => void;
@@ -31,12 +40,18 @@ type Props = {
 	filters: FilterOption[];
 	activeFilters: string[];
 	onFilters: (ids: string[]) => void;
+	facilities: FacilityOption[];
+	activeFacilities: string[];
+	onFacilities: (labels: string[]) => void;
 	openNow: boolean;
 	onOpenNow: (value: boolean) => void;
 	openCount: number;
 	hideSpecial: boolean;
 	onHideSpecial: (value: boolean) => void;
 	specialCount: number;
+	hideClosed: boolean;
+	onHideClosed: (value: boolean) => void;
+	closedCount: number;
 	hasLocation: boolean;
 	geoState: "idle" | "loading" | "error";
 	onNearMe: () => void;
@@ -80,6 +95,8 @@ export const ItemSearchCard = ({
 	onSelect,
 	item,
 	badges,
+	trend,
+	metric,
 	portions,
 	portion,
 	onPortion,
@@ -89,12 +106,18 @@ export const ItemSearchCard = ({
 	filters,
 	activeFilters,
 	onFilters,
+	facilities,
+	activeFacilities,
+	onFacilities,
 	openNow,
 	onOpenNow,
 	openCount,
 	hideSpecial,
 	onHideSpecial,
 	specialCount,
+	hideClosed,
+	onHideClosed,
+	closedCount,
 	hasLocation,
 	geoState,
 	onNearMe,
@@ -124,6 +147,11 @@ export const ItemSearchCard = ({
 								· {item.calories} kcal
 							</Text>
 						) : null}
+						{metric ? (
+							<Text size="xs" c="teal" fw={600}>
+								· {metric}
+							</Text>
+						) : null}
 					</Group>
 					{item.description ? (
 						<Text size="xs" c="dimmed">
@@ -137,6 +165,17 @@ export const ItemSearchCard = ({
 									{badge}
 								</Badge>
 							))}
+						</Group>
+					) : null}
+					{trend ? (
+						<Group gap={8} mt={8} align="center">
+							<Sparkline points={trend.points.map((point) => point.median)} />
+							<Text size="xs" c="dimmed">
+								median {trend.percent >= 0 ? "+" : "−"}
+								{Math.abs(Math.round(trend.percent))}% since{" "}
+								{trend.points[0]?.t} ({money(trend.from, currency)} →{" "}
+								{money(trend.to, currency)})
+							</Text>
 						</Group>
 					) : null}
 				</Box>
@@ -192,6 +231,23 @@ export const ItemSearchCard = ({
 				</Box>
 			) : null}
 
+			{facilities.length ? (
+				<Box>
+					<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
+						Pub facilities
+					</Text>
+					<Chip.Group multiple value={activeFacilities} onChange={onFacilities}>
+						<Group gap={4}>
+							{facilities.map((facility) => (
+								<Chip key={facility.label} size="xs" value={facility.label}>
+									{facility.label} ({facility.count})
+								</Chip>
+							))}
+						</Group>
+					</Chip.Group>
+				</Box>
+			) : null}
+
 			<Group gap="md" wrap="wrap">
 				<Switch
 					size="xs"
@@ -204,6 +260,12 @@ export const ItemSearchCard = ({
 					checked={hideSpecial}
 					onChange={(event) => onHideSpecial(event.currentTarget.checked)}
 					label={`Hide airport & travel (${specialCount})`}
+				/>
+				<Switch
+					size="xs"
+					checked={hideClosed}
+					onChange={(event) => onHideClosed(event.currentTarget.checked)}
+					label={`Hide closed (${closedCount})`}
 				/>
 			</Group>
 			<Group justify="space-between" align="center">

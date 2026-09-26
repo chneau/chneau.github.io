@@ -1,6 +1,20 @@
+import {
+	canonicalPortion,
+	choosePrice,
+	classifyPortion,
+	computeValue,
+	itemNature,
+	mergePortions,
+	normalizePortions,
+	parseAbv,
+	parseUnits,
+	parseVolumeMl,
+	portionMl,
+} from "./portions";
 import { median } from "./price";
 import type {
 	CacheStats,
+	HistoryPoint,
 	ItemInfo,
 	PricedVenue,
 	SpoonersCache,
@@ -13,22 +27,6 @@ import type {
  * Turns the cache into what the UI needs. The cache is keyed the "storage way"
  * (item definitions once, prices per venue); these helpers do the join.
  */
-
-const pickPrice = (
-	portions: Record<string, number>,
-): { portion: string; price: number } | null => {
-	const entries = Object.entries(portions);
-	if (!entries.length) {
-		return null;
-	}
-	const pint = entries.find(([label]) => {
-		const low = label.toLowerCase();
-		return low.includes("pint") && !low.includes("half");
-	});
-	const [portion, price] =
-		pint ?? entries.reduce((a, b) => (b[1] > a[1] ? b : a));
-	return { portion, price };
-};
 
 export const cacheStats = (cache: SpoonersCache): CacheStats => ({
 	venues: Object.keys(cache.venues).length,
@@ -65,6 +63,8 @@ export const buildItemIndex = (cache: SpoonersCache): ItemInfo[] => {
 			calories: definition.calories,
 			keywords: definition.keywords ?? [],
 			count,
+			nature: itemNature(definition),
+			trend: trendPercent(historyOf(cache, name)),
 		});
 	}
 
@@ -73,37 +73,15 @@ export const buildItemIndex = (cache: SpoonersCache): ItemInfo[] => {
 	return items;
 };
 
-/** Pints first, then halves, bottles, jugs, ... */
-const portionRank = (label: string): number => {
-	const low = label.toLowerCase();
-	if (low === "pint") return 0;
-	if (low.includes("half")) return 1;
-	if (low.includes("bottle") || low.includes("can")) return 2;
-	if (low.includes("jug")) return 3;
-	if (low.includes("single")) return 4;
-	if (low.includes("double")) return 5;
-	return 10;
-};
-
 /** Every portion label any venue uses for this item (for the portion switcher). */
-export const portionsFor = (
-	cache: SpoonersCache,
-	itemName: string,
-): string[] => {
-	const seen = new Set<string>();
-	for (const entry of Object.values(cache.venues)) {
-		const portions = entry.items[itemName];
-		if (!portions) {
-			continue;
-		}
-		for (const label of Object.keys(portions)) {
-			seen.add(label);
-		}
-	}
-	return [...seen].sort(
-		(a, b) => portionRank(a) - portionRank(b) || a.localeCompare(b),
+export const portionsFor = (cache: SpoonersCache, itemName: string): string[] =>
+	mergePortions(
+		Object.values(cache.venues)
+			.map((entry) => entry.items[itemName])
+			.filter((portions): portions is Record<string, number> =>
+				Boolean(portions),
+			),
 	);
-};
 
 /** All venues selling `itemName`, with their canonical price. */
 export const pricedVenues = (
@@ -113,6 +91,11 @@ export const pricedVenues = (
 	portion?: string | null,
 	now: Date = new Date(),
 ): PricedVenue[] => {
+	const definition = cache.items[itemName] ?? null;
+	const nature = itemNature(definition);
+	const descriptionUnits = parseUnits(definition?.description);
+	const abv = parseAbv(definition?.description);
+	const calories = definition?.calories ?? null;
 	const venues: PricedVenue[] = [];
 	for (const entry of Object.values(cache.venues)) {
 		const portions = entry.items[itemName];
@@ -123,13 +106,40 @@ export const pricedVenues = (
 		if (!location || location.latitude == null || location.longitude == null) {
 			continue;
 		}
-		const exact = portion ? portions[portion] : undefined;
-		const picked =
-			exact != null && portion
-				? { portion, price: exact }
-				: pickPrice(portions);
+		const picked = choosePrice(portions, portion ?? null, nature);
 		if (!picked) {
 			continue;
+		}
+		const portionKind = classifyPortion(picked.portion);
+		const volumeMl =
+			portionMl(picked.portion) ??
+			(portionKind === "bottle" ||
+			portionKind === "can" ||
+			portionKind === "glass"
+				? parseVolumeMl(definition?.description)
+				: null);
+		const units =
+			abv != null && volumeMl != null
+				? (abv * volumeMl) / 1000
+				: nature === "spirit"
+					? null
+					: descriptionUnits;
+		const value = computeValue({
+			nature,
+			price: picked.price,
+			abv,
+			ml: volumeMl,
+			calories,
+			descriptionUnits,
+		});
+		const changes = historyFor(cache, entry.venue.venueRef, itemName);
+		let previousPrice: number | null = null;
+		let previousAt: string | null = null;
+		for (const [at, price] of changes) {
+			if (price !== picked.price) {
+				previousPrice = price;
+				previousAt = at;
+			}
 		}
 		const open = venueOpenState(entry.detail, now);
 		venues.push({
@@ -147,9 +157,10 @@ export const pricedVenues = (
 				entry.venue.selectHandler?.type !== "message" &&
 				entry.detail?.canPlaceOrder !== false,
 			isClosed: Boolean(entry.venue.isClosed),
+			status: entry.venue.status ?? null,
 			price: picked.price,
 			portion: picked.portion,
-			portions,
+			portions: normalizePortions(portions),
 			currency:
 				entry.detail?.currency?.code ??
 				entry.detail?.currency?.currencyCode ??
@@ -158,27 +169,32 @@ export const pricedVenues = (
 			hoursToday: open.hours,
 			facilities: venueFacilities(entry.detail),
 			phone: entry.detail?.contactDetails?.telephone || null,
+			volumeMl,
+			units,
+			abv,
+			calories,
+			metricKind: value?.kind ?? null,
+			metricValue: value?.value ?? null,
+			previousPrice,
+			previousAt,
 		});
 	}
 	return venues;
 };
 
-/** The portion label most venues use, e.g. "Pint". */ export const commonPortion =
-	(venues: PricedVenue[]): string | null => {
-		const counts = new Map<string, number>();
-		for (const venue of venues) {
-			counts.set(venue.portion, (counts.get(venue.portion) ?? 0) + 1);
-		}
-		let best: string | null = null;
-		let bestCount = 0;
-		for (const [portion, count] of counts) {
-			if (count > bestCount) {
-				best = portion;
-				bestCount = count;
-			}
-		}
-		return best;
-	};
+/** The portion most venues use for this item (data-driven, format-aware). */
+export const commonPortion = (
+	cache: SpoonersCache,
+	itemName: string,
+): string | null =>
+	canonicalPortion(
+		itemNature(cache.items[itemName] ?? null),
+		Object.values(cache.venues)
+			.map((entry) => entry.items[itemName])
+			.filter((portions): portions is Record<string, number> =>
+				Boolean(portions),
+			),
+	);
 
 export type CurrencyOption = { code: string; count: number };
 
@@ -207,7 +223,10 @@ export const SPOT_META: Record<VenueSpot, { label: string; emoji: string }> = {
 	hotel: { label: "Hotel", emoji: "🏨" },
 };
 
-const venueSpot = (venue: VenueInfo, detail: VenueDetail | null): VenueSpot => {
+export const venueSpot = (
+	venue: VenueInfo,
+	detail: VenueDetail | null,
+): VenueSpot => {
 	const subType = (venue.subType ?? "").toLowerCase();
 	if (subType === "airport") return "airport";
 	if (subType === "haven") return "haven";
@@ -276,7 +295,7 @@ type OpenState = {
  * date override). Times are compared against the device clock, so this assumes
  * the viewer is in the UK.
  */
-const venueOpenState = (
+export const venueOpenState = (
 	detail: VenueDetail | null,
 	now: Date = new Date(),
 ): OpenState => {
@@ -304,7 +323,7 @@ const venueOpenState = (
 };
 
 /** Venue facilities ("Baby change", "Licensed outside area", ...). */
-const venueFacilities = (detail: VenueDetail | null): string[] =>
+export const venueFacilities = (detail: VenueDetail | null): string[] =>
 	(detail?.facilities ?? []).filter(
 		(facility: unknown): facility is string => typeof facility === "string",
 	);
@@ -358,3 +377,210 @@ export const matchesFilters = (item: ItemInfo, active: string[]): boolean =>
 		const rule = FILTER_RULES.find((candidate) => candidate.id === id);
 		return !rule || hasKeywordType(item, rule.type);
 	});
+
+// --------------------------------------------------------------------------- #
+// price history (kept by the pipeline, optional)                                 #
+// --------------------------------------------------------------------------- #
+
+/** National distribution snapshots for one item. */
+const historyOf = (cache: SpoonersCache, itemName: string): HistoryPoint[] =>
+	cache.history?.items?.[itemName] ?? [];
+
+/** The recorded price changes of one item at one venue. */
+const historyFor = (
+	cache: SpoonersCache,
+	ref: number,
+	itemName: string,
+): [string, number][] => cache.history?.venues?.[String(ref)]?.[itemName] ?? [];
+
+const trendPercent = (points: HistoryPoint[]): number | null => {
+	if (points.length < 2) {
+		return null;
+	}
+	const first = points[0];
+	const last = points[points.length - 1];
+	if (!first?.median || !last) {
+		return null;
+	}
+	return ((last.median - first.median) / first.median) * 100;
+};
+
+export type Trend = {
+	/** Oldest median recorded. */
+	from: number;
+	/** Newest median recorded. */
+	to: number;
+	percent: number;
+	/** Number of snapshots kept. */
+	points: HistoryPoint[];
+};
+
+export const itemTrend = (
+	cache: SpoonersCache,
+	itemName: string,
+): Trend | null => {
+	const points = historyOf(cache, itemName);
+	if (points.length < 2) {
+		return null;
+	}
+	const percent = trendPercent(points);
+	const first = points[0];
+	const last = points[points.length - 1];
+	if (percent == null || !first || !last) {
+		return null;
+	}
+	return { from: first.median, to: last.median, percent, points };
+};
+
+// --------------------------------------------------------------------------- #
+// facilities                                                                     #
+// --------------------------------------------------------------------------- #
+
+export type FacilityOption = { label: string; count: number };
+
+/** The facilities that appear often enough to be worth filtering on. */
+export const availableFacilities = (
+	venues: PricedVenue[],
+	limit = 8,
+): FacilityOption[] => {
+	const counts = new Map<string, number>();
+	for (const venue of venues) {
+		for (const facility of venue.facilities) {
+			counts.set(facility, (counts.get(facility) ?? 0) + 1);
+		}
+	}
+	return [...counts.entries()]
+		.map(([label, count]) => ({ label, count }))
+		.filter((option) => option.count > 0)
+		.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+		.slice(0, limit);
+};
+
+export const matchesFacilities = (
+	venue: PricedVenue,
+	active: string[],
+): boolean => active.every((facility) => venue.facilities.includes(facility));
+
+// --------------------------------------------------------------------------- #
+// geography                                                                      #
+// --------------------------------------------------------------------------- #
+
+export type AreaStat = {
+	area: string;
+	median: number;
+	count: number;
+	lat: number;
+	lng: number;
+};
+
+/** Median price per county (falling back to town) for areas with enough pubs. */
+export const areaStats = (venues: PricedVenue[], min = 5): AreaStat[] => {
+	const groups = new Map<string, PricedVenue[]>();
+	for (const venue of venues) {
+		const area = venue.county?.trim() || venue.town?.trim();
+		if (!area) {
+			continue;
+		}
+		const list = groups.get(area);
+		if (list) {
+			list.push(venue);
+		} else {
+			groups.set(area, [venue]);
+		}
+	}
+	const stats: AreaStat[] = [];
+	for (const [area, list] of groups) {
+		if (list.length < min) {
+			continue;
+		}
+		stats.push({
+			area,
+			median: median(list.map((venue) => venue.price)),
+			count: list.length,
+			lat: list.reduce((sum, v) => sum + v.lat, 0) / list.length,
+			lng: list.reduce((sum, v) => sum + v.lng, 0) / list.length,
+		});
+	}
+	return stats.sort((a, b) => a.median - b.median);
+};
+
+// --------------------------------------------------------------------------- #
+// discovery: rare guest items, new items and where to find them                  #
+// --------------------------------------------------------------------------- #
+
+export const rareItems = (items: ItemInfo[], maxCount = 3): ItemInfo[] =>
+	items.filter((item) => item.count <= maxCount);
+
+export const newItems = (items: ItemInfo[]): ItemInfo[] =>
+	items.filter((item) =>
+		item.keywords.some((keyword) => keyword.name === "PI::new"),
+	);
+
+export type Seller = {
+	ref: number;
+	name: string;
+	town: string | null;
+	price: number;
+	portion: string;
+	currency: string;
+	distance: number;
+};
+
+/** For each item, the nearest venue selling it (needs a location). */
+export const nearestSellers = (
+	cache: SpoonersCache,
+	itemNames: string[],
+	from: { lat: number; lng: number },
+): Record<string, Seller | null> => {
+	const out: Record<string, Seller | null> = {};
+	const wanted = new Set(itemNames);
+	for (const entry of Object.values(cache.venues)) {
+		const location = entry.venue.address?.location;
+		if (!location || location.latitude == null || location.longitude == null) {
+			continue;
+		}
+		const distance = haversineMiles(from, {
+			lat: location.latitude,
+			lng: location.longitude,
+		});
+		for (const name of Object.keys(entry.items)) {
+			if (!wanted.has(name)) {
+				continue;
+			}
+			const current = out[name];
+			if (current && current.distance <= distance) {
+				continue;
+			}
+			const picked = choosePrice(
+				entry.items[name] ?? {},
+				null,
+				itemNature(cache.items[name] ?? null),
+			);
+			if (!picked) {
+				continue;
+			}
+			out[name] = {
+				ref: entry.venue.venueRef,
+				name: entry.venue.name,
+				town: entry.venue.address?.town ?? null,
+				price: picked.price,
+				portion: picked.portion,
+				currency:
+					entry.detail?.currency?.code ??
+					entry.detail?.currency?.currencyCode ??
+					"GBP",
+				distance,
+			};
+		}
+	}
+	return out;
+};
+
+/** Pubs that are closed, closing, or not open yet (temporarily unavailable). */
+export const isTemporarilyClosed = (
+	status: string | null | undefined,
+): boolean =>
+	status === "closing_temporary" ||
+	status === "closed_temporary" ||
+	status === "opening_soon" ||
+	status === "closed";

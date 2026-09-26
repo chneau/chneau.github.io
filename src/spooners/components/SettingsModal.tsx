@@ -83,6 +83,14 @@ export const SettingsModal = ({
 				}
 			/>
 
+			<Switch
+				label="Hide temporarily closed pubs by default"
+				checked={settings.hideClosed}
+				onChange={(event) =>
+					onChange({ ...settings, hideClosed: event.currentTarget.checked })
+				}
+			/>
+
 			<Select
 				label="Ranking list length"
 				data={ROW_OPTIONS}
