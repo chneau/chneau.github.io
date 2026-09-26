@@ -18,8 +18,10 @@ type UrlState = {
 	round?: string;
 	/** Focused venue ref. */
 	venue?: number;
-	/** Map/ranking mode: "item" | "round" | "area". */
+	/** Map/ranking mode: "pubs" | "area". */
 	view?: string;
+	/** Only show pubs in this county/town. */
+	area?: string;
 	lat?: number;
 	lng?: number;
 	z?: number;
@@ -67,6 +69,7 @@ export const readUrl = (): UrlState => {
 		round: params.get("round") ?? undefined,
 		venue: number(params, "venue"),
 		view: params.get("view") ?? undefined,
+		area: params.get("area") ?? undefined,
 		lat: number(params, "lat"),
 		lng: number(params, "lng"),
 		z: number(params, "z"),
@@ -96,6 +99,7 @@ const buildQuery = (state: UrlState): string => {
 	put("round", state.round);
 	put("venue", state.venue);
 	put("view", state.view === "pubs" ? undefined : state.view);
+	put("area", state.area);
 	if (state.lat != null && state.lng != null && state.z != null) {
 		params.set("lat", state.lat.toFixed(4));
 		params.set("lng", state.lng.toFixed(4));

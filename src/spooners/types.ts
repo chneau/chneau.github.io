@@ -337,6 +337,8 @@ export type MapPoint = {
 	isOpenNow: boolean;
 	hoursToday: string | null;
 	canOrder?: boolean;
+	/** "area" for a county/town aggregate marker. */
+	kind?: "pub" | "area";
 	previousPrice?: number | null;
 	previousAt?: string | null;
 	/** Pub photos. */

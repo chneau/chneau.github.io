@@ -36,10 +36,30 @@ const FlyTo = ({ point }: { point: MapPoint | null }) => {
 		if (!point) {
 			return;
 		}
-		map.flyTo([point.lat, point.lng], Math.max(map.getZoom(), 13), {
+		const target = point.kind === "area" ? 11 : 13;
+		map.flyTo([point.lat, point.lng], Math.max(map.getZoom(), target), {
 			duration: 0.7,
 		});
 	}, [point, map]);
+	return null;
+};
+
+/**
+ * When switching to the area view, fit the map to the area markers, otherwise a
+ * zoomed-in pub view would show no bubbles at all.
+ */
+const FitOnView = ({ view, points }: { view: MapView; points: MapPoint[] }) => {
+	const map = useMap();
+	// biome-ignore lint/correctness/useExhaustiveDependencies: refit only when the mode changes
+	useEffect(() => {
+		if (view !== "area" || points.length < 2) {
+			return;
+		}
+		map.fitBounds(
+			points.map((point) => [point.lat, point.lng] as [number, number]),
+			{ padding: [40, 40], maxZoom: 12 },
+		);
+	}, [view, map]);
 	return null;
 };
 
@@ -59,6 +79,36 @@ const Viewport = ({
 	return null;
 };
 
+const PopupAction = ({
+	label,
+	onClick,
+}: {
+	label: string;
+	onClick: () => void;
+}) => (
+	<button
+		type="button"
+		onClick={(event) => {
+			event.stopPropagation();
+			onClick();
+		}}
+		style={{
+			marginTop: 8,
+			width: "100%",
+			padding: "5px 8px",
+			borderRadius: 6,
+			border: "1px solid var(--mantine-color-default-border)",
+			background: "var(--mantine-color-default)",
+			color: "inherit",
+			cursor: "pointer",
+			fontSize: 12,
+			fontWeight: 600,
+		}}
+	>
+		{label}
+	</button>
+);
+
 const DetailsButton = ({
 	point,
 	onOpen,
@@ -67,99 +117,100 @@ const DetailsButton = ({
 	onOpen?: (ref: number) => void;
 }) =>
 	onOpen ? (
-		<button
-			type="button"
-			onClick={(event) => {
-				event.stopPropagation();
-				onOpen(point.ref);
-			}}
-			style={{
-				marginTop: 8,
-				width: "100%",
-				padding: "5px 8px",
-				borderRadius: 6,
-				border: "1px solid var(--mantine-color-default-border)",
-				background: "var(--mantine-color-default)",
-				color: "inherit",
-				cursor: "pointer",
-				fontSize: 12,
-				fontWeight: 600,
-			}}
-		>
-			Pub details ▸
-		</button>
+		<PopupAction label="Pub details ▸" onClick={() => onOpen(point.ref)} />
 	) : null;
 
 const PointPopup = ({
 	point,
 	currency,
 	onOpen,
+	onArea,
 }: {
 	point: MapPoint;
 	currency: string;
 	onOpen?: (ref: number) => void;
-}) => (
-	<div style={{ minWidth: 200, maxWidth: 260 }}>
-		{point.images?.[0] ? (
-			<div style={{ marginBottom: 6 }}>
-				<VenueImage
-					src={point.images[0]}
-					alt={point.name}
-					width="100%"
-					height={110}
-				/>
+	onArea?: (name: string) => void;
+}) => {
+	if (point.kind === "area") {
+		return (
+			<div style={{ minWidth: 180 }}>
+				<div style={{ fontWeight: 700, marginBottom: 2 }}>{point.name}</div>
+				<div>
+					<strong>{money(point.price, currency)}</strong> median
+					{point.label ? ` · ${point.label}` : ""}
+				</div>
+				{onArea ? (
+					<PopupAction
+						label="Show these pubs ▸"
+						onClick={() => onArea(point.name)}
+					/>
+				) : null}
 			</div>
-		) : null}
-		<div style={{ fontWeight: 700, marginBottom: 2 }}>{point.name}</div>
-		<div>
-			<strong>{money(point.price, currency)}</strong>
-			{point.label ? ` · ${point.label}` : ""}
+		);
+	}
+	return (
+		<div style={{ minWidth: 200, maxWidth: 260 }}>
+			{point.images?.[0] ? (
+				<div style={{ marginBottom: 6 }}>
+					<VenueImage
+						src={point.images[0]}
+						alt={point.name}
+						width="100%"
+						height={110}
+					/>
+				</div>
+			) : null}
+			<div style={{ fontWeight: 700, marginBottom: 2 }}>{point.name}</div>
+			<div>
+				<strong>{money(point.price, currency)}</strong>
+				{point.label ? ` · ${point.label}` : ""}
+			</div>
+			{point.previousPrice != null ? (
+				<div style={{ fontSize: 12, marginTop: 2 }}>
+					was {money(point.previousPrice, currency)}
+				</div>
+			) : null}
+			<div style={{ opacity: 0.7, fontSize: 12, marginTop: 4 }}>
+				{[point.line1, point.town, point.postcode].filter(Boolean).join(", ")}
+			</div>
+			{point.hoursToday !== undefined ? (
+				<div style={{ fontSize: 12, marginTop: 4 }}>
+					{point.isOpenNow ? "🟢 Open now" : "🔴 Closed now"}
+					{point.hoursToday ? ` · ${point.hoursToday}` : ""}
+				</div>
+			) : null}
+			{point.spot !== "high-street" || point.canOrder === false ? (
+				<div style={{ fontSize: 12, marginTop: 4 }}>
+					{point.spot !== "high-street"
+						? `${SPOT_META[point.spot].emoji} ${SPOT_META[point.spot].label}`
+						: ""}
+					{point.canOrder === false
+						? `${point.spot !== "high-street" ? " · " : ""}no ordering`
+						: ""}
+				</div>
+			) : null}
+			{point.facilities.length ? (
+				<div style={{ fontSize: 12, marginTop: 4, opacity: 0.85 }}>
+					{point.facilities.slice(0, 5).join(" · ")}
+				</div>
+			) : null}
+			{point.distance != null ? (
+				<div style={{ fontSize: 12, marginTop: 4 }}>
+					{miles(point.distance)} away
+				</div>
+			) : null}
+			{point.phone ? (
+				<a
+					href={`tel:${point.phone.replace(/\s/g, "")}`}
+					style={{ fontSize: 12 }}
+				>
+					{point.phone}
+				</a>
+			) : null}
+			<DetailsButton point={point} onOpen={onOpen} />
 		</div>
-		{point.previousPrice != null ? (
-			<div style={{ fontSize: 12, marginTop: 2 }}>
-				was {money(point.previousPrice, currency)}
-			</div>
-		) : null}
-		<div style={{ opacity: 0.7, fontSize: 12, marginTop: 4 }}>
-			{[point.line1, point.town, point.postcode].filter(Boolean).join(", ")}
-		</div>
-		{point.hoursToday !== undefined ? (
-			<div style={{ fontSize: 12, marginTop: 4 }}>
-				{point.isOpenNow ? "🟢 Open now" : "🔴 Closed now"}
-				{point.hoursToday ? ` · ${point.hoursToday}` : ""}
-			</div>
-		) : null}
-		{point.spot !== "high-street" || point.canOrder === false ? (
-			<div style={{ fontSize: 12, marginTop: 4 }}>
-				{point.spot !== "high-street"
-					? `${SPOT_META[point.spot].emoji} ${SPOT_META[point.spot].label}`
-					: ""}
-				{point.canOrder === false
-					? `${point.spot !== "high-street" ? " · " : ""}no ordering`
-					: ""}
-			</div>
-		) : null}
-		{point.facilities.length ? (
-			<div style={{ fontSize: 12, marginTop: 4, opacity: 0.85 }}>
-				{point.facilities.slice(0, 5).join(" · ")}
-			</div>
-		) : null}
-		{point.distance != null ? (
-			<div style={{ fontSize: 12, marginTop: 4 }}>
-				{miles(point.distance)} away
-			</div>
-		) : null}
-		{point.phone ? (
-			<a
-				href={`tel:${point.phone.replace(/\s/g, "")}`}
-				style={{ fontSize: 12 }}
-			>
-				{point.phone}
-			</a>
-		) : null}
-		<DetailsButton point={point} onOpen={onOpen} />
-	</div>
-);
+	);
+};
 
 type Props = {
 	points: MapPoint[];
@@ -173,6 +224,8 @@ type Props = {
 	onView?: (view: MapView) => void;
 	/** Open the full pub page. */
 	onOpen?: (ref: number) => void;
+	/** Drill into an area marker's pubs. */
+	onArea?: (name: string) => void;
 	countLabel?: string;
 	/** What the circle colour represents, e.g. "Guinness · Pint" or "4-item round". */
 	legendLabel?: string;
@@ -193,6 +246,7 @@ export const MapPanel = ({
 	view,
 	onView,
 	onOpen,
+	onArea,
 	countLabel,
 	legendLabel,
 	median,
@@ -228,6 +282,7 @@ export const MapPanel = ({
 					maxZoom={19}
 				/>
 				<FlyTo point={focused} />
+				<FitOnView view={view} points={points} />
 				<Viewport onChange={onViewport} />
 				{unpriced?.map((point) => (
 					<CircleMarker
@@ -277,18 +332,33 @@ export const MapPanel = ({
 								fillColor: priceColor(point.price, scale),
 								fillOpacity: point.isClosed ? 0.45 : 0.9,
 							}}
-							eventHandlers={{ click: () => onFocus(point) }}
+							eventHandlers={{
+								click: () => {
+									if (point.kind !== "area") {
+										onFocus(point);
+									}
+								},
+							}}
 						>
 							<Tooltip direction="top" offset={[0, -6]} opacity={1}>
 								<div style={{ fontWeight: 600 }}>{point.name}</div>
 								<div>
 									{money(point.price, currency)}
 									{point.label ? ` · ${point.label}` : ""}
-									{point.isOpenNow ? " · open" : " · closed"}
+									{point.kind === "area"
+										? ""
+										: point.isOpenNow
+											? " · open"
+											: " · closed"}
 								</div>
 							</Tooltip>
 							<Popup>
-								<PointPopup point={point} currency={currency} onOpen={onOpen} />
+								<PointPopup
+									point={point}
+									currency={currency}
+									onOpen={onOpen}
+									onArea={onArea}
+								/>
 							</Popup>
 						</CircleMarker>
 					);
