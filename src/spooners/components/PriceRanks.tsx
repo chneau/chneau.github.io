@@ -6,7 +6,7 @@ import {
 	Text,
 	UnstyledButton,
 } from "@mantine/core";
-import { money, normalize, type PriceScale, priceColor } from "../price";
+import { miles, money, normalize, type PriceScale, priceColor } from "../price";
 import type { PricedVenue } from "../types";
 
 type Props = {
@@ -15,6 +15,8 @@ type Props = {
 	currency: string;
 	focused: PricedVenue | null;
 	onFocus: (venue: PricedVenue) => void;
+	/** Nearest venues, only when the user shared their location. */
+	nearby?: PricedVenue[];
 	count?: number;
 };
 
@@ -50,6 +52,7 @@ const Row = ({
 			}}
 		>
 			<Text size="sm" lineClamp={1}>
+				{venue.isOpenNow ? "" : "🔴 "}
 				{venue.name}
 			</Text>
 			<Text
@@ -59,6 +62,16 @@ const Row = ({
 			>
 				{money(venue.price, currency)}
 			</Text>
+		</Box>
+		<Box style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+			<Text size="xs" c="dimmed" lineClamp={1}>
+				{[venue.town, venue.postcode].filter(Boolean).join(", ")}
+			</Text>
+			{venue.distance != null ? (
+				<Text size="xs" c="dimmed">
+					{miles(venue.distance)}
+				</Text>
+			) : null}
 		</Box>
 		<Progress
 			value={Math.max(4, normalize(venue.price, scale) * 100)}
@@ -77,6 +90,7 @@ export const PriceRanks = ({
 	currency,
 	focused,
 	onFocus,
+	nearby,
 	count = 8,
 }: Props) => {
 	const sorted = [...venues].sort((a, b) => a.price - b.price);
@@ -105,6 +119,9 @@ export const PriceRanks = ({
 
 	return (
 		<Stack gap="sm">
+			{nearby?.length
+				? list("Nearest to you", nearby.slice(0, count), "blue")
+				: null}
 			{list("Cheapest", cheapest, "teal")}
 			{list("Most expensive", dearest, "red")}
 		</Stack>
