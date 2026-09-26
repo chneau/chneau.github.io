@@ -173,7 +173,7 @@ export const pricedVenues = (
 		return best;
 	};
 
-type CurrencyOption = { code: string; count: number };
+export type CurrencyOption = { code: string; count: number };
 
 /** Currencies present among these venues (GBP for GB, EUR for Ireland). */
 export const availableCurrencies = (
@@ -273,7 +273,7 @@ const FILTER_RULES: FilterRule[] = [
 	{ id: "lowfat", label: "5% fat or less", type: "5fat" },
 ];
 
-type FilterOption = { id: string; label: string; count: number };
+export type FilterOption = { id: string; label: string; count: number };
 
 const hasKeywordType = (item: ItemInfo, type: string): boolean =>
 	item.keywords.some((keyword) => keyword.type === type);

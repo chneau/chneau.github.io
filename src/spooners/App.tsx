@@ -1,24 +1,24 @@
 import {
+	ActionIcon,
 	Alert,
 	Badge,
 	Box,
-	Button,
-	Card,
-	Chip,
-	Grid,
 	Group,
 	Loader,
-	SegmentedControl,
 	Stack,
-	Switch,
 	Text,
 	Title,
+	Tooltip,
+	useMantineColorScheme,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
+import { Beer, Moon, Sun } from "lucide-react";
 import { useMemo, useState } from "react";
-import { ItemPicker } from "./components/ItemPicker";
-import { PriceDistribution } from "./components/PriceDistribution";
-import { PriceMap } from "./components/PriceMap";
-import { PriceRanks } from "./components/PriceRanks";
+import { Distribution } from "./components/Distribution";
+import { ItemSearchCard } from "./components/ItemSearchCard";
+import { MapPanel } from "./components/MapPanel";
+import { RankingPanel } from "./components/RankingPanel";
+import { StatsBar } from "./components/StatsBar";
 import {
 	availableCurrencies,
 	availableFilters,
@@ -30,7 +30,7 @@ import {
 	portionsFor,
 	pricedVenues,
 } from "./derive";
-import { makeScale, median, money, priceColor } from "./price";
+import { makeScale, median, money } from "./price";
 import type { ItemInfo, PricedVenue } from "./types";
 import { useDataset } from "./useDataset";
 
@@ -45,61 +45,16 @@ const itemBadges = (item: ItemInfo): string[] => {
 	return [...new Set(labels)];
 };
 
-const Stat = ({
-	label,
-	value,
-	color,
-}: {
-	label: string;
-	value: string;
-	color?: string;
-}) => (
-	<Box>
-		<Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-			{label}
-		</Text>
-		<Text fw={700} size="lg" c={color}>
-			{value}
-		</Text>
-	</Box>
-);
-
-const Legend = ({
-	scale,
-	currency,
-}: {
-	scale: ReturnType<typeof makeScale>;
-	currency: string;
-}) => (
-	<Box mt={6}>
-		<Box
-			style={{
-				height: 8,
-				borderRadius: 999,
-				background: `linear-gradient(90deg, ${priceColor(scale.min, scale)}, ${priceColor(
-					(scale.min + scale.max) / 2,
-					scale,
-				)}, ${priceColor(scale.max, scale)})`,
-			}}
-		/>
-		<Group justify="space-between" mt={2}>
-			<Text size="xs" c="dimmed">
-				{money(scale.min, currency)}
-			</Text>
-			<Text size="xs" c="dimmed">
-				{money(scale.max, currency)}
-			</Text>
-		</Group>
-	</Box>
-);
-
 export const App = () => {
 	const { data, error, loading } = useDataset();
+	const { colorScheme, setColorScheme } = useMantineColorScheme();
+	const isMobile = useMediaQuery("(max-width: 62em)");
+
 	const [selectedName, setSelectedName] = useState<string | null>(null);
 	const [selectedPortion, setSelectedPortion] = useState<string | null>(null);
+	const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
 	const [activeFilters, setActiveFilters] = useState<string[]>([]);
 	const [openNowOnly, setOpenNowOnly] = useState(false);
-	const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
 	const [focused, setFocused] = useState<PricedVenue | null>(null);
 	const [userLocation, setUserLocation] = useState<{
 		lat: number;
@@ -144,8 +99,9 @@ export const App = () => {
 		() => index.find((item) => item.name === effectiveName) ?? null,
 		[index, effectiveName],
 	);
+	const badges = selectedItem ? itemBadges(selectedItem) : [];
 
-	// portions any venue uses for this item, and the one currently priced
+	// portions + currencies available for the selected item
 	const portions = useMemo(
 		() => (data && effectiveName ? portionsFor(data, effectiveName) : []),
 		[data, effectiveName],
@@ -170,19 +126,19 @@ export const App = () => {
 				: [],
 		[data, effectiveName, effectivePortion],
 	);
-
-	// the item exists in a few currencies (GBP in GB, EUR in Ireland)
 	const currencies = useMemo(() => availableCurrencies(priced), [priced]);
 	const effectiveCurrency =
-		selectedCurrency && currencies.some((c) => c.code === selectedCurrency)
+		selectedCurrency &&
+		currencies.some((option) => option.code === selectedCurrency)
 			? selectedCurrency
-			: (currencies.find((c) => c.code === "GBP")?.code ??
+			: (currencies.find((option) => option.code === "GBP")?.code ??
 				currencies[0]?.code ??
 				"GBP");
 	const pricedCurrency = useMemo(
 		() => priced.filter((venue) => venue.currency === effectiveCurrency),
 		[priced, effectiveCurrency],
 	);
+
 	const openCount = useMemo(
 		() => pricedCurrency.filter((venue) => venue.isOpenNow).length,
 		[pricedCurrency],
@@ -217,7 +173,11 @@ export const App = () => {
 		[withDistance, userLocation],
 	);
 	const scale = useMemo(
-		() => makeScale(withDistance.map((v) => v.price)),
+		() => makeScale(withDistance.map((venue) => venue.price)),
+		[withDistance],
+	);
+	const prices = useMemo(
+		() => withDistance.map((venue) => venue.price),
 		[withDistance],
 	);
 
@@ -242,10 +202,10 @@ export const App = () => {
 
 	if (loading) {
 		return (
-			<Group justify="center" py="xl">
+			<Stack align="center" justify="center" h="100vh" gap="sm">
 				<Loader />
-				<Text>Loading pub prices… (a few MB)</Text>
-			</Group>
+				<Text c="dimmed">Loading pub prices…</Text>
+			</Stack>
 		);
 	}
 
@@ -257,208 +217,154 @@ export const App = () => {
 		);
 	}
 
-	const prices = withDistance.map((v) => v.price);
-	const currency = effectiveCurrency;
-	const badges = selectedItem ? itemBadges(selectedItem) : [];
+	const dark = colorScheme === "dark";
 
 	return (
-		<Stack gap="sm" p="md" h="100%">
-			<Group justify="space-between" align="flex-end" gap="sm" wrap="wrap">
-				<Box>
-					<Title order={1} lh={1}>
-						Spooners
-					</Title>
-					<Text c="dimmed" size="sm">
-						Pub prices on a map — pick a drink or a dish and see what every pub
-						charges
-					</Text>
-				</Box>
-				<Badge variant="light" size="lg">
-					{stats.venuesWithData} pubs · {index.length} items selling
-					{stats.updatedAt ? ` · updated ${stats.updatedAt.slice(0, 10)}` : ""}
-				</Badge>
+		<Box
+			style={{
+				display: "flex",
+				flexDirection: "column",
+				height: isMobile ? "auto" : "100vh",
+				minHeight: "100vh",
+			}}
+		>
+			<Group
+				justify="space-between"
+				align="center"
+				px="md"
+				py="xs"
+				wrap="nowrap"
+				style={{
+					borderBottom: "1px solid var(--mantine-color-default-border)",
+				}}
+			>
+				<Group gap="xs" align="center" wrap="nowrap">
+					<Beer size={26} />
+					<Box>
+						<Title order={3} lh={1}>
+							Spooners
+						</Title>
+						<Text size="xs" c="dimmed" lineClamp={1}>
+							Pub prices on a map — search a drink or a dish, see what every pub
+							charges
+						</Text>
+					</Box>
+				</Group>
+				<Group gap="xs" wrap="nowrap">
+					<Badge variant="light" size="lg">
+						{stats.venuesWithData} pubs · {index.length} items
+					</Badge>
+					{stats.updatedAt ? (
+						<Badge variant="default" size="lg" visibleFrom="sm">
+							updated {stats.updatedAt.slice(0, 10)}
+						</Badge>
+					) : null}
+					<Tooltip label={dark ? "Light mode" : "Dark mode"}>
+						<ActionIcon
+							variant="default"
+							size="lg"
+							aria-label="Toggle colour scheme"
+							onClick={() => setColorScheme(dark ? "light" : "dark")}
+						>
+							{dark ? <Sun size={16} /> : <Moon size={16} />}
+						</ActionIcon>
+					</Tooltip>
+				</Group>
 			</Group>
 
-			<Grid gap="sm" style={{ flex: 1 }}>
-				<Grid.Col span={{ base: 12, lg: 8 }}>
-					<Card
-						withBorder
-						padding={0}
-						radius="md"
-						style={{ overflow: "hidden" }}
-					>
-						<Box style={{ height: "min(72vh, 780px)" }}>
-							<PriceMap
-								venues={withDistance}
-								scale={scale}
-								focused={focused}
-								onFocus={setFocused}
-							/>
-						</Box>
-					</Card>
-				</Grid.Col>
-
-				<Grid.Col span={{ base: 12, lg: 4 }}>
+			<Box
+				style={{
+					display: "flex",
+					flexDirection: isMobile ? "column-reverse" : "row",
+					flex: 1,
+					minHeight: 0,
+				}}
+			>
+				<Box
+					className="spooners-scroll"
+					style={{
+						width: isMobile ? "100%" : 400,
+						flexShrink: 0,
+						overflowY: isMobile ? "visible" : "auto",
+						borderRight: isMobile
+							? undefined
+							: "1px solid var(--mantine-color-default-border)",
+						padding: 12,
+					}}
+				>
 					<Stack gap="sm">
-						<Card withBorder padding="md" radius="md">
-							<ItemPicker
-								label="Item"
-								items={visibleIndex}
-								value={effectiveName}
-								onChange={(name) => {
-									setSelectedName(name);
-									setSelectedPortion(null);
-									setFocused(null);
-								}}
-							/>
-							{selectedItem ? (
-								<Box mt={8}>
-									<Text size="sm" fw={500}>
-										{selectedItem.category ?? "Item"}
-										{selectedItem.calories
-											? ` · ${selectedItem.calories} kcal`
-											: ""}
-									</Text>
-									{selectedItem.description ? (
-										<Text size="xs" c="dimmed">
-											{selectedItem.description}
-										</Text>
-									) : null}
-									{badges.length ? (
-										<Group gap={4} mt={6}>
-											{badges.map((badge) => (
-												<Badge key={badge} size="xs" variant="light">
-													{badge}
-												</Badge>
-											))}
-										</Group>
-									) : null}
-								</Box>
-							) : null}
-							{portions.length > 1 ? (
-								<Box mt="sm">
-									<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
-										Portion
-									</Text>
-									<SegmentedControl
-										size="xs"
-										fullWidth
-										value={effectivePortion ?? undefined}
-										data={portions.map((label) => ({ label, value: label }))}
-										onChange={(value) => {
-											setSelectedPortion(value);
-											setFocused(null);
-										}}
-									/>
-								</Box>
-							) : null}
-							{currencies.length > 1 ? (
-								<Box mt="sm">
-									<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
-										Currency
-									</Text>
-									<SegmentedControl
-										size="xs"
-										fullWidth
-										value={effectiveCurrency}
-										data={currencies.map((option) => ({
-											label: `${option.code} (${option.count})`,
-											value: option.code,
-										}))}
-										onChange={(value) => {
-											setSelectedCurrency(value);
-											setFocused(null);
-										}}
-									/>
-								</Box>
-							) : null}
-							{filters.length ? (
-								<Box mt="sm">
-									<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
-										Filters
-									</Text>
-									<Chip.Group
-										multiple
-										value={activeFilters}
-										onChange={setActiveFilters}
-									>
-										<Group gap={4}>
-											{filters.map((filter) => (
-												<Chip key={filter.id} size="xs" value={filter.id}>
-													{filter.label} ({filter.count})
-												</Chip>
-											))}
-										</Group>
-									</Chip.Group>
-								</Box>
-							) : null}
-							<Group justify="space-between" mt="sm" align="center">
-								<Switch
-									size="xs"
-									checked={openNowOnly}
-									onChange={(event) =>
-										setOpenNowOnly(event.currentTarget.checked)
-									}
-									label={`Open now (${openCount})`}
-								/>
-								<Button
-									size="xs"
-									variant="light"
-									loading={geoState === "loading"}
-									onClick={requestLocation}
-								>
-									Near me
-								</Button>
-							</Group>
-							{geoState === "error" ? (
-								<Text size="xs" c="red" mt={4}>
-									Location unavailable — check browser permissions.
-								</Text>
-							) : null}
-							<Legend scale={scale} currency={currency} />
-						</Card>
-
-						<Card withBorder padding="md" radius="md">
-							<Group justify="space-between" align="flex-start">
-								<Stat label="Pubs" value={String(withDistance.length)} />
-								<Stat
-									label="Cheapest"
-									value={money(scale.min, currency)}
-									color="teal"
-								/>
-								<Stat label="Median" value={money(median(prices), currency)} />
-								<Stat
-									label="Dearest"
-									value={money(scale.max, currency)}
-									color="red"
-								/>
-							</Group>
-							{effectivePortion ? (
-								<Text size="xs" c="dimmed" mt={6}>
-									prices per {effectivePortion.toLowerCase()}
-								</Text>
-							) : null}
-						</Card>
-
-						<PriceRanks
+						<ItemSearchCard
+							items={visibleIndex}
+							value={effectiveName}
+							onSelect={(name) => {
+								setSelectedName(name);
+								setSelectedPortion(null);
+								setFocused(null);
+							}}
+							item={selectedItem}
+							badges={badges}
+							portions={portions}
+							portion={effectivePortion}
+							onPortion={(portion) => {
+								setSelectedPortion(portion);
+								setFocused(null);
+							}}
+							currencies={currencies}
+							currency={effectiveCurrency}
+							onCurrency={(currency) => {
+								setSelectedCurrency(currency);
+								setFocused(null);
+							}}
+							filters={filters}
+							activeFilters={activeFilters}
+							onFilters={setActiveFilters}
+							openNow={openNowOnly}
+							onOpenNow={setOpenNowOnly}
+							openCount={openCount}
+							hasLocation={Boolean(userLocation)}
+							geoState={geoState}
+							onNearMe={requestLocation}
+							scale={scale}
+						/>
+						<StatsBar
+							pubs={withDistance.length}
+							cheapest={money(scale.min, effectiveCurrency)}
+							median={money(median(prices), effectiveCurrency)}
+							dearest={money(scale.max, effectiveCurrency)}
+							portion={effectivePortion}
+						/>
+						<Distribution
+							prices={prices}
+							scale={scale}
+							currency={effectiveCurrency}
+						/>
+						<RankingPanel
 							venues={withDistance}
 							scale={scale}
-							currency={currency}
+							currency={effectiveCurrency}
 							focused={focused}
 							onFocus={setFocused}
 							nearby={nearby}
 						/>
 					</Stack>
-				</Grid.Col>
+				</Box>
 
-				<Grid.Col span={12}>
-					<PriceDistribution
-						prices={prices}
+				<Box
+					style={{
+						flex: 1,
+						minWidth: 0,
+						height: isMobile ? "55vh" : "auto",
+					}}
+				>
+					<MapPanel
+						venues={withDistance}
 						scale={scale}
-						currency={currency}
+						currency={effectiveCurrency}
+						focused={focused}
+						onFocus={setFocused}
 					/>
-				</Grid.Col>
-			</Grid>
-		</Stack>
+				</Box>
+			</Box>
+		</Box>
 	);
 };

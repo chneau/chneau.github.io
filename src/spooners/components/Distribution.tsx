@@ -29,8 +29,8 @@ const buildHistogram = (prices: number[]): Bin[] => {
 	return bins;
 };
 
-/** How many pubs charge each price band — a plain histogram, no chart library. */
-export const PriceDistribution = ({
+/** How many pubs charge each price band - a plain histogram, no chart library. */
+export const Distribution = ({
 	prices,
 	scale,
 	currency,
@@ -43,18 +43,17 @@ export const PriceDistribution = ({
 	const peak = bins.reduce((max, bin) => Math.max(max, bin.count), 0);
 
 	return (
-		<Card withBorder padding="md" radius="md">
-			<Text fw={600}>Price distribution</Text>
-			<Text size="xs" c="dimmed" mb="md">
-				How many pubs charge each amount for the selected item
+		<Card withBorder padding="sm" radius="md">
+			<Text size="xs" c="dimmed" fw={700} tt="uppercase" mb={6}>
+				Price distribution
 			</Text>
 			{bins.length && peak ? (
 				<Box
 					style={{
 						display: "flex",
-						gap: 3,
+						gap: 2,
 						alignItems: "flex-end",
-						height: 150,
+						height: 96,
 					}}
 				>
 					{bins.map((bin) => {
@@ -62,66 +61,30 @@ export const PriceDistribution = ({
 						return (
 							<Tooltip
 								key={bin.start}
-								label={`${money(bin.start, currency)}–${money(
-									bin.end,
-									currency,
-								)}: ${bin.count} ${bin.count === 1 ? "pub" : "pubs"}`}
+								label={`${money(bin.start, currency)}–${money(bin.end, currency)}: ${bin.count} ${
+									bin.count === 1 ? "pub" : "pubs"
+								}`}
 								withArrow
 								position="top"
 							>
 								<Box
 									style={{
 										flex: 1,
-										display: "flex",
-										flexDirection: "column",
-										justifyContent: "flex-end",
-										height: "100%",
-										cursor: "default",
+										height: `${Math.max(2, (bin.count / peak) * 100)}%`,
+										background: priceColor(mid, scale),
+										borderRadius: "4px 4px 2px 2px",
+										opacity: bin.count ? 1 : 0.25,
 									}}
-								>
-									<Text size="xs" c="dimmed" ta="center" mb={2}>
-										{bin.count || ""}
-									</Text>
-									<Box
-										style={{
-											height: `${Math.max(2, (bin.count / peak) * 100)}%`,
-											background: priceColor(mid, scale),
-											borderRadius: "4px 4px 2px 2px",
-											opacity: bin.count ? 1 : 0.25,
-										}}
-									/>
-								</Box>
+								/>
 							</Tooltip>
 						);
 					})}
 				</Box>
 			) : (
-				<Text c="dimmed">No prices to plot.</Text>
+				<Text c="dimmed" size="sm">
+					No prices to plot.
+				</Text>
 			)}
-			{bins.length ? (
-				<Box
-					style={{
-						display: "flex",
-						gap: 3,
-						marginTop: 6,
-					}}
-				>
-					{bins.map((bin, index) => (
-						<Text
-							key={bin.start}
-							size="xs"
-							c="dimmed"
-							ta="center"
-							style={{
-								flex: 1,
-								visibility: index % 2 ? "hidden" : "visible",
-							}}
-						>
-							{bin.start.toFixed(2)}
-						</Text>
-					))}
-				</Box>
-			) : null}
 		</Card>
 	);
 };
