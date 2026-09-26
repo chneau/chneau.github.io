@@ -8,7 +8,7 @@ import {
 	Text,
 } from "@mantine/core";
 import type { Map as LeafletMap } from "leaflet";
-import { Crosshair } from "lucide-react";
+import { Crosshair, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import {
 	CircleMarker,
@@ -226,6 +226,9 @@ type Props = {
 	onOpen?: (ref: number) => void;
 	/** Drill into an area marker's pubs. */
 	onArea?: (name: string) => void;
+	/** County/town currently drilled into, shown next to the mode switch. */
+	area?: string | null;
+	onClearArea?: () => void;
 	countLabel?: string;
 	/** What the circle colour represents, e.g. "Guinness · Pint" or "4-item round". */
 	legendLabel?: string;
@@ -247,6 +250,8 @@ export const MapPanel = ({
 	onView,
 	onOpen,
 	onArea,
+	area,
+	onClearArea,
 	countLabel,
 	legendLabel,
 	median,
@@ -370,6 +375,29 @@ export const MapPanel = ({
 				gap={6}
 				style={{ position: "absolute", top: 10, right: 10, zIndex: 800 }}
 			>
+				{area ? (
+					<Badge
+						variant="light"
+						color="teal"
+						size="lg"
+						radius="sm"
+						rightSection={
+							onClearArea ? (
+								<ActionIcon
+									size="xs"
+									variant="transparent"
+									color="teal"
+									aria-label="Clear area filter"
+									onClick={onClearArea}
+								>
+									<X size={12} />
+								</ActionIcon>
+							) : null
+						}
+					>
+						Showing pubs in {area}
+					</Badge>
+				) : null}
 				{onView ? (
 					<SegmentedControl
 						size="xs"
