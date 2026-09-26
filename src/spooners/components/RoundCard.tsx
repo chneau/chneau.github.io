@@ -32,6 +32,7 @@ import type {
 	FilterOption,
 	Trend,
 } from "../derive";
+import { categoryLabel } from "../itemFacts";
 import { money, type PriceScale, priceColor } from "../price";
 import type { ItemInfo } from "../types";
 import { ItemPicker } from "./ItemPicker";
@@ -44,8 +45,9 @@ type Props = {
 	onQty: (name: string, qty: number) => void;
 	onRemove: (name: string) => void;
 	onClear: () => void;
-	/** Set right after a clear, so the round can be restored. */
+	/** Set right after a clear/replace, so the round can be restored. */
 	onUndo?: (() => void) | null;
+	undoText?: string | null;
 	currencies?: CurrencyOption[];
 	currency?: string;
 	onCurrency?: (currency: string) => void;
@@ -157,6 +159,7 @@ export const RoundCard = ({
 	onRemove,
 	onClear,
 	onUndo,
+	undoText,
 	currencies,
 	currency,
 	onCurrency,
@@ -247,7 +250,7 @@ export const RoundCard = ({
 								background: "var(--mantine-color-default-hover)",
 							}}
 						>
-							<Text size="xs">Round cleared</Text>
+							<Text size="xs">{undoText ?? "Round changed"}</Text>
 							<Button
 								size="compact-xs"
 								variant="light"
@@ -287,7 +290,7 @@ export const RoundCard = ({
 						<Box>
 							<Group gap={6} align="baseline">
 								<Text size="sm" fw={600}>
-									{single.category ?? "Item"}
+									{categoryLabel(single.category) ?? "Item"}
 								</Text>
 								<Text size="xs" c="dimmed">
 									{single.menu}

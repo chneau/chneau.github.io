@@ -1,34 +1,43 @@
-import {
-	Badge,
-	Box,
-	Button,
-	Collapse,
-	Group,
-	Stack,
-	Text,
-} from "@mantine/core";
-import { useState } from "react";
+import { Badge, Box, Group, Stack, Text } from "@mantine/core";
 import {
 	ageLabel,
 	aleColour,
 	allergens,
 	dietary,
 	heatLevel,
+	humanise,
 	linkedNames,
 	optionDiscount,
 	optionGroups,
 	promos,
-	rawKeywords,
 } from "../itemFacts";
 import { amount, currencySymbol } from "../price";
-import type { ItemDefinition, ItemOption } from "../types";
+import type { Formatter, ItemDefinition, ItemOption } from "../types";
 
-const OptionRow = ({ option }: { option: ItemOption }) => {
+const OptionRow = ({
+	option,
+	format,
+}: {
+	option: ItemOption;
+	format?: Formatter;
+}) => {
 	const was = optionDiscount(option);
+	const price = option.price;
+	const moneyText =
+		price == null
+			? null
+			: format
+				? format.money(price, option.currency ?? "GBP")
+				: `${currencySymbol(option.currency ?? "GBP")}${amount(
+						price,
+						option.currency ?? "GBP",
+					)}`;
 	return (
 		<Group justify="space-between" gap={8} wrap="nowrap">
 			<Box style={{ minWidth: 0 }}>
-				<Text size="xs">{option.label ?? option.name ?? "(unnamed)"}</Text>
+				<Text size="xs">
+					{humanise(option.label ?? option.name ?? "(unnamed)")}
+				</Text>
 				{option.description ? (
 					<Text size="xs" c="dimmed" lineClamp={2}>
 						{option.description}
@@ -46,10 +55,9 @@ const OptionRow = ({ option }: { option: ItemOption }) => {
 						{was}
 					</Text>
 				) : null}
-				{option.price != null ? (
+				{moneyText != null ? (
 					<Text size="xs" fw={700}>
-						{currencySymbol(option.currency ?? "GBP")}
-						{amount(option.price, option.currency ?? "GBP")}
+						{moneyText}
 					</Text>
 				) : (
 					<Text size="xs" c="dimmed">
@@ -65,13 +73,12 @@ type Props = {
 	def: ItemDefinition | null;
 	/** Show the add-ons / swaps / tags with their prices. */
 	showOptions?: boolean;
-	/** Show the raw keyword dump (the "all the data" table). */
-	showRaw?: boolean;
+	/** Currency conversion for the option prices. */
+	format?: Formatter;
 };
 
 /** Everything the API keeps about one item, in readable form. */
-export const ItemFacts = ({ def, showOptions, showRaw }: Props) => {
-	const [rawOpen, setRawOpen] = useState(false);
+export const ItemFacts = ({ def, showOptions, format }: Props) => {
 	if (!def) {
 		return null;
 	}
@@ -85,7 +92,6 @@ export const ItemFacts = ({ def, showOptions, showRaw }: Props) => {
 	const groups = optionGroups(def).filter(
 		(group) => showOptions || group.group === "portion",
 	);
-	const raw = rawKeywords(def);
 
 	return (
 		<Stack gap={6}>
@@ -148,51 +154,13 @@ export const ItemFacts = ({ def, showOptions, showRaw }: Props) => {
 									<OptionRow
 										key={`${group.group}-${option.id ?? index}`}
 										option={option}
+										format={format}
 									/>
 								))}
 							</Stack>
 						</Box>
 					))
 				: null}
-
-			{showRaw ? (
-				<Box mt={2}>
-					<Button
-						size="compact-xs"
-						variant="subtle"
-						onClick={() => setRawOpen((value) => !value)}
-					>
-						{rawOpen
-							? "Hide raw keyword data"
-							: `Raw keyword data (${raw.length})`}
-					</Button>
-					<Collapse expanded={rawOpen}>
-						<Box mt={4}>
-							{raw.map((keyword, index) => (
-								<Text
-									// biome-ignore lint/suspicious/noArrayIndexKey: raw dump, order is stable
-									key={`${keyword.type ?? "kw"}-${keyword.id ?? index}`}
-									size="xs"
-									c="dimmed"
-									ff="monospace"
-								>
-									{[keyword.type, keyword.name, keyword.label, keyword.value]
-										.filter((part) => part != null && part !== "")
-										.join(" · ")}
-									{keyword.isFlag ? " · flag" : ""}
-									{keyword.isBadge ? " · badge" : ""}
-									{keyword.isAddOn ? " · addon" : ""}
-									{keyword.icon ? ` · icon ${keyword.icon}` : ""}
-									{keyword.iconColor ? ` · colour ${keyword.iconColor}` : ""}
-									{keyword.tags
-										? ` · tags ${JSON.stringify(keyword.tags)}`
-										: ""}
-								</Text>
-							))}
-						</Box>
-					</Collapse>
-				</Box>
-			) : null}
 		</Stack>
 	);
 };

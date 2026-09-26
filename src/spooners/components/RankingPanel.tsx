@@ -12,7 +12,7 @@ import {
 import { Info } from "lucide-react";
 import { useState } from "react";
 import { SPOT_META } from "../derive";
-import { metricLabel, metricText, valueDirection } from "../portions";
+import { metricText, valueDirection } from "../portions";
 import {
 	amount,
 	currencySymbol,
@@ -252,7 +252,7 @@ export const RankingPanel = ({
 			/>
 			<Text size="xs" c="dimmed" mt={6}>
 				prices in {currencySymbol(currency)} {currency}
-				{metricKind ? ` · value shown ${metricLabel(metricKind)}` : ""}
+				{metricKind ? " · Value = best ratio (lower is better)" : ""}
 			</Text>
 			<Stack gap={2} mt="xs">
 				{rows.map((venue, index) => (

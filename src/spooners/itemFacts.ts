@@ -15,9 +15,9 @@ const GROUP_LABELS: Record<string, string> = {
 	portion: "Portions",
 	tags: "Tags & free extras",
 	addOns: "Add-ons",
-	linked: "Linked items",
+	linked: "Included with",
 	choices: "Choices",
-	tillRequests: "Till requests",
+	tillRequests: "Order notes",
 	swap: "Swaps",
 };
 
@@ -42,7 +42,7 @@ const ALLERGEN_LABELS: Record<string, string> = {
 	"sesame seed": "Sesame",
 };
 
-const valueOf = (keyword: Keyword): string =>
+const keywordValue = (keyword: Keyword): string =>
 	String(keyword.value ?? keyword.name ?? "").replace(/^[A-Z]{2}::/, "");
 
 /** Allergens, e.g. "Gluten", "Milk". */
@@ -50,7 +50,7 @@ export const allergens = (def: ItemDefinition | null): string[] =>
 	(def?.keywords ?? [])
 		.filter((keyword) => keyword.type === "AL")
 		.map((keyword) => {
-			const raw = valueOf(keyword);
+			const raw = keywordValue(keyword);
 			return ALLERGEN_LABELS[raw.toLowerCase()] ?? raw;
 		})
 		.sort();
@@ -97,14 +97,30 @@ export const heatLevel = (def: ItemDefinition | null): number | null => {
 export const promos = (def: ItemDefinition | null): string[] =>
 	(def?.keywords ?? [])
 		.filter((keyword) => keyword.type === "PI")
-		.map((keyword) => valueOf(keyword))
+		.map((keyword) => keywordValue(keyword))
 		.filter(Boolean);
 
-/** Menus this item is bundled with, e.g. "Includes a drink". */
+const CATEGORY_LABELS: Record<string, string> = {
+	"Includes a drink": "Meal deal",
+};
+
+/** Human label for an API category ("Includes a drink" -> "Meal deal"). */
+export const categoryLabel = (category: string | null): string | null =>
+	category ? (CATEGORY_LABELS[category] ?? category) : null;
+
+/** "ChipsForSalad" -> "Chips For Salad". */
+export const humanise = (value: string): string =>
+	value
+		.replace(/[_-]+/g, " ")
+		.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+		.trim();
+
+/** Menus this item is bundled with, e.g. "Meal deal". */
 export const linkedNames = (def: ItemDefinition | null): string[] =>
 	(def?.optionGroups?.linked ?? [])
 		.map((option) => option.label ?? option.name ?? "")
-		.filter(Boolean);
+		.filter(Boolean)
+		.map((label) => categoryLabel(label) ?? label);
 
 /** "18 years", or empty when there is no age restriction. */
 export const ageLabel = (def: ItemDefinition | null): string | null => {
@@ -113,10 +129,6 @@ export const ageLabel = (def: ItemDefinition | null): string | null => {
 	}
 	return `${def.ageRestriction}+`;
 };
-
-/** Every keyword, raw, for the "all the data" table. */
-export const rawKeywords = (def: ItemDefinition | null): Keyword[] =>
-	def?.keywords ?? [];
 
 /** "was £4.00, 20% off" for a discounted option, or null. */
 export const optionDiscount = (option: ItemOption): string | null => {

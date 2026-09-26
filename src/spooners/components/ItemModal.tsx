@@ -10,9 +10,10 @@ import {
 } from "@mantine/core";
 import { useMemo } from "react";
 import { basketVenues } from "../basket";
-import { metricLabel, metricText, valueDirection } from "../portions";
+import { categoryLabel } from "../itemFacts";
+import { metricText, valueDirection } from "../portions";
 import { money } from "../price";
-import type { SpoonersCache, ValueKind } from "../types";
+import type { Formatter, SpoonersCache, ValueKind } from "../types";
 import { ItemFacts } from "./ItemFacts";
 import { VenueImage } from "./VenueImage";
 
@@ -24,6 +25,9 @@ type Props = {
 	onAdd: (name: string) => void;
 	onOnly: (name: string) => void;
 	onVenue: (ref: number) => void;
+	/** Shown when this item was opened from a pub page. */
+	onBack?: () => void;
+	format?: Formatter;
 };
 
 type Best = {
@@ -43,6 +47,8 @@ export const ItemModal = ({
 	onAdd,
 	onOnly,
 	onVenue,
+	onBack,
+	format,
 }: Props) => {
 	const def = itemName ? (cache.items[itemName] ?? null) : null;
 	const venues = useMemo(
@@ -103,24 +109,19 @@ export const ItemModal = ({
 					<Badge variant="light" color="gray">
 						{def?.menu ?? "Other"}
 					</Badge>
-					{def?.category ? (
+					{categoryLabel(def?.category ?? null) ? (
 						<Badge variant="light" color="blue">
-							{def.category}
-						</Badge>
-					) : null}
-					{def?.itemType ? (
-						<Badge variant="light" color="gray">
-							{def.itemType}
+							{categoryLabel(def?.category ?? null)}
 						</Badge>
 					) : null}
 					{def?.courseId != null ? (
 						<Badge variant="light" color="gray">
-							course #{def.courseId}
+							Course {def.courseId}
 						</Badge>
 					) : null}
 				</Group>
 
-				<ItemFacts def={def} showOptions showRaw />
+				<ItemFacts def={def} showOptions format={format} />
 
 				{bestByKind.length ? (
 					<>
@@ -129,17 +130,18 @@ export const ItemModal = ({
 							{bestByKind.map((row) => (
 								<Group justify="space-between" gap={8} key={row.kind}>
 									<Text size="sm">
-										{metricText(
-											{ kind: row.kind, value: row.value },
-											row.currency,
-										)}
-										<Text span size="xs" c="dimmed">
-											{" "}
-											{metricLabel(row.kind)}
-										</Text>
+										{format
+											? format.metric(row.kind, row.value, row.currency)
+											: metricText(
+													{ kind: row.kind, value: row.value },
+													row.currency,
+												)}
 									</Text>
 									<Text size="xs" c="dimmed">
-										{money(row.price, row.currency)} at {row.venueName}
+										{format
+											? format.money(row.price, row.currency)
+											: money(row.price, row.currency)}{" "}
+										at {row.venueName}
 									</Text>
 								</Group>
 							))}
@@ -181,7 +183,9 @@ export const ItemModal = ({
 												{venue.portion}
 											</Text>
 											<Text size="sm" fw={700}>
-												{money(venue.price, venue.currency)}
+												{format
+													? format.money(venue.price, venue.currency)
+													: money(venue.price, venue.currency)}
 											</Text>
 										</Group>
 									</Group>
@@ -192,6 +196,11 @@ export const ItemModal = ({
 				) : null}
 
 				<Group gap="xs" mt="xs">
+					{onBack ? (
+						<Button size="xs" variant="subtle" onClick={onBack}>
+							← Back to pub
+						</Button>
+					) : null}
 					<Button size="xs" onClick={() => onAdd(itemName)}>
 						Add one to the round
 					</Button>
