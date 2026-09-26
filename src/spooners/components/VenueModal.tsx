@@ -16,8 +16,8 @@ import {
 } from "@mantine/core";
 import { ArrowRight, Check, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { SPOT_META, venueImages, venueSpot } from "../derive";
-import { portionLabel, portionRank } from "../portions";
+import { SPOT_META, venueImages, venueSpot, venueValues } from "../derive";
+import { metricText, portionLabel, portionRank } from "../portions";
 import { amount, currencySymbol, money } from "../price";
 import type { SpoonersCache } from "../types";
 import { ItemFacts } from "./ItemFacts";
@@ -88,6 +88,27 @@ export const VenueModal = ({
 	useEffect(() => {
 		setHero(0);
 	}, []);
+
+	const valueRows = useMemo(
+		() => venueValues(cache, venueRef),
+		[cache, venueRef],
+	);
+	const calorieRows = useMemo(
+		() =>
+			valueRows
+				.filter((row) => row.kind === "calorie")
+				.sort((a, b) => b.value - a.value)
+				.slice(0, 5),
+		[valueRows],
+	);
+	const unitRows = useMemo(
+		() =>
+			valueRows
+				.filter((row) => row.kind === "unit")
+				.sort((a, b) => a.value - b.value)
+				.slice(0, 5),
+		[valueRows],
+	);
 
 	const rows = useMemo<MenuRow[]>(() => {
 		if (!entry) {
@@ -418,6 +439,70 @@ export const VenueModal = ({
 						</Text>
 					) : null}
 				</Group>
+				{calorieRows.length || unitRows.length ? (
+					<>
+						<Divider label="Best value here" labelPosition="left" />
+						<Group align="flex-start" gap="xl" wrap="wrap">
+							<Stack gap={2} style={{ minWidth: 220, flex: 1 }}>
+								<Text size="xs" c="dimmed" fw={700} tt="uppercase">
+									Most calories per £
+								</Text>
+								{calorieRows.map((row) => (
+									<UnstyledButton
+										key={row.name}
+										onClick={() => onItem(row.name)}
+									>
+										<Group justify="space-between" gap={8} wrap="nowrap">
+											<Text size="sm" lineClamp={1}>
+												{row.name}
+											</Text>
+											<Text size="sm" fw={700}>
+												{metricText(
+													{ kind: "calorie", value: row.value },
+													currency,
+												)}
+											</Text>
+										</Group>
+									</UnstyledButton>
+								))}
+								{calorieRows.length ? null : (
+									<Text size="xs" c="dimmed">
+										No calorie data.
+									</Text>
+								)}
+							</Stack>
+							<Stack gap={2} style={{ minWidth: 220, flex: 1 }}>
+								<Text size="xs" c="dimmed" fw={700} tt="uppercase">
+									Cheapest per alcohol unit
+								</Text>
+								{unitRows.map((row) => (
+									<UnstyledButton
+										key={row.name}
+										onClick={() => onItem(row.name)}
+									>
+										<Group justify="space-between" gap={8} wrap="nowrap">
+											<Text size="sm" lineClamp={1}>
+												{row.name}
+											</Text>
+											<Text size="sm" fw={700}>
+												{metricText(
+													{ kind: "unit", value: row.value },
+													currency,
+												)}
+											</Text>
+										</Group>
+									</UnstyledButton>
+								))}
+								{unitRows.length ? null : (
+									<Text size="xs" c="dimmed">
+										No alcohol data.
+									</Text>
+								)}
+							</Stack>
+						</Group>
+					</>
+				) : null}
+
 				{rows.length ? (
 					<>
 						<Divider
