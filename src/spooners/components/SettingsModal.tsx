@@ -91,6 +91,15 @@ export const SettingsModal = ({
 				}
 			/>
 
+			<Switch
+				label="Only compare pubs that can serve the whole round"
+				description="Stops a pub that is missing an item from looking cheaper."
+				checked={settings.onlyComplete}
+				onChange={(event) =>
+					onChange({ ...settings, onlyComplete: event.currentTarget.checked })
+				}
+			/>
+
 			<Select
 				label="Ranking list length"
 				data={ROW_OPTIONS}

@@ -229,7 +229,21 @@ export type VenueSpot =
 	| "concession"
 	| "hotel";
 
-/** A venue with the price of the currently selected item resolved. */
+/** One line of a round at one venue. */
+export type VenuePriceLine = {
+	name: string;
+	portion: string;
+	/** Unit price at this venue, in the venue's own currency. */
+	price: number;
+	metricKind: ValueKind | null;
+	metricValue: number | null;
+};
+
+/**
+ * A venue with the price of the current round resolved. A "round" can be a
+ * single drink (the default), in which case the value metric and price history
+ * are filled in as well.
+ */
 export type PricedVenue = {
 	ref: number;
 	name: string;
@@ -247,11 +261,15 @@ export type PricedVenue = {
 	isClosed: boolean;
 	/** "open" | "closing_temporary" | "opening_soon" | ... */
 	status: string | null;
-	/** Canonical price for the chosen portion. */
+	/** Canonical price for the whole round. */
 	price: number;
+	/** The single item's portion, or "N items" for a multi-item round. */
 	portion: string;
-	/** Canonical portion labels -> price. */
+	/** Canonical portion labels -> price (single-drink rounds only). */
 	portions: Record<string, number>;
+	lines: VenuePriceLine[];
+	/** Round items this venue does not sell. */
+	missing: string[];
 	/** ISO code this venue prices in (GBP, EUR...). */
 	currency: string;
 	/** Today's opening state, from the venue detail. */
@@ -259,13 +277,13 @@ export type PricedVenue = {
 	hoursToday: string | null;
 	facilities: string[];
 	phone: string | null;
-	/** ml of the chosen portion, when known. */
+	/** ml of the chosen portion, when known (single-drink rounds only). */
 	volumeMl: number | null;
-	/** Alcohol units of the chosen portion, when known. */
+	/** Alcohol units of the chosen portion (single-drink rounds only). */
 	units: number | null;
 	abv: number | null;
 	calories: number | null;
-	/** The comparable metric for this portion (per unit / per 100ml / kcal). */
+	/** The comparable metric for this portion (single-drink rounds only). */
 	metricKind: ValueKind | null;
 	metricValue: number | null;
 	/** The price recorded before this one, when the history has an older entry. */

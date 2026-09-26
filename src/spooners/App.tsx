@@ -24,7 +24,6 @@ import {
 import { DiscoverPanel } from "./components/DiscoverPanel";
 import { Distribution } from "./components/Distribution";
 import { GeographyPanel } from "./components/GeographyPanel";
-import { ItemSearchCard } from "./components/ItemSearchCard";
 import {
 	MapPanel,
 	type MapView,
@@ -33,7 +32,7 @@ import {
 } from "./components/MapPanel";
 import { MenuLessPanel } from "./components/MenuLessPanel";
 import { RankingPanel } from "./components/RankingPanel";
-import { RoundPanel } from "./components/RoundPanel";
+import { RoundCard } from "./components/RoundCard";
 import { SettingsModal } from "./components/SettingsModal";
 import { StatsBar } from "./components/StatsBar";
 import { VenueModal } from "./components/VenueModal";
@@ -44,7 +43,6 @@ import {
 	availableFilters,
 	buildItemIndex,
 	cacheStats,
-	commonPortion,
 	haversineMiles,
 	isCaptiveSpot,
 	isTemporarilyClosed,
@@ -53,8 +51,6 @@ import {
 	matchesFilters,
 	nearestSellers,
 	newItems,
-	portionsFor,
-	pricedVenues,
 	rareItems,
 	specialPremium,
 	venuesWithoutPrices,
@@ -63,21 +59,12 @@ import { metricText } from "./portions";
 import { makeScale, median, money } from "./price";
 import { canConvertTo, convert, currencyChoices, useRates } from "./rates";
 import { useSettings } from "./settings";
-import type { ItemInfo, MapPoint, PricedVenue } from "./types";
+import type { MapPoint, PricedVenue } from "./types";
 import { readUrl, shareUrl, writeUrl } from "./url";
 import { useDataset } from "./useDataset";
 
 const DEFAULT_ITEM_HINT = "guinness";
 const RATE_SOURCE = "European Central Bank, via frankfurter.dev";
-
-/** Badge/flag keywords only - the rest are internal codes like "AL::gluten". */
-const itemBadges = (item: ItemInfo): string[] => {
-	const labels = item.keywords
-		.filter((keyword) => keyword.isFlag || keyword.isBadge)
-		.map((keyword) => keyword.label ?? keyword.name)
-		.filter((label): label is string => Boolean(label));
-	return [...new Set(labels)];
-};
 
 export const App = () => {
 	const url = useMemo(() => readUrl(), []);
@@ -93,12 +80,15 @@ export const App = () => {
 		refresh: refreshRates,
 	} = useRates();
 
-	const [selectedName, setSelectedName] = useState<string | null>(
-		url.item ?? null,
-	);
-	const [selectedPortion, setSelectedPortion] = useState<string | null>(
-		url.portion ?? null,
-	);
+	// The round is the single source of truth. `null` means "not touched yet",
+	// which resolves to one of the fallback item.
+	const [basket, setBasket] = useState<BasketItem[] | null>(() => {
+		const fromRound = parseBasket(url.round ?? null);
+		if (fromRound.length) {
+			return fromRound;
+		}
+		return url.item ? [{ name: url.item, qty: 1 }] : null;
+	});
 	const [selectedCurrency, setSelectedCurrency] = useState<string | null>(
 		url.cur ?? null,
 	);
@@ -115,12 +105,12 @@ export const App = () => {
 	const [hideClosed, setHideClosed] = useState(
 		url.closed ?? settings.hideClosed,
 	);
-	const [basket, setBasket] = useState<BasketItem[]>(() =>
-		parseBasket(url.round ?? null),
+	const [onlyComplete, setOnlyComplete] = useState(
+		url.complete ?? settings.onlyComplete,
 	);
 	const [venueRef, setVenueRef] = useState<number | null>(url.venue ?? null);
 	const [view, setView] = useState<MapView>(
-		url.view === "round" || url.view === "area" ? url.view : "item",
+		url.view === "area" ? "area" : "pubs",
 	);
 	const [selectedArea, setSelectedArea] = useState<string | null>(null);
 	const [focused, setFocused] = useState<MapPoint | null>(null);
@@ -155,7 +145,6 @@ export const App = () => {
 		[data],
 	);
 
-	// the item you land on when the URL says nothing
 	const fallbackName = useMemo(
 		() =>
 			visibleIndex.find((item) =>
@@ -166,49 +155,28 @@ export const App = () => {
 		[visibleIndex],
 	);
 
-	// keep the selection valid as filters change
-	const effectiveName = useMemo(() => {
-		if (
-			selectedName &&
-			visibleIndex.some((item) => item.name === selectedName)
-		) {
-			return selectedName;
+	// resolve "untouched" to the fallback item, once the data is there
+	useEffect(() => {
+		if (basket === null && fallbackName) {
+			setBasket([{ name: fallbackName, qty: 1 }]);
 		}
-		return fallbackName;
-	}, [visibleIndex, selectedName, fallbackName]);
+	}, [basket, fallbackName]);
 
-	const selectedItem = useMemo(
-		() => index.find((item) => item.name === effectiveName) ?? null,
-		[index, effectiveName],
+	const resolvedBasket = useMemo(
+		() => basket ?? (fallbackName ? [{ name: fallbackName, qty: 1 }] : []),
+		[basket, fallbackName],
 	);
-	const badges = selectedItem ? itemBadges(selectedItem) : [];
-	const trend = useMemo(
-		() => (data && effectiveName ? itemTrend(data, effectiveName) : null),
-		[data, effectiveName],
-	);
-
-	// portions + currencies available for the selected item
-	const portions = useMemo(
-		() => (data && effectiveName ? portionsFor(data, effectiveName) : []),
-		[data, effectiveName],
-	);
-	const defaultPortion = useMemo(() => {
-		if (!data || !effectiveName) {
-			return null;
-		}
-		return commonPortion(data, effectiveName) ?? portions[0] ?? null;
-	}, [data, effectiveName, portions]);
-	const effectivePortion =
-		selectedPortion && portions.includes(selectedPortion)
-			? selectedPortion
-			: defaultPortion;
+	const singleName =
+		resolvedBasket.length === 1 ? (resolvedBasket[0]?.name ?? null) : null;
+	const updateBasket = (update: (current: BasketItem[]) => BasketItem[]) =>
+		setBasket((current) =>
+			update(current ?? (fallbackName ? [{ name: fallbackName, qty: 1 }] : [])),
+		);
 
 	const priced = useMemo(
 		() =>
-			data && effectiveName
-				? pricedVenues(data, effectiveName, effectivePortion)
-				: [],
-		[data, effectiveName, effectivePortion],
+			data && resolvedBasket.length ? basketVenues(data, resolvedBasket) : [],
+		[data, resolvedBasket],
 	);
 
 	// native mode: each pub keeps its own currency (switch between them)
@@ -228,22 +196,46 @@ export const App = () => {
 	// converted mode: everything into one currency, so EUR pubs show up too
 	const convertTo = settings.currency !== "native" ? settings.currency : null;
 	const converting = Boolean(convertTo && canConvertTo(convertTo, rates));
-	const displayVenues = useMemo(
-		() =>
-			converting && convertTo
-				? priced.map((venue) => ({
-						...venue,
-						price: convert(venue.price, venue.currency, convertTo, rates),
-						currency: convertTo,
-					}))
-				: nativeVenues,
-		[converting, convertTo, priced, nativeVenues, rates],
-	);
+	const displayVenues = useMemo(() => {
+		if (!(converting && convertTo)) {
+			return nativeVenues;
+		}
+		return priced.map((venue) => ({
+			...venue,
+			price: convert(venue.price, venue.currency, convertTo, rates),
+			previousPrice:
+				venue.previousPrice != null
+					? convert(venue.previousPrice, venue.currency, convertTo, rates)
+					: null,
+			lines: venue.lines.map((line) => ({
+				...line,
+				price: convert(line.price, venue.currency, convertTo, rates),
+			})),
+			currency: convertTo,
+		}));
+	}, [converting, convertTo, priced, nativeVenues, rates]);
 	const displayCurrency =
 		converting && convertTo ? convertTo : effectiveCurrency;
 
+	// only compare pubs that can serve every item of the round
+	const completeVenues = useMemo(
+		() =>
+			onlyComplete
+				? displayVenues.filter((venue) => venue.missing.length === 0)
+				: displayVenues,
+		[displayVenues, onlyComplete],
+	);
+	const partialCount = useMemo(
+		() => displayVenues.filter((venue) => venue.missing.length > 0).length,
+		[displayVenues],
+	);
+	const completeCount = displayVenues.length - partialCount;
+
 	const itemMetric = useMemo(() => {
-		const venue = displayVenues.find(
+		if (!singleName) {
+			return null;
+		}
+		const venue = completeVenues.find(
 			(candidate) => candidate.metricKind && candidate.metricValue != null,
 		);
 		if (!venue?.metricKind || venue.metricValue == null) {
@@ -253,30 +245,34 @@ export const App = () => {
 			{ kind: venue.metricKind, value: venue.metricValue },
 			displayCurrency,
 		);
-	}, [displayVenues, displayCurrency]);
+	}, [completeVenues, displayCurrency, singleName]);
+	const trend = useMemo(
+		() => (data && singleName ? itemTrend(data, singleName) : null),
+		[data, singleName],
+	);
 
 	const openCount = useMemo(
-		() => displayVenues.filter((venue) => venue.isOpenNow).length,
-		[displayVenues],
+		() => completeVenues.filter((venue) => venue.isOpenNow).length,
+		[completeVenues],
 	);
 	const specialCount = useMemo(
-		() => displayVenues.filter((venue) => isCaptiveSpot(venue.spot)).length,
-		[displayVenues],
+		() => completeVenues.filter((venue) => isCaptiveSpot(venue.spot)).length,
+		[completeVenues],
 	);
 	const closedCount = useMemo(
 		() =>
-			displayVenues.filter(
+			completeVenues.filter(
 				(venue) => venue.isClosed || isTemporarilyClosed(venue.status),
 			).length,
-		[displayVenues],
+		[completeVenues],
 	);
 	const facilityOptions = useMemo(
-		() => availableFacilities(displayVenues),
-		[displayVenues],
+		() => availableFacilities(completeVenues),
+		[completeVenues],
 	);
 
 	const venues = useMemo(() => {
-		let list = displayVenues;
+		let list = completeVenues;
 		if (openNowOnly) {
 			list = list.filter((venue) => venue.isOpenNow);
 		}
@@ -292,7 +288,7 @@ export const App = () => {
 			list = list.filter((venue) => matchesFacilities(venue, activeFacilities));
 		}
 		return list;
-	}, [displayVenues, openNowOnly, hideSpecial, hideClosed, activeFacilities]);
+	}, [completeVenues, openNowOnly, hideSpecial, hideClosed, activeFacilities]);
 
 	const withDistance = useMemo(
 		() =>
@@ -327,12 +323,12 @@ export const App = () => {
 	const medianPrice = useMemo(() => median(prices), [prices]);
 
 	const premium = useMemo(() => {
-		const insight = specialPremium(displayVenues);
+		const insight = specialPremium(completeVenues);
 		if (!insight) {
 			return null;
 		}
 		const sign = insight.premiumPercent >= 0 ? "+" : "−";
-		const where = displayVenues.some((venue) => venue.spot === "airport")
+		const where = completeVenues.some((venue) => venue.spot === "airport")
 			? "✈️ Airport"
 			: "⛱️ Travel";
 		return `${where} venues charge ${sign}${Math.abs(
@@ -343,7 +339,7 @@ export const App = () => {
 		)} vs ${money(insight.normalMedian, displayCurrency)} (${insight.specialCount} of ${
 			insight.specialCount + insight.normalCount
 		} pubs)`;
-	}, [displayVenues, displayCurrency]);
+	}, [completeVenues, displayCurrency]);
 
 	const areas = useMemo(() => areaStats(withDistance), [withDistance]);
 
@@ -438,64 +434,6 @@ export const App = () => {
 		[data, userLocation, sellerNames],
 	);
 
-	// round calculator (converted + filtered the same way as the item list)
-	const basketRaw = useMemo(
-		() => (data && basket.length ? basketVenues(data, basket) : []),
-		[data, basket],
-	);
-	const basketConverted = useMemo(() => {
-		let list = basketRaw;
-		if (openNowOnly) {
-			list = list.filter((venue) => venue.isOpenNow);
-		}
-		if (hideSpecial) {
-			list = list.filter((venue) => !isCaptiveSpot(venue.spot));
-		}
-		if (hideClosed) {
-			list = list.filter(
-				(venue) => !venue.isClosed && !isTemporarilyClosed(venue.status),
-			);
-		}
-		if (activeFacilities.length) {
-			list = list.filter((venue) =>
-				activeFacilities.every((facility) =>
-					venue.facilities.includes(facility),
-				),
-			);
-		}
-		if (converting && convertTo) {
-			return list.map((venue) => ({
-				...venue,
-				total: convert(venue.total, venue.currency, convertTo, rates),
-				lines: venue.lines.map((line) => ({
-					...line,
-					price: convert(line.price, venue.currency, convertTo, rates),
-				})),
-				currency: convertTo,
-			}));
-		}
-		return list;
-	}, [
-		basketRaw,
-		openNowOnly,
-		hideSpecial,
-		hideClosed,
-		activeFacilities,
-		converting,
-		convertTo,
-		rates,
-	]);
-
-	const roundUnits = basket.reduce((sum, item) => sum + item.qty, 0);
-	const roundPoints = useMemo<MapPoint[]>(
-		() =>
-			basketConverted.map((venue) => ({
-				...venue,
-				price: venue.total,
-				label: `${roundUnits} ${roundUnits === 1 ? "item" : "items"}`,
-			})),
-		[basketConverted, roundUnits],
-	);
 	const areaPoints = useMemo<MapPoint[]>(
 		() =>
 			areas.map((stat, position) => ({
@@ -518,13 +456,7 @@ export const App = () => {
 			})),
 		[areas, displayCurrency],
 	);
-
-	const mapData =
-		view === "round"
-			? roundPoints
-			: view === "area"
-				? areaPoints
-				: withDistance;
+	const mapData = view === "area" ? areaPoints : withDistance;
 	const mapScale = useMemo(
 		() => makeScale(mapData.map((point) => point.price)),
 		[mapData],
@@ -559,20 +491,17 @@ export const App = () => {
 		if (next.hideClosed !== settings.hideClosed) {
 			setHideClosed(next.hideClosed);
 		}
+		if (next.onlyComplete !== settings.onlyComplete) {
+			setOnlyComplete(next.onlyComplete);
+		}
 		setSettings(next);
 	};
 
-	const setBasketQty = (name: string, qty: number) => {
-		setBasket((current) => {
-			const next = current
-				.map((item) => (item.name === name ? { ...item, qty } : item))
-				.filter((item) => item.qty > 0);
-			return next.length ? next : [];
-		});
-	};
+	const defaultBasket = fallbackName ? [{ name: fallbackName, qty: 1 }] : [];
+	const isDefaultBasket =
+		serializeBasket(resolvedBasket) === serializeBasket(defaultBasket);
 
-	// The URL only carries what differs from the landing defaults, so opening the
-	// page (Guinness, pint, travel/closed hidden) keeps a clean address bar.
+	// The URL only carries what differs from the landing defaults.
 	const atDefaultView =
 		!mapView ||
 		(Math.abs(mapView.center[0] - UK_CENTER[0]) < 0.05 &&
@@ -580,21 +509,17 @@ export const App = () => {
 			Math.abs(mapView.zoom - UK_ZOOM) < 0.05);
 	const urlState = useMemo(
 		() => ({
-			item:
-				effectiveName !== fallbackName
-					? (effectiveName ?? undefined)
-					: undefined,
-			portion:
-				effectivePortion && effectivePortion !== defaultPortion
-					? effectivePortion
-					: undefined,
+			round: isDefaultBasket
+				? undefined
+				: serializeBasket(resolvedBasket) || undefined,
 			cur: selectedCurrency ?? undefined,
 			filters: activeFilters,
 			facilities: activeFacilities,
 			open: openNowOnly !== settings.openNow ? openNowOnly : undefined,
 			special: hideSpecial !== settings.hideSpecial ? hideSpecial : undefined,
 			closed: hideClosed !== settings.hideClosed ? hideClosed : undefined,
-			round: basket.length ? serializeBasket(basket) : undefined,
+			complete:
+				onlyComplete !== settings.onlyComplete ? onlyComplete : undefined,
 			venue: venueRef ?? undefined,
 			view,
 			lat: atDefaultView ? undefined : mapView?.center[0],
@@ -602,10 +527,8 @@ export const App = () => {
 			z: atDefaultView ? undefined : mapView?.zoom,
 		}),
 		[
-			effectiveName,
-			fallbackName,
-			effectivePortion,
-			defaultPortion,
+			isDefaultBasket,
+			resolvedBasket,
 			selectedCurrency,
 			activeFilters,
 			activeFacilities,
@@ -615,7 +538,8 @@ export const App = () => {
 			settings.openNow,
 			settings.hideSpecial,
 			settings.hideClosed,
-			basket,
+			onlyComplete,
+			settings.onlyComplete,
 			venueRef,
 			view,
 			atDefaultView,
@@ -637,13 +561,6 @@ export const App = () => {
 			setFocused(match);
 		}
 	}, [url.venue, withDistance, focused]);
-
-	const focusRef = (ref: number) => {
-		const match = mapData.find((point) => point.ref === ref);
-		if (match) {
-			setFocused(match);
-		}
-	};
 
 	const copyShare = async () => {
 		const link = shareUrl(urlState);
@@ -701,8 +618,7 @@ export const App = () => {
 							Spooners
 						</Title>
 						<Text size="xs" c="dimmed" lineClamp={1}>
-							Pub prices on a map — search a drink or a dish, see what every pub
-							charges
+							Pub prices on a map — build a round, see what every pub charges
 						</Text>
 					</Box>
 				</Group>
@@ -715,11 +631,6 @@ export const App = () => {
 					<Badge variant="light" size="lg" visibleFrom="md">
 						{stats.venuesWithData} pubs · {index.length} items
 					</Badge>
-					{stats.updatedAt ? (
-						<Badge variant="default" size="lg" visibleFrom="lg">
-							updated {stats.updatedAt.slice(0, 10)}
-						</Badge>
-					) : null}
 					<Tooltip label={copied ? "Link copied" : "Copy a link to this view"}>
 						<Button
 							size="xs"
@@ -775,24 +686,37 @@ export const App = () => {
 					}}
 				>
 					<Stack gap="sm">
-						<ItemSearchCard
+						<RoundCard
 							items={visibleIndex}
-							value={effectiveName}
-							onSelect={(name) => {
-								setSelectedName(name);
-								setSelectedPortion(null);
-								setFocused(null);
-							}}
-							item={selectedItem}
-							badges={badges}
-							trend={trend}
-							metric={itemMetric}
-							portions={portions}
-							portion={effectivePortion}
-							onPortion={(portion) => {
-								setSelectedPortion(portion);
-								setFocused(null);
-							}}
+							basket={resolvedBasket}
+							onAdd={(name) =>
+								updateBasket((current) => {
+									const existing = current.find((item) => item.name === name);
+									if (existing) {
+										return current.map((item) =>
+											item.name === name
+												? { ...item, qty: item.qty + 1 }
+												: item,
+										);
+									}
+									return [...current, { name, qty: 1 }];
+								})
+							}
+							onQty={(name, qty) =>
+								updateBasket((current) =>
+									current
+										.map((item) =>
+											item.name === name ? { ...item, qty } : item,
+										)
+										.filter((item) => item.qty > 0),
+								)
+							}
+							onRemove={(name) =>
+								updateBasket((current) =>
+									current.filter((item) => item.name !== name),
+								)
+							}
+							onClear={() => setBasket([])}
 							currencies={converting ? [] : currencies}
 							currency={displayCurrency}
 							onCurrency={(currency) => {
@@ -814,10 +738,16 @@ export const App = () => {
 							hideClosed={hideClosed}
 							onHideClosed={setHideClosed}
 							closedCount={closedCount}
+							completeCount={completeCount}
+							partialCount={partialCount}
+							onlyComplete={onlyComplete}
+							onOnlyComplete={setOnlyComplete}
 							hasLocation={Boolean(userLocation)}
 							geoState={geoState}
 							onNearMe={requestLocation}
 							scale={scale}
+							metric={itemMetric}
+							trend={trend}
 							converted={
 								converting
 									? { currency: displayCurrency, rateDate: rates?.date ?? null }
@@ -829,7 +759,7 @@ export const App = () => {
 							cheapest={money(scale.min, displayCurrency)}
 							median={money(medianPrice, displayCurrency)}
 							dearest={money(scale.max, displayCurrency)}
-							portion={effectivePortion}
+							portion={singleName ? (completeVenues[0]?.portion ?? null) : null}
 							premium={premium}
 						/>
 						<Distribution
@@ -837,7 +767,9 @@ export const App = () => {
 							scale={scale}
 							currency={displayCurrency}
 							median={medianPrice}
-							history={data.history?.items?.[effectiveName ?? ""]}
+							history={
+								singleName ? data.history?.items?.[singleName] : undefined
+							}
 						/>
 						<RankingPanel
 							venues={withDistance}
@@ -847,38 +779,6 @@ export const App = () => {
 							onFocus={(venue: PricedVenue) => setFocused(venue)}
 							onDetails={(venue: PricedVenue) => setVenueRef(venue.ref)}
 							nearby={nearby}
-							count={settings.rankingRows}
-						/>
-						<RoundPanel
-							items={visibleIndex}
-							basket={basket}
-							venues={basketConverted}
-							currency={displayCurrency}
-							focused={focused?.ref ?? null}
-							onAdd={(name) =>
-								setBasket((current) => {
-									const existing = current.find((item) => item.name === name);
-									if (existing) {
-										return current.map((item) =>
-											item.name === name
-												? { ...item, qty: item.qty + 1 }
-												: item,
-										);
-									}
-									return [...current, { name, qty: 1 }];
-								})
-							}
-							onQty={setBasketQty}
-							onRemove={(name) =>
-								setBasket((current) =>
-									current.filter((item) => item.name !== name),
-								)
-							}
-							onClear={() => setBasket([])}
-							onSelect={(venue) => {
-								setView("round");
-								focusRef(venue.ref);
-							}}
 							count={settings.rankingRows}
 						/>
 						<GeographyPanel
@@ -901,9 +801,8 @@ export const App = () => {
 							fresh={fresh}
 							sellers={sellers}
 							onSelect={(name) => {
-								setSelectedName(name);
-								setSelectedPortion(null);
-								setView("item");
+								setBasket([{ name, qty: 1 }]);
+								setView("pubs");
 								setFocused(null);
 							}}
 						/>
@@ -920,7 +819,7 @@ export const App = () => {
 				>
 					<MapPanel
 						points={mapData}
-						unpriced={view === "item" ? unpricedPoints : undefined}
+						unpriced={view === "pubs" ? unpricedPoints : undefined}
 						scale={mapScale}
 						currency={displayCurrency}
 						focused={focused}
@@ -930,9 +829,7 @@ export const App = () => {
 						countLabel={
 							view === "area"
 								? `${areaPoints.length} areas`
-								: view === "round"
-									? `${roundPoints.length} pubs`
-									: undefined
+								: `${mapData.length} pubs`
 						}
 						initialView={mapView}
 						onViewport={(center, zoom) => setMapView({ center, zoom })}
@@ -946,9 +843,8 @@ export const App = () => {
 				venueRef={venueRef}
 				cache={data}
 				onSelectItem={(name) => {
-					setSelectedName(name);
-					setSelectedPortion(null);
-					setView("item");
+					setBasket([{ name, qty: 1 }]);
+					setView("pubs");
 				}}
 			/>
 

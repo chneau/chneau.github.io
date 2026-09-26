@@ -26,7 +26,7 @@ import type { MapPoint } from "../types";
 export const UK_CENTER: [number, number] = [54.4, -3.2];
 export const UK_ZOOM = 6;
 
-export type MapView = "item" | "round" | "area";
+export type MapView = "pubs" | "area";
 
 /** Smoothly recentre the map when a point is focused from the side panels. */
 const FlyTo = ({ point }: { point: MapPoint | null }) => {
@@ -235,8 +235,7 @@ export const MapPanel = ({
 						size="xs"
 						value={view}
 						data={[
-							{ label: "Item", value: "item" },
-							{ label: "Round", value: "round" },
+							{ label: "Pubs", value: "pubs" },
 							{ label: "Areas", value: "area" },
 						]}
 						onChange={(value) => onView(value as MapView)}
@@ -274,11 +273,7 @@ export const MapPanel = ({
 				}}
 			>
 				<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-					{view === "round"
-						? "Round"
-						: view === "area"
-							? "Area median"
-							: "Price"}
+					{view === "area" ? "Area median" : "Round"}
 				</Text>
 				<Box
 					style={{

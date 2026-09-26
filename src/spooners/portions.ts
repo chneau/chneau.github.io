@@ -125,7 +125,7 @@ export const portionRank = (label: string): number => {
 };
 
 /** {rawLabel: price} -> {canonicalLabel: price}, de-duplicating case variants. */
-export const normalizePortions = (
+const normalizePortions = (
 	portions: Record<string, number>,
 ): Record<string, number> => {
 	const out: Record<string, number> = {};
@@ -136,19 +136,6 @@ export const normalizePortions = (
 		}
 	}
 	return out;
-};
-
-/** Every canonical label any venue uses for an item. */
-export const mergePortions = (perVenue: Record<string, number>[]): string[] => {
-	const seen = new Set<string>();
-	for (const portions of perVenue) {
-		for (const label of Object.keys(normalizePortions(portions))) {
-			seen.add(label);
-		}
-	}
-	return [...seen].sort(
-		(a, b) => portionRank(a) - portionRank(b) || a.localeCompare(b),
-	);
 };
 
 // --------------------------------------------------------------------------- #
@@ -216,46 +203,6 @@ const NATURE_KINDS: Record<ItemNature, PortionKind[]> = {
 		"each",
 		"other",
 	],
-};
-
-/** How often each canonical label is sold across the venues. */
-const portionCounts = (
-	perVenue: Record<string, number>[],
-): Map<string, number> => {
-	const counts = new Map<string, number>();
-	for (const portions of perVenue) {
-		for (const label of Object.keys(normalizePortions(portions))) {
-			counts.set(label, (counts.get(label) ?? 0) + 1);
-		}
-	}
-	return counts;
-};
-
-/**
- * The portion most pubs sell, restricted to the formats that make sense for the
- * item (so a wine defaults to a glass/single bottle rather than to "largest").
- */
-export const canonicalPortion = (
-	nature: ItemNature,
-	perVenue: Record<string, number>[],
-): string | null => {
-	const counts = portionCounts(perVenue);
-	if (!counts.size) {
-		return null;
-	}
-	const preferredKinds = NATURE_KINDS[nature];
-	const candidates = [...counts.entries()];
-	const preferred = candidates.filter(([label]) =>
-		preferredKinds.includes(classifyPortion(label)),
-	);
-	const pool = preferred.length ? preferred : candidates;
-	pool.sort((a, b) => {
-		if (b[1] !== a[1]) {
-			return b[1] - a[1];
-		}
-		return portionRank(a[0]) - portionRank(b[0]);
-	});
-	return pool[0]?.[0] ?? null;
 };
 
 /**
