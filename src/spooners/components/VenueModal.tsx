@@ -13,11 +13,12 @@ import {
 	Tooltip,
 } from "@mantine/core";
 import { ArrowRight, Check, Plus } from "lucide-react";
-import { useMemo, useState } from "react";
-import { SPOT_META, venueSpot } from "../derive";
+import { useEffect, useMemo, useState } from "react";
+import { SPOT_META, venueImages, venueSpot } from "../derive";
 import { portionLabel, portionRank } from "../portions";
 import { amount, currencySymbol } from "../price";
 import type { SpoonersCache } from "../types";
+import { VenueImage } from "./VenueImage";
 
 const DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 const DAY_LABEL: Record<string, string> = {
@@ -73,7 +74,12 @@ export const VenueModal = ({
 	const [sort, setSort] = useState<Sort>("menu");
 	const [limit, setLimit] = useState(PAGE);
 	const [added, setAdded] = useState<string | null>(null);
+	const [hero, setHero] = useState(0);
 	const entry = venueRef != null ? cache.venues[String(venueRef)] : undefined;
+
+	useEffect(() => {
+		setHero(0);
+	}, []);
 
 	const rows = useMemo<MenuRow[]>(() => {
 		if (!entry) {
@@ -147,6 +153,7 @@ export const VenueModal = ({
 		.map((method) => method.label ?? method.name ?? "")
 		.filter(Boolean);
 	const address = venue.address;
+	const images = venueImages(detail);
 	const temporarilyClosed =
 		venue.status === "closing_temporary" ||
 		venue.status === "closed_temporary" ||
@@ -192,6 +199,43 @@ export const VenueModal = ({
 						{currency}
 					</Badge>
 				</Group>
+
+				{images.length ? (
+					<Box>
+						<VenueImage
+							src={images[hero]}
+							alt={venue.name}
+							width="100%"
+							height={200}
+							radius={8}
+						/>
+						{images.length > 1 ? (
+							<Group gap={6} mt={6} wrap="nowrap" style={{ overflowX: "auto" }}>
+								{images.map((image, index) => (
+									<Box
+										key={image}
+										onClick={() => setHero(index)}
+										style={{
+											cursor: "pointer",
+											outline:
+												index === hero
+													? "2px solid var(--mantine-primary-color-filled)"
+													: "none",
+											borderRadius: 6,
+										}}
+									>
+										<VenueImage
+											src={image}
+											alt={`${venue.name} photo ${index + 1}`}
+											width={54}
+											height={44}
+										/>
+									</Box>
+								))}
+							</Group>
+						) : null}
+					</Box>
+				) : null}
 
 				<Text size="sm">
 					{[

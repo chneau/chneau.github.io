@@ -7,7 +7,12 @@
  * is comparable across pubs.
  */
 
-import { venueFacilities, venueOpenState, venueSpot } from "./derive";
+import {
+	venueFacilities,
+	venueImages,
+	venueOpenState,
+	venueSpot,
+} from "./derive";
 import {
 	choosePrice,
 	classifyPortion,
@@ -148,6 +153,7 @@ export const basketVenues = (
 			portions: {},
 			lines,
 			missing,
+			images: venueImages(entry.detail),
 			currency:
 				entry.detail?.currency?.code ??
 				entry.detail?.currency?.currencyCode ??

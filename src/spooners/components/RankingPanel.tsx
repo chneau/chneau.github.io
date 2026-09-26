@@ -22,6 +22,7 @@ import {
 	priceColor,
 } from "../price";
 import type { PricedVenue, ValueKind } from "../types";
+import { VenueImage } from "./VenueImage";
 
 type Mode = "cheapest" | "dearest" | "nearest" | "value";
 
@@ -103,6 +104,12 @@ const Row = ({
 					<Text size="xs" c="dimmed" w={16} ta="right">
 						{rank}
 					</Text>
+					<VenueImage
+						src={venue.images[0]}
+						alt={venue.name}
+						width={32}
+						height={32}
+					/>
 					<Box style={{ minWidth: 0 }}>
 						<Group gap={6} wrap="nowrap" align="center" style={{ minWidth: 0 }}>
 							<Text size="sm" lineClamp={1}>
@@ -139,7 +146,10 @@ const Row = ({
 									)}`
 								: ""}
 							{change
-								? ` · was ${currencySymbol(currency)}${amount(venue.previousPrice ?? 0, currency)}, ${change}`
+								? ` · was ${currencySymbol(currency)}${amount(
+										venue.previousPrice ?? 0,
+										currency,
+									)}, ${change}`
 								: ""}
 						</Text>
 					</Box>

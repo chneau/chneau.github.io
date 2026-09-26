@@ -22,6 +22,7 @@ import {
 import { SPOT_META } from "../derive";
 import { miles, money, normalize, type PriceScale, priceColor } from "../price";
 import type { MapPoint } from "../types";
+import { VenueImage } from "./VenueImage";
 
 export const UK_CENTER: [number, number] = [54.4, -3.2];
 export const UK_ZOOM = 6;
@@ -66,6 +67,16 @@ const PointPopup = ({
 	currency: string;
 }) => (
 	<div style={{ minWidth: 200, maxWidth: 260 }}>
+		{point.images?.[0] ? (
+			<div style={{ marginBottom: 6 }}>
+				<VenueImage
+					src={point.images[0]}
+					alt={point.name}
+					width="100%"
+					height={110}
+				/>
+			</div>
+		) : null}
 		<div style={{ fontWeight: 700, marginBottom: 2 }}>{point.name}</div>
 		<div>
 			<strong>{money(point.price, currency)}</strong>
@@ -293,7 +304,10 @@ export const MapPanel = ({
 						height: 6,
 						borderRadius: 999,
 						marginTop: 4,
-						background: `linear-gradient(90deg, ${priceColor(scale.min, scale)}, ${priceColor(
+						background: `linear-gradient(90deg, ${priceColor(
+							scale.min,
+							scale,
+						)}, ${priceColor(
 							(scale.min + scale.max) / 2,
 							scale,
 						)}, ${priceColor(scale.max, scale)})`,
