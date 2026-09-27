@@ -11,8 +11,7 @@ import {
 import { useMemo } from "react";
 import { basketVenues } from "../basket";
 import { categoryLabel } from "../itemFacts";
-import { metricText, valueDirection } from "../portions";
-import { money } from "../price";
+import { valueDirection } from "../portions";
 import type { Formatter, SpoonersCache, ValueKind } from "../types";
 import { ItemFacts } from "./ItemFacts";
 import { VenueImage } from "./VenueImage";
@@ -27,7 +26,7 @@ type Props = {
 	onVenue: (ref: number) => void;
 	/** Shown when this item was opened from a pub page. */
 	onBack?: () => void;
-	format?: Formatter;
+	format: Formatter;
 };
 
 type Best = {
@@ -130,18 +129,10 @@ export const ItemModal = ({
 							{bestByKind.map((row) => (
 								<Group justify="space-between" gap={8} key={row.kind}>
 									<Text size="sm">
-										{format
-											? format.metric(row.kind, row.value, row.currency)
-											: metricText(
-													{ kind: row.kind, value: row.value },
-													row.currency,
-												)}
+										{format.metric(row.kind, row.value, row.currency)}
 									</Text>
 									<Text size="xs" c="dimmed">
-										{format
-											? format.money(row.price, row.currency)
-											: money(row.price, row.currency)}{" "}
-										at {row.venueName}
+										{format.money(row.price, row.currency)} at {row.venueName}
 									</Text>
 								</Group>
 							))}
@@ -183,9 +174,7 @@ export const ItemModal = ({
 												{venue.portion}
 											</Text>
 											<Text size="sm" fw={700}>
-												{format
-													? format.money(venue.price, venue.currency)
-													: money(venue.price, venue.currency)}
+												{format.money(venue.price, venue.currency)}
 											</Text>
 										</Group>
 									</Group>

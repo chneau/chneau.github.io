@@ -281,8 +281,6 @@ export type PricedVenue = {
 	price: number;
 	/** The single item's portion, or "N items" for a multi-item round. */
 	portion: string;
-	/** Canonical portion labels -> price (single-drink rounds only). */
-	portions: Record<string, number>;
 	lines: VenuePriceLine[];
 	/** Round items this venue does not sell. */
 	missing: string[];
@@ -295,18 +293,11 @@ export type PricedVenue = {
 	hoursToday: string | null;
 	facilities: string[];
 	phone: string | null;
-	/** ml of the chosen portion, when known (single-drink rounds only). */
-	volumeMl: number | null;
-	/** Alcohol units of the chosen portion (single-drink rounds only). */
-	units: number | null;
-	abv: number | null;
-	calories: number | null;
 	/** The comparable metric for this portion (single-drink rounds only). */
 	metricKind: ValueKind | null;
 	metricValue: number | null;
 	/** The price recorded before this one, when the history has an older entry. */
 	previousPrice: number | null;
-	previousAt: string | null;
 	/** Miles from the user, only when they shared their location. */
 	distance?: number;
 };

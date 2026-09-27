@@ -6,7 +6,7 @@ import { currencySymbol } from "./price";
  * Cached in localStorage for 12h so we are not calling it on every visit.
  */
 
-type RateTable = {
+export type RateTable = {
 	base: string;
 	date: string;
 	rates: Record<string, number>;

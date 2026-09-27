@@ -16,8 +16,14 @@ import {
 } from "@mantine/core";
 import { ArrowRight, Check, Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { SPOT_META, venueImages, venueSpot, venueValues } from "../derive";
-import { metricText, portionLabel, portionRank } from "../portions";
+import {
+	isTemporarilyClosed,
+	SPOT_META,
+	venueImages,
+	venueSpot,
+	venueValues,
+} from "../derive";
+import { portionLabel, portionRank } from "../portions";
 import { amount, currencySymbol, money } from "../price";
 import type { Formatter, SpoonersCache } from "../types";
 import { ItemFacts } from "./ItemFacts";
@@ -62,7 +68,7 @@ type Props = {
 	onAddItem: (name: string) => void;
 	/** Open the full item detail modal. */
 	onItem: (name: string) => void;
-	format?: Formatter;
+	format: Formatter;
 };
 
 const PAGE = 100;
@@ -87,8 +93,15 @@ export const VenueModal = ({
 	const [menuFilter, setMenuFilter] = useState<string | null>(null);
 	const entry = venueRef != null ? cache.venues[String(venueRef)] : undefined;
 
+	// each pub starts fresh: no leaked search, sort, expanded row or hero image
 	useEffect(() => {
+		setQuery("");
+		setSort("menu");
+		setLimit(PAGE);
+		setAdded(null);
 		setHero(0);
+		setExpanded(null);
+		setMenuFilter(null);
 	}, []);
 
 	const valueRows = useMemo(
@@ -193,10 +206,7 @@ export const VenueModal = ({
 		.filter(Boolean);
 	const address = venue.address;
 	const images = venueImages(detail);
-	const temporarilyClosed =
-		venue.status === "closing_temporary" ||
-		venue.status === "closed_temporary" ||
-		venue.status === "opening_soon";
+	const temporarilyClosed = isTemporarilyClosed(venue.status);
 
 	const add = (name: string) => {
 		onAddItem(name);
@@ -371,12 +381,7 @@ export const VenueModal = ({
 												{row.name}
 											</Text>
 											<Text size="sm" fw={700}>
-												{format
-													? format.metric("calorie", row.value, currency)
-													: metricText(
-															{ kind: "calorie", value: row.value },
-															currency,
-														)}
+												{format.metric("calorie", row.value, currency)}
 											</Text>
 										</Group>
 									</UnstyledButton>
@@ -401,12 +406,7 @@ export const VenueModal = ({
 												{row.name}
 											</Text>
 											<Text size="sm" fw={700}>
-												{format
-													? format.metric("unit", row.value, currency)
-													: metricText(
-															{ kind: "unit", value: row.value },
-															currency,
-														)}
+												{format.metric("unit", row.value, currency)}
 											</Text>
 										</Group>
 									</UnstyledButton>

@@ -1,6 +1,6 @@
 import { Box, Group, Progress, Text, UnstyledButton } from "@mantine/core";
 import type { AreaStat } from "../derive";
-import { amount, currencySymbol, money } from "../price";
+import { amount, currencySymbol, money, priceColor } from "../price";
 
 type Props = {
 	stats: AreaStat[];
@@ -25,6 +25,7 @@ export const GeographyPanel = ({
 	const minPrice = stats[0]?.median ?? 0;
 	const maxPrice = stats[stats.length - 1]?.median ?? 1;
 	const span = maxPrice - minPrice || 1;
+	const scale = { min: minPrice, max: maxPrice };
 
 	return (
 		<>
@@ -67,7 +68,7 @@ export const GeographyPanel = ({
 							</Group>
 							<Progress
 								value={Math.max(4, position * 100)}
-								color={`hsl(${(135 - 135 * position).toFixed(0)} 68% 46%)`}
+								color={priceColor(stat.median, scale)}
 								size={4}
 								mt={4}
 								radius="xl"
