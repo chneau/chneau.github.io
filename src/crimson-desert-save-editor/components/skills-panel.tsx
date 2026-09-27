@@ -79,14 +79,12 @@ const ModeCard = ({
 				p="md"
 				h="100%"
 				bg={
-					active
-						? "var(--mantine-primary-color-light)"
-						: "var(--mantine-color-dark-7)"
+					active ? "var(--mantine-primary-color-light)" : "var(--app-surface-2)"
 				}
 				style={{
 					borderColor: active
 						? "var(--mantine-primary-color-filled)"
-						: "var(--mantine-color-dark-4)",
+						: "var(--app-border)",
 				}}
 			>
 				<Group gap="xs" wrap="nowrap">
@@ -101,7 +99,7 @@ const ModeCard = ({
 							background: active
 								? "var(--mantine-primary-color-filled)"
 								: "transparent",
-							color: "var(--mantine-color-dark-9)",
+							color: "var(--mantine-primary-color-contrast)",
 						}}
 					>
 						{active && <Check size={12} />}
@@ -413,7 +411,7 @@ export const SkillsPanel = ({
 				<ScrollArea.Autosize
 					mah={420}
 					type="auto"
-					style={{ border: "1px solid var(--mantine-color-dark-4)" }}
+					style={{ border: "1px solid var(--app-border)" }}
 				>
 					<Table
 						stickyHeader
@@ -486,7 +484,7 @@ export const SkillsPanel = ({
 				</Group>
 			</Box>
 
-			<Paper withBorder p="md" bg="var(--mantine-color-dark-7)">
+			<Paper withBorder p="md" bg="var(--app-surface-2)">
 				<Group justify="space-between" gap="md" align="flex-end">
 					<Box maw={620}>
 						<Text size="sm" fw={500}>

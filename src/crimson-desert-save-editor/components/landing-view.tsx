@@ -92,7 +92,7 @@ export const LandingView = ({
 								p={0}
 								style={{
 									listStyle: "none",
-									borderTop: "1px solid var(--mantine-color-dark-4)",
+									borderTop: "1px solid var(--app-border)",
 								}}
 							>
 								{[
@@ -107,7 +107,7 @@ export const LandingView = ({
 										wrap="nowrap"
 										py="sm"
 										style={{
-											borderBottom: "1px solid var(--mantine-color-dark-4)",
+											borderBottom: "1px solid var(--app-border)",
 										}}
 									>
 										<Text
@@ -131,7 +131,7 @@ export const LandingView = ({
 									<Group key={label} gap={6} wrap="nowrap">
 										<Icon
 											size={15}
-											color="var(--mantine-color-dark-2)"
+											color="var(--app-text-muted)"
 											strokeWidth={2}
 										/>
 										<Text size="xs" c="dimmed">
@@ -169,13 +169,13 @@ export const LandingView = ({
 									border: `1px solid ${
 										dragging
 											? "var(--mantine-primary-color-filled)"
-											: "var(--mantine-color-dark-4)"
+											: "var(--app-border)"
 									}`,
 									backgroundImage: dragging
 										? "radial-gradient(120% 120% at 50% 0%, rgba(157, 80, 98, 0.16), transparent 60%)"
 										: "radial-gradient(120% 120% at 50% 0%, rgba(157, 80, 98, 0.08), transparent 55%)",
 									boxShadow:
-										"inset 0 1px 0 rgba(255, 255, 255, 0.045), var(--mantine-shadow-md)",
+										"inset 0 1px 0 var(--app-border), var(--mantine-shadow-md)",
 									transition:
 										"border-color 200ms ease, background-color 200ms ease",
 								}}
@@ -230,7 +230,7 @@ export const LandingView = ({
 							>
 								<LockKeyhole
 									size={13}
-									color="var(--mantine-color-dark-2)"
+									color="var(--app-text-muted)"
 									style={{ flexShrink: 0, marginTop: 2 }}
 								/>
 								<Text size="xs" c="dimmed">

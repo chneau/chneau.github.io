@@ -19,10 +19,10 @@ import {
 	useMap,
 	useMapEvents,
 } from "react-leaflet";
+import { StatusDot } from "../../shared";
 import { miles, money, normalize, type PriceScale, priceColor } from "../price";
 import type { MapPoint } from "../types";
 import { SpotLabel } from "./SpotLabel";
-import { StatusDot } from "./StatusDot";
 import { VenueImage } from "./VenueImage";
 
 export const UK_CENTER: [number, number] = [54.4, -3.2];
@@ -181,7 +181,7 @@ const PointPopup = ({
 			</div>
 			{point.hoursToday !== undefined ? (
 				<div style={{ fontSize: 12, marginTop: 4 }}>
-					<StatusDot open={point.isOpenNow} />
+					<StatusDot on={point.isOpenNow} />
 					{point.isOpenNow ? "Open now" : "Closed now"}
 					{point.hoursToday ? ` · ${point.hoursToday}` : ""}
 				</div>

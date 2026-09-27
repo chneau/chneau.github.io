@@ -198,7 +198,7 @@ export const SettingsModal = () => {
 				{ATMOSPHERE_SETTINGS.map(renderRow)}
 
 				<Divider
-					style={{ borderColor: "rgba(255,255,255,0.08)", margin: "2px 0" }}
+					style={{ borderColor: "var(--app-border)", margin: "2px 0" }}
 				/>
 
 				<Text
@@ -214,7 +214,7 @@ export const SettingsModal = () => {
 				{NETWORK_SETTINGS.map(renderRow)}
 
 				<Divider
-					style={{ borderColor: "rgba(255,255,255,0.08)", margin: "2px 0" }}
+					style={{ borderColor: "var(--app-border)", margin: "2px 0" }}
 				/>
 
 				<Button

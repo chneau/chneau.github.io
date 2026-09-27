@@ -68,7 +68,7 @@ const FRAME = {
 	overflow: "hidden",
 	border: "1px solid var(--mantine-color-default-border)",
 	borderRadius: "var(--mantine-radius-sm)",
-	background: "rgba(0, 0, 0, 0.15)",
+	background: "var(--app-surface-2)",
 	color: "var(--mantine-color-dimmed)",
 	// Keep automatic browser darkening from treating dark artwork as monochrome UI icons.
 	colorScheme: "only light",

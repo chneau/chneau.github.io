@@ -21,6 +21,7 @@ import {
 import { Fragment, type ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+import { EmptyState } from "../shared";
 import { BirthdayDetails } from "./BirthdayDetails";
 import type { Birthday } from "./birthdays";
 import { Highlight } from "./Highlight";
@@ -239,21 +240,21 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 
 	if (total === 0) {
 		return (
-			<div className="tk-empty">
-				<span className="tk-empty__mark">
-					<Search size={20} strokeWidth={1.5} />
-				</span>
-				<h3>{t("app.list.empty_title")}</h3>
-				<p>{t("app.list.empty_body")}</p>
-				<button
-					type="button"
-					className="tk-iconbtn"
-					onClick={handleResetFilters}
-				>
-					<RotateCcw size={14} strokeWidth={1.9} />
-					{t("app.list.reset")}
-				</button>
-			</div>
+			<EmptyState
+				icon={<Search size={20} strokeWidth={1.5} />}
+				title={t("app.list.empty_title")}
+				body={t("app.list.empty_body")}
+				action={
+					<button
+						type="button"
+						className="tk-iconbtn"
+						onClick={handleResetFilters}
+					>
+						<RotateCcw size={14} strokeWidth={1.9} />
+						{t("app.list.reset")}
+					</button>
+				}
+			/>
 		);
 	}
 

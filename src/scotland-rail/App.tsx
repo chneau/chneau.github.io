@@ -1,4 +1,4 @@
-import { Box, Button, Tooltip } from "@mantine/core";
+import { Box, Button, Tooltip, useMantineColorScheme } from "@mantine/core";
 import {
 	CircleHelp,
 	Compass,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useSnapshot } from "valtio";
+import { SchemeToggle } from "../shared";
 import { Controls } from "./components/Controls";
 import { ReplayCanvas } from "./components/ReplayCanvas";
 import { ServiceDetails } from "./components/ServiceDetails";
@@ -31,6 +32,8 @@ declare const BUILD_DATE: string;
 export const App = () => {
 	const snap = useSnapshot(railStore);
 	const derivedSnap = useSnapshot(derivedStore);
+	const { colorScheme, setColorScheme } = useMantineColorScheme();
+	const dark = colorScheme === "dark";
 	const {
 		isInfoOpen,
 		isPlaying,
@@ -273,6 +276,11 @@ export const App = () => {
 					Settings
 				</Button>
 
+				<SchemeToggle
+					dark={dark}
+					size="sm"
+					onToggle={() => setColorScheme(dark ? "light" : "dark")}
+				/>
 				{/* Keyboard Shortcuts Hint Popover */}
 				<Tooltip
 					label={

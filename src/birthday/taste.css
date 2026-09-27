@@ -6,66 +6,45 @@
    ───────────────────────────────────────────────────────────── */
 
 :root {
-	--tk-bg: #f6f6f7;
-	--tk-bg-deep: #ededef;
-	--tk-surface: #ffffff;
-	--tk-surface-2: #f3f3f5;
-	--tk-surface-3: #e9e9ec;
-	--tk-border: rgba(24, 24, 27, 0.1);
-	--tk-border-strong: rgba(24, 24, 27, 0.18);
-	--tk-text: #18181b;
-	--tk-text-dim: #52525b;
-	--tk-text-faint: #a1a1aa;
+	--tk-bg: var(--app-bg);
+	--tk-bg-deep: var(--app-bg-deep);
+	--tk-surface: var(--app-surface);
+	--tk-surface-2: var(--app-surface-2);
+	--tk-surface-3: var(--app-surface-3);
+	--tk-border: var(--app-border);
+	--tk-border-strong: var(--app-border-strong);
+	--tk-text: var(--app-text);
+	--tk-text-dim: var(--app-text-muted);
+	--tk-text-faint: var(--app-text-faint);
 	--tk-accent: #0f9d76;
 	--tk-accent-hover: #0c7f60;
 	--tk-accent-soft: rgba(15, 157, 118, 0.1);
 	--tk-accent-line: rgba(15, 157, 118, 0.35);
 	--tk-accent-ink: #0b6b51;
-	--tk-danger: #c2443d;
-	--tk-warn: #b7801f;
-	--tk-shadow-sm: 0 1px 2px rgba(24, 24, 27, 0.05);
-	--tk-shadow:
-		0 1px 2px rgba(24, 24, 27, 0.04), 0 18px 40px -24px rgba(24, 24, 27, 0.22);
-	--tk-shadow-lg:
-		0 1px 2px rgba(24, 24, 27, 0.05), 0 40px 80px -40px rgba(24, 24, 27, 0.28);
+	--tk-danger: var(--app-danger);
+	--tk-warn: var(--app-warn);
+	--tk-shadow-sm: var(--app-shadow-sm);
+	--tk-shadow: var(--app-shadow);
+	--tk-shadow-lg: var(--app-shadow-lg);
 	--tk-radius-xs: 10px;
 	--tk-radius-sm: 14px;
 	--tk-radius: 22px;
 	--tk-radius-lg: 30px;
-	--tk-font-sans:
-		"Geist", "Satoshi", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-		Roboto, "Helvetica Neue", sans-serif;
-	--tk-font-mono:
-		"Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
-		Consolas, monospace;
-	--tk-ease: cubic-bezier(0.16, 1, 0.3, 1);
+	--tk-font-sans: var(--app-font-sans);
+	--tk-font-mono: var(--app-font-mono);
+	--tk-ease: var(--app-ease);
 	--tk-container: 1260px;
+	/* Let shared components (focus rings, status lights) pick up the accent. */
+	--app-accent: var(--tk-accent);
 	color-scheme: light;
 }
 
 :root[data-theme="dark"] {
-	--tk-bg: #09090b;
-	--tk-bg-deep: #050506;
-	--tk-surface: #121215;
-	--tk-surface-2: #17171b;
-	--tk-surface-3: #1f1f24;
-	--tk-border: rgba(255, 255, 255, 0.08);
-	--tk-border-strong: rgba(255, 255, 255, 0.16);
-	--tk-text: #f4f4f5;
-	--tk-text-dim: #a1a1aa;
-	--tk-text-faint: #63636b;
 	--tk-accent: #34d399;
 	--tk-accent-hover: #6ee7b7;
 	--tk-accent-soft: rgba(52, 211, 153, 0.12);
 	--tk-accent-line: rgba(52, 211, 153, 0.32);
 	--tk-accent-ink: #6ee7b7;
-	--tk-danger: #f08a84;
-	--tk-warn: #e6c069;
-	--tk-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-	--tk-shadow:
-		0 1px 2px rgba(0, 0, 0, 0.4), 0 24px 50px -30px rgba(0, 0, 0, 0.9);
-	--tk-shadow-lg:
-		0 1px 2px rgba(0, 0, 0, 0.5), 0 50px 90px -50px rgba(0, 0, 0, 1);
 	color-scheme: dark;
 }
 

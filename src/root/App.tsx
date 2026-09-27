@@ -1,9 +1,7 @@
 import {
 	Badge,
 	Box,
-	Button,
 	Card,
-	createTheme,
 	Group,
 	type MantineColorsTuple,
 	MantineProvider,
@@ -18,12 +16,11 @@ import {
 	Cake,
 	FileText,
 	type LucideIcon,
-	Moon,
-	Sun,
 	Swords,
 	TrainFront,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createAppTheme, SchemeToggle } from "../shared";
 
 declare const BUILD_DATE: string;
 
@@ -99,7 +96,7 @@ const APPS: AppEntry[] = [
 type AppItem = (typeof APPS)[number];
 
 /** A blue accent (#1677ff), expanded to Mantine's 10-shade tuple (main shade at index 6). */
-const antBlue: MantineColorsTuple = [
+const brand: MantineColorsTuple = [
 	"#e6f4ff",
 	"#bae0ff",
 	"#91caff",
@@ -112,18 +109,11 @@ const antBlue: MantineColorsTuple = [
 	"#001d66",
 ];
 
-const appTheme = createTheme({
-	colors: { antBlue },
-	primaryColor: "antBlue",
+const appTheme = createAppTheme({
+	accent: brand,
+	accentName: "brand",
 	primaryShade: 6,
 	defaultRadius: 8,
-	fontFamily:
-		'"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif',
-	headings: {
-		fontFamily:
-			'"Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif',
-		fontWeight: "600",
-	},
 });
 
 /** GitHub mark, inlined so we don't depend on an icon package. */
@@ -140,7 +130,7 @@ const GithubIcon = ({ size = 18 }: { size?: number }) => (
 	</svg>
 );
 
-const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
+const AppCard = ({ item }: { item: AppItem }) => {
 	const [hovered, setHovered] = useState(false);
 	const Icon = item.icon;
 
@@ -160,19 +150,13 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 				onMouseLeave={() => setHovered(false)}
 				style={{
 					transition:
-						"transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, background-color 0.3s ease",
+						"transform 0.3s var(--app-ease), box-shadow 0.3s var(--app-ease), border-color 0.3s ease, background-color 0.3s ease",
 					transform: hovered ? "translateY(-3px)" : "none",
-					boxShadow: hovered
-						? darkMode
-							? "0 10px 28px rgba(0, 0, 0, 0.5)"
-							: "0 10px 28px rgba(22, 119, 255, 0.12)"
-						: undefined,
-					background: darkMode ? "#0d222f" : "#fff",
+					boxShadow: hovered ? "var(--app-shadow-lg)" : undefined,
+					background: "var(--app-surface)",
 					borderColor: hovered
-						? "#1677ff"
-						: darkMode
-							? "rgba(217, 226, 230, 0.2)"
-							: "#e8e8e8",
+						? "var(--mantine-primary-color-filled)"
+						: "var(--app-border)",
 				}}
 			>
 				<div
@@ -202,10 +186,8 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 								borderRadius: 10,
 								flexShrink: 0,
 								marginTop: 2,
-								color: "#1677ff",
-								background: darkMode
-									? "rgba(22, 119, 255, 0.14)"
-									: "rgba(22, 119, 255, 0.08)",
+								color: "var(--mantine-primary-color-filled)",
+								background: "var(--mantine-primary-color-light)",
 							}}
 						>
 							<Icon size={26} strokeWidth={1.5} />
@@ -220,13 +202,7 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 									marginBottom: 4,
 								}}
 							>
-								<Text
-									fw={600}
-									style={{
-										fontSize: "1.05rem",
-										color: darkMode ? "#edf3f5" : "inherit",
-									}}
-								>
+								<Text fw={600} style={{ fontSize: "1.05rem" }}>
 									{item.title}
 								</Text>
 								<Badge
@@ -241,12 +217,7 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 							</div>
 							<Text
 								c="dimmed"
-								style={{
-									margin: 0,
-									color: darkMode ? "#8ca0aa" : undefined,
-									fontSize: "0.9rem",
-									lineHeight: 1.5,
-								}}
+								style={{ margin: 0, fontSize: "0.9rem", lineHeight: 1.5 }}
 							>
 								{item.description}
 							</Text>
@@ -265,10 +236,11 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 							size={18}
 							strokeWidth={1.5}
 							style={{
-								color: hovered ? "#1677ff" : darkMode ? "#8ca0aa" : "#bfbfbf",
+								color: hovered
+									? "var(--mantine-primary-color-filled)"
+									: "var(--app-text-faint)",
 								transform: hovered ? "translateX(4px)" : "none",
-								transition:
-									"transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s ease",
+								transition: "transform 0.25s var(--app-ease), color 0.25s ease",
 							}}
 						/>
 						<Badge
@@ -283,10 +255,6 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 								lineHeight: "16px",
 								opacity: 0.65,
 								borderRadius: 3,
-								background: darkMode
-									? "rgba(255, 255, 255, 0.08)"
-									: "rgba(0, 0, 0, 0.05)",
-								color: darkMode ? "#8ca0aa" : "#8c8c8c",
 							}}
 						>
 							{item.shortcutKey}
@@ -345,61 +313,29 @@ export const App = () => {
 					minHeight: "100vh",
 					display: "flex",
 					flexDirection: "column",
-					background: darkMode ? "#07131b" : "#f5f5f5",
+					background: "var(--app-bg)",
 				}}
 			>
 				<Box
 					component="header"
 					style={{
 						height: 64,
-						background: darkMode ? "#0d222f" : "#fff",
+						background: "var(--app-surface)",
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "space-between",
-						borderBottom: darkMode
-							? "1px solid rgba(217, 226, 230, 0.15)"
-							: "1px solid #f0f0f0",
+						borderBottom: "1px solid var(--app-border)",
 						padding: "0 24px",
 					}}
 				>
-					<Text
-						fw={600}
-						style={{
-							fontSize: "1.2rem",
-							color: darkMode ? "#edf3f5" : "inherit",
-						}}
-					>
+					<Text fw={600} style={{ fontSize: "1.2rem" }}>
 						chneau.github.io
 					</Text>
 					<Group gap="md">
-						<Tooltip
-							label={
-								darkMode
-									? "Switch to light mode (Press T)"
-									: "Switch to dark mode (Press T)"
-							}
-						>
-							<Button
-								size="xs"
-								variant="default"
-								onClick={() => setDarkMode(!darkMode)}
-								style={{
-									background: darkMode
-										? "rgba(255, 255, 255, 0.08)"
-										: "rgba(0, 0, 0, 0.04)",
-									borderColor: darkMode
-										? "rgba(217, 226, 230, 0.25)"
-										: "#d9d9d9",
-									color: darkMode ? "#edf3f5" : "inherit",
-								}}
-								aria-label={
-									darkMode ? "Switch to light mode" : "Switch to dark mode"
-								}
-								leftSection={darkMode ? <Sun size={14} /> : <Moon size={14} />}
-							>
-								{darkMode ? "Light" : "Dark"}
-							</Button>
-						</Tooltip>
+						<SchemeToggle
+							dark={darkMode}
+							onToggle={() => setDarkMode((value) => !value)}
+						/>
 						<Tooltip label="GitHub Profile">
 							<a
 								href="https://github.com/chneau"
@@ -407,7 +343,7 @@ export const App = () => {
 								rel="noreferrer"
 								aria-label="GitHub Profile"
 								style={{
-									color: darkMode ? "#edf3f5" : "inherit",
+									color: "var(--app-text)",
 									display: "flex",
 									alignItems: "center",
 								}}
@@ -431,22 +367,12 @@ export const App = () => {
 					<div style={{ maxWidth: 640, width: "100%" }}>
 						<Stack gap="lg" style={{ width: "100%" }}>
 							<div style={{ textAlign: "center" }}>
-								<Title
-									order={2}
-									style={{ color: darkMode ? "#edf3f5" : "inherit" }}
-								>
-									Welcome
-								</Title>
-								<Text
-									c="dimmed"
-									style={{ color: darkMode ? "#8ca0aa" : undefined }}
-								>
-									Personal hub and web apps by chneau
-								</Text>
+								<Title order={2}>Welcome</Title>
+								<Text c="dimmed">Personal hub and web apps by chneau</Text>
 							</div>
 
 							{APPS.map((item) => (
-								<AppCard key={item.href} item={item} darkMode={darkMode} />
+								<AppCard key={item.href} item={item} />
 							))}
 						</Stack>
 					</div>
@@ -456,7 +382,7 @@ export const App = () => {
 					component="footer"
 					style={{
 						textAlign: "center",
-						color: darkMode ? "#8ca0aa" : "#8c8c8c",
+						color: "var(--app-text-muted)",
 						background: "transparent",
 						fontSize: "0.8rem",
 						padding: "0 24px 24px",

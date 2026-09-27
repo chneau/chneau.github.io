@@ -253,7 +253,7 @@ export const ConditionPanel = ({
 				<ScrollArea.Autosize
 					mah={420}
 					type="auto"
-					style={{ border: "1px solid var(--mantine-color-dark-4)" }}
+					style={{ border: "1px solid var(--app-border)" }}
 				>
 					<Table stickyHeader highlightOnHover verticalSpacing="xs" fz="xs">
 						<Table.Thead>

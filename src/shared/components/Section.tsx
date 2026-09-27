@@ -9,7 +9,7 @@ import {
 import { ChevronDown } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
-type Props = {
+type SectionProps = {
 	title: string;
 	badge?: ReactNode;
 	actions?: ReactNode;
@@ -17,14 +17,14 @@ type Props = {
 	children: ReactNode;
 };
 
-/** A sidebar card with a clickable header that collapses its body. */
+/** A card with a clickable header that collapses its body. */
 export const Section = ({
 	title,
 	badge,
 	actions,
 	defaultOpen = true,
 	children,
-}: Props) => {
+}: SectionProps) => {
 	const [open, setOpen] = useState(defaultOpen);
 	return (
 		<Card withBorder padding="sm" radius="md">

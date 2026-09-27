@@ -1,5 +1,4 @@
 import {
-	createTheme,
 	type MantineColorsTuple,
 	MantineProvider,
 	Modal,
@@ -17,6 +16,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+import { createAppTheme, Grain, Skeleton } from "../shared";
 import { AppFooter } from "./AppFooter";
 import { AppHeader } from "./AppHeader";
 import { BirthdayDetails } from "./BirthdayDetails";
@@ -40,9 +40,6 @@ const Statistics = lazy(() =>
 	import("./Statistics").then((m) => ({ default: m.Statistics })),
 );
 
-const FONT_STACK =
-	"'Geist', 'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
-
 /** Emerald accent matching the existing zinc/emerald taste theme. */
 const emerald: MantineColorsTuple = [
 	"#e6fbf3",
@@ -57,16 +54,10 @@ const emerald: MantineColorsTuple = [
 	"#085843",
 ];
 
-const appTheme = createTheme({
-	primaryColor: "emerald",
+const appTheme = createAppTheme({
+	accent: emerald,
+	accentName: "emerald",
 	primaryShade: { light: 6, dark: 5 },
-	colors: { emerald },
-	defaultRadius: "md",
-	fontFamily: FONT_STACK,
-	headings: {
-		fontFamily: FONT_STACK,
-		fontWeight: "600",
-	},
 	components: {
 		Modal: { defaultProps: { centered: true, radius: "lg" } },
 		Card: { defaultProps: { radius: "lg" } },
@@ -81,10 +72,7 @@ const StatisticsSkeleton = () => (
 		aria-label="Loading insights"
 		aria-busy="true"
 	>
-		<div
-			className="tk-skeleton"
-			style={{ height: 18, width: 160, marginBottom: 20 }}
-		/>
+		<Skeleton height={18} width={160} style={{ marginBottom: 20 }} />
 		<div
 			style={{
 				display: "grid",
@@ -93,11 +81,7 @@ const StatisticsSkeleton = () => (
 			}}
 		>
 			{["a", "b", "c", "d", "e", "f"].map((id) => (
-				<div
-					key={id}
-					className="tk-skeleton"
-					style={{ height: 220, borderRadius: 18 }}
-				/>
+				<Skeleton key={id} height={220} radius={18} />
 			))}
 		</div>
 	</div>
@@ -249,7 +233,7 @@ export const App = () => {
 				)}
 			</Modal>
 
-			<div className="tk-grain" aria-hidden="true" />
+			<Grain />
 		</MantineProvider>
 	);
 };

@@ -1,33 +1,44 @@
-import { createTheme, type MantineColorsTuple } from "@mantine/core";
+import type { MantineColorsTuple } from "@mantine/core";
+import { createAppTheme } from "../shared";
 
 /**
- * One palette for the whole replay. The cool cyan is the single accent; every
- * other surface is a neutral blue-zinc so the moving trains and the track are
- * the only things competing for attention. Saturation is deliberately held
- * below 80% and the purple/magenta AI palette is avoided entirely.
+ * The map canvas is always dark — it is a night-appropriate rail map — so its
+ * notional background stays a fixed literal. The floating chrome around it
+ * uses CSS variables and follows the active colour scheme.
  */
-export const palette = {
+export const mapColors = {
 	bg: "#0a141b",
 	bgDeep: "#060d12",
-	surface: "rgba(10, 20, 27, 0.9)",
-	surfaceSolid: "#0e1c26",
-	border: "rgba(206, 222, 230, 0.16)",
-	borderStrong: "rgba(206, 222, 230, 0.28)",
-	text: "#eef3f5",
-	textMuted: "#93a6b0",
-	textFaint: "#6f838e",
-	accent: "#5aa9c9",
-	accentSoft: "rgba(90, 169, 201, 0.16)",
-	accentBorder: "rgba(90, 169, 201, 0.5)",
-	danger: "#c2686f",
+} as const;
+
+/**
+ * UI palette. Values are CSS variable references defined in
+ * `scotland-rail.css`, so the panels, drawers and modals switch between light
+ * and dark with the rest of the site. The cool cyan remains the single accent.
+ */
+export const palette = {
+	bg: "var(--rail-bg)",
+	bgDeep: "var(--rail-bg-deep)",
+	surface: "var(--rail-surface)",
+	surfaceSolid: "var(--rail-surface-solid)",
+	border: "var(--rail-border)",
+	borderStrong: "var(--rail-border-strong)",
+	text: "var(--rail-text)",
+	textMuted: "var(--rail-text-muted)",
+	textFaint: "var(--rail-text-faint)",
+	accent: "var(--rail-accent)",
+	accentSoft: "var(--rail-accent-soft)",
+	accentBorder: "var(--rail-accent-border)",
+	danger: "var(--rail-danger)",
 } as const;
 
 /**
  * Category hues, spaced around the wheel but desaturated so they read as
- * data, not as neon. `Express` inherits the single accent.
+ * data, not as neon. Kept literal because canvas drawing (and alpha suffixes)
+ * need real colour values, not CSS variables.
  */
 export const categoryColors = {
-	Express: palette.accent,
+	Express: "#5aa9c9",
 	Highland: "#83ac63",
 	Commuter: "#c9a04e",
 	CrossBorder: "#c2686f",
@@ -51,14 +62,8 @@ const accent: MantineColorsTuple = [
 	"#14323e",
 ];
 
-export const railTheme = createTheme({
-	primaryColor: "accent",
+export const railTheme = createAppTheme({
+	accent,
+	accentName: "accent",
 	primaryShade: { light: 5, dark: 4 },
-	colors: { accent },
-	defaultRadius: "md",
-	fontFamily:
-		'"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif',
-	fontFamilyMonospace:
-		'"Cascadia Code", "JetBrains Mono", ui-monospace, monospace',
-	headings: { fontWeight: "600" },
 });

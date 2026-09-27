@@ -10,6 +10,7 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useMemo, useState } from "react";
+import { Section } from "../shared";
 import { type BasketItem, parseBasket, serializeBasket } from "./basket";
 import { AppHeader } from "./components/AppHeader";
 import { DiscoverPanel } from "./components/DiscoverPanel";
@@ -26,7 +27,6 @@ import { MenuLessPanel } from "./components/MenuLessPanel";
 import { PubSearch } from "./components/PubSearch";
 import { RankingPanel } from "./components/RankingPanel";
 import { RoundCard } from "./components/RoundCard";
-import { Section } from "./components/Section";
 import { SettingsModal } from "./components/SettingsModal";
 import { StatsBar } from "./components/StatsBar";
 import { ValueExplorer } from "./components/ValueExplorer";

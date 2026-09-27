@@ -11,6 +11,7 @@ import {
 } from "@mantine/core";
 import { Ban, Info } from "lucide-react";
 import { useState } from "react";
+import { StatusDot } from "../../shared";
 import { isTemporarilyClosed } from "../derive";
 import { metricText, valueDirection } from "../portions";
 import {
@@ -23,7 +24,6 @@ import {
 } from "../price";
 import type { PricedVenue, ValueKind } from "../types";
 import { SpotLabel } from "./SpotLabel";
-import { StatusDot } from "./StatusDot";
 import { VenueImage } from "./VenueImage";
 
 type Mode = "cheapest" | "dearest" | "nearest" | "value";
@@ -112,7 +112,7 @@ const Row = ({
 					<Box style={{ minWidth: 0 }}>
 						<Group gap={6} wrap="nowrap" align="center" style={{ minWidth: 0 }}>
 							<Text size="sm" lineClamp={1}>
-								<StatusDot open={venue.isOpenNow} />
+								<StatusDot on={venue.isOpenNow} />
 								{venue.name}
 							</Text>
 							{venue.spot !== "high-street" ? (

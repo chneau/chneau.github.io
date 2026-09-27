@@ -7,57 +7,47 @@
  */
 
 :root {
-	--font-sans:
-		"Geist Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-		"Helvetica Neue", Arial, sans-serif;
-	--font-mono:
-		"Geist Mono", ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo,
-		Consolas, monospace;
+	--font-sans: var(--app-font-sans);
+	--font-mono: var(--app-font-mono);
 
 	--shell: 1180px;
 	--radius: 14px;
 
-	--bg: #f3f4f6;
-	--surface: #ffffff;
-	--surface-2: #f8f9fb;
-	--text: #171a1f;
-	--text-strong: #0b0d10;
-	--text-muted: #5b6472;
-	--text-faint: #8b939f;
-	--border: #e4e7eb;
-	--border-strong: #d2d7de;
+	--bg: var(--app-bg);
+	--surface: var(--app-surface);
+	--surface-2: var(--app-surface-2);
+	--text: var(--app-text);
+	--text-strong: var(--app-text);
+	--text-muted: var(--app-text-muted);
+	--text-faint: var(--app-text-faint);
+	--border: var(--app-border);
+	--border-strong: var(--app-border-strong);
 	--accent: #127f5f;
 	--accent-strong: #0b674c;
 	--accent-contrast: #ffffff;
 	--accent-soft: rgba(18, 127, 95, 0.09);
 	--accent-ring: rgba(18, 127, 95, 0.3);
-	--danger: #bd4a3e;
+	--danger: var(--app-danger);
 	--glass-edge: rgba(255, 255, 255, 0.7);
-	--shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
-	--shadow-md: 0 18px 40px -20px rgba(16, 24, 40, 0.22);
-	--ease: cubic-bezier(0.16, 1, 0.3, 1);
-	--speed: 0.32s;
+	--shadow-sm: var(--app-shadow-sm);
+	--shadow-md: var(--app-shadow);
+	--ease: var(--app-ease);
+	--speed: var(--app-speed);
+
+	/* Expose the CV accent to the shared utilities. */
+	--app-accent: var(--accent);
+	--app-accent-soft: var(--accent-soft);
+	--app-accent-line: var(--accent-ring);
+	--app-accent-ink: var(--accent-strong);
 }
 
 html[data-theme="dark"] {
-	--bg: #0b0e11;
-	--surface: #121619;
-	--surface-2: #171c20;
-	--text: #d8dee4;
-	--text-strong: #f3f6f8;
-	--text-muted: #98a3ad;
-	--text-faint: #6c7781;
-	--border: #232a30;
-	--border-strong: #323b43;
 	--accent: #45bd93;
 	--accent-strong: #6ad0aa;
 	--accent-contrast: #06231a;
 	--accent-soft: rgba(69, 189, 147, 0.1);
 	--accent-ring: rgba(69, 189, 147, 0.34);
-	--danger: #e0857a;
 	--glass-edge: rgba(255, 255, 255, 0.06);
-	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
-	--shadow-md: 0 22px 48px -22px rgba(0, 0, 0, 0.75);
 }
 
 *,
@@ -119,18 +109,6 @@ svg {
 	outline: 2px solid var(--accent);
 	outline-offset: 2px;
 	border-radius: 7px;
-}
-
-.sr-only {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	padding: 0;
-	margin: -1px;
-	overflow: hidden;
-	clip: rect(0 0 0 0);
-	white-space: nowrap;
-	border: 0;
 }
 
 /* Lucide ships a 2px default; standardise the whole page on 1.5. */

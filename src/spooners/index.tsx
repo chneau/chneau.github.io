@@ -1,4 +1,6 @@
 import "@mantine/core/styles.css";
+import "../shared/tokens.css";
+import "../shared/base.css";
 import "leaflet/dist/leaflet.css";
 import "./spooners.css";
 import { MantineProvider } from "@mantine/core";

@@ -132,7 +132,7 @@ export const Controls = () => {
 										style={{
 											background: isCatSelected
 												? `${cfg.color}22`
-												: "rgba(255,255,255,0.04)",
+												: "var(--app-surface-2)",
 											border: `1px solid ${
 												isCatSelected ? cfg.color : palette.border
 											}`,
@@ -184,7 +184,7 @@ export const Controls = () => {
 								style={{ width: 200 }}
 								styles={{
 									input: {
-										background: "rgba(255, 255, 255, 0.06)",
+										background: "var(--app-surface-2)",
 										borderColor: palette.borderStrong,
 										color: palette.text,
 										fontSize: "0.8rem",
@@ -214,7 +214,7 @@ export const Controls = () => {
 							label={(val) => formatTime(val)}
 							styles={{
 								bar: { background: palette.accent },
-								track: { background: "rgba(255,255,255,0.14)" },
+								track: { background: "var(--app-border-strong)" },
 							}}
 						/>
 					</div>
