@@ -80,7 +80,13 @@ import {
 	projectRecords,
 	storageSummaries,
 } from "@/lib/staged-projection";
-import { AppHeader, Brand, HeaderAction, SchemeToggle } from "../../shared";
+import {
+	AppHeader,
+	BackHome,
+	Brand,
+	HeaderAction,
+	SchemeToggle,
+} from "../../shared";
 
 /**
  * The editor shell.
@@ -524,10 +530,7 @@ export const Home = () => {
 					}
 					actions={
 						<>
-							<SchemeToggle
-								dark={dark}
-								onToggle={() => setColorScheme(dark ? "light" : "dark")}
-							/>
+							<BackHome />
 							{result && (
 								<>
 									{fileName && (
@@ -629,6 +632,10 @@ export const Home = () => {
 									</HeaderAction>
 								</>
 							)}
+							<SchemeToggle
+								dark={dark}
+								onToggle={() => setColorScheme(dark ? "light" : "dark")}
+							/>
 						</>
 					}
 				/>
