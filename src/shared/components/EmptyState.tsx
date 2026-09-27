@@ -13,7 +13,11 @@ export const EmptyState = ({
 	action?: ReactNode;
 }) => (
 	<div className="app-empty">
-		{icon && <span className="app-empty__mark">{icon}</span>}
+		{icon && (
+			<span className="app-empty__mark" aria-hidden="true">
+				{icon}
+			</span>
+		)}
 		<h3>{title}</h3>
 		{body && <p>{body}</p>}
 		{action}

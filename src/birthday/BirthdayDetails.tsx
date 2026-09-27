@@ -319,7 +319,9 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 						color: store.darkMode ? "white" : "black",
 						textAlign: "center",
 						borderRadius: "16px",
-						border: `2px solid ${getKindColor(record.kind) || "#1890ff"}`,
+						border: `2px solid ${
+							getKindColor(record.kind) || "var(--tk-accent)"
+						}`,
 					}}
 				>
 					<div style={{ fontSize: "48px", marginBottom: "16px" }}>

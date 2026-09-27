@@ -9,6 +9,7 @@ import {
 	UnstyledButton,
 } from "@mantine/core";
 import { useMemo, useState } from "react";
+import { EmptyState } from "../../shared";
 import { type ValueLeader, valueLeaders } from "../derive";
 import { valueDirection } from "../portions";
 import type { Formatter, SpoonersCache, ValueKind } from "../types";
@@ -136,12 +137,16 @@ export const ValueExplorer = ({
 							</Group>
 						</UnstyledButton>
 					))}
-					{rows.length ? null : (
-						<Text size="sm" c="dimmed">
-							{anyKind
-								? "Nothing matched that filter."
-								: "No value data available."}
-						</Text>
+					{rows.length ? null : anyKind ? (
+						<EmptyState
+							title="Nothing matched that filter"
+							body="Try a different search or another value tab."
+						/>
+					) : (
+						<EmptyState
+							title="No value data available"
+							body="The dataset does not include enough nutrition or volume data for this yet."
+						/>
 					)}
 				</Box>
 			</Stack>

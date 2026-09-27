@@ -1,7 +1,9 @@
 import { type MantineColorsTuple, MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.css";
+import "@mantine/notifications/styles.css";
 import "../../shared/tokens.css";
 import "../../shared/base.css";
+import { Notifications } from "@mantine/notifications";
 import { createRoot } from "react-dom/client";
 import { createAppTheme } from "../../shared";
 import { Home } from "./page";
@@ -45,6 +47,7 @@ if (!container) {
 // doubles the cost of every interaction while developing.
 const app = (
 	<MantineProvider theme={theme} defaultColorScheme="dark">
+		<Notifications />
 		<Home />
 	</MantineProvider>
 );

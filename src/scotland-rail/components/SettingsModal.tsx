@@ -1,10 +1,11 @@
-import { Button, Divider, Drawer, Switch, Text } from "@mantine/core";
+import { Button, Divider, Drawer, Group, Switch, Text } from "@mantine/core";
 import {
 	Building2,
 	Cloud,
 	Compass,
 	Crosshair,
 	Flame,
+	Keyboard,
 	MapPin,
 	Settings,
 	TrendingUp,
@@ -12,6 +13,7 @@ import {
 	Zap,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { useSnapshot } from "valtio";
 import type { AppSettings } from "../data/types";
 import { railActions, railStore } from "../store";
@@ -87,6 +89,7 @@ const NETWORK_SETTINGS: SettingRow[] = [
 export const SettingsModal = () => {
 	const snap = useSnapshot(railStore);
 	const { isSettingsOpen, settings } = snap;
+	const [confirmingReset, setConfirmingReset] = useState(false);
 
 	const handleSettingToggle = <K extends keyof AppSettings>(
 		key: K,
@@ -217,18 +220,88 @@ export const SettingsModal = () => {
 					style={{ borderColor: "var(--app-border)", margin: "2px 0" }}
 				/>
 
+				<Text
+					style={{
+						color: palette.textFaint,
+						fontSize: "0.72rem",
+						textTransform: "uppercase",
+						letterSpacing: "0.08em",
+					}}
+				>
+					Help
+				</Text>
 				<Button
 					fullWidth
 					variant="default"
 					className="sr-press"
-					onClick={() => railActions.resetSettings()}
+					leftSection={<Keyboard size={14} />}
+					onClick={() => {
+						railActions.setIsSettingsOpen(false);
+						railActions.setIsShortcutsOpen(true);
+					}}
 					style={{
 						color: palette.textMuted,
 						borderColor: palette.borderStrong,
 					}}
 				>
-					Reset to defaults
+					Keyboard shortcuts
 				</Button>
+
+				<Divider
+					style={{ borderColor: "var(--app-border)", margin: "2px 0" }}
+				/>
+
+				{confirmingReset ? (
+					<div
+						role="alertdialog"
+						aria-label="Confirm reset settings"
+						style={{
+							display: "flex",
+							flexDirection: "column",
+							gap: 8,
+							padding: "10px 12px",
+							border: `1px solid ${palette.borderStrong}`,
+							borderRadius: 8,
+							background: "var(--app-surface-2)",
+						}}
+					>
+						<Text style={{ color: palette.text, fontSize: "0.82rem" }}>
+							Reset every setting to its default? This cannot be undone.
+						</Text>
+						<Group gap="xs" justify="flex-end">
+							<Button
+								size="xs"
+								variant="default"
+								onClick={() => setConfirmingReset(false)}
+							>
+								Cancel
+							</Button>
+							<Button
+								size="xs"
+								color="red"
+								onClick={() => {
+									railActions.resetSettings();
+									setConfirmingReset(false);
+								}}
+							>
+								Reset
+							</Button>
+						</Group>
+					</div>
+				) : (
+					<Button
+						fullWidth
+						variant="default"
+						className="sr-press"
+						onClick={() => setConfirmingReset(true)}
+						style={{
+							color: palette.textMuted,
+							borderColor: palette.borderStrong,
+						}}
+					>
+						Reset to defaults
+					</Button>
+				)}
 			</div>
 		</Drawer>
 	);

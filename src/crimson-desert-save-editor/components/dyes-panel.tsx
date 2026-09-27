@@ -13,7 +13,7 @@ import {
 	Table,
 	Text,
 } from "@mantine/core";
-import { Paintbrush, Undo2 } from "lucide-react";
+import { Paintbrush, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { DyeDescription, DyedItem, DyeSlot } from "@/lib/save-engine/dyes";
 import type { DyeEdit } from "@/lib/staged-edits";
@@ -274,7 +274,11 @@ export const DyesPanel = ({
 			style={{ flex: 1, minHeight: 0, overflow: "auto" }}
 		>
 			{error && (
-				<Alert color="red" title="Could not apply changes">
+				<Alert
+					color="red"
+					icon={<TriangleAlert size={16} />}
+					title="Could not apply dye changes"
+				>
 					{error}
 				</Alert>
 			)}
@@ -329,7 +333,7 @@ export const DyesPanel = ({
 							disabled={busy}
 							onClick={() => onStage([])}
 						>
-							Discard {edits.length} queued change
+							Discard all {edits.length} staged change
 							{edits.length === 1 ? "" : "s"}
 						</Button>
 					)}
@@ -478,7 +482,7 @@ export const DyesPanel = ({
 							Every part
 						</Badge>
 						<Text size="xs" c="dimmed">
-							{bulkEdit()?.label} is queued, and applies before any part you
+							{bulkEdit()?.label} is staged, and applies before any part you
 							change after it.
 						</Text>
 					</Group>

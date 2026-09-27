@@ -72,7 +72,6 @@ const AppCard = ({ item }: { item: AppItem }) => {
 				textDecoration: "none",
 				display: "block",
 				borderRadius: 8,
-				outline: "none",
 			}}
 		>
 			<Card
@@ -174,22 +173,13 @@ const AppCard = ({ item }: { item: AppItem }) => {
 								transition: "transform 0.25s var(--app-ease), color 0.25s ease",
 							}}
 						/>
-						<Badge
-							variant="light"
-							color="gray"
-							tt="none"
-							fw="normal"
-							style={{
-								margin: 0,
-								fontSize: "0.7rem",
-								padding: "0 4px",
-								lineHeight: "16px",
-								opacity: 0.65,
-								borderRadius: 3,
-							}}
+						<kbd
+							className="app-kbd"
+							title={item.shortcutKey}
+							aria-label={item.shortcutKey}
 						>
-							{item.shortcutKey}
-						</Badge>
+							{item.hotkey}
+						</kbd>
 					</div>
 				</div>
 			</Card>
@@ -199,28 +189,38 @@ const AppCard = ({ item }: { item: AppItem }) => {
 
 export const App = () => {
 	const [darkMode, setDarkMode] = useState<boolean>(() => {
-		if (typeof localStorage !== "undefined") {
+		try {
 			const saved = localStorage.getItem("root_dark_mode");
 			if (saved !== null) {
 				return saved === "true";
 			}
+		} catch {
+			// Ignore storage access errors (private mode, blocked cookies, etc.).
 		}
-		return true; // Dark mode by default
+		return window.matchMedia("(prefers-color-scheme: dark)").matches;
 	});
 
 	useEffect(() => {
-		if (typeof localStorage !== "undefined") {
+		try {
 			localStorage.setItem("root_dark_mode", String(darkMode));
+		} catch {
+			// Ignore storage access errors.
 		}
 	}, [darkMode]);
 
 	// Global keyboard navigation: 1–6 to launch apps, T for theme
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) {
+				return;
+			}
 			if (
 				e.target instanceof HTMLInputElement ||
 				e.target instanceof HTMLTextAreaElement
 			) {
+				return;
+			}
+			if (e.target instanceof HTMLElement && e.target.isContentEditable) {
 				return;
 			}
 			const targetApp = APPS.find((app) => app.hotkey === e.key);
@@ -287,8 +287,7 @@ export const App = () => {
 					<div style={{ maxWidth: 640, width: "100%" }}>
 						<Stack gap="lg" style={{ width: "100%" }}>
 							<div style={{ textAlign: "center" }}>
-								<Title order={2}>Welcome</Title>
-								<Text c="dimmed">Personal hub and web apps by chneau</Text>
+								<Title order={1}>Welcome</Title>
 							</div>
 
 							{APPS.map((item) => (
@@ -300,7 +299,7 @@ export const App = () => {
 
 				<Footer
 					left={`chneau © ${new Date().getFullYear()}`}
-					right={`(${BUILD_DATE})`}
+					right={`Built ${BUILD_DATE}`}
 				/>
 			</Box>
 		</MantineProvider>

@@ -1,9 +1,11 @@
 import "@mantine/core/styles.css";
+import "@mantine/notifications/styles.css";
 import "../shared/tokens.css";
 import "../shared/base.css";
 import "leaflet/dist/leaflet.css";
 import "./spooners.css";
 import { MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { spoonersTheme } from "./theme";
@@ -15,6 +17,7 @@ if (!container) {
 
 const app = (
 	<MantineProvider theme={spoonersTheme} defaultColorScheme="dark">
+		<Notifications />
 		<App />
 	</MantineProvider>
 );

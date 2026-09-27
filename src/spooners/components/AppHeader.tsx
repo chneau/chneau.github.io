@@ -1,6 +1,8 @@
-import { Badge, Box, useMantineColorScheme } from "@mantine/core";
+import { Badge, Box, Tooltip, useMantineColorScheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { Beer, Copy, Settings, Trophy } from "lucide-react";
+import { notifications } from "@mantine/notifications";
+import { Beer, Copy, Settings, TriangleAlert, Trophy } from "lucide-react";
+import { useEffect } from "react";
 import {
 	AppSwitcher,
 	BackHome,
@@ -19,6 +21,8 @@ type Props = {
 	onSelectVenue: (ref: number) => void;
 	converting: boolean;
 	displayCurrency: string;
+	/** Set when a conversion was asked for but rates are unavailable. */
+	rateIssue?: boolean;
 	copied: boolean;
 	onShare: () => void;
 	onValueOpen: () => void;
@@ -33,6 +37,7 @@ export const AppHeader = ({
 	onSelectVenue,
 	converting,
 	displayCurrency,
+	rateIssue,
 	copied,
 	onShare,
 	onValueOpen,
@@ -41,6 +46,16 @@ export const AppHeader = ({
 	const { colorScheme, setColorScheme } = useMantineColorScheme();
 	const isNarrow = useMediaQuery("(max-width: 30em)");
 	const dark = colorScheme === "dark";
+
+	useEffect(() => {
+		if (copied) {
+			notifications.show({
+				message: "Link copied to clipboard",
+				color: "teal",
+				autoClose: 2000,
+			});
+		}
+	}, [copied]);
 
 	return (
 		<Header
@@ -58,6 +73,27 @@ export const AppHeader = ({
 						<Badge variant="light" color="blue" size="lg">
 							{isNarrow ? displayCurrency : `converted → ${displayCurrency}`}
 						</Badge>
+					) : null}
+					{rateIssue ? (
+						<Tooltip
+							label="Exchange rates aren't available, so prices stay in each pub's own currency. Open Settings to see the error and retry."
+							multiline
+							w={260}
+							withArrow
+						>
+							<Badge
+								variant="light"
+								color="yellow"
+								size="lg"
+								leftSection={<TriangleAlert size={12} />}
+								onClick={onSettingsOpen}
+								style={{ cursor: "pointer" }}
+							>
+								{isNarrow
+									? "native prices"
+									: "rates unavailable · native prices"}
+							</Badge>
+						</Tooltip>
 					) : null}
 					<Badge variant="light" size="lg" visibleFrom="md">
 						{stats.venuesWithData} pubs · {itemCount} items

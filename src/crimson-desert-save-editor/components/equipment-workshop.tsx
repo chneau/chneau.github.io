@@ -455,13 +455,13 @@ export const EquipmentEditor = ({
 						onRemove();
 					}}
 				>
-					{adding ? "Discard equipment addition" : "Discard equipment changes"}
+					{adding ? "Remove equipment addition" : "Remove equipment changes"}
 				</Button>
 			)}
 			<Text size="sm" c="dimmed">
 				{adding
-					? "Download edited adds this item with your chosen refinement, sockets, and Abyss Gear."
-					: "Download edited creates the new save. Dyes are preserved."}
+					? "Download save adds this item with your chosen refinement, sockets, and Abyss Gear."
+					: "Download save creates the new save. Dyes are preserved."}
 			</Text>
 		</Stack>
 	);

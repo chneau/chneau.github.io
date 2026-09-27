@@ -96,9 +96,14 @@ export const Controls = () => {
 								{formatTime(timeOffset)}
 							</Title>
 							<Badge
+								component="button"
+								type="button"
 								variant="light"
 								radius="xl"
 								tt="none"
+								aria-pressed={selectedCategory === "all"}
+								className="sr-press"
+								onClick={() => railActions.setSelectedCategory("all")}
 								style={{
 									fontSize: "0.8rem",
 									padding: "2px 10px",
@@ -106,7 +111,6 @@ export const Controls = () => {
 									background: palette.accentSoft,
 									color: palette.accent,
 								}}
-								onClick={() => railActions.setSelectedCategory("all")}
 							>
 								<span className="sr-num">{activeTrains.length}</span> active
 							</Badge>
@@ -121,9 +125,12 @@ export const Controls = () => {
 								return (
 									<Badge
 										key={cat}
+										component="button"
+										type="button"
 										className="sr-press"
 										radius="xl"
 										tt="none"
+										aria-pressed={isCatSelected}
 										onClick={() =>
 											railActions.setSelectedCategory(
 												isCatSelected ? "all" : cat,

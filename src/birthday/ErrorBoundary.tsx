@@ -1,4 +1,4 @@
-import { TriangleAlert } from "lucide-react";
+import { RotateCcw, TriangleAlert } from "lucide-react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 type Props = {
@@ -21,17 +21,30 @@ export class ErrorBoundary extends Component<Props, State> {
 		console.error("Birthday section crashed", error, info);
 	}
 
+	handleRetry = () => {
+		this.setState({ error: null });
+	};
+
 	render() {
 		if (this.state.error) {
 			return (
 				<div className="tk-error" role="alert">
 					<TriangleAlert size={17} strokeWidth={1.9} />
-					<div>
+					<div style={{ flex: 1 }}>
 						<strong>{this.props.label ?? "This section"}</strong> could not be
 						rendered. The rest of the page is still usable.
 						<div style={{ opacity: 0.7, marginTop: 4, fontSize: 12 }}>
 							{this.state.error.message}
 						</div>
+						<button
+							type="button"
+							className="tk-iconbtn"
+							style={{ marginTop: 8 }}
+							onClick={this.handleRetry}
+						>
+							<RotateCcw size={14} strokeWidth={1.9} />
+							Reload section
+						</button>
 					</div>
 				</div>
 			);

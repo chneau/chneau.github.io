@@ -1,4 +1,4 @@
-import { Box, Button, Tooltip, useMantineColorScheme } from "@mantine/core";
+import { Box, Button, useMantineColorScheme } from "@mantine/core";
 import {
 	CircleHelp,
 	Compass,
@@ -23,8 +23,10 @@ import { Controls } from "./components/Controls";
 import { ReplayCanvas } from "./components/ReplayCanvas";
 import { ServiceDetails } from "./components/ServiceDetails";
 import { SettingsModal } from "./components/SettingsModal";
+import { ShortcutsModal } from "./components/ShortcutsModal";
 import { SourcesModal } from "./components/SourcesModal";
 import { StatsPanel } from "./components/StatsPanel";
+import { CATEGORIES } from "./data/types";
 import {
 	derivedStore,
 	railActions,
@@ -44,19 +46,45 @@ export const App = () => {
 	const {
 		isInfoOpen,
 		isPlaying,
+		isShortcutsOpen,
 		speed,
 		settings,
 		selectedService,
+		selectedCategory,
 		searchQuery,
 		timeOffset,
 	} = snap;
 	const { activeTrains } = derivedSnap;
 
+	const hasSearch = searchQuery.trim().length > 0;
+	const hasCategoryFilter = selectedCategory !== "all";
+	const showNoMatch =
+		activeTrains.length === 0 && (hasSearch || hasCategoryFilter);
+	const categoryLabel =
+		selectedCategory !== "all" ? CATEGORIES[selectedCategory].label : "";
+
 	// Global Keyboard Shortcuts
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			const activeTag = document.activeElement?.tagName.toLowerCase();
-			if (activeTag === "input" || activeTag === "textarea") return;
+			const activeEl = document.activeElement;
+			const activeTag = activeEl?.tagName.toLowerCase();
+			// Let native controls handle their own keys (space/arrows/enter/Escape).
+			if (
+				activeTag === "input" ||
+				activeTag === "textarea" ||
+				activeTag === "button" ||
+				activeTag === "select" ||
+				activeTag === "a"
+			) {
+				return;
+			}
+			if (
+				activeEl instanceof HTMLElement &&
+				(activeEl.isContentEditable ||
+					activeEl.closest('[role="slider"], [contenteditable="true"]'))
+			) {
+				return;
+			}
 
 			if (e.code === "Space") {
 				e.preventDefault();
@@ -95,12 +123,14 @@ export const App = () => {
 				}
 				railActions.updateSetting("soundEffects", nextSound);
 			} else if (e.code === "Escape") {
-				if (railStore.selectedService) {
-					railActions.setSelectedService(null);
+				if (railStore.isShortcutsOpen) {
+					railActions.setIsShortcutsOpen(false);
 				} else if (railStore.isSettingsOpen) {
 					railActions.setIsSettingsOpen(false);
 				} else if (railStore.isInfoOpen) {
 					railActions.setIsInfoOpen(false);
+				} else if (railStore.selectedService) {
+					railActions.setSelectedService(null);
 				}
 			}
 		};
@@ -228,36 +258,14 @@ export const App = () => {
 						>
 							Settings
 						</HeaderAction>
-						<Tooltip
-							label={
-								<div style={{ fontSize: "0.78rem", lineHeight: "1.6" }}>
-									<div>
-										<b>Space:</b> Play / Pause
-									</div>
-									<div>
-										<b>← / →:</b> Scrub time (±5 min)
-									</div>
-									<div>
-										<b>↑ / ↓:</b> Change speed
-									</div>
-									<div>
-										<b>M:</b> Toggle audio
-									</div>
-									<div>
-										<b>Esc:</b> Deselect train / Close
-									</div>
-									<div>
-										<b>Click:</b> Inspect train or station
-									</div>
-								</div>
-							}
-						>
-							<HeaderAction
-								iconOnly
-								label="Keyboard shortcuts"
-								icon={<CircleHelp size={15} />}
-							/>
-						</Tooltip>
+						<HeaderAction
+							iconOnly
+							label="Keyboard shortcuts"
+							ariaHaspopup="dialog"
+							ariaExpanded={isShortcutsOpen}
+							icon={<CircleHelp size={15} />}
+							onClick={() => railActions.setIsShortcutsOpen(true)}
+						/>
 						<SchemeToggle
 							dark={dark}
 							onToggle={() => setColorScheme(dark ? "light" : "dark")}
@@ -281,11 +289,17 @@ export const App = () => {
 					onClose={() => railActions.setIsInfoOpen(false)}
 				/>
 
+				{/* Keyboard Shortcuts Modal */}
+				<ShortcutsModal
+					open={isShortcutsOpen}
+					onClose={() => railActions.setIsShortcutsOpen(false)}
+				/>
+
 				{/* Map Canvas */}
 				<ReplayCanvas />
 
 				{/* Floating Empty Search Recovery Banner */}
-				{searchQuery.trim().length > 0 && activeTrains.length === 0 && (
+				{showNoMatch && (
 					<div
 						className="sr-glass sr-rise"
 						style={{
@@ -299,6 +313,7 @@ export const App = () => {
 							padding: "8px 14px",
 							display: "flex",
 							alignItems: "center",
+							flexWrap: "wrap",
 							gap: 12,
 							color: palette.text,
 							maxWidth: "calc(100vw - 32px)",
@@ -306,22 +321,46 @@ export const App = () => {
 					>
 						<Search size={16} style={{ color: palette.danger }} />
 						<span style={{ fontSize: "0.85rem" }}>
-							No service matches <b>"{searchQuery}"</b> at{" "}
-							<span className="sr-num">{formatTime(timeOffset)}</span>
+							{hasSearch ? (
+								<>
+									No service matches <b>"{searchQuery}"</b>
+								</>
+							) : (
+								<>
+									No <b>{categoryLabel}</b> service is running
+								</>
+							)}{" "}
+							at <span className="sr-num">{formatTime(timeOffset)}</span>
 						</span>
-						<Button
-							size="xs"
-							variant="subtle"
-							color="red"
-							leftSection={<X size={14} />}
-							onClick={() => railActions.setSearchQuery("")}
-							style={{
-								color: palette.danger,
-								border: `1px solid ${palette.danger}`,
-							}}
-						>
-							Clear
-						</Button>
+						{hasSearch && (
+							<Button
+								size="xs"
+								variant="subtle"
+								color="red"
+								leftSection={<X size={14} />}
+								onClick={() => railActions.setSearchQuery("")}
+								style={{
+									color: palette.danger,
+									border: `1px solid ${palette.danger}`,
+								}}
+							>
+								Clear search
+							</Button>
+						)}
+						{hasCategoryFilter && (
+							<Button
+								size="xs"
+								variant="subtle"
+								color="red"
+								onClick={() => railActions.setSelectedCategory("all")}
+								style={{
+									color: palette.danger,
+									border: `1px solid ${palette.danger}`,
+								}}
+							>
+								Show all categories
+							</Button>
+						)}
 					</div>
 				)}
 

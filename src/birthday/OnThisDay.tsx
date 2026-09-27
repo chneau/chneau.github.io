@@ -1,5 +1,6 @@
 import { Accordion, Flex, Skeleton, Stack, Text } from "@mantine/core";
 import dayjs from "dayjs";
+import { TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { dataStore, type WikiEvent } from "./store";
@@ -61,14 +62,21 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 		return () => controller.abort();
 	}, [month, day, i18n.language]);
 
-	if (error) return null;
+	if (error) {
+		return (
+			<div className="tk-error" role="alert" style={{ marginTop: 16 }}>
+				<TriangleAlert size={16} strokeWidth={1.9} />
+				<div>{t("app.on_this_day_error")}</div>
+			</div>
+		);
+	}
 
 	return (
 		<Accordion
 			variant="default"
 			style={{
 				marginTop: 16,
-				background: "rgba(0, 0, 0, 0.02)",
+				background: "var(--tk-surface-2)",
 				borderRadius: "8px",
 			}}
 			styles={{ item: { border: "none", background: "transparent" } }}

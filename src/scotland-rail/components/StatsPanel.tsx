@@ -111,11 +111,49 @@ const HighlightRow = ({
 export const StatsPanel = () => {
 	const snap = useSnapshot(railStore);
 	const derivedSnap = useSnapshot(derivedStore);
-	const { timeOffset } = snap;
-	const { activeTrains } = derivedSnap;
+	const { timeOffset, selectedCategory, searchQuery } = snap;
+	const { activeTrains, filteredServices } = derivedSnap;
 
 	const [unit, setUnit] = useState<"metric" | "imperial">("metric");
 	const [collapsed, setCollapsed] = useState(false);
+
+	const hasActiveFilter =
+		searchQuery.trim().length > 0 || selectedCategory !== "all";
+
+	// Hourly count of services in progress, derived from the current filtered timetable.
+	const activity = useMemo(() => {
+		const BUCKETS = 19; // 05:00 through to 24:00, one column per hour
+		const buckets = Array.from({ length: BUCKETS }, () => 0);
+		for (const service of filteredServices) {
+			const first = service.calls[0];
+			const last = service.calls[service.calls.length - 1];
+			const startOffset =
+				first?.departureOffset ?? first?.arrivalOffset ?? null;
+			const endOffset = last?.arrivalOffset ?? last?.departureOffset ?? null;
+			if (startOffset === null || endOffset === null) continue;
+			const startIdx = Math.max(0, Math.floor((startOffset - 300) / 60));
+			const endIdx = Math.min(BUCKETS - 1, Math.floor((endOffset - 300) / 60));
+			for (let i = startIdx; i <= endIdx; i++) {
+				buckets[i] = (buckets[i] ?? 0) + 1;
+			}
+		}
+		const max = Math.max(1, ...buckets);
+		return buckets.map((value, index) => ({
+			hour: index + 5,
+			intensity: value / max,
+		}));
+	}, [filteredServices]);
+
+	const filterLabel =
+		searchQuery.trim() && selectedCategory !== "all"
+			? `the "${searchQuery}" search or the ${
+					CATEGORIES[selectedCategory].label
+				} filter`
+			: searchQuery.trim()
+				? `the "${searchQuery}" search`
+				: selectedCategory !== "all"
+					? `the ${CATEGORIES[selectedCategory].label} filter`
+					: null;
 
 	// Compute dynamic stats from active trains
 	const stats = useMemo(() => {
@@ -279,9 +317,13 @@ export const StatsPanel = () => {
 										lineHeight: 1.5,
 									}}
 								>
-									No service is running or matching your filters at{" "}
+									{filterLabel
+										? `No service is running that matches ${filterLabel} at `
+										: "No service is running at "}
 									<span className="sr-num">{formatTime(timeOffset)}</span>.
-									Clear the search or pick another time.
+									{hasActiveFilter
+										? " Try another time or clear the active filter."
+										: " Pick another time."}
 								</span>
 							</div>
 						) : (
@@ -333,11 +375,15 @@ export const StatsPanel = () => {
 											marginBottom: 4,
 										}}
 									>
-										<span className="sr-num">05:00</span>
-										<span style={{ color: palette.accent }}>Rush hours</span>
-										<span className="sr-num">24:00</span>
+										<span className="sr-num">{formatTime(300)}</span>
+										<span style={{ color: palette.accent }}>
+											Services in progress
+										</span>
+										<span className="sr-num">{formatTime(1440)}</span>
 									</div>
 									<div
+										role="img"
+										aria-label="Hourly count of services in progress across the day"
 										style={{
 											position: "relative",
 											height: 12,
@@ -346,38 +392,32 @@ export const StatsPanel = () => {
 											overflow: "hidden",
 										}}
 									>
-										{/* Morning rush band */}
 										<div
+											aria-hidden
 											style={{
-												position: "absolute",
-												left: "12%",
-												width: "18%",
+												display: "flex",
+												alignItems: "flex-end",
 												height: "100%",
-												background: "rgba(90, 169, 201, 0.22)",
+												gap: 1,
 											}}
-										/>
-										{/* Evening rush band */}
-										<div
-											style={{
-												position: "absolute",
-												left: "52%",
-												width: "16%",
-												height: "100%",
-												background: "rgba(201, 160, 78, 0.22)",
-											}}
-										/>
-										{/* Sleeper band */}
-										<div
-											style={{
-												position: "absolute",
-												left: "82%",
-												width: "14%",
-												height: "100%",
-												background: "rgba(128, 144, 191, 0.24)",
-											}}
-										/>
+										>
+											{activity.map(({ hour, intensity }) => (
+												<div
+													key={hour}
+													style={{
+														flex: 1,
+														height: `${Math.max(8, intensity * 100)}%`,
+														background:
+															intensity > 0.66
+																? palette.accent
+																: "rgba(90, 169, 201, 0.35)",
+													}}
+												/>
+											))}
+										</div>
 										{/* Current time needle */}
 										<div
+											aria-hidden
 											style={{
 												position: "absolute",
 												left: `${Math.min(

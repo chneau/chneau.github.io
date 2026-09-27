@@ -20,9 +20,12 @@ import {
 	Trash2,
 	Upload,
 } from "lucide-react";
-import { type ChangeEvent, useState } from "react";
+import { type ChangeEvent, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { z } from "zod";
 import {
 	addRawBirthday,
+	birthdaySchema,
 	deleteRawBirthday,
 	getKindColor,
 	getRawBirthdays,
@@ -45,6 +48,7 @@ export const ManageBirthdaysModal = ({
 	open,
 	onClose,
 }: ManageBirthdaysModalProps) => {
+	const { t } = useTranslation();
 	const [list, setList] = useState<RawBirthday[]>(() => getRawBirthdays());
 	const [editingItem, setEditingItem] = useState<{
 		original: RawBirthday;
@@ -52,6 +56,11 @@ export const ManageBirthdaysModal = ({
 	} | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [page, setPage] = useState(0);
+	const [pendingImport, setPendingImport] = useState<RawBirthday[] | null>(
+		null,
+	);
+	const [discardOpen, setDiscardOpen] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const [formName, setFormName] = useState("");
 	const [formDate, setFormDate] = useState<string | null>(null);
@@ -71,6 +80,7 @@ export const ManageBirthdaysModal = ({
 		setFormName("");
 		setFormDate("1995-01-01");
 		setFormKind("♂️");
+		setDiscardOpen(false);
 		setEditingItem({
 			original: { name: "", date: "1995-01-01", kind: "♂️" },
 			isNew: true,
@@ -82,23 +92,43 @@ export const ManageBirthdaysModal = ({
 		setFormName(record.name);
 		setFormDate(record.date);
 		setFormKind(record.kind);
+		setDiscardOpen(false);
 		setEditingItem({
 			original: record,
 			isNew: false,
 		});
 	};
 
+	const closeEditor = () => {
+		setEditingItem(null);
+		setDiscardOpen(false);
+	};
+
+	const isDirty = editingItem
+		? formName.trim() !== editingItem.original.name ||
+			(formDate ?? "") !== editingItem.original.date ||
+			formKind !== editingItem.original.kind
+		: false;
+
+	const requestCloseEditor = () => {
+		if (isDirty) {
+			setDiscardOpen(true);
+		} else {
+			closeEditor();
+		}
+	};
+
 	const handleSaveForm = () => {
 		if (!formName.trim()) {
-			setErrors({ name: "Please enter a name" });
+			setErrors({ name: t("manage.name_required") });
 			return;
 		}
 		if (!formDate) {
-			setErrors({ date: "Please select a date" });
+			setErrors({ date: t("manage.date_required") });
 			return;
 		}
 		if (!formKind) {
-			setErrors({ kind: "Please select a category" });
+			setErrors({ kind: t("manage.kind_required") });
 			return;
 		}
 
@@ -110,7 +140,7 @@ export const ManageBirthdaysModal = ({
 
 		if (editingItem?.isNew) {
 			addRawBirthday(newItem);
-			notify.success(`Added ${newItem.name}`);
+			notify.success(t("manage.added", { name: newItem.name }));
 		} else if (editingItem) {
 			updateRawBirthday(
 				{
@@ -119,22 +149,22 @@ export const ManageBirthdaysModal = ({
 				},
 				newItem,
 			);
-			notify.success(`Updated ${newItem.name}`);
+			notify.success(t("manage.updated", { name: newItem.name }));
 		}
 
-		setEditingItem(null);
+		closeEditor();
 		refreshList();
 	};
 
 	const handleDelete = (record: RawBirthday) => {
 		deleteRawBirthday({ name: record.name, date: record.date });
-		notify.success(`Deleted ${record.name}`);
+		notify.success(t("manage.deleted", { name: record.name }));
 		refreshList();
 	};
 
 	const handleReset = () => {
 		resetRawBirthdays();
-		notify.info("Reset to default birthdays");
+		notify.info(t("manage.reset_notify"));
 		refreshList();
 	};
 
@@ -148,28 +178,38 @@ export const ManageBirthdaysModal = ({
 		document.body.appendChild(downloadAnchor);
 		downloadAnchor.click();
 		downloadAnchor.remove();
-		notify.success("Exported birthdays.json");
+		notify.success(t("manage.exported"));
 	};
 
 	const handleImportJSON = (e: ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		// Clear the input so selecting the same file again still fires onChange.
+		e.target.value = "";
+		if (!file) return;
+
 		const fileReader = new FileReader();
-		if (e.target.files?.[0]) {
-			fileReader.readAsText(e.target.files[0], "UTF-8");
-			fileReader.onload = (event) => {
-				try {
-					const parsed = JSON.parse(event.target?.result as string);
-					if (Array.isArray(parsed)) {
-						saveRawBirthdays(parsed);
-						notify.success(`Imported ${parsed.length} birthdays!`);
-						refreshList();
-					} else {
-						notify.error("Invalid JSON format: expected an array");
-					}
-				} catch {
-					notify.error("Failed to parse JSON file");
+		fileReader.readAsText(file, "UTF-8");
+		fileReader.onload = (event) => {
+			try {
+				const parsed: unknown = JSON.parse(String(event.target?.result ?? ""));
+				const result = z.array(birthdaySchema).safeParse(parsed);
+				if (!result.success) {
+					notify.error(t("manage.import_invalid"));
+					return;
 				}
-			};
-		}
+				setPendingImport(result.data);
+			} catch {
+				notify.error(t("manage.import_parse_error"));
+			}
+		};
+	};
+
+	const confirmImport = () => {
+		if (!pendingImport) return;
+		saveRawBirthdays(pendingImport);
+		notify.success(t("manage.imported", { count: pendingImport.length }));
+		setPendingImport(null);
+		refreshList();
 	};
 
 	const filteredList = list.filter((b) =>
@@ -184,45 +224,55 @@ export const ManageBirthdaysModal = ({
 	);
 
 	return (
-		<Modal
-			title="🎂 Manage Birthdays"
-			opened={open}
-			onClose={onClose}
-			size="lg"
-		>
+		<Modal title={t("manage.title")} opened={open} onClose={onClose} size="lg">
 			<Stack gap="md">
 				<Group justify="space-between" align="center" wrap="wrap">
 					<Group wrap="wrap">
 						<Button leftSection={<Plus size={16} />} onClick={handleOpenAdd}>
-							Add Birthday
+							{t("manage.add")}
 						</Button>
 						<Button
 							variant="default"
 							leftSection={<Download size={16} />}
 							onClick={handleExportJSON}
 						>
-							Export JSON
+							{t("manage.export_json")}
 						</Button>
-						<label style={{ display: "inline-block" }}>
+						<input
+							ref={fileInputRef}
+							type="file"
+							accept=".json"
+							onChange={handleImportJSON}
+							style={{ display: "none" }}
+						/>
+						<ConfirmPopover
+							title={t("manage.import_title", {
+								count: pendingImport?.length ?? 0,
+							})}
+							confirmLabel={t("manage.import_confirm")}
+							cancelLabel={t("common.cancel")}
+							danger
+							opened={pendingImport !== null}
+							onOpenChange={(next) => {
+								if (!next) {
+									setPendingImport(null);
+								}
+							}}
+							onConfirm={confirmImport}
+						>
 							<Button
 								variant="default"
-								component="span"
 								leftSection={<Upload size={16} />}
+								onClick={() => fileInputRef.current?.click()}
 							>
-								Import JSON
+								{t("manage.import_json")}
 							</Button>
-							<input
-								type="file"
-								accept=".json"
-								onChange={handleImportJSON}
-								style={{ display: "none" }}
-							/>
-						</label>
+						</ConfirmPopover>
 					</Group>
 					<ConfirmPopover
-						title="Reset all birthdays to default sample data?"
-						confirmLabel="Reset"
-						cancelLabel="Cancel"
+						title={t("manage.reset_title")}
+						confirmLabel={t("manage.reset_confirm")}
+						cancelLabel={t("common.cancel")}
 						danger
 						onConfirm={handleReset}
 					>
@@ -231,13 +281,14 @@ export const ManageBirthdaysModal = ({
 							color="red"
 							leftSection={<RefreshCw size={16} />}
 						>
-							Reset Defaults
+							{t("manage.reset_defaults")}
 						</Button>
 					</ConfirmPopover>
 				</Group>
 
 				<TextInput
-					placeholder="Search entries..."
+					placeholder={t("manage.search_placeholder")}
+					aria-label={t("manage.search_placeholder")}
 					leftSection={<Search size={14} />}
 					value={searchQuery}
 					onChange={(e) => {
@@ -250,9 +301,9 @@ export const ManageBirthdaysModal = ({
 				<Table className="tk-table" verticalSpacing="xs" highlightOnHover>
 					<Table.Thead>
 						<Table.Tr>
-							<Table.Th>Name</Table.Th>
-							<Table.Th>Date</Table.Th>
-							<Table.Th ta="right">Actions</Table.Th>
+							<Table.Th>{t("manage.col_name")}</Table.Th>
+							<Table.Th>{t("manage.col_date")}</Table.Th>
+							<Table.Th ta="right">{t("manage.col_actions")}</Table.Th>
 						</Table.Tr>
 					</Table.Thead>
 					<Table.Tbody>
@@ -272,14 +323,14 @@ export const ManageBirthdaysModal = ({
 											size="xs"
 											variant="default"
 											onClick={() => handleOpenEdit(r)}
-											aria-label={`Edit ${r.name}`}
+											aria-label={t("manage.edit_aria", { name: r.name })}
 										>
 											<Pencil size={14} />
 										</Button>
 										<ConfirmPopover
-											title={`Delete ${r.name}?`}
-											confirmLabel="Delete"
-											cancelLabel="Cancel"
+											title={t("manage.delete_title", { name: r.name })}
+											confirmLabel={t("manage.delete_confirm")}
+											cancelLabel={t("common.cancel")}
 											danger
 											onConfirm={() => handleDelete(r)}
 										>
@@ -287,7 +338,9 @@ export const ManageBirthdaysModal = ({
 												size="xs"
 												variant="default"
 												color="red"
-												aria-label={`Delete ${r.name}`}
+												aria-label={t("manage.delete_aria", {
+													name: r.name,
+												})}
 											>
 												<Trash2 size={14} />
 											</Button>
@@ -300,7 +353,7 @@ export const ManageBirthdaysModal = ({
 							<Table.Tr>
 								<Table.Td colSpan={3}>
 									<Text size="sm" c="dimmed" ta="center" py="md">
-										No birthdays found.
+										{t("manage.no_results")}
 									</Text>
 								</Table.Td>
 							</Table.Tr>
@@ -322,21 +375,23 @@ export const ManageBirthdaysModal = ({
 
 			{/* Add/Edit Sub-Modal */}
 			<Modal
-				title={editingItem?.isNew ? "Add Birthday" : "Edit Birthday"}
+				title={
+					editingItem?.isNew ? t("manage.add_title") : t("manage.edit_title")
+				}
 				opened={editingItem !== null}
-				onClose={() => setEditingItem(null)}
+				onClose={requestCloseEditor}
 				size="md"
 			>
 				<Stack gap="sm">
 					<TextInput
-						label="Name / Couple"
-						placeholder="e.g. John Doe"
+						label={t("manage.name_label")}
+						placeholder={t("manage.name_placeholder")}
 						value={formName}
 						error={errors.name}
 						onChange={(e) => setFormName(e.target.value)}
 					/>
 					<DatePickerInput
-						label="Birth / Wedding Date"
+						label={t("manage.date_label")}
 						valueFormat="YYYY-MM-DD"
 						value={formDate}
 						error={errors.date}
@@ -344,16 +399,16 @@ export const ManageBirthdaysModal = ({
 					/>
 					<div>
 						<Text size="sm" fw={500} mb={4}>
-							Category
+							{t("manage.category")}
 						</Text>
 						<SegmentedControl
 							fullWidth
 							value={formKind}
 							onChange={(value) => setFormKind(value as RawBirthday["kind"])}
 							data={[
-								{ label: "♂️ Boy", value: "♂️" },
-								{ label: "♀️ Girl", value: "♀️" },
-								{ label: "💒 Wedding", value: "💒" },
+								{ label: t("manage.boy"), value: "♂️" },
+								{ label: t("manage.girl"), value: "♀️" },
+								{ label: t("manage.wedding"), value: "💒" },
 							]}
 						/>
 						{errors.kind && (
@@ -363,10 +418,22 @@ export const ManageBirthdaysModal = ({
 						)}
 					</div>
 					<Group justify="flex-end" mt="sm">
-						<Button variant="default" onClick={() => setEditingItem(null)}>
-							Cancel
-						</Button>
-						<Button onClick={handleSaveForm}>Save</Button>
+						<ConfirmPopover
+							title={t("manage.discard_title")}
+							confirmLabel={t("manage.discard_confirm")}
+							cancelLabel={t("common.cancel")}
+							danger
+							opened={discardOpen}
+							onOpenChange={(next) => {
+								if (!next) setDiscardOpen(false);
+							}}
+							onConfirm={closeEditor}
+						>
+							<Button variant="default" onClick={requestCloseEditor}>
+								{t("common.cancel")}
+							</Button>
+						</ConfirmPopover>
+						<Button onClick={handleSaveForm}>{t("manage.save")}</Button>
 					</Group>
 				</Stack>
 			</Modal>

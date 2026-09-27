@@ -123,20 +123,6 @@ svg {
 	isolation: isolate;
 }
 
-/* Fixed, pointer-events-none grain: never inside a scrolling container. */
-.cv-grain {
-	position: fixed;
-	inset: 0;
-	z-index: 60;
-	pointer-events: none;
-	opacity: 0.16;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-html[data-theme="dark"] .cv-grain {
-	opacity: 0.24;
-}
-
 /* ------------------------------------------------------------------ shell -- */
 
 .cv-shell {
@@ -440,6 +426,7 @@ a.cv-status-item:hover {
 .cv-tag {
 	display: inline-flex;
 	align-items: center;
+	gap: 5px;
 	padding: 4px 9px;
 	border: 1px solid var(--border);
 	border-radius: 999px;
@@ -511,15 +498,6 @@ a.cv-status-item:hover {
 .cv-job-dot[data-current="true"] {
 	background: var(--accent);
 	border-color: var(--accent);
-}
-
-.cv-job-dot[data-current="true"]::after {
-	content: "";
-	position: absolute;
-	inset: -2px;
-	border-radius: 50%;
-	border: 2px solid var(--accent);
-	animation: cv-ping 2.8s var(--ease) infinite;
 }
 
 .cv-job-head {
@@ -777,6 +755,26 @@ a:hover .cv-ext {
 	color: var(--danger);
 }
 
+.cv-copy-feedback {
+	font-family: var(--font-mono);
+	font-size: 11px;
+	letter-spacing: 0.02em;
+	color: var(--accent);
+	white-space: nowrap;
+}
+
+.cv-copy-feedback[data-state="error"] {
+	color: var(--danger);
+}
+
+.cv-copy-feedback--header {
+	color: var(--text-muted);
+}
+
+.cv-copy-feedback:empty {
+	display: none;
+}
+
 .cv-contact-item .cv-copy {
 	margin-left: auto;
 }
@@ -927,7 +925,6 @@ a:hover .cv-ext {
 		font-size: 10pt;
 	}
 
-	.cv-grain,
 	.cv-top,
 	.no-print,
 	.cv-copy,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { SpoonersCache } from "./types";
 
 type CacheState = {
@@ -7,20 +7,25 @@ type CacheState = {
 	loading: boolean;
 };
 
+/** `useDataset` state plus a way to retry a failed load. */
+type DatasetState = CacheState & { reload: () => void };
+
 /**
  * Loads the deduplicated cache, which sits next to the page at
  * `/spooners/data.json` (copied there by the rsbuild `output.copy` config), so
  * a relative fetch works both in dev and on Pages.
  */
-export const useDataset = (): CacheState => {
+export const useDataset = (): DatasetState => {
 	const [state, setState] = useState<CacheState>({
 		data: null,
 		error: null,
 		loading: true,
 	});
+	const [_attempt, setAttempt] = useState(0);
 
 	useEffect(() => {
 		let cancelled = false;
+		setState((current) => ({ ...current, loading: true, error: null }));
 
 		const load = async () => {
 			try {
@@ -45,5 +50,7 @@ export const useDataset = (): CacheState => {
 		};
 	}, []);
 
-	return state;
+	const reload = useCallback(() => setAttempt((value) => value + 1), []);
+
+	return { ...state, reload };
 };

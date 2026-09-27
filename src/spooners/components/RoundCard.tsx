@@ -55,6 +55,8 @@ type Props = {
 	filters: FilterOption[];
 	activeFilters: string[];
 	onFilters: (ids: string[]) => void;
+	/** Reset every filter (dietary, facilities and the switches) to defaults. */
+	onResetFilters: () => void;
 	/** False when none of the round's items carry a dietary tag. */
 	dietaryRelevant: boolean;
 	facilities: FacilityOption[];
@@ -167,6 +169,7 @@ export const RoundCard = ({
 	filters,
 	activeFilters,
 	onFilters,
+	onResetFilters,
 	dietaryRelevant,
 	facilities,
 	activeFacilities,
@@ -201,7 +204,12 @@ export const RoundCard = ({
 			? items.find((item) => item.name === basket[0]?.name)
 			: null;
 	const activeFilterCount =
-		activeFilters.length + activeFacilities.length + (openNow ? 1 : 0);
+		activeFilters.length +
+		activeFacilities.length +
+		(openNow ? 1 : 0) +
+		(hideSpecial ? 1 : 0) +
+		(hideClosed ? 1 : 0) +
+		(onlyComplete ? 1 : 0);
 
 	return (
 		<Card withBorder padding="md" radius="md">
@@ -381,6 +389,19 @@ export const RoundCard = ({
 
 					<Collapse expanded={filtersOpen}>
 						<Stack gap="sm">
+							<Group justify="space-between" align="center">
+								<Text size="xs" c="dimmed" fw={700} tt="uppercase">
+									Filters
+								</Text>
+								<Button
+									size="compact-xs"
+									variant="subtle"
+									onClick={onResetFilters}
+									disabled={!activeFilterCount}
+								>
+									Clear all
+								</Button>
+							</Group>
 							{dietaryRelevant && filters.length ? (
 								<Box>
 									<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>

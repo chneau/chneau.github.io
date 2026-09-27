@@ -165,7 +165,7 @@ export const StagedEditsDrawer = ({
 					>
 						<Text c="dimmed" size="sm" ta="center">
 							No edits currently staged. Make changes across the inventory,
-							skills, quests, or companion panels to queue them here.
+							skills, quests, or companion panels to stage them here.
 						</Text>
 					</Box>
 				) : (
@@ -248,7 +248,7 @@ export const StagedEditsDrawer = ({
 							onDownload();
 						}}
 					>
-						Download edited save
+						Download save
 					</Button>
 				</Group>
 			</Flex>

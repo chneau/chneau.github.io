@@ -21,7 +21,9 @@ import {
 	BackHome,
 	Brand,
 	Footer,
+	Grain,
 	HeaderAction,
+	prefersReducedMotion,
 	SchemeToggle,
 } from "../shared";
 
@@ -273,34 +275,39 @@ const useCopy = (getText: () => string, label: string) => {
 			? `${label} copied`
 			: state === "error"
 				? `Could not copy ${label.toLowerCase()}`
-				: `Copy ${label.toLowerCase()}`;
+				: `Copy ${label}`;
 
-	return { state, title, copy };
+	const feedback =
+		state === "ok" ? "Copied" : state === "error" ? "Copy failed" : "";
+
+	return { state, title, feedback, copy };
 };
 
 const CopyButton = ({ text, label }: { text: string; label: string }) => {
-	const { state, title, copy } = useCopy(() => text, label);
+	const { state, title, feedback, copy } = useCopy(() => text, label);
 
 	return (
-		<button
-			type="button"
-			className="cv-copy no-print"
-			data-state={state}
-			onClick={copy}
-			title={title}
-			aria-label={title}
-		>
-			{state === "ok" ? (
-				<Check aria-hidden />
-			) : state === "error" ? (
-				<TriangleAlert aria-hidden />
-			) : (
-				<Copy aria-hidden />
-			)}
-			<span className="sr-only" role="status">
-				{state === "idle" ? "" : title}
+		<>
+			<span className="cv-copy-feedback" role="status" data-state={state}>
+				{feedback}
 			</span>
-		</button>
+			<button
+				type="button"
+				className="cv-copy no-print"
+				data-state={state}
+				onClick={copy}
+				title={title}
+				aria-label={title}
+			>
+				{state === "ok" ? (
+					<Check aria-hidden />
+				) : state === "error" ? (
+					<TriangleAlert aria-hidden />
+				) : (
+					<Copy aria-hidden />
+				)}
+			</button>
+		</>
 	);
 };
 
@@ -594,10 +601,20 @@ export const App = () => {
 		localStorage.setItem("chneau_cv_theme", theme);
 	}, [darkMode]);
 
-	// Keyboard shortcut: Esc to return to the dashboard.
+	// Keyboard shortcut: Esc to return to the dashboard, unless a menu or
+	// editable field already handled the key (e.g. the app switcher).
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") window.location.href = "/";
+			if (event.key !== "Escape") return;
+			if (event.defaultPrevented) return;
+			const active = document.activeElement;
+			if (
+				active instanceof HTMLElement &&
+				active.closest('[role="menu"], input, textarea, select')
+			) {
+				return;
+			}
+			window.location.href = "/";
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
@@ -605,7 +622,9 @@ export const App = () => {
 
 	return (
 		<div className="cv-root">
-			<div className="cv-grain no-print" aria-hidden />
+			<div className="no-print">
+				<Grain />
+			</div>
 
 			<AppHeader
 				className="no-print"
@@ -636,6 +655,15 @@ export const App = () => {
 								)
 							}
 						/>
+						{linkCopy.feedback ? (
+							<span
+								className="cv-copy-feedback cv-copy-feedback--header"
+								role="status"
+								data-state={linkCopy.state}
+							>
+								{linkCopy.feedback}
+							</span>
+						) : null}
 						<HeaderAction
 							accent
 							href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
@@ -760,9 +788,10 @@ export const App = () => {
 						<article className="cv-paper">
 							<a
 								className="cv-paper-title"
-								href="https://ieeexplore.ieee.org/search/searchresult.jsp?newsearch=true&queryText=An%20Analysis%20of%20Indirect%20Optimisation%20Strategies%20for%20Scheduling%20Charles%20Neau"
+								href="https://ieeexplore.ieee.org/document/8477967"
 								target="_blank"
 								rel="noreferrer"
+								title="View on IEEE Xplore"
 							>
 								An Analysis of Indirect Optimisation Strategies for Scheduling
 								<ArrowUpRight className="cv-ext" aria-hidden />
@@ -798,6 +827,7 @@ export const App = () => {
 											title={`Search "${item}" projects on GitHub`}
 										>
 											{item}
+											<ArrowUpRight className="cv-ext" aria-hidden />
 										</a>
 									))}
 								</div>
@@ -888,7 +918,12 @@ export const App = () => {
 				type="button"
 				className="cv-top no-print"
 				data-visible={!heroInView}
-				onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+				onClick={() =>
+					window.scrollTo({
+						top: 0,
+						behavior: prefersReducedMotion() ? "auto" : "smooth",
+					})
+				}
 				title="Back to top"
 				aria-label="Back to top"
 			>

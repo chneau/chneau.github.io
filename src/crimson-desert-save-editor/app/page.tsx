@@ -7,6 +7,7 @@ import {
 	Flex,
 	Group,
 	Loader,
+	Menu,
 	Modal,
 	Progress,
 	Stack,
@@ -14,6 +15,7 @@ import {
 	useMantineColorScheme,
 } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import {
 	CheckCircle2,
 	Download,
@@ -155,6 +157,7 @@ export const Home = () => {
 	const [error, setError] = useState("");
 	const [discardModalOpen, setDiscardModalOpen] = useState(false);
 	const [reviewOpen, setReviewOpen] = useState(false);
+	const [stagedMenuOpen, setStagedMenuOpen] = useState(false);
 	const [activeStorage, setActiveStorage] = useState<number | null>(null);
 	const [addOpen, setAddOpen] = useState(false);
 	const [edits, setEdits] = useState<SaveEdit[]>([]);
@@ -239,6 +242,10 @@ export const Home = () => {
 			window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 			setStatus("");
 			setDownloadProgress(null);
+			notifications.show({
+				message: "Rebuilt save downloaded",
+				color: "teal",
+			});
 		}
 	}, []);
 
@@ -567,33 +574,47 @@ export const Home = () => {
 							{result && (
 								<>
 									{edits.length > 0 && (
-										<>
-											<HeaderAction
-												label={`Review ${edits.length} staged change${
-													edits.length === 1 ? "" : "s"
-												}`}
-												icon={<CheckCircle2 size={16} />}
-												onClick={() => setReviewOpen(true)}
-											>
-												Review ({edits.length})
-											</HeaderAction>
-											<HeaderAction
-												label="Undo last staged change (Ctrl+Z / ⌘Z)"
-												icon={<Undo2 size={16} />}
-												onClick={() =>
-													setEdits((current) => current.slice(0, -1))
-												}
-											>
-												Undo
-											</HeaderAction>
-											<HeaderAction
-												label="Discard all staged changes"
-												icon={<Trash2 size={16} />}
-												onClick={() => setDiscardModalOpen(true)}
-											>
-												Discard all
-											</HeaderAction>
-										</>
+										<Menu
+											position="bottom-end"
+											withinPortal
+											opened={stagedMenuOpen}
+											onChange={setStagedMenuOpen}
+										>
+											<Menu.Target>
+												<HeaderAction
+													label={`Staged changes (${edits.length})`}
+													icon={<CheckCircle2 size={16} />}
+													ariaExpanded={stagedMenuOpen}
+													ariaHaspopup="menu"
+												>
+													Staged ({edits.length})
+												</HeaderAction>
+											</Menu.Target>
+											<Menu.Dropdown>
+												<Menu.Item
+													leftSection={<CheckCircle2 size={15} />}
+													onClick={() => setReviewOpen(true)}
+												>
+													Review staged changes
+												</Menu.Item>
+												<Menu.Item
+													leftSection={<Undo2 size={15} />}
+													onClick={() =>
+														setEdits((current) => current.slice(0, -1))
+													}
+												>
+													Undo last change
+												</Menu.Item>
+												<Menu.Divider />
+												<Menu.Item
+													color="red"
+													leftSection={<Trash2 size={15} />}
+													onClick={() => setDiscardModalOpen(true)}
+												>
+													Discard all
+												</Menu.Item>
+											</Menu.Dropdown>
+										</Menu>
 									)}
 									{view === "inventory" && (
 										<>
@@ -623,13 +644,13 @@ export const Home = () => {
 										accent
 										disabled={edits.length === 0}
 										loading={loading}
-										label="Download edited save"
+										label="Download save"
 										icon={
 											loading ? <Loader size={16} /> : <Download size={16} />
 										}
 										onClick={downloadEditedSave}
 									>
-										Download edited
+										Download save
 										{edits.length > 0 ? ` (${edits.length})` : ""}
 									</HeaderAction>
 								</>
@@ -653,15 +674,20 @@ export const Home = () => {
 						clip: "rect(0 0 0 0)",
 						whiteSpace: "nowrap",
 					}}
-					onChange={(event) =>
-						event.target.files?.[0] && parseFile(event.target.files[0])
-					}
+					onChange={(event) => {
+						const file = event.target.files?.[0];
+						// Clear the input so choosing the same file again still fires.
+						event.target.value = "";
+						if (file) void parseFile(file);
+					}}
 				/>
 
 				{downloadProgress && (
 					<Box
 						px="md"
 						py="md"
+						role="status"
+						aria-live="polite"
 						aria-busy="true"
 						style={{
 							flexShrink: 0,
@@ -834,7 +860,7 @@ export const Home = () => {
 							</Text>
 						</Group>
 						<Text size="xs" c="dimmed" ff="monospace">
-							{result.records.length} records · {edits.length} staged
+							{result.records.length} records
 						</Text>
 					</Group>
 				)}

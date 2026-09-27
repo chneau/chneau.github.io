@@ -2,12 +2,14 @@ import { AreaChart, BarChart, PieChart } from "@mantine/charts";
 import { Box, Card, Grid, Paper, Text, Title, Tooltip } from "@mantine/core";
 import dayjs from "dayjs";
 import { groupBy } from "es-toolkit";
+import { BarChart3, RotateCcw } from "lucide-react";
 import { Fragment, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { TooltipContentProps } from "recharts";
 import { useSnapshot } from "valtio";
+import { EmptyState } from "../shared";
 import { type Birthday, monthNames } from "./birthdays";
-import { dataStore } from "./store";
+import { dataStore, store } from "./store";
 
 type Datum = {
 	type: string;
@@ -339,6 +341,32 @@ const BirthHeatmap = ({ data }: { data: readonly Birthday[] }) => {
 					})}
 				</div>
 			</Box>
+			<div
+				style={{
+					display: "flex",
+					alignItems: "center",
+					gap: 6,
+					marginTop: 10,
+					fontSize: 11,
+					color: "var(--tk-text-dim)",
+				}}
+			>
+				<span>{t("app.statistics.heatmap_less")}</span>
+				{[0.2, 0.4, 0.6, 0.8, 1].map((alpha) => (
+					<span
+						key={alpha}
+						aria-hidden="true"
+						style={{
+							width: 16,
+							height: 12,
+							borderRadius: 3,
+							background: `rgba(52, 211, 153, ${alpha})`,
+							border: "1px solid var(--tk-accent-line)",
+						}}
+					/>
+				))}
+				<span>{t("app.statistics.heatmap_more")}</span>
+			</div>
 		</Grid.Col>
 	);
 };
@@ -379,6 +407,35 @@ export const Statistics = () => {
 			),
 		};
 	}, [data, t, dayjsLocale]);
+
+	const handleResetFilters = () => {
+		store.search = "";
+		store.showBoys = true;
+		store.showGirls = true;
+		store.showWeddings = false;
+	};
+
+	if (data.length === 0) {
+		return (
+			<Card withBorder padding="lg" style={{ marginTop: 16 }}>
+				<EmptyState
+					icon={<BarChart3 size={20} strokeWidth={1.5} />}
+					title={t("app.list.empty_title")}
+					body={t("app.list.empty_body")}
+					action={
+						<button
+							type="button"
+							className="tk-iconbtn"
+							onClick={handleResetFilters}
+						>
+							<RotateCcw size={14} strokeWidth={1.9} />
+							{t("app.list.reset")}
+						</button>
+					}
+				/>
+			</Card>
+		);
+	}
 
 	return (
 		<Card withBorder padding="lg" style={{ marginTop: 16 }}>

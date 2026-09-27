@@ -15,7 +15,13 @@ import gd from "./locales/gd.json";
 import ty from "./locales/ty.json";
 import zh from "./locales/zh.json";
 
-const resources: Record<string, { translation: typeof en }> = {
+// Locales only need to translate the keys they use; untranslated keys fall
+// back to English via `fallbackLng`.
+type DeepPartial<T> = {
+	[K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
+};
+
+const resources: Record<string, { translation: DeepPartial<typeof en> }> = {
 	en: { translation: en },
 	fr: { translation: fr },
 	es: { translation: es },

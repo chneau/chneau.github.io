@@ -1,9 +1,11 @@
 import { Badge, Box, Group, Table, Tooltip } from "@mantine/core";
+import { RotateCcw, Users } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { EmptyState } from "../shared";
 import type { Birthday } from "./birthdays";
 import { getCompatibilityScore, getScoreColor } from "./compatibility";
-import { dataStore } from "./store";
+import { dataStore, store } from "./store";
 
 type CompatibilityMatrixProps = {
 	data: readonly Birthday[];
@@ -38,6 +40,33 @@ const PersonButton = ({ person, label, color, onClick }: PersonButtonProps) => (
 export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 	const { t } = useTranslation();
 	const people = useMemo(() => data.filter((x) => x.kind !== "💒"), [data]);
+
+	const handleResetFilters = () => {
+		store.search = "";
+		store.showBoys = true;
+		store.showGirls = true;
+		store.showWeddings = false;
+	};
+
+	if (people.length === 0) {
+		return (
+			<EmptyState
+				icon={<Users size={20} strokeWidth={1.5} />}
+				title={t("app.list.empty_title")}
+				body={t("app.list.empty_body")}
+				action={
+					<button
+						type="button"
+						className="tk-iconbtn"
+						onClick={handleResetFilters}
+					>
+						<RotateCcw size={14} strokeWidth={1.9} />
+						{t("app.list.reset")}
+					</button>
+				}
+			/>
+		);
+	}
 
 	return (
 		<div style={{ marginTop: 16 }}>

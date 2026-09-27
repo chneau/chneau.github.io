@@ -1,5 +1,6 @@
 import { Box, Group, Text, Tooltip } from "@mantine/core";
 import { useMemo } from "react";
+import { EmptyState } from "../../shared";
 import { medianTrend } from "../derive";
 import { money, type PriceScale, priceColor } from "../price";
 import type { HistoryPoint } from "../types";
@@ -117,9 +118,7 @@ export const Distribution = ({
 					) : null}
 				</Box>
 			) : (
-				<Text c="dimmed" size="sm">
-					No prices to plot.
-				</Text>
+				<EmptyState title="No prices to plot" />
 			)}
 			{historyPoints.length >= 2 ? (
 				<Group justify="space-between" mt={6} align="center">

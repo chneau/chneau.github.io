@@ -5,12 +5,16 @@ import {
 	type ReactElement,
 	useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 type ConfirmPopoverProps = {
 	title: string;
 	confirmLabel?: string;
 	cancelLabel?: string;
 	danger?: boolean;
+	/** Controlled open state. When omitted the popover manages its own state. */
+	opened?: boolean;
+	onOpenChange?: (opened: boolean) => void;
 	onConfirm: () => void;
 	children: ReactElement<{ onClick?: (event: MouseEvent) => void }>;
 };
@@ -18,13 +22,23 @@ type ConfirmPopoverProps = {
 /** A small confirm-on-click popover for destructive actions. */
 export const ConfirmPopover = ({
 	title,
-	confirmLabel = "Confirm",
-	cancelLabel = "Cancel",
+	confirmLabel,
+	cancelLabel,
 	danger = false,
+	opened: openedProp,
+	onOpenChange,
 	onConfirm,
 	children,
 }: ConfirmPopoverProps) => {
-	const [opened, setOpened] = useState(false);
+	const { t } = useTranslation();
+	const [internalOpened, setInternalOpened] = useState(false);
+	const isControlled = openedProp !== undefined;
+	const opened = isControlled ? openedProp : internalOpened;
+
+	const setOpened = (value: boolean) => {
+		if (!isControlled) setInternalOpened(value);
+		onOpenChange?.(value);
+	};
 
 	// The popover is controlled, so Mantine does not open it from the target
 	// itself. Clone the trigger to open/close it while keeping its own handler.
@@ -32,7 +46,7 @@ export const ConfirmPopover = ({
 		onClick: (event: MouseEvent) => {
 			children.props.onClick?.(event);
 			event.stopPropagation();
-			setOpened((value) => !value);
+			setOpened(!opened);
 		},
 	});
 
@@ -52,7 +66,7 @@ export const ConfirmPopover = ({
 				</Text>
 				<Group justify="flex-end" gap="xs">
 					<Button size="xs" variant="default" onClick={() => setOpened(false)}>
-						{cancelLabel}
+						{cancelLabel ?? t("common.cancel")}
 					</Button>
 					<Button
 						size="xs"
@@ -62,7 +76,7 @@ export const ConfirmPopover = ({
 							onConfirm();
 						}}
 					>
-						{confirmLabel}
+						{confirmLabel ?? t("common.confirm")}
 					</Button>
 				</Group>
 			</Popover.Dropdown>

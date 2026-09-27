@@ -5,6 +5,7 @@ import {
 	Box,
 	Button,
 	Center,
+	Drawer,
 	Flex,
 	Group,
 	Modal,
@@ -18,15 +19,17 @@ import {
 	TextInput,
 	UnstyledButton,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import {
 	Archive,
 	ArrowDown,
 	ArrowUp,
 	ArrowUpDown,
-	CircleHelp,
 	Hash,
+	Info,
 	Search,
 	Sparkles,
+	TriangleAlert,
 	Wand2,
 	X,
 } from "lucide-react";
@@ -183,6 +186,9 @@ export const InventoryView = ({
 	const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
 	const [quantityDraft, setQuantityDraft] = useState("");
 	const [editorOpen, setEditorOpen] = useState(false);
+	const [detailsOpen, setDetailsOpen] = useState(false);
+	/** The details pane has its own column only from the `xl` breakpoint. */
+	const isWide = useMediaQuery("(min-width: 75em)") ?? true;
 	const [bulkConfirm, setBulkConfirm] = useState<{
 		type: "max" | "random";
 		count: number;
@@ -201,9 +207,12 @@ export const InventoryView = ({
 		setSelectedCategory("all");
 	}, [focus]);
 
-	// The drawer is portalled, so hiding this view would not hide it.
+	// The drawers are portalled, so hiding this view would not hide them.
 	useEffect(() => {
-		if (hidden) setEditorOpen(false);
+		if (hidden) {
+			setEditorOpen(false);
+			setDetailsOpen(false);
+		}
 	}, [hidden]);
 
 	const items = useMemo(() => {
@@ -393,6 +402,255 @@ export const InventoryView = ({
 		setSortDirection(column === "quantity" ? "desc" : "asc");
 	};
 
+	const detailsContent = selectedItem ? (
+		<>
+			<Box
+				p="lg"
+				style={{
+					borderBottom: "1px solid var(--app-border)",
+				}}
+			>
+				<Group justify="space-between" gap="sm" align="flex-start">
+					<Badge
+						variant="outline"
+						color="brand"
+						styles={{ label: { textTransform: "uppercase" } }}
+					>
+						{selectedItem.category}
+					</Badge>
+					<Text size="xs" c="dimmed" ff="monospace">
+						#{selectedItem.itemKey}
+					</Text>
+				</Group>
+				<Group gap="md" mt="lg" wrap="nowrap">
+					<Picture kind="item" pictureKey={selectedItem.itemKey} size={80} />
+					<Text component="h2" size="xl" fw={600}>
+						{selectedItem.name}
+					</Text>
+				</Group>
+				<Text mt="sm" size="xs" c="dimmed" lineClamp={5}>
+					{selectedItem.description}
+				</Text>
+			</Box>
+			<Stack gap="lg" p="lg">
+				<SimpleGrid cols={2} spacing={1}>
+					<Paper withBorder p="sm">
+						<Text
+							size="10px"
+							c="dimmed"
+							tt="uppercase"
+							style={{ letterSpacing: "0.12em" }}
+						>
+							Total quantity
+						</Text>
+						<Text mt={4} size="lg" ff="monospace">
+							{selectedItem.quantity.toLocaleString()}
+						</Text>
+					</Paper>
+					<Paper withBorder p="sm">
+						<Text
+							size="10px"
+							c="dimmed"
+							tt="uppercase"
+							style={{ letterSpacing: "0.12em" }}
+						>
+							Save records
+						</Text>
+						<Text mt={4} size="lg" ff="monospace">
+							{selectedItem.records}
+						</Text>
+					</Paper>
+				</SimpleGrid>
+				<Stack gap={4}>
+					<Group
+						justify="space-between"
+						py={8}
+						style={{
+							borderBottom: "1px solid var(--app-border)",
+						}}
+					>
+						<Group gap="xs">
+							<Archive size={14} />
+							<Text size="xs" c="dimmed">
+								Location
+							</Text>
+						</Group>
+						<Text size="xs">
+							{activeStorage === null ? "—" : storageName(activeStorage)}
+						</Text>
+					</Group>
+					{selectedItem.staged ? (
+						<Group
+							justify="space-between"
+							py={8}
+							style={{
+								borderBottom: "1px solid var(--app-border)",
+							}}
+						>
+							<Text size="xs" c="dimmed">
+								Status
+							</Text>
+							<Text size="xs" fw={500} c="brand">
+								Staged addition
+							</Text>
+						</Group>
+					) : (
+						<Group
+							justify="space-between"
+							py={8}
+							style={{
+								borderBottom: "1px solid var(--app-border)",
+							}}
+						>
+							<Group gap="xs">
+								<Hash size={14} />
+								<Text size="xs" c="dimmed">
+									First slot
+								</Text>
+							</Group>
+							<Text size="xs" ff="monospace">
+								{selectedItem.firstSlot}
+							</Text>
+						</Group>
+					)}
+					{selectedSockets && (
+						<Group
+							justify="space-between"
+							py={8}
+							style={{
+								borderBottom: "1px solid var(--app-border)",
+							}}
+						>
+							<Text size="xs" c="dimmed">
+								Sockets
+							</Text>
+							<Text size="xs" ff="monospace">
+								{selectedSockets.filled}/{selectedSockets.unlocked} filled
+							</Text>
+						</Group>
+					)}
+				</Stack>
+				{selectedItem.staged ? (
+					<Alert variant="light" color="brand" p="sm">
+						<Text size="xs">
+							This item will be added to the downloaded save. Its final save
+							slot is assigned automatically during validation.
+						</Text>
+					</Alert>
+				) : selectedRecord?.noGearToEdit ? (
+					<Text size="sm" c="dimmed">
+						This item has no refinement or sockets to edit.
+					</Text>
+				) : selectedRecord?.equipment ? (
+					<Alert variant="light" color="brand">
+						<Text size="sm" fw={500}>
+							Refinement {selectedRecord.equipment.refinement}
+						</Text>
+						{selectedSockets && (
+							<Text size="sm" c="dimmed">
+								{selectedSockets.unlocked} unlocked sockets
+								{` · maximum ${selectedRecord.equipment.socketCap}`}
+							</Text>
+						)}
+						<Button
+							fullWidth
+							mt="sm"
+							disabled={busy}
+							onClick={() => setEditorOpen(true)}
+						>
+							Edit equipment
+						</Button>
+					</Alert>
+				) : (
+					<Alert variant="light" color="brand">
+						<Text
+							size="10px"
+							fw={500}
+							tt="uppercase"
+							style={{ letterSpacing: "0.13em" }}
+						>
+							Quantity editor
+						</Text>
+						{selectedItem.recordList.length > 1 && (
+							<Select
+								mt="sm"
+								label="Save record"
+								value={selectedRecord ? String(selectedRecord.slotNo) : null}
+								allowDeselect={false}
+								data={selectedItem.recordList.map((record) => ({
+									value: String(record.slotNo),
+									label: `Slot ${record.slotNo} · quantity ${record.quantity}`,
+								}))}
+								onChange={(value) => {
+									const record = selectedItem.recordList.find(
+										(entry) => entry.slotNo === Number(value),
+									);
+									if (record) chooseRecord(record);
+								}}
+							/>
+						)}
+						{selectedStagedEdit && (
+							<Badge color="blue" size="sm" variant="light" mt="xs">
+								Staged: {selectedStagedEdit.expectedQuantity.toLocaleString()} ➔{" "}
+								{selectedStagedEdit.newQuantity.toLocaleString()}
+							</Badge>
+						)}
+						<Group mt="sm" gap="xs" align="flex-end">
+							<TextInput
+								aria-label="New quantity"
+								inputMode="numeric"
+								value={displayedQuantity}
+								onChange={(event) =>
+									setQuantityDraft(event.currentTarget.value)
+								}
+								onKeyDown={(event) => {
+									if (event.key === "Enter") {
+										stageQuantity();
+									}
+								}}
+								ff="monospace"
+								style={{ flex: 1 }}
+							/>
+							<Button onClick={stageQuantity}>Stage</Button>
+						</Group>
+						<Group gap={4} mt="xs">
+							{[
+								{ label: "+10", add: 10 },
+								{ label: "+100", add: 100 },
+								{ label: "+1000", add: 1000 },
+								{ label: "Set 999", set: 999 },
+								{ label: "Set 9999", set: 9999 },
+							].map((chip) => (
+								<Button
+									key={chip.label}
+									size="compact-xs"
+									variant="light"
+									color="gray"
+									onClick={() => {
+										const curr = Number(displayedQuantity) || 1;
+										const next =
+											chip.set ?? Math.max(1, curr + (chip.add ?? 0));
+										setQuantityDraft(String(next));
+									}}
+								>
+									{chip.label}
+								</Button>
+							))}
+						</Group>
+						<Text mt="xs" size="xs" c="dimmed">
+							Press Enter or select Stage to stage the change.
+						</Text>
+					</Alert>
+				)}
+			</Stack>
+		</>
+	) : (
+		<Center p="xl">
+			<Text size="sm" c="dimmed" ta="center">
+				Select an item to inspect its record.
+			</Text>
+		</Center>
+	);
 	return (
 		<Flex
 			style={{
@@ -495,6 +753,17 @@ export const InventoryView = ({
 								</Button>
 							</>
 						)}
+						<Button
+							variant="default"
+							size="sm"
+							hiddenFrom="xl"
+							leftSection={<Info size={14} />}
+							disabled={!selectedItem}
+							title="Show this item's details"
+							onClick={() => setDetailsOpen(true)}
+						>
+							Details
+						</Button>
 					</Group>
 				</Group>
 
@@ -571,7 +840,8 @@ export const InventoryView = ({
 						</Text>
 						<Text size="xs" c="dimmed">
 							This will stage changes for {bulkConfirm?.count ?? 0} equipment
-							items in this location. Your original save file is never
+							items in this location. It replaces any equipment changes you have
+							already staged in this location. Your original save file is never
 							overwritten.
 						</Text>
 						<Group justify="flex-end" gap="sm" mt="md">
@@ -603,8 +873,8 @@ export const InventoryView = ({
 					<Alert
 						color="red"
 						m="md"
-						icon={<CircleHelp size={16} />}
-						title="Could not apply changes"
+						icon={<TriangleAlert size={16} />}
+						title="Could not apply equipment change"
 					>
 						{error}
 					</Alert>
@@ -658,7 +928,7 @@ export const InventoryView = ({
 												)
 											}
 										>
-											Discard
+											Remove
 										</Button>
 									</Group>
 								) : null,
@@ -745,263 +1015,18 @@ export const InventoryView = ({
 				visibleFrom="xl"
 				style={{ flexShrink: 0, overflowY: "auto" }}
 			>
-				{selectedItem ? (
-					<>
-						<Box
-							p="lg"
-							style={{
-								borderBottom: "1px solid var(--app-border)",
-							}}
-						>
-							<Group justify="space-between" gap="sm" align="flex-start">
-								<Badge
-									variant="outline"
-									color="brand"
-									styles={{ label: { textTransform: "uppercase" } }}
-								>
-									{selectedItem.category}
-								</Badge>
-								<Text size="xs" c="dimmed" ff="monospace">
-									#{selectedItem.itemKey}
-								</Text>
-							</Group>
-							<Group gap="md" mt="lg" wrap="nowrap">
-								<Picture
-									kind="item"
-									pictureKey={selectedItem.itemKey}
-									size={80}
-								/>
-								<Text component="h2" size="xl" fw={600}>
-									{selectedItem.name}
-								</Text>
-							</Group>
-							<Text mt="sm" size="xs" c="dimmed" lineClamp={5}>
-								{selectedItem.description}
-							</Text>
-						</Box>
-						<Stack gap="lg" p="lg">
-							<SimpleGrid cols={2} spacing={1}>
-								<Paper withBorder p="sm">
-									<Text
-										size="10px"
-										c="dimmed"
-										tt="uppercase"
-										style={{ letterSpacing: "0.12em" }}
-									>
-										Total quantity
-									</Text>
-									<Text mt={4} size="lg" ff="monospace">
-										{selectedItem.quantity.toLocaleString()}
-									</Text>
-								</Paper>
-								<Paper withBorder p="sm">
-									<Text
-										size="10px"
-										c="dimmed"
-										tt="uppercase"
-										style={{ letterSpacing: "0.12em" }}
-									>
-										Save records
-									</Text>
-									<Text mt={4} size="lg" ff="monospace">
-										{selectedItem.records}
-									</Text>
-								</Paper>
-							</SimpleGrid>
-							<Stack gap={4}>
-								<Group
-									justify="space-between"
-									py={8}
-									style={{
-										borderBottom: "1px solid var(--app-border)",
-									}}
-								>
-									<Group gap="xs">
-										<Archive size={14} />
-										<Text size="xs" c="dimmed">
-											Location
-										</Text>
-									</Group>
-									<Text size="xs">
-										{activeStorage === null ? "—" : storageName(activeStorage)}
-									</Text>
-								</Group>
-								{selectedItem.staged ? (
-									<Group
-										justify="space-between"
-										py={8}
-										style={{
-											borderBottom: "1px solid var(--app-border)",
-										}}
-									>
-										<Text size="xs" c="dimmed">
-											Status
-										</Text>
-										<Text size="xs" fw={500} c="brand">
-											Staged addition
-										</Text>
-									</Group>
-								) : (
-									<Group
-										justify="space-between"
-										py={8}
-										style={{
-											borderBottom: "1px solid var(--app-border)",
-										}}
-									>
-										<Group gap="xs">
-											<Hash size={14} />
-											<Text size="xs" c="dimmed">
-												First slot
-											</Text>
-										</Group>
-										<Text size="xs" ff="monospace">
-											{selectedItem.firstSlot}
-										</Text>
-									</Group>
-								)}
-								{selectedSockets && (
-									<Group
-										justify="space-between"
-										py={8}
-										style={{
-											borderBottom: "1px solid var(--app-border)",
-										}}
-									>
-										<Text size="xs" c="dimmed">
-											Sockets
-										</Text>
-										<Text size="xs" ff="monospace">
-											{selectedSockets.filled}/{selectedSockets.unlocked} filled
-										</Text>
-									</Group>
-								)}
-							</Stack>
-							{selectedItem.staged ? (
-								<Alert variant="light" color="brand" p="sm">
-									<Text size="xs">
-										This item will be added to the downloaded save. Its final
-										save slot is assigned automatically during validation.
-									</Text>
-								</Alert>
-							) : selectedRecord?.noGearToEdit ? (
-								<Text size="sm" c="dimmed">
-									This item has no refinement or sockets to edit.
-								</Text>
-							) : selectedRecord?.equipment ? (
-								<Alert variant="light" color="brand">
-									<Text size="sm" fw={500}>
-										Refinement {selectedRecord.equipment.refinement}
-									</Text>
-									{selectedSockets && (
-										<Text size="sm" c="dimmed">
-											{selectedSockets.unlocked} unlocked sockets
-											{` · maximum ${selectedRecord.equipment.socketCap}`}
-										</Text>
-									)}
-									<Button
-										fullWidth
-										mt="sm"
-										disabled={busy}
-										onClick={() => setEditorOpen(true)}
-									>
-										Edit equipment
-									</Button>
-								</Alert>
-							) : (
-								<Alert variant="light" color="brand">
-									<Text
-										size="10px"
-										fw={500}
-										tt="uppercase"
-										style={{ letterSpacing: "0.13em" }}
-									>
-										Quantity editor
-									</Text>
-									{selectedItem.recordList.length > 1 && (
-										<Select
-											mt="sm"
-											label="Save record"
-											value={
-												selectedRecord ? String(selectedRecord.slotNo) : null
-											}
-											allowDeselect={false}
-											data={selectedItem.recordList.map((record) => ({
-												value: String(record.slotNo),
-												label: `Slot ${record.slotNo} · quantity ${record.quantity}`,
-											}))}
-											onChange={(value) => {
-												const record = selectedItem.recordList.find(
-													(entry) => entry.slotNo === Number(value),
-												);
-												if (record) chooseRecord(record);
-											}}
-										/>
-									)}
-									{selectedStagedEdit && (
-										<Badge color="blue" size="sm" variant="light" mt="xs">
-											Staged:{" "}
-											{selectedStagedEdit.expectedQuantity.toLocaleString()} ➔{" "}
-											{selectedStagedEdit.newQuantity.toLocaleString()}
-										</Badge>
-									)}
-									<Group mt="sm" gap="xs" align="flex-end">
-										<TextInput
-											aria-label="New quantity"
-											inputMode="numeric"
-											value={displayedQuantity}
-											onChange={(event) =>
-												setQuantityDraft(event.currentTarget.value)
-											}
-											onKeyDown={(event) => {
-												if (event.key === "Enter") {
-													stageQuantity();
-												}
-											}}
-											ff="monospace"
-											style={{ flex: 1 }}
-										/>
-										<Button onClick={stageQuantity}>Stage</Button>
-									</Group>
-									<Group gap={4} mt="xs">
-										{[
-											{ label: "+10", add: 10 },
-											{ label: "+100", add: 100 },
-											{ label: "+1000", add: 1000 },
-											{ label: "Set 999", set: 999 },
-											{ label: "Set 9999", set: 9999 },
-										].map((chip) => (
-											<Button
-												key={chip.label}
-												size="compact-xs"
-												variant="light"
-												color="gray"
-												onClick={() => {
-													const curr = Number(displayedQuantity) || 1;
-													const next =
-														chip.set ?? Math.max(1, curr + (chip.add ?? 0));
-													setQuantityDraft(String(next));
-												}}
-											>
-												{chip.label}
-											</Button>
-										))}
-									</Group>
-									<Text mt="xs" size="xs" c="dimmed">
-										Press Enter or select Stage to queue changes.
-									</Text>
-								</Alert>
-							)}
-						</Stack>
-					</>
-				) : (
-					<Center p="xl">
-						<Text size="sm" c="dimmed" ta="center">
-							Select an item to inspect its record.
-						</Text>
-					</Center>
-				)}
+				{isWide ? detailsContent : null}
 			</Box>
+
+			<Drawer
+				opened={detailsOpen}
+				onClose={() => setDetailsOpen(false)}
+				position="right"
+				size="32rem"
+				title="Item details"
+			>
+				{isWide ? null : detailsContent}
+			</Drawer>
 
 			<EquipmentEditorDrawer
 				open={editorOpen}
@@ -1011,6 +1036,7 @@ export const InventoryView = ({
 				activeStorage={activeStorage}
 				catalog={catalog}
 				busy={busy}
+				error={error}
 				savedRecord={originalSelectedRecord}
 				stagedEquipment={stagedEquipment}
 				addition={selectedEquipmentAddition}

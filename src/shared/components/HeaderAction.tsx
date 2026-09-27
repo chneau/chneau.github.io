@@ -22,6 +22,8 @@ type HeaderActionProps = {
 	/** For controls that open a menu. */
 	ariaExpanded?: boolean;
 	ariaHaspopup?: "menu" | "dialog" | "listbox" | "tree" | "grid";
+	/** Toggle state for assistive tech; defaults to `active` when set. */
+	ariaPressed?: boolean;
 	className?: string;
 };
 
@@ -45,11 +47,13 @@ export const HeaderAction = forwardRef<
 			loading,
 			ariaExpanded,
 			ariaHaspopup,
+			ariaPressed,
 			className,
 		},
 		ref,
 	) => {
 		const inert = disabled || loading;
+		const pressed = ariaPressed ?? (active === undefined ? undefined : active);
 		const classes = [
 			"app-header-action",
 			iconOnly ? "app-header-action--icon" : undefined,
@@ -96,6 +100,8 @@ export const HeaderAction = forwardRef<
 				title={label}
 				aria-expanded={ariaExpanded}
 				aria-haspopup={ariaHaspopup}
+				aria-pressed={pressed}
+				aria-busy={loading || undefined}
 				disabled={inert}
 				onClick={onClick}
 			>
