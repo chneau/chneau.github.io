@@ -2,6 +2,7 @@ import { Badge, Box, useMantineColorScheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { Beer, Copy, Settings, Trophy } from "lucide-react";
 import {
+	BackHome,
 	Brand,
 	AppHeader as Header,
 	HeaderAction,
@@ -44,6 +45,7 @@ export const AppHeader = ({
 		<Header
 			brand={
 				<Brand
+					href="/"
 					icon={<Beer size={22} />}
 					title="Spooners"
 					subtitle="Pub prices on a map — build a round, see what every pub charges"
@@ -66,6 +68,7 @@ export const AppHeader = ({
 			}
 			actions={
 				<>
+					<BackHome />
 					<HeaderAction
 						iconOnly
 						label="Value charts"

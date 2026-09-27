@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import {
 	AppHeader as AppHeaderShell,
+	BackHome,
 	Brand,
 	HeaderAction,
 	SchemeToggle,
@@ -147,6 +148,7 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 		<AppHeaderShell
 			brand={
 				<Brand
+					href="/"
 					icon={<Cake size={18} strokeWidth={1.9} />}
 					title={t("app.title")}
 					subtitle={`build ${BUILD_DATE}`}
@@ -154,6 +156,7 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 			}
 			actions={
 				<>
+					<BackHome />
 					{installPrompt && (
 						<HeaderAction
 							icon={<Download size={15} />}
@@ -248,13 +251,6 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 						</Menu.Dropdown>
 					</Menu>
 
-					<SchemeToggle
-						dark={storeSnap.darkMode}
-						onToggle={() => {
-							store.darkMode = !store.darkMode;
-						}}
-					/>
-
 					<HeaderAction
 						href="https://github.com/chneau/chneau.github.io"
 						target="_blank"
@@ -273,6 +269,13 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 							{t("app.hero.manage")}
 						</HeaderAction>
 					)}
+
+					<SchemeToggle
+						dark={storeSnap.darkMode}
+						onToggle={() => {
+							store.darkMode = !store.darkMode;
+						}}
+					/>
 				</>
 			}
 		/>

@@ -11,7 +11,13 @@ import {
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useSnapshot } from "valtio";
-import { AppHeader, Brand, HeaderAction, SchemeToggle } from "../shared";
+import {
+	AppHeader,
+	BackHome,
+	Brand,
+	HeaderAction,
+	SchemeToggle,
+} from "../shared";
 import { Controls } from "./components/Controls";
 import { ReplayCanvas } from "./components/ReplayCanvas";
 import { ServiceDetails } from "./components/ServiceDetails";
@@ -172,6 +178,7 @@ export const App = () => {
 				staticPosition
 				brand={
 					<Brand
+						href="/"
 						icon={<Compass size={18} />}
 						title="A Day in Scottish Rail"
 						subtitle={`24h replay · ${BUILD_DATE}`}
@@ -179,6 +186,7 @@ export const App = () => {
 				}
 				actions={
 					<>
+						<BackHome />
 						<HeaderAction
 							iconOnly
 							active={settings.soundEffects}

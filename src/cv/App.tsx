@@ -7,7 +7,6 @@ import {
 	FileText,
 	FileType,
 	Globe,
-	Home,
 	Link2,
 	Mail,
 	Phone,
@@ -16,7 +15,13 @@ import {
 } from "lucide-react";
 import type { CSSProperties, ReactNode, RefObject } from "react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { AppHeader, Brand, HeaderAction, SchemeToggle } from "../shared";
+import {
+	AppHeader,
+	BackHome,
+	Brand,
+	HeaderAction,
+	SchemeToggle,
+} from "../shared";
 
 declare const BUILD_DATE: string;
 
@@ -612,12 +617,7 @@ export const App = () => {
 				}
 				actions={
 					<>
-						<HeaderAction
-							iconOnly
-							href="/"
-							label="Return to dashboard (Esc)"
-							icon={<Home size={16} />}
-						/>
+						<BackHome label="Back to dashboard (Esc)" />
 						<HeaderAction
 							iconOnly
 							active={linkCopy.state === "ok"}

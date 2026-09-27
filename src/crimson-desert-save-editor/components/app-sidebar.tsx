@@ -100,6 +100,7 @@ export const AppSidebar = ({
 			style={{ borderBottom: "1px solid var(--app-border)" }}
 		>
 			<Brand
+				href="/"
 				icon={<Database size={16} strokeWidth={2} />}
 				title="Save Workshop"
 				subtitle="Crimson Desert"

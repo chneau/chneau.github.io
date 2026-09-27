@@ -14,6 +14,7 @@ import {
 	Cake,
 	FileText,
 	type LucideIcon,
+	Rocket,
 	Swords,
 	TrainFront,
 } from "lucide-react";
@@ -323,6 +324,8 @@ export const App = () => {
 				<AppHeader
 					brand={
 						<Brand
+							href="/"
+							icon={<Rocket size={18} />}
 							title="chneau.github.io"
 							subtitle="Personal hub and web apps"
 						/>

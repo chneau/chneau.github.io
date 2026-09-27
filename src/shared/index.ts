@@ -1,4 +1,5 @@
 export { AppHeader } from "./components/AppHeader";
+export { BackHome } from "./components/BackHome";
 export { Brand } from "./components/Brand";
 export { EmptyState } from "./components/EmptyState";
 export { Grain } from "./components/Grain";
