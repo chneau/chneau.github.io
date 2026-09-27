@@ -9,6 +9,13 @@ export { Grain } from "./components/Grain";
 export { HeaderAction } from "./components/HeaderAction";
 export { SchemeToggle } from "./components/SchemeToggle";
 export { Section } from "./components/Section";
+export type { ShortcutGroup } from "./components/ShortcutsHelp";
+export {
+	APP_SWITCH_SHORTCUTS,
+	ShortcutsHelp,
+	ShortcutsHelpButton,
+	useShortcutsHelp,
+} from "./components/ShortcutsHelp";
 export { Skeleton } from "./components/Skeleton";
 export { Stat } from "./components/Stat";
 export { StatusDot } from "./components/StatusDot";

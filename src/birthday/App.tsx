@@ -16,7 +16,14 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
-import { createAppTheme, Grain, Skeleton } from "../shared";
+import {
+	createAppTheme,
+	Grain,
+	ShortcutsHelp,
+	ShortcutsHelpButton,
+	Skeleton,
+	useShortcutsHelp,
+} from "../shared";
 import { AppFooter } from "./AppFooter";
 import { AppHeader } from "./AppHeader";
 import { BirthdayDetails } from "./BirthdayDetails";
@@ -93,6 +100,7 @@ export const App = () => {
 	const data = dataSnap.filtered;
 	const { t } = useTranslation();
 	const [manageOpen, setManageOpen] = useState(false);
+	const shortcuts = useShortcutsHelp();
 
 	useEffect(() => {
 		document.documentElement.dataset.theme = storeSnap.darkMode
@@ -142,7 +150,16 @@ export const App = () => {
 		>
 			<Notifications position="top-right" />
 			<div className="tk-shell">
-				<AppHeader data={data} onOpenManage={() => setManageOpen(true)} />
+				<AppHeader
+					data={data}
+					onOpenManage={() => setManageOpen(true)}
+					shortcutsButton={
+						<ShortcutsHelpButton
+							onClick={shortcuts.open}
+							expanded={shortcuts.opened}
+						/>
+					}
+				/>
 
 				<main className="tk-main">
 					<div className="tk-container tk-stack">
@@ -234,6 +251,17 @@ export const App = () => {
 			</Modal>
 
 			<Grain />
+
+			<ShortcutsHelp
+				opened={shortcuts.opened}
+				onClose={shortcuts.close}
+				groups={[
+					{
+						title: "Search & filters",
+						shortcuts: [{ keys: ["/"], description: "Focus the search field" }],
+					},
+				]}
+			/>
 		</MantineProvider>
 	);
 };

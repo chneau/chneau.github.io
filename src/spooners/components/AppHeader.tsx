@@ -10,6 +10,7 @@ import {
 	AppHeader as Header,
 	HeaderAction,
 	SchemeToggle,
+	ShortcutsHelpButton,
 } from "../../shared";
 import type { CacheStats, VenueInfo } from "../types";
 import { PubSearch } from "./PubSearch";
@@ -27,6 +28,8 @@ type Props = {
 	onShare: () => void;
 	onValueOpen: () => void;
 	onSettingsOpen: () => void;
+	shortcutsOpened: boolean;
+	onShortcutsOpen: () => void;
 };
 
 /** The top bar: branding, live counts, pub search, value charts and app actions. */
@@ -42,6 +45,8 @@ export const AppHeader = ({
 	onShare,
 	onValueOpen,
 	onSettingsOpen,
+	shortcutsOpened,
+	onShortcutsOpen,
 }: Props) => {
 	const { colorScheme, setColorScheme } = useMantineColorScheme();
 	const isNarrow = useMediaQuery("(max-width: 30em)");
@@ -125,6 +130,10 @@ export const AppHeader = ({
 						label="Settings"
 						icon={<Settings size={16} />}
 						onClick={onSettingsOpen}
+					/>
+					<ShortcutsHelpButton
+						onClick={onShortcutsOpen}
+						expanded={shortcutsOpened}
 					/>
 					<SchemeToggle
 						dark={dark}

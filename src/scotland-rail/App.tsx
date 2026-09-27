@@ -1,6 +1,5 @@
 import { Box, Button, useMantineColorScheme } from "@mantine/core";
 import {
-	CircleHelp,
 	Compass,
 	Info,
 	Search,
@@ -18,12 +17,15 @@ import {
 	Brand,
 	HeaderAction,
 	SchemeToggle,
+	type ShortcutGroup,
+	ShortcutsHelp,
+	ShortcutsHelpButton,
+	useShortcutsHelp,
 } from "../shared";
 import { Controls } from "./components/Controls";
 import { ReplayCanvas } from "./components/ReplayCanvas";
 import { ServiceDetails } from "./components/ServiceDetails";
 import { SettingsModal } from "./components/SettingsModal";
-import { ShortcutsModal } from "./components/ShortcutsModal";
 import { SourcesModal } from "./components/SourcesModal";
 import { StatsPanel } from "./components/StatsPanel";
 import { CATEGORIES } from "./data/types";
@@ -38,15 +40,41 @@ import { formatTime } from "./utils";
 
 declare const BUILD_DATE: string;
 
+const SHORTCUT_GROUPS: ShortcutGroup[] = [
+	{
+		title: "Playback",
+		shortcuts: [
+			{ keys: ["Space"], description: "Play / pause the replay" },
+			{ keys: ["←", "→"], description: "Scrub time back / forward 5 minutes" },
+			{ keys: ["Shift", "←/→"], description: "Scrub in 15-minute steps" },
+			{ keys: ["↑", "↓"], description: "Increase / decrease playback speed" },
+			{ keys: ["M"], description: "Toggle ambient audio" },
+			{
+				keys: ["Esc"],
+				description: "Close the open panel or deselect a train",
+			},
+		],
+	},
+	{
+		title: "Pointer",
+		shortcuts: [
+			{ keys: ["Click"], description: "Inspect a train or station" },
+			{ keys: ["Drag"], description: "Pan the map" },
+			{ keys: ["Scroll"], description: "Zoom the map in / out" },
+		],
+	},
+];
+
 export const App = () => {
 	const snap = useSnapshot(railStore);
 	const derivedSnap = useSnapshot(derivedStore);
 	const { colorScheme, setColorScheme } = useMantineColorScheme();
 	const dark = colorScheme === "dark";
+	const shortcuts = useShortcutsHelp();
+	const shortcutsOpenRef = useRef(shortcuts.opened);
 	const {
 		isInfoOpen,
 		isPlaying,
-		isShortcutsOpen,
 		speed,
 		settings,
 		selectedService,
@@ -62,6 +90,11 @@ export const App = () => {
 		activeTrains.length === 0 && (hasSearch || hasCategoryFilter);
 	const categoryLabel =
 		selectedCategory !== "all" ? CATEGORIES[selectedCategory].label : "";
+
+	// Keep the Escape handler's view of the help dialog current without rebinding.
+	useEffect(() => {
+		shortcutsOpenRef.current = shortcuts.opened;
+	}, [shortcuts.opened]);
 
 	// Global Keyboard Shortcuts
 	useEffect(() => {
@@ -123,8 +156,8 @@ export const App = () => {
 				}
 				railActions.updateSetting("soundEffects", nextSound);
 			} else if (e.code === "Escape") {
-				if (railStore.isShortcutsOpen) {
-					railActions.setIsShortcutsOpen(false);
+				if (shortcutsOpenRef.current) {
+					shortcuts.close();
 				} else if (railStore.isSettingsOpen) {
 					railActions.setIsSettingsOpen(false);
 				} else if (railStore.isInfoOpen) {
@@ -137,7 +170,7 @@ export const App = () => {
 
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, []);
+	}, [shortcuts.close]);
 
 	// Animation frame loop directly updating store
 	useEffect(() => {
@@ -258,13 +291,9 @@ export const App = () => {
 						>
 							Settings
 						</HeaderAction>
-						<HeaderAction
-							iconOnly
-							label="Keyboard shortcuts"
-							ariaHaspopup="dialog"
-							ariaExpanded={isShortcutsOpen}
-							icon={<CircleHelp size={15} />}
-							onClick={() => railActions.setIsShortcutsOpen(true)}
+						<ShortcutsHelpButton
+							onClick={shortcuts.open}
+							expanded={shortcuts.opened}
 						/>
 						<SchemeToggle
 							dark={dark}
@@ -289,10 +318,11 @@ export const App = () => {
 					onClose={() => railActions.setIsInfoOpen(false)}
 				/>
 
-				{/* Keyboard Shortcuts Modal */}
-				<ShortcutsModal
-					open={isShortcutsOpen}
-					onClose={() => railActions.setIsShortcutsOpen(false)}
+				{/* Keyboard Shortcuts Help */}
+				<ShortcutsHelp
+					opened={shortcuts.opened}
+					onClose={shortcuts.close}
+					groups={SHORTCUT_GROUPS}
 				/>
 
 				{/* Map Canvas */}
@@ -368,7 +398,7 @@ export const App = () => {
 				<StatsPanel />
 
 				{/* Settings Drawer */}
-				<SettingsModal />
+				<SettingsModal onOpenShortcuts={shortcuts.open} />
 
 				{/* Controls */}
 				<Controls />

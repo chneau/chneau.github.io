@@ -89,6 +89,9 @@ import {
 	Brand,
 	HeaderAction,
 	SchemeToggle,
+	ShortcutsHelp,
+	ShortcutsHelpButton,
+	useShortcutsHelp,
 } from "../../shared";
 
 /**
@@ -161,6 +164,7 @@ export const Home = () => {
 	const [activeStorage, setActiveStorage] = useState<number | null>(null);
 	const [addOpen, setAddOpen] = useState(false);
 	const [edits, setEdits] = useState<SaveEdit[]>([]);
+	const shortcuts = useShortcutsHelp();
 
 	const removeStagedEdit = (index: number) => {
 		setEdits((current) => current.filter((_, i) => i !== index));
@@ -655,6 +659,10 @@ export const Home = () => {
 									</HeaderAction>
 								</>
 							)}
+							<ShortcutsHelpButton
+								onClick={shortcuts.open}
+								expanded={shortcuts.opened}
+							/>
 							<SchemeToggle
 								dark={dark}
 								onToggle={() => setColorScheme(dark ? "light" : "dark")}
@@ -890,6 +898,23 @@ export const Home = () => {
 				onDiscardAll={() => setDiscardModalOpen(true)}
 				onDownload={downloadEditedSave}
 				busy={loading}
+			/>
+
+			<ShortcutsHelp
+				opened={shortcuts.opened}
+				onClose={shortcuts.close}
+				groups={[
+					{
+						title: "Editing",
+						shortcuts: [
+							{
+								keys: ["Ctrl/⌘", "Z"],
+								description: "Undo the last staged change",
+							},
+							{ keys: ["Esc"], description: "Close the open panel" },
+						],
+					},
+				]}
 			/>
 
 			<Modal
