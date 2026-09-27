@@ -1,0 +1,16 @@
+{
+	"name": "Crimson Desert Save Editor",
+	"short_name": "Save Editor",
+	"description": "Edit Crimson Desert save files — inventory, gear, skills, quests and companions — entirely on your device.",
+	"start_url": ".",
+	"display": "standalone",
+	"background_color": "#0e0e11",
+	"theme_color": "#9d5062",
+	"icons": [
+		{
+			"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='rgb(20,20,24)'/><path d='M32 12l16 6v12c0 11-7 18-16 22-9-4-16-11-16-22V18z' fill='none' stroke='rgb(157,80,98)' stroke-width='4' stroke-linejoin='round'/></svg>",
+			"sizes": "192x192",
+			"type": "image/svg+xml"
+		}
+	]
+}

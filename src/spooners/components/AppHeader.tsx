@@ -2,6 +2,7 @@ import { Badge, Box, useMantineColorScheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { Beer, Copy, Settings, Trophy } from "lucide-react";
 import {
+	AppSwitcher,
 	BackHome,
 	Brand,
 	AppHeader as Header,
@@ -69,6 +70,7 @@ export const AppHeader = ({
 			actions={
 				<>
 					<BackHome />
+					<AppSwitcher />
 					<HeaderAction
 						iconOnly
 						label="Value charts"

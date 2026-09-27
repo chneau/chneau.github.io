@@ -17,8 +17,10 @@ import type { CSSProperties, ReactNode, RefObject } from "react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
 	AppHeader,
+	AppSwitcher,
 	BackHome,
 	Brand,
+	Footer,
 	HeaderAction,
 	SchemeToggle,
 } from "../shared";
@@ -618,6 +620,7 @@ export const App = () => {
 				actions={
 					<>
 						<BackHome label="Back to dashboard (Esc)" />
+						<AppSwitcher />
 						<HeaderAction
 							iconOnly
 							active={linkCopy.state === "ok"}
@@ -841,9 +844,10 @@ export const App = () => {
 				</aside>
 			</main>
 
-			<footer className="cv-footer no-print">
-				<div className="cv-footer-inner">
-					<nav className="cv-footer-links" aria-label="Related links">
+			<Footer
+				className="no-print"
+				left={
+					<>
 						<a href="/">Dashboard</a>
 						<a
 							href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
@@ -875,12 +879,10 @@ export const App = () => {
 							<LinkedinMark />
 							LinkedIn
 						</a>
-					</nav>
-					{BUILD_DATE && (
-						<span className="cv-footer-meta">Built {BUILD_DATE}</span>
-					)}
-				</div>
-			</footer>
+					</>
+				}
+				right={BUILD_DATE ? `Built ${BUILD_DATE}` : undefined}
+			/>
 
 			<button
 				type="button"

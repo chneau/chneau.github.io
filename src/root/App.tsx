@@ -8,97 +8,23 @@ import {
 	Text,
 	Title,
 } from "@mantine/core";
-import {
-	ArrowRight,
-	Beer,
-	Cake,
-	FileText,
-	type LucideIcon,
-	Rocket,
-	Swords,
-	TrainFront,
-} from "lucide-react";
+import { ArrowRight, Rocket } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+	APPS,
+	type AppEntry,
 	AppHeader,
+	AppSwitcher,
 	Brand,
 	createAppTheme,
+	Footer,
 	HeaderAction,
 	SchemeToggle,
 } from "../shared";
 
 declare const BUILD_DATE: string;
 
-type AppEntry = {
-	href: string;
-	icon: LucideIcon;
-	title: string;
-	tag: string;
-	tagColor: string;
-	shortcutKey: string;
-	hotkey: string;
-	description: string;
-};
-
-const APPS: AppEntry[] = [
-	{
-		href: "/cv/",
-		icon: FileText,
-		title: "Curriculum Vitae",
-		tag: "Senior Full-Stack & Systems",
-		tagColor: "purple",
-		shortcutKey: "Press 1",
-		hotkey: "1",
-		description:
-			"Senior Full-Stack & Systems Engineer — 10+ years experience across Go, TypeScript, React 19, Python, cloud infrastructure & optimization.",
-	},
-	{
-		href: "/birthday/",
-		icon: Cake,
-		title: "Birthday Tracker",
-		tag: "Tracker",
-		tagColor: "blue",
-		shortcutKey: "Press 2",
-		hotkey: "2",
-		description:
-			"Track birthdays, milestones, biorhythms, zodiac signs, and export calendar events.",
-	},
-	{
-		href: "/scotland-rail/",
-		icon: TrainFront,
-		title: "A Day in Scottish Rail",
-		tag: "24h Replay",
-		tagColor: "cyan",
-		shortcutKey: "Press 3",
-		hotkey: "3",
-		description:
-			"Interactive 24-hour time-lapse train replay across Scotland's rail network.",
-	},
-	{
-		href: "/crimson-desert-save-editor/",
-		icon: Swords,
-		title: "Crimson Desert Save Editor",
-		tag: "100% Client-Side",
-		tagColor: "yellow",
-		shortcutKey: "Press 4",
-		hotkey: "4",
-		description:
-			"Edit Crimson Desert save files — inventory, gear, skills, quests and companions — entirely on your device.",
-	},
-	{
-		href: "/spooners/",
-		icon: Beer,
-		title: "Spooners",
-		tag: "Price map",
-		tagColor: "green",
-		shortcutKey: "Press 5",
-		hotkey: "5",
-		description:
-			"See what every pub charges for the same drink or dish — searchable map, cheapest-to-dearest rankings and price distribution charts.",
-	},
-];
-
-type AppItem = (typeof APPS)[number];
+type AppItem = AppEntry;
 
 /** A blue accent (#1677ff), expanded to Mantine's 10-shade tuple (main shade at index 6). */
 const brand: MantineColorsTuple = [
@@ -288,7 +214,7 @@ export const App = () => {
 		}
 	}, [darkMode]);
 
-	// Global keyboard navigation: 1, 2, 3 to launch apps, T for theme
+	// Global keyboard navigation: 1–6 to launch apps, T for theme
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (
@@ -332,16 +258,17 @@ export const App = () => {
 					}
 					actions={
 						<>
-							<SchemeToggle
-								dark={darkMode}
-								onToggle={() => setDarkMode((value) => !value)}
-							/>
+							<AppSwitcher />
 							<HeaderAction
 								href="https://github.com/chneau"
 								target="_blank"
 								iconOnly
 								label="GitHub profile"
 								icon={<GithubIcon size={18} />}
+							/>
+							<SchemeToggle
+								dark={darkMode}
+								onToggle={() => setDarkMode((value) => !value)}
 							/>
 						</>
 					}
@@ -371,21 +298,10 @@ export const App = () => {
 					</div>
 				</Box>
 
-				<Box
-					component="footer"
-					style={{
-						textAlign: "center",
-						color: "var(--app-text-muted)",
-						background: "transparent",
-						fontSize: "0.8rem",
-						padding: "0 24px 24px",
-					}}
-				>
-					chneau © {new Date().getFullYear()}{" "}
-					<span style={{ opacity: 0.6, fontSize: "0.75rem", marginLeft: 6 }}>
-						({BUILD_DATE})
-					</span>
-				</Box>
+				<Footer
+					left={`chneau © ${new Date().getFullYear()}`}
+					right={`(${BUILD_DATE})`}
+				/>
 			</Box>
 		</MantineProvider>
 	);
