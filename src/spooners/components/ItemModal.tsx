@@ -8,6 +8,7 @@ import {
 	Text,
 	UnstyledButton,
 } from "@mantine/core";
+import { ArrowLeft } from "lucide-react";
 import { useMemo } from "react";
 import { basketVenues } from "../basket";
 import { categoryLabel } from "../itemFacts";
@@ -186,8 +187,13 @@ export const ItemModal = ({
 
 				<Group gap="xs" mt="xs">
 					{onBack ? (
-						<Button size="xs" variant="subtle" onClick={onBack}>
-							← Back to pub
+						<Button
+							size="xs"
+							variant="subtle"
+							leftSection={<ArrowLeft size={14} />}
+							onClick={onBack}
+						>
+							Back to pub
 						</Button>
 					) : null}
 					<Button size="xs" onClick={() => onAdd(itemName)}>

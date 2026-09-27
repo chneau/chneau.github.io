@@ -1,9 +1,15 @@
-import { CloseOutlined } from "@ant-design/icons";
+import {
+	BankOutlined,
+	BuildOutlined,
+	ClockCircleOutlined,
+	CloseOutlined,
+} from "@ant-design/icons";
 import { Button, Card, Divider, Space, Steps, Tag, Typography } from "antd";
 import { useSnapshot } from "valtio";
 import { STATIONS_BY_ID } from "../data/geography";
 import { CATEGORIES } from "../data/types";
 import { derivedStore, railActions, railStore } from "../store";
+import { palette } from "../theme";
 import { formatTime } from "../utils";
 
 const { Title, Text } = Typography;
@@ -22,18 +28,17 @@ export const ServiceDetails = () => {
 
 	return (
 		<Card
+			className="sr-glass sr-rise sr-scroll"
 			style={{
 				position: "absolute",
 				top: 16,
 				right: 16,
-				width: 340,
-				maxHeight: "calc(100vh - 180px)",
+				width: 344,
+				maxWidth: "calc(100vw - 32px)",
+				maxHeight: "calc(100dvh - 180px)",
 				overflowY: "auto",
-				background: "rgba(7, 19, 27, 0.92)",
-				backdropFilter: "blur(10px)",
-				border: `1px solid ${catConfig.color}`,
 				borderRadius: 12,
-				color: "#edf3f5",
+				color: palette.text,
 				zIndex: 10,
 			}}
 			styles={{ body: { padding: 16 } }}
@@ -46,52 +51,76 @@ export const ServiceDetails = () => {
 					marginBottom: 12,
 				}}
 			>
-				<div>
+				<div style={{ minWidth: 0 }}>
 					<Space wrap size={[4, 6]}>
 						<Tag
-							color={catConfig.color}
-							style={{ color: "#07131b", fontWeight: "bold" }}
+							bordered={false}
+							style={{
+								background: catConfig.color,
+								color: palette.bgDeep,
+								fontWeight: "bold",
+								borderRadius: 6,
+							}}
+							className="sr-num"
 						>
 							{selectedService.serviceNumber}
 						</Tag>
 						<Tag
+							bordered={false}
 							style={{
-								background: "rgba(255,255,255,0.08)",
-								borderColor: catConfig.color,
-								color: "#edf3f5",
-								fontWeight: 600,
+								background: "rgba(255,255,255,0.06)",
+								color: palette.text,
+								fontWeight: 500,
+								borderRadius: 6,
+								display: "inline-flex",
+								alignItems: "center",
+								gap: 5,
 							}}
 						>
-							🏢 {selectedService.operator}
+							<BankOutlined style={{ color: catConfig.color }} />
+							{selectedService.operator}
 						</Tag>
 						<Tag
+							bordered={false}
 							style={{
 								background: "transparent",
-								borderColor: "rgba(255,255,255,0.3)",
-								color: "#a8b5bc",
+								color: palette.textMuted,
 							}}
 						>
 							{catConfig.label}
 						</Tag>
 					</Space>
-					<Title level={4} style={{ color: "#edf3f5", margin: "8px 0 2px 0" }}>
+					<Title
+						level={4}
+						style={{
+							color: palette.text,
+							margin: "10px 0 4px 0",
+							letterSpacing: "-0.01em",
+						}}
+					>
 						{selectedService.name}
 					</Title>
 					{selectedService.rollingStock && (
 						<Text
-							style={{ color: "#8ca0aa", fontSize: "0.8rem", display: "block" }}
+							style={{
+								color: palette.textMuted,
+								fontSize: "0.78rem",
+								display: "flex",
+								alignItems: "center",
+								gap: 5,
+							}}
 						>
-							🚆 Model:{" "}
-							<span style={{ color: "#d9e2e6" }}>
-								{selectedService.rollingStock}
-							</span>
+							<BuildOutlined />
+							{selectedService.rollingStock}
 						</Text>
 					)}
 				</div>
 				<Button
 					type="text"
 					size="small"
-					icon={<CloseOutlined style={{ color: "#edf3f5" }} />}
+					className="sr-press"
+					aria-label="Close service details"
+					icon={<CloseOutlined style={{ color: palette.text }} />}
 					onClick={() => railActions.setSelectedService(null)}
 				/>
 			</div>
@@ -99,14 +128,15 @@ export const ServiceDetails = () => {
 			{activeState && (
 				<div
 					style={{
-						background: "rgba(255,255,255,0.06)",
+						background: "rgba(255,255,255,0.04)",
+						borderLeft: `2px solid ${catConfig.color}`,
 						borderRadius: 6,
 						padding: "8px 12px",
 						marginBottom: 16,
 					}}
 				>
-					<Text style={{ color: "#a8b5bc", fontSize: "0.85rem" }}>
-						Live Status:
+					<Text style={{ color: palette.textMuted, fontSize: "0.8rem" }}>
+						Live status
 					</Text>
 					<div style={{ fontWeight: 600, color: catConfig.color }}>
 						{activeState.isDwelling
@@ -117,18 +147,19 @@ export const ServiceDetails = () => {
 			)}
 
 			<Divider
-				style={{ borderColor: "rgba(255,255,255,0.15)", margin: "12px 0" }}
+				style={{ borderColor: "rgba(255,255,255,0.12)", margin: "12px 0" }}
 			/>
 
 			<Text
 				strong
 				style={{
-					color: "#a8b5bc",
-					fontSize: "0.85rem",
+					color: palette.textMuted,
+					fontSize: "0.78rem",
 					textTransform: "uppercase",
+					letterSpacing: "0.06em",
 				}}
 			>
-				Scheduled Calling Points (Click to Jump)
+				Calling points
 			</Text>
 
 			<div style={{ marginTop: 12 }}>
@@ -148,6 +179,7 @@ export const ServiceDetails = () => {
 							title: (
 								<button
 									type="button"
+									className="sr-callpoint"
 									onClick={() => {
 										if (targetTime !== null) {
 											railActions.setTimeOffset(targetTime);
@@ -157,52 +189,50 @@ export const ServiceDetails = () => {
 										display: "flex",
 										justifyContent: "space-between",
 										alignItems: "center",
+										gap: 8,
 										cursor: "pointer",
-										padding: "2px 4px",
-										borderRadius: 4,
+										padding: "3px 6px",
+										borderRadius: 6,
 										width: "100%",
 										background: "transparent",
 										border: "none",
 										textAlign: "left",
-										transition: "background 0.2s",
-									}}
-									onMouseEnter={(e) => {
-										e.currentTarget.style.background =
-											"rgba(255, 255, 255, 0.08)";
-									}}
-									onMouseLeave={(e) => {
-										e.currentTarget.style.background = "transparent";
 									}}
 								>
 									<span
 										style={{
-											color: "#edf3f5",
+											color: palette.text,
 											fontWeight: 500,
+											fontSize: "0.82rem",
 										}}
 									>
 										{st?.name || call.stationId}
 									</span>
 									<span
+										className="sr-num"
 										style={{
 											color: catConfig.color,
-											fontFamily: "monospace",
-											background: "rgba(255, 255, 255, 0.06)",
-											padding: "1px 6px",
+											background: "rgba(255, 255, 255, 0.05)",
+											padding: "1px 7px",
 											borderRadius: 4,
-											fontSize: "0.8rem",
+											fontSize: "0.76rem",
+											display: "inline-flex",
+											alignItems: "center",
+											gap: 4,
 										}}
 									>
-										⏱️ {timeStr}
+										<ClockCircleOutlined />
+										{timeStr}
 									</span>
 								</button>
 							),
 							description: (
-								<Text style={{ color: "#8ca0aa", fontSize: "0.75rem" }}>
+								<Text style={{ color: palette.textFaint, fontSize: "0.72rem" }}>
 									{idx === 0
-										? "Origin Departure"
+										? "Origin departure"
 										: idx === selectedService.calls.length - 1
-											? "Destination Terminus"
-											: "Calling Point"}
+											? "Destination terminus"
+											: "Calling point"}
 								</Text>
 							),
 						};

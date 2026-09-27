@@ -20,6 +20,24 @@ const manifestTag = {
 	},
 };
 
+// A drawn mark rather than an emoji glyph, so the tab icon matches the
+// desaturated crimson accent and renders identically across platforms.
+const crimsonIconTag = {
+	tag: "link" as const,
+	attrs: {
+		rel: "shortcut icon",
+		href: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='rgb(20,20,24)'/><path d='M32 12l16 6v12c0 11-7 18-16 22-9-4-16-11-16-22V18z' fill='none' stroke='rgb(157,80,98)' stroke-width='4' stroke-linejoin='round'/></svg>",
+	},
+};
+
+const crimsonThemeTag = {
+	tag: "meta" as const,
+	attrs: {
+		name: "theme-color",
+		content: "#0e0e11",
+	},
+};
+
 export default defineConfig({
 	plugins: [pluginReact()],
 	server: {
@@ -109,7 +127,7 @@ export default defineConfig({
 			},
 			html: {
 				title: "Crimson Desert Save Editor",
-				tags: [createIconTag("⚔️")],
+				tags: [crimsonIconTag, crimsonThemeTag],
 			},
 			dev: {
 				assetPrefix: "/crimson-desert-save-editor/",

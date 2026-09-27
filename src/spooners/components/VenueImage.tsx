@@ -1,4 +1,5 @@
 import { Box } from "@mantine/core";
+import { Beer } from "lucide-react";
 import { useState } from "react";
 
 type Props = {
@@ -29,7 +30,7 @@ export const VenueImage = ({ src, alt, width, height, radius = 6 }: Props) => {
 					opacity: 0.6,
 				}}
 			>
-				🍺
+				<Beer size={16} />
 			</Box>
 		);
 	}

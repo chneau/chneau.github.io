@@ -1,41 +1,31 @@
 import {
-	EnvironmentOutlined,
-	ExportOutlined,
-	FilePdfOutlined,
-	FileWordOutlined,
-	GithubOutlined,
-	GlobalOutlined,
-	HomeOutlined,
-	LinkedinOutlined,
-	LinkOutlined,
-	MailOutlined,
-	MoonOutlined,
-	PhoneOutlined,
-	PrinterOutlined,
-	SunOutlined,
-} from "@ant-design/icons";
-import {
-	Button,
-	Card,
-	ConfigProvider,
-	Divider,
-	FloatButton,
-	Layout,
-	message,
-	Space,
-	Tag,
-	Tooltip,
-	Typography,
-	theme,
-} from "antd";
-import { useEffect, useState } from "react";
-
-const { Header, Content, Footer } = Layout;
-const { Title, Paragraph, Text } = Typography;
+	ArrowUp,
+	ArrowUpRight,
+	Check,
+	Clock,
+	Copy,
+	FileText,
+	FileType,
+	Globe,
+	Home,
+	Link2,
+	Mail,
+	Moon,
+	Phone,
+	Printer,
+	Sun,
+	TriangleAlert,
+} from "lucide-react";
+import type { CSSProperties, ReactNode, RefObject } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 declare const BUILD_DATE: string;
 
-const SKILLS = [
+const EMAIL = "charles63500@gmail.com";
+const PHONE_DISPLAY = "+44 7397 174345";
+const PHONE_HREF = "+447397174345";
+
+const SKILLS: { category: string; items: string[] }[] = [
 	{
 		category: "Languages & Core",
 		items: [
@@ -49,7 +39,6 @@ const SKILLS = [
 			"Bash",
 			"JavaScript",
 		],
-		color: "blue",
 	},
 	{
 		category: "Backend & Runtimes",
@@ -67,7 +56,6 @@ const SKILLS = [
 			"WebSockets",
 			"WebRTC",
 		],
-		color: "cyan",
 	},
 	{
 		category: "Frontend & UI",
@@ -82,7 +70,6 @@ const SKILLS = [
 			"Blazor",
 			"Wouter",
 		],
-		color: "geekblue",
 	},
 	{
 		category: "Databases & Data",
@@ -97,7 +84,6 @@ const SKILLS = [
 			"PostGIS",
 			"GIS / OSRM matrices",
 		],
-		color: "green",
 	},
 	{
 		category: "Simulation & Optimization",
@@ -107,7 +93,6 @@ const SKILLS = [
 			"Combinatorial Scheduling",
 			"Zero-Allocation Algorithms",
 		],
-		color: "purple",
 	},
 	{
 		category: "Cloud, DevOps & Infra",
@@ -122,7 +107,6 @@ const SKILLS = [
 			"Nomad",
 			"Cloudflare",
 		],
-		color: "volcano",
 	},
 	{
 		category: "AI & Developer Tooling",
@@ -137,7 +121,6 @@ const SKILLS = [
 			"Lazygit",
 			"Tmux",
 		],
-		color: "magenta",
 	},
 ];
 
@@ -215,748 +198,735 @@ const getSkillSearchUrl = (skill: string): string => {
 	)}`;
 };
 
-export const App = () => {
-	const [darkMode, setDarkMode] = useState(() => {
-		const saved = localStorage.getItem("chneau_cv_theme");
-		if (saved) return saved === "dark";
-		return window.matchMedia("(prefers-color-scheme: dark)").matches;
-	});
-	const [copiedLink, setCopiedLink] = useState(false);
+const reveal = (index: number): CSSProperties =>
+	({ "--reveal-i": index }) as CSSProperties;
 
-	useEffect(() => {
-		localStorage.setItem("chneau_cv_theme", darkMode ? "dark" : "light");
-		document.body.style.backgroundColor = darkMode ? "#07161e" : "#f5f7fa";
-	}, [darkMode]);
+type BrandIconProps = { className?: string };
 
-	// Keyboard shortcut: Esc to return to Dashboard
-	useEffect(() => {
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				window.location.href = "/";
-			}
-		};
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, []);
+const GithubMark = ({ className }: BrandIconProps) => (
+	<svg
+		className={className}
+		viewBox="0 0 24 24"
+		fill="currentColor"
+		aria-hidden="true"
+	>
+		<path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.92c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.7.08-.7 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.73 1.27 3.4.97.1-.75.4-1.27.73-1.56-2.55-.29-5.23-1.28-5.23-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.84 1.18 3.1 0 4.43-2.69 5.4-5.25 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.2.67.8.56A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5Z" />
+	</svg>
+);
 
-	const handleCopyLink = () => {
-		navigator.clipboard.writeText(window.location.href);
-		setCopiedLink(true);
-		message.success("CV link copied to clipboard!");
-		setTimeout(() => setCopiedLink(false), 2500);
-	};
+const LinkedinMark = ({ className }: BrandIconProps) => (
+	<svg
+		className={className}
+		viewBox="0 0 24 24"
+		fill="currentColor"
+		fillRule="evenodd"
+		aria-hidden="true"
+	>
+		<path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28ZM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.72v20.55C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0Z" />
+	</svg>
+);
+
+const copyToClipboard = async (text: string): Promise<void> => {
+	if (navigator.clipboard) {
+		await navigator.clipboard.writeText(text);
+		return;
+	}
+	const area = document.createElement("textarea");
+	area.value = text;
+	area.setAttribute("readonly", "");
+	area.style.position = "fixed";
+	area.style.opacity = "0";
+	document.body.appendChild(area);
+	area.select();
+	const ok = document.execCommand("copy");
+	document.body.removeChild(area);
+	if (!ok) throw new Error("copy-failed");
+};
+
+type CopyState = "idle" | "ok" | "error";
+
+const useCopy = (getText: () => string, label: string) => {
+	const [state, setState] = useState<CopyState>("idle");
+	const timer = useRef<number | undefined>(undefined);
+
+	useEffect(() => () => window.clearTimeout(timer.current), []);
+
+	const copy = useCallback(async () => {
+		window.clearTimeout(timer.current);
+		try {
+			await copyToClipboard(getText());
+			setState("ok");
+		} catch {
+			setState("error");
+		}
+		timer.current = window.setTimeout(() => setState("idle"), 2200);
+	}, [getText]);
+
+	const title =
+		state === "ok"
+			? `${label} copied`
+			: state === "error"
+				? `Could not copy ${label.toLowerCase()}`
+				: `Copy ${label.toLowerCase()}`;
+
+	return { state, title, copy };
+};
+
+const CopyButton = ({ text, label }: { text: string; label: string }) => {
+	const { state, title, copy } = useCopy(() => text, label);
 
 	return (
-		<ConfigProvider
-			theme={{
-				algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
-				token: {
-					colorPrimary: "#1677ff",
-					borderRadius: 8,
-					fontFamily:
-						"-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-				},
-			}}
+		<button
+			type="button"
+			className="cv-copy no-print"
+			data-state={state}
+			onClick={copy}
+			title={title}
+			aria-label={title}
 		>
-			<style>
-				{`
-				@media (max-width: 576px) {
-					.header-label-hide {
-						display: none !important;
-					}
-					.header-title-hide {
-						display: none !important;
-					}
-				}
-				@media print {
-					@page {
-						margin: 1.2cm;
-						size: auto;
-					}
-					.no-print, header.ant-layout-header, footer.ant-layout-footer, .ant-float-btn, .ant-typography-copy {
-						display: none !important;
-					}
-					*, *::before, *::after {
-						color: #000000 !important;
-						text-shadow: none !important;
-						-webkit-print-color-adjust: exact !important;
-						print-color-adjust: exact !important;
-					}
-					body, .ant-layout, .ant-card, .ant-card-body {
-						background: #ffffff !important;
-						color: #000000 !important;
-						padding: 0 !important;
-						font-size: 9.5pt !important;
-					}
-					.ant-typography, .ant-typography-secondary, p, span, li, a, em, strong, div {
-						color: #000000 !important;
-					}
-					h1, h2, h3, h4, .ant-typography h1, .ant-typography h2, .ant-typography h3, .ant-typography h4 {
-						color: #000000 !important;
-						page-break-after: avoid !important;
-						break-after: avoid !important;
-					}
-					.ant-tag {
-						background: #f8fafc !important;
-						border: 1px solid #cbd5e1 !important;
-						color: #000000 !important;
-						font-weight: 500 !important;
-					}
-					.ant-divider {
-						border-color: #d1d5db !important;
-					}
-					.ant-layout-content {
-						padding: 0 !important;
-						max-width: 100% !important;
-					}
-					.ant-card {
-						box-shadow: none !important;
-						border: none !important;
-						background: transparent !important;
-					}
-					.ant-card-body {
-						padding: 0 !important;
-					}
-					section, .experience-item {
-						page-break-inside: avoid !important;
-						break-inside: avoid !important;
-					}
-					a {
-						text-decoration: none !important;
-						color: #000000 !important;
-					}
-				}
-			`}
-			</style>
-			<Layout
-				style={{
-					minHeight: "100vh",
-					background: darkMode ? "#07161e" : "#f5f7fa",
-					color: darkMode ? "#d9e2e6" : "#2c3e50",
-				}}
-			>
-				<Header
-					className="no-print"
-					style={{
-						position: "sticky",
-						top: 0,
-						zIndex: 100,
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "space-between",
-						padding: "0 16px",
-						background: darkMode
-							? "rgba(13, 34, 47, 0.85)"
-							: "rgba(255, 255, 255, 0.85)",
-						backdropFilter: "blur(12px)",
-						borderBottom: `1px solid ${
-							darkMode ? "rgba(217, 226, 230, 0.15)" : "#e8e8e8"
-						}`,
-					}}
-				>
-					<Space size="middle">
-						<Tooltip title="Return to Dashboard (Esc)">
-							<Button
-								type="text"
-								icon={<HomeOutlined />}
-								href="/"
-								aria-label="Return to Dashboard"
-								style={{ fontWeight: 500 }}
-							>
-								<span className="header-label-hide">Dashboard</span>
-							</Button>
-						</Tooltip>
-						<Text strong className="header-title-hide" style={{ fontSize: 16 }}>
-							Curriculum Vitae
-						</Text>
-					</Space>
+			{state === "ok" ? (
+				<Check aria-hidden />
+			) : state === "error" ? (
+				<TriangleAlert aria-hidden />
+			) : (
+				<Copy aria-hidden />
+			)}
+			<span className="sr-only" role="status">
+				{state === "idle" ? "" : title}
+			</span>
+		</button>
+	);
+};
 
-					<Space size="small">
-						<Tooltip title={copiedLink ? "Link Copied!" : "Copy CV Link"}>
-							<Button
-								icon={<LinkOutlined />}
-								onClick={handleCopyLink}
-								aria-label="Copy CV Link"
-							/>
-						</Tooltip>
-						<Tooltip title="View / Download raw PDF from GitHub">
-							<Button
-								type="primary"
-								icon={<FilePdfOutlined />}
+const LocalClock = memo(function LocalClock() {
+	const [now, setNow] = useState(() => new Date());
+
+	useEffect(() => {
+		const id = window.setInterval(() => setNow(new Date()), 1000);
+		return () => window.clearInterval(id);
+	}, []);
+
+	const parts = new Intl.DateTimeFormat("en-GB", {
+		timeZone: "Europe/London",
+		hour: "2-digit",
+		minute: "2-digit",
+		hour12: false,
+		timeZoneName: "short",
+	}).formatToParts(now);
+
+	const time = parts
+		.filter((part) => part.type === "hour" || part.type === "minute")
+		.map((part) => part.value)
+		.join(":");
+	const zone = parts.find((part) => part.type === "timeZoneName")?.value ?? "";
+
+	return (
+		<span className="cv-clock">
+			{time} {zone}
+		</span>
+	);
+});
+
+const useMagnetic = (strength = 0.24, max = 6) => {
+	const ref = useRef<HTMLSpanElement>(null);
+
+	useEffect(() => {
+		const el = ref.current;
+		if (!el) return;
+		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+			return;
+		}
+
+		let frame = 0;
+		const onMove = (event: PointerEvent) => {
+			const rect = el.getBoundingClientRect();
+			const dx = event.clientX - (rect.left + rect.width / 2);
+			const dy = event.clientY - (rect.top + rect.height / 2);
+			window.cancelAnimationFrame(frame);
+			frame = window.requestAnimationFrame(() => {
+				const x = Math.max(-max, Math.min(max, dx * strength));
+				const y = Math.max(-max, Math.min(max, dy * strength));
+				el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(
+					2,
+				)}px, 0)`;
+			});
+		};
+		const onLeave = () => {
+			window.cancelAnimationFrame(frame);
+			el.style.transform = "";
+		};
+
+		el.addEventListener("pointermove", onMove);
+		el.addEventListener("pointerleave", onLeave);
+		return () => {
+			window.cancelAnimationFrame(frame);
+			el.removeEventListener("pointermove", onMove);
+			el.removeEventListener("pointerleave", onLeave);
+			el.style.transform = "";
+		};
+	}, [strength, max]);
+
+	return ref;
+};
+
+const Magnetic = ({ children }: { children: ReactNode }) => {
+	const ref = useMagnetic();
+	return (
+		<span ref={ref} className="magnetic">
+			{children}
+		</span>
+	);
+};
+
+const useInView = (ref: RefObject<Element | null>) => {
+	const [inView, setInView] = useState(true);
+
+	useEffect(() => {
+		const el = ref.current;
+		if (!el || typeof IntersectionObserver === "undefined") return;
+		const observer = new IntersectionObserver(([entry]) => {
+			setInView(entry?.isIntersecting ?? true);
+		});
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, [ref]);
+
+	return inView;
+};
+
+type Contact = {
+	label: string;
+	value: string;
+	href: string;
+	icon: ReactNode;
+	copy?: string;
+	external?: boolean;
+};
+
+const CONTACTS: Contact[] = [
+	{
+		label: "Email",
+		value: EMAIL,
+		href: `mailto:${EMAIL}`,
+		icon: <Mail aria-hidden />,
+		copy: EMAIL,
+	},
+	{
+		label: "Phone",
+		value: PHONE_DISPLAY,
+		href: `tel:${PHONE_HREF}`,
+		icon: <Phone aria-hidden />,
+		copy: PHONE_HREF,
+	},
+	{
+		label: "Web",
+		value: "chneau.github.io",
+		href: "https://chneau.github.io",
+		icon: <Globe aria-hidden />,
+		copy: "https://chneau.github.io",
+		external: true,
+	},
+	{
+		label: "GitHub",
+		value: "github.com/chneau",
+		href: "https://github.com/chneau",
+		icon: <GithubMark />,
+		external: true,
+	},
+	{
+		label: "LinkedIn",
+		value: "linkedin.com/in/chneau",
+		href: "https://linkedin.com/in/chneau",
+		icon: <LinkedinMark />,
+		external: true,
+	},
+];
+
+type Job = {
+	title: string;
+	when: string;
+	current?: boolean;
+	duration: string;
+	org: string;
+	orgHref: string;
+	location: string;
+	points: { id: string; body: ReactNode }[];
+};
+
+const JOBS: Job[] = [
+	{
+		title: "Senior Software Engineer",
+		when: "February 2017 – Present",
+		current: true,
+		duration: "9+ yrs",
+		org: "Celerum Ltd",
+		orgHref: "https://celerum.co.uk",
+		location: "Aberdeen, UK",
+		points: [
+			{
+				id: "platform",
+				body: (
+					<>
+						<strong>Cloud-Native Platform Architecture:</strong> Architected and
+						engineered an enterprise cloud-native marine logistics and offshore
+						supply vessel planning platform, unifying fragmented services into a
+						modern Bun, Hono, React 19, and TypeScript web platform with
+						Python/SimPy simulation and C# optimization engines as specialized
+						background workers.
+					</>
+				),
+			},
+			{
+				id: "optimization",
+				body: (
+					<>
+						<strong>Optimization & Simulation Engines:</strong> Developed
+						discrete-event simulation models and constraint-solving scheduling
+						engines for offshore decommissioning, vessel sharing, and complex
+						cargo logistics across North Sea operations.
+					</>
+				),
+			},
+			{
+				id: "microservices",
+				body: (
+					<>
+						<strong>High-Performance Microservices & GIS:</strong> Implemented
+						zero-allocation Go microservices and GIS routing pipelines (OSRM
+						approximation and spatial distance matrices) processing large-scale
+						geospatial and AIS (Automatic Identification System) vessel
+						telemetry data.
+					</>
+				),
+			},
+			{
+				id: "database",
+				body: (
+					<>
+						<strong>Database & Query Optimization:</strong> Architected
+						multi-tenant data tiers across PostgreSQL, SQLite, MongoDB, and
+						Redis; designed optimized schema migrations, spatial indexes, and
+						caching strategies delivering sub-millisecond query latencies.
+					</>
+				),
+			},
+			{
+				id: "fullstack",
+				body: (
+					<>
+						<strong>Full-Stack Web Applications:</strong> Built responsive,
+						reactive enterprise web portals, dashboards, and scheduling tools
+						utilizing React, Vite, Ant Design, Tailwind CSS, and WebSockets for
+						real-time fleet tracking.
+					</>
+				),
+			},
+			{
+				id: "devops",
+				body: (
+					<>
+						<strong>DevOps & CI/CD Infrastructure:</strong> Designed
+						containerized deployment pipelines using Docker, Kubernetes, and
+						GitHub Actions; established automated linting, testcontainers, and
+						fast-feedback builds reducing release deployment cycles.
+					</>
+				),
+			},
+			{
+				id: "mentorship",
+				body: (
+					<>
+						<strong>Technical Mentorship & Standards:</strong> Led engineering
+						best practices, code reviews, architectural documentation, and
+						supervised university R&D projects and junior engineers.
+					</>
+				),
+			},
+		],
+	},
+	{
+		title: "Software Engineer (KTP Associate)",
+		when: "September 2014 – February 2017",
+		duration: "2.5 yrs",
+		org: "Robert Gordon University",
+		orgHref: "https://www.rgu.ac.uk",
+		location: "& ARR Craib — Aberdeen, UK",
+		points: [
+			{
+				id: "fleet",
+				body: (
+					<>
+						<strong>Fleet Management System:</strong> Designed, developed, and
+						deployed an enterprise-wide real-time fleet logistics and dispatch
+						management system for road haulage operations.
+					</>
+				),
+			},
+			{
+				id: "distributed",
+				body: (
+					<>
+						<strong>Distributed Services & Scaling:</strong> Engineered
+						load-balanced microservices handling high-concurrency vehicle
+						telemetry, automated job scheduling, and driver dispatching using
+						Meteor.js, Node.js, MongoDB, and Java.
+					</>
+				),
+			},
+			{
+				id: "leadership",
+				body: (
+					<>
+						<strong>Leadership & Stakeholder Alignment:</strong> Led user
+						adoption, operator training, and workflow digitalization across
+						depot networks; completed professional management and leadership
+						training under the UK Knowledge Transfer Partnership (KTP).
+					</>
+				),
+			},
+		],
+	},
+];
+
+const JobItem = ({ job }: { job: Job }) => (
+	<article className="cv-job">
+		<span
+			className="cv-job-dot"
+			data-current={job.current ? "true" : "false"}
+			aria-hidden
+		/>
+		<div className="cv-job-head">
+			<h3 className="cv-job-title">{job.title}</h3>
+			<span
+				className="cv-job-when"
+				data-current={job.current ? "true" : "false"}
+			>
+				{job.when}
+			</span>
+		</div>
+		<div className="cv-job-org">
+			<a href={job.orgHref} target="_blank" rel="noreferrer">
+				{job.org}
+				<ArrowUpRight className="cv-ext" aria-hidden />
+			</a>
+			{" — "}
+			{job.location}
+			<span className="cv-duration">{job.duration}</span>
+		</div>
+		<ul className="cv-points">
+			{job.points.map((point) => (
+				<li className="cv-point" key={point.id}>
+					{point.body}
+				</li>
+			))}
+		</ul>
+	</article>
+);
+
+const getInitialTheme = (): boolean =>
+	typeof document !== "undefined" &&
+	document.documentElement.dataset.theme === "dark";
+
+export const App = () => {
+	const [darkMode, setDarkMode] = useState(getInitialTheme);
+	const heroRef = useRef<HTMLElement>(null);
+	const heroInView = useInView(heroRef);
+	const linkCopy = useCopy(() => window.location.href, "CV link");
+
+	useEffect(() => {
+		const theme = darkMode ? "dark" : "light";
+		document.documentElement.dataset.theme = theme;
+		localStorage.setItem("chneau_cv_theme", theme);
+	}, [darkMode]);
+
+	// Keyboard shortcut: Esc to return to the dashboard.
+	useEffect(() => {
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") window.location.href = "/";
+		};
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, []);
+
+	return (
+		<div className="cv-root">
+			<div className="cv-grain no-print" aria-hidden />
+
+			<header className="cv-header no-print">
+				<div className="cv-header-inner">
+					<a className="cv-brand" href="/" title="Return to dashboard (Esc)">
+						<span className="cv-brand-mark">CN</span>
+						<span className="cv-brand-text">
+							<span className="cv-brand-name">Charles Neau</span>
+							<span className="cv-brand-role">Curriculum Vitae</span>
+						</span>
+					</a>
+
+					<nav className="cv-actions" aria-label="CV actions">
+						<Magnetic>
+							<a
+								className="cv-action cv-action--icon"
+								href="/"
+								title="Dashboard (Esc)"
+								aria-label="Return to dashboard"
+							>
+								<Home aria-hidden />
+							</a>
+						</Magnetic>
+						<Magnetic>
+							<button
+								type="button"
+								className="cv-action cv-action--icon"
+								data-state={linkCopy.state}
+								onClick={linkCopy.copy}
+								title={linkCopy.title}
+								aria-label={linkCopy.title}
+							>
+								{linkCopy.state === "ok" ? (
+									<Check aria-hidden />
+								) : linkCopy.state === "error" ? (
+									<TriangleAlert aria-hidden />
+								) : (
+									<Link2 aria-hidden />
+								)}
+							</button>
+						</Magnetic>
+						<Magnetic>
+							<a
+								className="cv-action"
+								data-variant="primary"
 								href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
 								target="_blank"
 								rel="noreferrer"
-								aria-label="Download PDF"
+								title="View or download the raw PDF from GitHub"
 							>
-								<span className="header-label-hide">PDF</span>
-							</Button>
-						</Tooltip>
-						<Tooltip title="View / Download raw DOCX from GitHub">
-							<Button
-								icon={<FileWordOutlined />}
+								<FileText aria-hidden />
+								<span className="cv-action-label">PDF</span>
+							</a>
+						</Magnetic>
+						<Magnetic>
+							<a
+								className="cv-action"
 								href="https://raw.githubusercontent.com/chneau/cv/master/cv.docx"
 								target="_blank"
 								rel="noreferrer"
-								aria-label="Download DOCX"
+								title="View or download the raw DOCX from GitHub"
 							>
-								<span className="header-label-hide">DOCX</span>
-							</Button>
-						</Tooltip>
-						<Tooltip title="Print or Save as PDF (Ctrl+P)">
-							<Button
-								icon={<PrinterOutlined />}
+								<FileType aria-hidden />
+								<span className="cv-action-label">DOCX</span>
+							</a>
+						</Magnetic>
+						<Magnetic>
+							<button
+								type="button"
+								className="cv-action cv-action--icon"
 								onClick={() => window.print()}
-								aria-label="Print CV"
-							/>
-						</Tooltip>
-						<Tooltip
-							title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+								title="Print or save as PDF (Ctrl+P)"
+								aria-label="Print or save as PDF"
+							>
+								<Printer aria-hidden />
+							</button>
+						</Magnetic>
+						<Magnetic>
+							<button
+								type="button"
+								className="cv-action cv-action--icon"
+								onClick={() => setDarkMode((value) => !value)}
+								title={
+									darkMode ? "Switch to light mode" : "Switch to dark mode"
+								}
+								aria-label={
+									darkMode ? "Switch to light mode" : "Switch to dark mode"
+								}
+							>
+								{darkMode ? <Sun aria-hidden /> : <Moon aria-hidden />}
+							</button>
+						</Magnetic>
+					</nav>
+				</div>
+			</header>
+
+			<section className="cv-shell cv-hero" ref={heroRef}>
+				<div data-reveal style={reveal(0)}>
+					<span className="cv-eyebrow">Curriculum Vitae</span>
+					<h1 className="cv-name">Charles Neau</h1>
+					<p className="cv-role">Senior Full-Stack & Systems Engineer</p>
+					<div className="cv-status">
+						<a
+							className="cv-status-item"
+							href="https://maps.google.com/?q=Edinburgh,+UK"
+							target="_blank"
+							rel="noreferrer"
 						>
-							<Button
-								type="text"
-								icon={darkMode ? <SunOutlined /> : <MoonOutlined />}
-								onClick={() => setDarkMode(!darkMode)}
-								aria-label="Toggle Dark Mode"
-							/>
-						</Tooltip>
-					</Space>
-				</Header>
+							<span className="cv-status-dot" aria-hidden />
+							Edinburgh, United Kingdom
+						</a>
+						<span className="cv-status-sep" aria-hidden />
+						<span className="cv-status-item">
+							<Clock aria-hidden />
+							<LocalClock />
+						</span>
+					</div>
+				</div>
 
-				<Content
-					style={{
-						padding: "32px 16px",
-						maxWidth: 960,
-						margin: "0 auto",
-						width: "100%",
-					}}
+				<ul
+					className="cv-contact cv-contact-list"
+					data-reveal
+					style={reveal(1)}
 				>
-					<Card
-						bordered
-						style={{
-							borderRadius: 12,
-							boxShadow: darkMode
-								? "0 8px 32px rgba(0, 0, 0, 0.45)"
-								: "0 8px 32px rgba(0, 0, 0, 0.06)",
-							background: darkMode ? "#0d222f" : "#ffffff",
-							borderColor: darkMode ? "rgba(217, 226, 230, 0.18)" : "#e8e8e8",
-						}}
-					>
-						{/* Header & Contact */}
-						<div style={{ textAlign: "center", marginBottom: 24 }}>
-							<Title level={1} style={{ margin: "0 0 4px 0", fontSize: 32 }}>
-								Charles Neau
-							</Title>
-							<Title
-								level={3}
-								style={{
-									margin: "0 0 12px 0",
-									color: "#1677ff",
-									fontWeight: 600,
-									fontSize: 18,
-								}}
+					{CONTACTS.map((contact) => (
+						<li className="cv-contact-item" key={contact.label}>
+							{contact.icon}
+							<span className="cv-contact-label">{contact.label}</span>
+							<a
+								className="cv-contact-value"
+								href={contact.href}
+								{...(contact.external
+									? { target: "_blank", rel: "noreferrer" }
+									: {})}
 							>
-								Senior Full-Stack & Systems Engineer
-							</Title>
+								{contact.value}
+								{contact.external && (
+									<ArrowUpRight className="cv-ext" aria-hidden />
+								)}
+							</a>
+							{contact.copy && (
+								<CopyButton text={contact.copy} label={contact.label} />
+							)}
+						</li>
+					))}
+				</ul>
+			</section>
 
-							<Space wrap size={[16, 8]} style={{ justifyContent: "center" }}>
-								<Text type="secondary">
-									<EnvironmentOutlined />{" "}
-									<a
-										href="https://maps.google.com/?q=Edinburgh,+UK"
-										target="_blank"
-										rel="noreferrer"
-									>
-										Edinburgh, UK <ExportOutlined style={{ fontSize: 11 }} />
-									</a>
-								</Text>
-								<Text type="secondary">
-									<MailOutlined />{" "}
-									<a href="mailto:charles63500@gmail.com">
-										charles63500@gmail.com
-									</a>
-									<Text
-										copyable={{
-											text: "charles63500@gmail.com",
-											tooltips: ["Copy Email", "Copied!"],
-										}}
-										style={{ marginLeft: 4 }}
-									/>
-								</Text>
-								<Text type="secondary">
-									<PhoneOutlined />{" "}
-									<a href="tel:+447397174345">+44 7397 174345</a>
-									<Text
-										copyable={{
-											text: "+447397174345",
-											tooltips: ["Copy Phone", "Copied!"],
-										}}
-										style={{ marginLeft: 4 }}
-									/>
-								</Text>
-								<Text type="secondary">
-									<GlobalOutlined />{" "}
-									<a
-										href="https://chneau.github.io"
-										target="_blank"
-										rel="noreferrer"
-									>
-										chneau.github.io <ExportOutlined style={{ fontSize: 11 }} />
-									</a>
-								</Text>
-								<Text type="secondary">
-									<GithubOutlined />{" "}
-									<a
-										href="https://github.com/chneau"
-										target="_blank"
-										rel="noreferrer"
-									>
-										github.com/chneau{" "}
-										<ExportOutlined style={{ fontSize: 11 }} />
-									</a>
-								</Text>
-								<Text type="secondary">
-									<LinkedinOutlined />{" "}
-									<a
-										href="https://linkedin.com/in/chneau"
-										target="_blank"
-										rel="noreferrer"
-									>
-										linkedin.com/in/chneau{" "}
-										<ExportOutlined style={{ fontSize: 11 }} />
-									</a>
-								</Text>
-							</Space>
+			<main className="cv-shell cv-main">
+				<div className="cv-col cv-col--main">
+					<section className="cv-section" data-reveal style={reveal(2)}>
+						<div className="cv-section-head">
+							<h2 className="cv-section-title">Summary</h2>
+							<span className="cv-section-hint">10+ years</span>
 						</div>
+						<p className="cv-lead">
+							Versatile, hands-on{" "}
+							<strong>Senior Full-Stack & Systems Engineer</strong> with 10+
+							years of experience engineering high-performance distributed
+							platforms, discrete-event simulation & logistics optimization
+							engines, and full-stack cloud-native web applications. Proven
+							track record leading architecture and end-to-end delivery: from
+							database tuning, GIS/routing algorithms, and real-time streaming
+							to modern web UIs (React 19, TypeScript, Vite), Go/Bun
+							microservices, Docker/Kubernetes infrastructure, CI/CD automation,
+							and AI-accelerated workflows.
+						</p>
+					</section>
 
-						<Divider style={{ margin: "16px 0 24px 0" }} />
+					<section className="cv-section" data-reveal style={reveal(3)}>
+						<div className="cv-section-head">
+							<h2 className="cv-section-title">Experience</h2>
+							<span className="cv-section-hint">{JOBS.length} roles</span>
+						</div>
+						<div className="cv-timeline">
+							{JOBS.map((job) => (
+								<JobItem job={job} key={job.title} />
+							))}
+						</div>
+					</section>
 
-						{/* Professional Summary */}
-						<section style={{ marginBottom: 28 }}>
-							<Title
-								level={4}
-								style={{
-									color: "#1677ff",
-									marginBottom: 12,
-									textTransform: "uppercase",
-									letterSpacing: 0.5,
-								}}
+					<section className="cv-section" data-reveal style={reveal(4)}>
+						<div className="cv-section-head">
+							<h2 className="cv-section-title">Publication</h2>
+							<span className="cv-section-hint">peer-reviewed</span>
+						</div>
+						<article className="cv-paper">
+							<a
+								className="cv-paper-title"
+								href="https://ieeexplore.ieee.org/search/searchresult.jsp?newsearch=true&queryText=An%20Analysis%20of%20Indirect%20Optimisation%20Strategies%20for%20Scheduling%20Charles%20Neau"
+								target="_blank"
+								rel="noreferrer"
 							>
-								Professional Summary
-							</Title>
-							<Paragraph style={{ fontSize: 15, lineHeight: 1.7 }}>
-								Versatile, hands-on{" "}
-								<strong>Senior Full-Stack & Systems Engineer</strong> with 10+
-								years of experience engineering high-performance distributed
-								platforms, discrete-event simulation & logistics optimization
-								engines, and full-stack cloud-native web applications. Proven
-								track record leading architecture and end-to-end delivery: from
-								database tuning, GIS/routing algorithms, and real-time streaming
-								to modern web UIs (React 19, TypeScript, Vite), Go/Bun
-								microservices, Docker/Kubernetes infrastructure, CI/CD
-								automation, and AI-accelerated workflows.
-							</Paragraph>
-						</section>
+								An Analysis of Indirect Optimisation Strategies for Scheduling
+								<ArrowUpRight className="cv-ext" aria-hidden />
+							</a>
+							<p className="cv-paper-authors">
+								Charles Neau, Olivier Regnier-Coudert, and John McCall.
+							</p>
+							<p className="cv-paper-venue">
+								IEEE World Congress on Computational Intelligence (IEEE WCCI
+								2018)
+							</p>
+						</article>
+					</section>
+				</div>
 
-						{/* Technical Skills */}
-						<section style={{ marginBottom: 28 }}>
-							<Title
-								level={4}
-								style={{
-									color: "#1677ff",
-									marginBottom: 16,
-									textTransform: "uppercase",
-									letterSpacing: 0.5,
-								}}
-							>
-								Technical Expertise
-							</Title>
-							<div
-								style={{
-									display: "grid",
-									gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-									gap: 14,
-								}}
-							>
-								{SKILLS.map((grp) => (
-									<div
-										key={grp.category}
-										style={{
-											padding: "12px 14px",
-											borderRadius: 8,
-											background: darkMode
-												? "rgba(255, 255, 255, 0.04)"
-												: "#f8fafc",
-											border: `1px solid ${
-												darkMode ? "rgba(255, 255, 255, 0.08)" : "#edf2f7"
-											}`,
-										}}
-									>
-										<Text
-											strong
-											style={{
-												display: "block",
-												marginBottom: 8,
-												fontSize: 13,
-												color: darkMode ? "#93c5fd" : "#1e40af",
-											}}
-										>
-											{grp.category}
-										</Text>
-										<Space size={[4, 6]} wrap style={{ width: "100%" }}>
-											{grp.items.map((it) => (
-												<Tooltip
-													key={it}
-													title={`Search "${it}" projects on GitHub`}
-												>
-													<a
-														href={getSkillSearchUrl(it)}
-														target="_blank"
-														rel="noreferrer"
-														style={{ textDecoration: "none" }}
-													>
-														<Tag
-															color={grp.color}
-															style={{
-																margin: 0,
-																borderRadius: 4,
-																fontSize: 12,
-																whiteSpace: "normal",
-																wordBreak: "break-word",
-																height: "auto",
-																lineHeight: "18px",
-																padding: "2px 7px",
-																cursor: "pointer",
-															}}
-														>
-															{it}
-														</Tag>
-													</a>
-												</Tooltip>
-											))}
-										</Space>
-									</div>
-								))}
-							</div>
-						</section>
-
-						{/* Professional Experience */}
-						<section style={{ marginBottom: 28 }}>
-							<Title
-								level={4}
-								style={{
-									color: "#1677ff",
-									marginBottom: 16,
-									textTransform: "uppercase",
-									letterSpacing: 0.5,
-								}}
-							>
-								Professional Experience
-							</Title>
-
-							{/* Celerum Ltd */}
-							<div className="experience-item" style={{ marginBottom: 24 }}>
-								<div
-									style={{
-										display: "flex",
-										justifyContent: "space-between",
-										alignItems: "baseline",
-										flexWrap: "wrap",
-										marginBottom: 4,
-									}}
-								>
-									<Text strong style={{ fontSize: 16 }}>
-										Senior Software Engineer
-									</Text>
-									<Space size="small">
-										<Text type="secondary" style={{ fontSize: 14 }}>
-											February 2017 – Present
-										</Text>
-										<Tag
-											color="blue"
-											style={{ margin: 0, borderRadius: 4, fontSize: 11 }}
-										>
-											9+ yrs
-										</Tag>
-									</Space>
-								</div>
-								<Text
-									italic
-									type="secondary"
-									style={{ display: "block", marginBottom: 12 }}
-								>
-									<a
-										href="https://celerum.co.uk"
-										target="_blank"
-										rel="noreferrer"
-										style={{ color: "inherit", textDecoration: "underline" }}
-									>
-										Celerum Ltd <ExportOutlined style={{ fontSize: 11 }} />
-									</a>{" "}
-									— Aberdeen, UK
-								</Text>
-								<ul
-									style={{
-										paddingLeft: 20,
-										margin: 0,
-										lineHeight: 1.7,
-										fontSize: 14.5,
-									}}
-								>
-									<li style={{ marginBottom: 8 }}>
-										<strong>Cloud-Native Platform Architecture:</strong>{" "}
-										Architected and engineered an enterprise cloud-native marine
-										logistics and offshore supply vessel planning platform,
-										unifying fragmented services into a modern Bun, Hono, React
-										19, and TypeScript web platform with Python/SimPy simulation
-										and C# optimization engines as specialized background
-										workers.
-									</li>
-									<li style={{ marginBottom: 8 }}>
-										<strong>Optimization & Simulation Engines:</strong>{" "}
-										Developed discrete-event simulation models and
-										constraint-solving scheduling engines for offshore
-										decommissioning, vessel sharing, and complex cargo logistics
-										across North Sea operations.
-									</li>
-									<li style={{ marginBottom: 8 }}>
-										<strong>High-Performance Microservices & GIS:</strong>{" "}
-										Implemented zero-allocation Go microservices and GIS routing
-										pipelines (OSRM approximation and spatial distance matrices)
-										processing large-scale geospatial and AIS (Automatic
-										Identification System) vessel telemetry data.
-									</li>
-									<li style={{ marginBottom: 8 }}>
-										<strong>Database & Query Optimization:</strong> Architected
-										multi-tenant data tiers across PostgreSQL, SQLite, MongoDB,
-										and Redis; designed optimized schema migrations, spatial
-										indexes, and caching strategies delivering sub-millisecond
-										query latencies.
-									</li>
-									<li style={{ marginBottom: 8 }}>
-										<strong>Full-Stack Web Applications:</strong> Built
-										responsive, reactive enterprise web portals, dashboards, and
-										scheduling tools utilizing React, Vite, Ant Design, Tailwind
-										CSS, and WebSockets for real-time fleet tracking.
-									</li>
-									<li style={{ marginBottom: 8 }}>
-										<strong>DevOps & CI/CD Infrastructure:</strong> Designed
-										containerized deployment pipelines using Docker, Kubernetes,
-										and GitHub Actions; established automated linting,
-										testcontainers, and fast-feedback builds reducing release
-										deployment cycles.
-									</li>
-									<li>
-										<strong>Technical Mentorship & Standards:</strong> Led
-										engineering best practices, code reviews, architectural
-										documentation, and supervised university R&D projects and
-										junior engineers.
-									</li>
-								</ul>
-							</div>
-
-							<Divider style={{ margin: "20px 0" }} />
-
-							{/* RGU & ARR Craib */}
-							<div className="experience-item">
-								<div
-									style={{
-										display: "flex",
-										justifyContent: "space-between",
-										alignItems: "baseline",
-										flexWrap: "wrap",
-										marginBottom: 4,
-									}}
-								>
-									<Text strong style={{ fontSize: 16 }}>
-										Software Engineer (KTP Associate)
-									</Text>
-									<Space size="small">
-										<Text type="secondary" style={{ fontSize: 14 }}>
-											September 2014 – February 2017
-										</Text>
-										<Tag
-											color="cyan"
-											style={{ margin: 0, borderRadius: 4, fontSize: 11 }}
-										>
-											2.5 yrs
-										</Tag>
-									</Space>
-								</div>
-								<Text
-									italic
-									type="secondary"
-									style={{ display: "block", marginBottom: 12 }}
-								>
-									<a
-										href="https://www.rgu.ac.uk"
-										target="_blank"
-										rel="noreferrer"
-										style={{ color: "inherit", textDecoration: "underline" }}
-									>
-										Robert Gordon University{" "}
-										<ExportOutlined style={{ fontSize: 11 }} />
-									</a>{" "}
-									& ARR Craib — Aberdeen, UK
-								</Text>
-								<ul
-									style={{
-										paddingLeft: 20,
-										margin: 0,
-										lineHeight: 1.7,
-										fontSize: 14.5,
-									}}
-								>
-									<li style={{ marginBottom: 8 }}>
-										<strong>Fleet Management System:</strong> Designed,
-										developed, and deployed an enterprise-wide real-time fleet
-										logistics and dispatch management system for road haulage
-										operations.
-									</li>
-									<li style={{ marginBottom: 8 }}>
-										<strong>Distributed Services & Scaling:</strong> Engineered
-										load-balanced microservices handling high-concurrency
-										vehicle telemetry, automated job scheduling, and driver
-										dispatching using Meteor.js, Node.js, MongoDB, and Java.
-									</li>
-									<li>
-										<strong>Leadership & Stakeholder Alignment:</strong> Led
-										user adoption, operator training, and workflow
-										digitalization across depot networks; completed professional
-										management and leadership training under the UK Knowledge
-										Transfer Partnership (KTP).
-									</li>
-								</ul>
-							</div>
-						</section>
-
-						{/* Education */}
-						<section style={{ marginBottom: 28 }}>
-							<Title
-								level={4}
-								style={{
-									color: "#1677ff",
-									marginBottom: 16,
-									textTransform: "uppercase",
-									letterSpacing: 0.5,
-								}}
-							>
-								Education
-							</Title>
-							<Space direction="vertical" size={12} style={{ width: "100%" }}>
-								<div>
-									<div
-										style={{
-											display: "flex",
-											justifyContent: "space-between",
-											flexWrap: "wrap",
-										}}
-									>
-										<Text strong>
-											Bachelor of Science in Computer Science (Software
-											Development for Mobile Devices)
-										</Text>
-										<Text type="secondary">2013 – 2014</Text>
-									</div>
-									<Text italic type="secondary">
+				<aside className="cv-col cv-col--aside">
+					<section className="cv-section" data-reveal style={reveal(5)}>
+						<div className="cv-section-head">
+							<h2 className="cv-section-title">Expertise</h2>
+							<span className="cv-section-hint">{SKILLS.length} domains</span>
+						</div>
+						{SKILLS.map((group) => (
+							<div className="cv-skill-group" key={group.category}>
+								<h3 className="cv-skill-name">{group.category}</h3>
+								<div className="cv-skill-tags">
+									{group.items.map((item) => (
 										<a
-											href="https://www.uca.fr"
+											className="cv-tag"
+											key={item}
+											href={getSkillSearchUrl(item)}
 											target="_blank"
 											rel="noreferrer"
-											style={{ color: "inherit", textDecoration: "underline" }}
+											title={`Search "${item}" projects on GitHub`}
 										>
-											Université Blaise Pascal{" "}
-											<ExportOutlined style={{ fontSize: 11 }} />
+											{item}
 										</a>
-										, Clermont-Ferrand, France
-									</Text>
+									))}
 								</div>
-								<div>
-									<div
-										style={{
-											display: "flex",
-											justifyContent: "space-between",
-											flexWrap: "wrap",
-										}}
-									>
-										<Text strong>Bachelor of Science in Computer Science</Text>
-										<Text type="secondary">2011 – 2013</Text>
-									</div>
-									<Text italic type="secondary">
-										<a
-											href="https://iut.uca.fr"
-											target="_blank"
-											rel="noreferrer"
-											style={{ color: "inherit", textDecoration: "underline" }}
-										>
-											IUT Clermont-Ferrand{" "}
-											<ExportOutlined style={{ fontSize: 11 }} />
-										</a>
-										, France
-									</Text>
-								</div>
-							</Space>
-						</section>
-
-						{/* Publications */}
-						<section>
-							<Title
-								level={4}
-								style={{
-									color: "#1677ff",
-									marginBottom: 16,
-									textTransform: "uppercase",
-									letterSpacing: 0.5,
-								}}
-							>
-								Peer-Reviewed Publication
-							</Title>
-							<div
-								style={{
-									padding: "14px 18px",
-									borderRadius: 8,
-									background: darkMode
-										? "rgba(255, 255, 255, 0.04)"
-										: "#f8fafc",
-									border: `1px solid ${
-										darkMode ? "rgba(255, 255, 255, 0.08)" : "#edf2f7"
-									}`,
-								}}
-							>
-								<Text strong style={{ fontSize: 14.5 }}>
-									<a
-										href="https://ieeexplore.ieee.org/search/searchresult.jsp?newsearch=true&queryText=An%20Analysis%20of%20Indirect%20Optimisation%20Strategies%20for%20Scheduling%20Charles%20Neau"
-										target="_blank"
-										rel="noreferrer"
-										style={{ color: "inherit", textDecoration: "underline" }}
-									>
-										An Analysis of Indirect Optimisation Strategies for
-										Scheduling <ExportOutlined style={{ fontSize: 12 }} />
-									</a>
-								</Text>
-								<br />
-								<Text type="secondary">
-									Charles Neau, Olivier Regnier-Coudert, and John McCall.
-								</Text>
-								<br />
-								<Text strong style={{ color: "#1677ff", fontSize: 13 }}>
-									IEEE World Congress on Computational Intelligence (IEEE WCCI
-									2018)
-								</Text>
 							</div>
-						</section>
-					</Card>
-				</Content>
+						))}
+					</section>
 
-				<Footer
-					className="no-print"
-					style={{
-						textAlign: "center",
-						background: "transparent",
-						padding: "16px 24px 32px",
-						color: darkMode ? "#7a929e" : "#8c8c8c",
-					}}
-				>
-					<Space split="•" wrap style={{ justifyContent: "center" }}>
+					<section className="cv-section" data-reveal style={reveal(6)}>
+						<div className="cv-section-head">
+							<h2 className="cv-section-title">Education</h2>
+						</div>
+						<div className="cv-edu-item">
+							<div className="cv-edu-head">
+								<p className="cv-edu-degree">
+									Bachelor of Science in Computer Science (Software Development
+									for Mobile Devices)
+								</p>
+								<span className="cv-edu-years">2013 – 2014</span>
+							</div>
+							<p className="cv-edu-school">
+								<a href="https://www.uca.fr" target="_blank" rel="noreferrer">
+									Université Blaise Pascal
+									<ArrowUpRight className="cv-ext" aria-hidden />
+								</a>
+								, Clermont-Ferrand, France
+							</p>
+						</div>
+						<div className="cv-edu-item">
+							<div className="cv-edu-head">
+								<p className="cv-edu-degree">
+									Bachelor of Science in Computer Science
+								</p>
+								<span className="cv-edu-years">2011 – 2013</span>
+							</div>
+							<p className="cv-edu-school">
+								<a href="https://iut.uca.fr" target="_blank" rel="noreferrer">
+									IUT Clermont-Ferrand
+									<ArrowUpRight className="cv-ext" aria-hidden />
+								</a>
+								, France
+							</p>
+						</div>
+					</section>
+				</aside>
+			</main>
+
+			<footer className="cv-footer no-print">
+				<div className="cv-footer-inner">
+					<nav className="cv-footer-links" aria-label="Related links">
 						<a href="/">Dashboard</a>
 						<a
 							href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
@@ -977,6 +947,7 @@ export const App = () => {
 							target="_blank"
 							rel="noreferrer"
 						>
+							<GithubMark />
 							GitHub
 						</a>
 						<a
@@ -984,18 +955,26 @@ export const App = () => {
 							target="_blank"
 							rel="noreferrer"
 						>
+							<LinkedinMark />
 							LinkedIn
 						</a>
-					</Space>
+					</nav>
 					{BUILD_DATE && (
-						<div style={{ marginTop: 8, fontSize: 12 }}>
-							Built: {BUILD_DATE}
-						</div>
+						<span className="cv-footer-meta">Built {BUILD_DATE}</span>
 					)}
-				</Footer>
+				</div>
+			</footer>
 
-				<FloatButton.BackTop className="no-print" />
-			</Layout>
-		</ConfigProvider>
+			<button
+				type="button"
+				className="cv-top no-print"
+				data-visible={!heroInView}
+				onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+				title="Back to top"
+				aria-label="Back to top"
+			>
+				<ArrowUp aria-hidden />
+			</button>
+		</div>
 	);
 };

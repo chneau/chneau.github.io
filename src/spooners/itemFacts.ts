@@ -84,7 +84,7 @@ export const aleColour = (def: ItemDefinition | null): string | null => {
 	return `${ALE_COLOURS[tone] ?? tone} ale`;
 };
 
-/** Chilli heat level ("🌶 x2"), when the item declares one. */
+/** Chilli heat level (e.g. "heat 2"), when the item declares one. */
 export const heatLevel = (def: ItemDefinition | null): number | null => {
 	const keyword = (def?.keywords ?? []).find(
 		(candidate) => candidate.type === "HL",

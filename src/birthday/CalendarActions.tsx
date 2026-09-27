@@ -1,4 +1,5 @@
-import { Button, Dropdown, type MenuProps, message } from "antd";
+import { Dropdown, message } from "antd";
+import { CalendarDays, Download, Link as LinkIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const getIcsUrl = () => {
@@ -35,43 +36,44 @@ const addToGoogleCalendar = () => {
 export const CalendarActions = () => {
 	const { t } = useTranslation();
 
-	const calendarItems: MenuProps["items"] = [
+	const calendarItems = [
 		{
 			key: "subscribe",
 			label: t("app.calendar.subscribe"),
-			icon: "📅",
+			icon: <CalendarDays size={14} />,
 			onClick: subscribeICS,
 		},
 		{
 			key: "google",
 			label: "Google Calendar",
-			icon: "🌐",
+			icon: <CalendarDays size={14} />,
 			onClick: addToGoogleCalendar,
 		},
 		{
 			key: "copy",
 			label: t("app.calendar.copy"),
-			icon: "🔗",
+			icon: <LinkIcon size={14} />,
 			onClick: () => {
 				const url = getIcsUrl();
 				navigator.clipboard.writeText(url);
 				message.success(t("app.calendar.copied"));
 			},
 		},
-		{
-			type: "divider",
-		},
+		{ type: "divider" as const },
 		{
 			key: "download",
 			label: t("app.calendar.export"),
-			icon: "📥",
+			icon: <Download size={14} />,
 			onClick: downloadICS,
 		},
 	];
 
 	return (
 		<Dropdown menu={{ items: calendarItems }}>
-			<Button type="primary">📅 {t("app.calendar.export")}</Button>
+			<button type="button" className="tk-iconbtn">
+				<CalendarDays size={15} strokeWidth={1.9} />
+				<span className="tk-iconbtn__label">{t("app.calendar.export")}</span>
+			</button>
 		</Dropdown>
 	);
 };

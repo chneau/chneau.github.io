@@ -1,9 +1,30 @@
 import { Card, Col, Row, Statistic, Tooltip } from "antd";
-import { useMemo } from "react";
+import { Baby, Crown, HeartHandshake, Users } from "lucide-react";
+import { type ReactNode, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
 import { getCompatibilityScore } from "./compatibility";
 import { dataStore } from "./store";
+
+const RecordTitle = ({
+	icon,
+	children,
+}: {
+	icon: ReactNode;
+	children: ReactNode;
+}) => (
+	<span
+		style={{
+			display: "inline-flex",
+			alignItems: "center",
+			gap: 6,
+			fontSize: 13,
+		}}
+	>
+		{icon}
+		{children}
+	</span>
+);
 
 type RecordsWidgetProps = {
 	data: readonly Birthday[];
@@ -73,12 +94,16 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 							}}
 						>
 							<Statistic
-								title={`👴 ${t("app.records.elder")}`}
+								title={
+									<RecordTitle icon={<Crown size={13} strokeWidth={1.9} />}>
+										{t("app.records.elder")}
+									</RecordTitle>
+								}
 								value={records.elder?.name}
 								styles={{
 									content: {
 										fontSize: "1em",
-										color: "#1677ff",
+										color: "var(--tk-accent-ink)",
 										textDecoration: "underline",
 									},
 								}}
@@ -106,12 +131,16 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 							}}
 						>
 							<Statistic
-								title={`👶 ${t("app.records.rookie")}`}
+								title={
+									<RecordTitle icon={<Baby size={13} strokeWidth={1.9} />}>
+										{t("app.records.rookie")}
+									</RecordTitle>
+								}
 								value={records.rookie?.name}
 								styles={{
 									content: {
 										fontSize: "1em",
-										color: "#1677ff",
+										color: "var(--tk-accent-ink)",
 										textDecoration: "underline",
 									},
 								}}
@@ -145,12 +174,18 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 							}}
 						>
 							<Statistic
-								title={`🤝 ${t("app.records.socialite")}`}
+								title={
+									<RecordTitle
+										icon={<HeartHandshake size={13} strokeWidth={1.9} />}
+									>
+										{t("app.records.socialite")}
+									</RecordTitle>
+								}
 								value={records.bestSocialite?.name}
 								styles={{
 									content: {
 										fontSize: "1em",
-										color: "#1677ff",
+										color: "var(--tk-accent-ink)",
 										textDecoration: "underline",
 									},
 								}}
@@ -169,7 +204,11 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 						}
 					>
 						<Statistic
-							title={`👯 ${t("app.records.twins")}`}
+							title={
+								<RecordTitle icon={<Users size={13} strokeWidth={1.9} />}>
+									{t("app.records.twins")}
+								</RecordTitle>
+							}
 							value={records.twins.length}
 							suffix={t("app.records.twins_suffix")}
 							styles={{ content: { fontSize: "1em" } }}

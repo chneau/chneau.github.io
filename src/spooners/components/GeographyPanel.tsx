@@ -1,4 +1,5 @@
 import { Box, Group, Progress, Text, UnstyledButton } from "@mantine/core";
+import { MapPin } from "lucide-react";
 import type { AreaStat } from "../derive";
 import { amount, currencySymbol, money, priceColor } from "../price";
 
@@ -53,7 +54,8 @@ export const GeographyPanel = ({
 						>
 							<Group justify="space-between" gap={8} wrap="nowrap">
 								<Text size="sm" lineClamp={1}>
-									{active ? "📍 " : ""}
+									{active ? <MapPin size={12} /> : null}
+									{active ? " " : ""}
 									{stat.area}
 								</Text>
 								<Group gap={6} wrap="nowrap" align="baseline">

@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { birthdays } from "./birthdays";
+import { KindIcon } from "./KindIcon";
 import { dataStore } from "./store";
 
 export const MilestonesWidget = () => {
@@ -44,10 +45,13 @@ export const MilestonesWidget = () => {
 							<Avatar
 								style={{
 									backgroundColor:
-										item.daysBeforeBirthday === 0 ? "#f5222d" : "#faad14",
+										item.daysBeforeBirthday === 0
+											? "var(--tk-accent)"
+											: "var(--tk-warn)",
+									color: "#04150f",
 								}}
 							>
-								{item.kind}
+								<KindIcon kind={item.kind} size={16} />
 							</Avatar>
 							<Flex vertical flex={1}>
 								<span>

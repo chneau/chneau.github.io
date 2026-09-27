@@ -1,10 +1,8 @@
 import {
-	Alert,
 	Badge,
 	Box,
 	Burger,
 	Button,
-	Center,
 	Drawer,
 	Flex,
 	Group,
@@ -13,25 +11,18 @@ import {
 	Progress,
 	Stack,
 	Text,
-	Title,
 } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import {
 	CheckCircle2,
-	CircleHelp,
 	FileUp,
+	HardDrive,
+	LockKeyhole,
 	Plus,
 	Trash2,
 	Undo2,
 } from "lucide-react";
-import {
-	type DragEvent,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AddItemDrawer } from "@/components/add-item-drawer";
 import { AppSidebar } from "@/components/app-sidebar";
 import { CompanionPanel } from "@/components/companion-panel";
@@ -43,6 +34,7 @@ import {
 	type InventoryFocus,
 	InventoryView,
 } from "@/components/inventory-view";
+import { LandingView } from "@/components/landing-view";
 import { LevelsPanel } from "@/components/levels-panel";
 import { NamesPanel } from "@/components/names-panel";
 import { QuestsPanel } from "@/components/quests-panel";
@@ -152,7 +144,6 @@ export const Home = () => {
 	const [discardModalOpen, setDiscardModalOpen] = useState(false);
 	const [reviewOpen, setReviewOpen] = useState(false);
 	const [activeStorage, setActiveStorage] = useState<number | null>(null);
-	const [dragging, setDragging] = useState(false);
 	const [addOpen, setAddOpen] = useState(false);
 	const [edits, setEdits] = useState<SaveEdit[]>([]);
 
@@ -476,7 +467,7 @@ export const Home = () => {
 			style={{
 				overflow: "hidden",
 				backgroundImage:
-					"radial-gradient(circle at 76% 0%, rgba(130, 100, 40, 0.18), transparent 32rem)",
+					"radial-gradient(circle at 82% -10%, rgba(157, 80, 98, 0.16), transparent 34rem)",
 			}}
 		>
 			{isDesktop && sidebar}
@@ -538,23 +529,17 @@ export const Home = () => {
 							<>
 								{fileName && (
 									<Badge
-										variant="light"
-										color="blue"
+										variant="default"
 										visibleFrom="md"
 										h={28}
-										styles={{ label: { textTransform: "none" } }}
+										color="gray"
+										leftSection={<HardDrive size={13} strokeWidth={2} />}
 										title={`${fileName} (${(fileSize / 1024).toFixed(1)} KB)`}
 									>
-										💾 {fileName}
+										{fileName}
 									</Badge>
 								)}
-								<Badge
-									variant="outline"
-									color="brand"
-									visibleFrom="lg"
-									h={28}
-									styles={{ label: { textTransform: "none" } }}
-								>
+								<Badge variant="outline" color="brand" visibleFrom="lg" h={28}>
 									Build {catalog?.game.steam_build_id ?? "catalog loading"}
 								</Badge>
 							</>
@@ -573,7 +558,7 @@ export const Home = () => {
 									<>
 										<Button
 											variant="light"
-											color="blue"
+											color="brand"
 											size="sm"
 											leftSection={<CheckCircle2 size={16} />}
 											onClick={() => setReviewOpen(true)}
@@ -693,132 +678,13 @@ export const Home = () => {
 				)}
 
 				{!result ? (
-					<Center style={{ flex: 1, minHeight: 0, overflow: "auto" }} p="xl">
-						<Stack w="100%" maw={768} gap="xl">
-							<Box>
-								<Title order={2} size="2rem">
-									How to use the save editor
-								</Title>
-								<Box component="ol" mt="md" pl="lg" style={{ lineHeight: 1.8 }}>
-									<li>
-										Keep a backup, then open a copy of{" "}
-										<Text span ff="monospace">
-											save.save
-										</Text>{" "}
-										below.
-									</li>
-									<li>
-										Choose a section in the sidebar. Edit items or equipment, or
-										add pets, horses, special mounts and robo workers.
-									</li>
-									<li>
-										Use Stage or Add to queue your changes, then select{" "}
-										<Text span fw={500}>
-											Download edited
-										</Text>
-										.
-									</li>
-									<li>
-										With the game closed, replace your chosen save with the
-										downloaded file. Keep your backup until you have tested it
-										in-game.
-									</li>
-								</Box>
-							</Box>
-
-							<Box
-								onDragEnter={(event: DragEvent) => {
-									event.preventDefault();
-									setDragging(true);
-								}}
-								onDragOver={(event: DragEvent) => event.preventDefault()}
-								onDragLeave={() => setDragging(false)}
-								onDrop={(event: DragEvent) => {
-									event.preventDefault();
-									setDragging(false);
-									const file = event.dataTransfer.files[0];
-									if (file) void parseFile(file);
-								}}
-								p="xl"
-								style={{
-									display: "grid",
-									placeItems: "center",
-									textAlign: "center",
-									minHeight: 256,
-									border: `1px dashed ${
-										dragging
-											? "var(--mantine-primary-color-filled)"
-											: "var(--mantine-color-dark-4)"
-									}`,
-									background: dragging
-										? "var(--mantine-primary-color-light)"
-										: "var(--mantine-color-dark-7)",
-								}}
-							>
-								{loading ? (
-									<Box>
-										<Loader mx="auto" />
-										<Text mt="md" size="sm" fw={500}>
-											{status}
-										</Text>
-										<Text mt={4} size="xs" c="dimmed">
-											Reading and verifying happens on this device.
-										</Text>
-									</Box>
-								) : (
-									<Box>
-										<Center
-											mx="auto"
-											w={48}
-											h={48}
-											style={{
-												border: "1px solid var(--mantine-primary-color-filled)",
-												background: "var(--mantine-primary-color-light)",
-												color: "var(--mantine-primary-color-filled)",
-											}}
-										>
-											<FileUp size={20} />
-										</Center>
-										<Text mt="lg" fw={500}>
-											Drop a .save file here
-										</Text>
-										<Text mt={4} size="xs" c="dimmed">
-											or choose a file from your computer
-										</Text>
-										<Button mt="lg" onClick={() => inputRef.current?.click()}>
-											Choose save file
-										</Button>
-										<Text
-											mt="md"
-											size="xs"
-											c="dimmed"
-											style={{ maxWidth: 460 }}
-										>
-											💡 Default path on Windows:{" "}
-											<Text span ff="monospace" size="xs">
-												%LOCALAPPDATA%\CrimsonDesert\Saved\SaveGames\
-											</Text>
-										</Text>
-									</Box>
-								)}
-							</Box>
-
-							{error && (
-								<Alert
-									color="red"
-									icon={<CircleHelp size={16} />}
-									title="Could not open save"
-								>
-									{error}
-								</Alert>
-							)}
-
-							<Text size="sm" c="dimmed">
-								Your original file is never overwritten by the editor. Changes
-								are saved to a separate download.
-							</Text>
-						</Stack>
-					</Center>
+					<LandingView
+						loading={loading}
+						status={status}
+						error={error}
+						onOpenFile={() => inputRef.current?.click()}
+						onSelectFile={(file) => void parseFile(file)}
+					/>
 				) : (
 					<>
 						{view === "skills" ? (
@@ -942,13 +808,18 @@ export const Home = () => {
 							borderTop: "1px solid var(--mantine-color-dark-4)",
 						}}
 					>
-						<Text size="xs" c="dimmed">
-							Safe mode
-						</Text>
-						<Text size="xs" c="dimmed">
-							{`${result.records.length} records · ${edits.length} staged change${
-								edits.length === 1 ? "" : "s"
-							}`}
+						<Group gap={6} wrap="nowrap">
+							<LockKeyhole
+								size={12}
+								color="var(--mantine-color-dark-2)"
+								strokeWidth={2}
+							/>
+							<Text size="xs" c="dimmed">
+								Original file untouched
+							</Text>
+						</Group>
+						<Text size="xs" c="dimmed" ff="monospace">
+							{result.records.length} records · {edits.length} staged
 						</Text>
 					</Group>
 				)}

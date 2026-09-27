@@ -174,7 +174,31 @@
 		},
 		"card": "卡片",
 		"events": "事件",
-		"no_data": "无"
+		"no_data": "无",
+		"hero": {
+			"eyebrow": "Next celebration",
+			"today": "Happening today",
+			"turning": "Turning {{age}}",
+			"cycle": "{{percent}}% of the cycle elapsed",
+			"closest": "Closest",
+			"people": "People tracked",
+			"this_month": "Celebrations this month",
+			"weddings": "Anniversaries",
+			"milestone": "Next milestone",
+			"none": "None on record",
+			"no_title": "No dates on the horizon",
+			"no_body": "Add a birthday or widen the filters to bring the calendar back to life.",
+			"manage": "Manage birthdays",
+			"add": "Add birthday",
+			"details": "View details"
+		},
+		"list": {
+			"showing": "{{shown}} of {{total}} shown",
+			"reset": "Reset filters",
+			"empty_title": "Nothing matches",
+			"empty_body": "No records match the current search and filters."
+		},
+		"loading": "Loading insights"
 	},
 	"table": {
 		"name": "姓名",

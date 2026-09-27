@@ -1,4 +1,5 @@
 import { Badge, Box, Group, Stack, Text } from "@mantine/core";
+import { Flame, TriangleAlert } from "lucide-react";
 import {
 	ageLabel,
 	aleColour,
@@ -99,8 +100,13 @@ export const ItemFacts = ({ def, showOptions, format }: Props) => {
 					</Badge>
 				) : null}
 				{age ? (
-					<Badge size="xs" variant="light" color="orange">
-						🔞 {age}
+					<Badge
+						size="xs"
+						variant="light"
+						color="orange"
+						leftSection={<TriangleAlert size={11} />}
+					>
+						{age}
 					</Badge>
 				) : null}
 				{extras.map((label) => (
@@ -114,8 +120,13 @@ export const ItemFacts = ({ def, showOptions, format }: Props) => {
 					</Badge>
 				) : null}
 				{heat ? (
-					<Badge size="xs" variant="light" color="red">
-						{"🌶".repeat(Math.min(heat, 3))} heat {heat}
+					<Badge
+						size="xs"
+						variant="light"
+						color="red"
+						leftSection={<Flame size={11} />}
+					>
+						heat {heat}
 					</Badge>
 				) : null}
 				{promosHere.map((label) => (
@@ -129,8 +140,14 @@ export const ItemFacts = ({ def, showOptions, format }: Props) => {
 					</Badge>
 				))}
 				{allergenList.map((label) => (
-					<Badge key={label} size="xs" variant="light" color="red">
-						⚠ {label}
+					<Badge
+						key={label}
+						size="xs"
+						variant="light"
+						color="red"
+						leftSection={<TriangleAlert size={11} />}
+					>
+						{label}
 					</Badge>
 				))}
 			</Group>

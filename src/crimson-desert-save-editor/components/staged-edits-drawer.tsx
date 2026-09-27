@@ -1,6 +1,5 @@
 import {
 	ActionIcon,
-	Badge,
 	Box,
 	Button,
 	Divider,
@@ -29,7 +28,7 @@ type StagedEditsDrawerProps = {
 const formatEditDetails = (
 	edit: SaveEdit,
 	nameOf: (key: number) => string,
-): { title: string; description: string; tag: string; color: string } => {
+): { title: string; description: string; tag: string } => {
 	switch (edit.type) {
 		case "quantity":
 			return {
@@ -38,7 +37,6 @@ const formatEditDetails = (
 					edit.inventoryKey,
 				)}`,
 				tag: "Quantity",
-				color: "blue",
 			};
 		case "insertItem":
 			return {
@@ -46,15 +44,13 @@ const formatEditDetails = (
 				description: `Add ${edit.quantity.toLocaleString()} items to ${storageName(
 					edit.inventoryKey,
 				)}`,
-				tag: "New Stack",
-				color: "teal",
+				tag: "New stack",
 			};
 		case "insertCatalogItem":
 			return {
 				title: edit.itemName || nameOf(edit.itemKey),
 				description: `Add 1 item to ${storageName(edit.inventoryKey)}`,
-				tag: "Add Item",
-				color: "cyan",
+				tag: "Add item",
 			};
 		case "equipment":
 			return {
@@ -63,42 +59,36 @@ const formatEditDetails = (
 					edit.unlockedSockets ?? 0
 				} sockets in ${storageName(edit.inventoryKey)}`,
 				tag: "Equipment",
-				color: "orange",
 			};
 		case "insertEquipment":
 			return {
 				title: nameOf(edit.itemKey),
 				description: `Add equipment to ${storageName(edit.inventoryKey)}`,
-				tag: "New Gear",
-				color: "yellow",
+				tag: "New gear",
 			};
 		case "addCompanion":
 			return {
 				title: `Companion #${edit.characterKey}`,
 				description: "Unlock and add to roster",
 				tag: "Companion",
-				color: "grape",
 			};
 		case "addRoboWorkers":
 			return {
 				title: "Robo Workers",
 				description: `Add ${edit.quantity} worker(s)`,
 				tag: "Workers",
-				color: "violet",
 			};
 		case "skills":
 			return {
 				title: "Knowledge & Skills",
 				description: "Batch unlock and set tree progression",
 				tag: "Skills",
-				color: "indigo",
 			};
 		case "dye":
 			return {
 				title: edit.label || `Dye Scheme (${nameOf(edit.itemKey)})`,
 				description: "Color channels updated on equipment",
 				tag: "Dyes",
-				color: "pink",
 			};
 		case "condition":
 			return {
@@ -106,8 +96,7 @@ const formatEditDetails = (
 				description: `Durability & wear updated in ${storageName(
 					edit.inventoryKey,
 				)}`,
-				tag: "Wear & Tear",
-				color: "lime",
+				tag: "Wear & tear",
 			};
 		case "character":
 		case "characterPreset":
@@ -115,7 +104,6 @@ const formatEditDetails = (
 				title: "Character Progression",
 				description: "Player level / bond exp updated",
 				tag: "Levels",
-				color: "red",
 			};
 		case "quest":
 		case "questPreset":
@@ -123,21 +111,18 @@ const formatEditDetails = (
 				title: "Quest Log",
 				description: "Missions and stage completions updated",
 				tag: "Quests",
-				color: "green",
 			};
 		case "renameCompanion":
 			return {
 				title: `Rename (Character #${edit.characterKey})`,
 				description: `Set name to "${edit.name}"`,
 				tag: "Rename",
-				color: "gray",
 			};
 		default:
 			return {
 				title: "Custom Change",
 				description: "Staged save modification",
 				tag: "Edit",
-				color: "blue",
 			};
 	}
 };
@@ -158,7 +143,11 @@ export const StagedEditsDrawer = ({
 			onClose={onClose}
 			title={
 				<Group gap="xs">
-					<CheckCircle2 size={20} color="var(--mantine-color-blue-5)" />
+					<CheckCircle2
+						size={20}
+						color="var(--mantine-primary-color-filled)"
+						strokeWidth={2}
+					/>
 					<Text fw={600} size="lg">
 						Review Staged Changes ({edits.length})
 					</Text>
@@ -168,7 +157,7 @@ export const StagedEditsDrawer = ({
 			size="md"
 			padding="md"
 		>
-			<Flex direction="column" style={{ height: "calc(100vh - 80px)" }}>
+			<Flex direction="column" style={{ height: "calc(100dvh - 80px)" }}>
 				{edits.length === 0 ? (
 					<Box
 						style={{ flex: 1, display: "grid", placeItems: "center" }}
@@ -197,10 +186,17 @@ export const StagedEditsDrawer = ({
 									>
 										<Group justify="space-between" wrap="nowrap" align="start">
 											<Box style={{ minWidth: 0, flex: 1 }}>
-												<Group gap="xs" mb={4}>
-													<Badge size="xs" color={info.color} variant="filled">
+												<Group gap="sm" mb={4} wrap="nowrap">
+													<Text
+														size="10px"
+														ff="monospace"
+														c="dimmed"
+														tt="uppercase"
+														fw={600}
+														style={{ letterSpacing: "0.14em", flexShrink: 0 }}
+													>
 														{info.tag}
-													</Badge>
+													</Text>
 													<Text size="sm" fw={600} truncate>
 														{info.title}
 													</Text>

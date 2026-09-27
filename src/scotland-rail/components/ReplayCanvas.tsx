@@ -1,3 +1,10 @@
+import {
+	AimOutlined,
+	EnvironmentOutlined,
+	SwapRightOutlined,
+	ZoomInOutlined,
+	ZoomOutOutlined,
+} from "@ant-design/icons";
 import { useEffect, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 import {
@@ -11,6 +18,24 @@ import { CATEGORIES, type TrainService, VIEW_BOUNDS } from "../data/types";
 import { drawSmoothPath } from "../engine/curve";
 import { createProjection } from "../engine/projection";
 import { derivedStore, railActions, railStore } from "../store";
+import { palette } from "../theme";
+
+// Vector marker for a scenic landmark, replacing the emoji glyphs used before.
+const drawLandmarkMarker = (
+	ctx: CanvasRenderingContext2D,
+	x: number,
+	y: number,
+) => {
+	ctx.save();
+	ctx.translate(x, y);
+	ctx.rotate(Math.PI / 4);
+	ctx.fillStyle = "#c9a04e";
+	ctx.strokeStyle = palette.bg;
+	ctx.lineWidth = 1;
+	ctx.fillRect(-3.4, -3.4, 6.8, 6.8);
+	ctx.strokeRect(-3.4, -3.4, 6.8, 6.8);
+	ctx.restore();
+};
 
 // Calculate atmospheric day/night colors based on time offset (00:00 to 24:00)
 const getDayNightAtmosphere = (
@@ -25,7 +50,7 @@ const getDayNightAtmosphere = (
 } => {
 	if (!enabled) {
 		return {
-			bgColor: "#07131b",
+			bgColor: palette.bg,
 			landColor: "#0d222f",
 			coastColor: "#436577",
 			isNight: false,
@@ -52,7 +77,7 @@ const getDayNightAtmosphere = (
 		return {
 			bgColor: "#141525",
 			landColor: "#1d2538",
-			coastColor: "#7e6d87",
+			coastColor: "#a07d6a",
 			isNight: false,
 			lightFactor: 0.7,
 		};
@@ -61,7 +86,7 @@ const getDayNightAtmosphere = (
 		return {
 			bgColor: "#121422",
 			landColor: "#1b2033",
-			coastColor: "#6f5b7d",
+			coastColor: "#8a6f66",
 			isNight: true,
 			lightFactor: 0.6,
 		};
@@ -95,6 +120,7 @@ export const ReplayCanvas = () => {
 	// Interactive Zoom and Pan state
 	const [zoom, setZoom] = useState<number>(1);
 	const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+	const [ready, setReady] = useState(false);
 	const isDraggingRef = useRef<boolean>(false);
 	const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -318,13 +344,12 @@ export const ReplayCanvas = () => {
 					continue;
 				}
 
-				sCtx.font = "12px sans-serif";
-				sCtx.fillText(lm.icon, x - 6, y + 4);
+				drawLandmarkMarker(sCtx, x, y);
 
 				if (zoom > 1.2 || viewPreset !== "scotland") {
 					sCtx.font = "bold 9.5px system-ui, sans-serif";
-					sCtx.fillStyle = "#ffba63";
-					sCtx.shadowColor = "rgba(0,0,0,0.85)";
+					sCtx.fillStyle = "#c9a04e";
+					sCtx.shadowColor = "rgba(6, 13, 18, 0.85)";
 					sCtx.shadowBlur = 4;
 					sCtx.fillText(lm.name, x + 10, y + 3);
 					sCtx.shadowBlur = 0;
@@ -341,7 +366,7 @@ export const ReplayCanvas = () => {
 
 			// Station Halo
 			if (st.isMajor) {
-				sCtx.fillStyle = "rgba(89, 215, 255, 0.15)";
+				sCtx.fillStyle = "rgba(90, 169, 201, 0.16)";
 				sCtx.beginPath();
 				sCtx.arc(x, y, 7, 0, Math.PI * 2);
 				sCtx.fill();
@@ -349,7 +374,7 @@ export const ReplayCanvas = () => {
 
 			// Station dot
 			sCtx.fillStyle = st.isMajor ? "#ffffff" : "#98b1be";
-			sCtx.strokeStyle = "#07131b";
+			sCtx.strokeStyle = palette.bg;
 			sCtx.lineWidth = 1;
 			sCtx.beginPath();
 			sCtx.arc(x, y, st.isMajor ? 3.5 : 2.2, 0, Math.PI * 2);
@@ -361,9 +386,9 @@ export const ReplayCanvas = () => {
 				sCtx.font = st.isMajor
 					? "bold 11px system-ui, -apple-system, sans-serif"
 					: "500 9.5px system-ui, -apple-system, sans-serif";
-				sCtx.fillStyle = st.isMajor ? "#edf3f5" : "#a8b5bc";
+				sCtx.fillStyle = st.isMajor ? "#eef3f5" : "#93a6b0";
 
-				sCtx.shadowColor = "rgba(7, 19, 27, 0.9)";
+				sCtx.shadowColor = "rgba(6, 13, 18, 0.9)";
 				sCtx.shadowBlur = 4;
 				sCtx.fillText(st.name, x + 6, y + 3.5);
 				sCtx.shadowBlur = 0;
@@ -418,15 +443,22 @@ export const ReplayCanvas = () => {
 			if (activeSelected) {
 				const catConfig = CATEGORIES[activeSelected.category];
 				ctx.save();
-				ctx.strokeStyle = catConfig.color;
-				ctx.lineWidth = 3.5;
-				ctx.shadowColor = catConfig.color;
-				ctx.shadowBlur = 8;
-				ctx.globalAlpha = 0.9;
-				ctx.beginPath();
+				ctx.lineCap = "round";
+				ctx.lineJoin = "round";
 				const projected = activeSelected.pathCoordinates.map((pt) =>
 					proj.project(pt),
 				);
+				// Soft desaturated underlay gives legibility without a neon glow.
+				ctx.strokeStyle = catConfig.color;
+				ctx.globalAlpha = 0.26;
+				ctx.lineWidth = 6;
+				ctx.beginPath();
+				drawSmoothPath(ctx, projected);
+				ctx.stroke();
+
+				ctx.globalAlpha = 0.95;
+				ctx.lineWidth = 2.4;
+				ctx.beginPath();
 				drawSmoothPath(ctx, projected);
 				ctx.stroke();
 				ctx.restore();
@@ -513,28 +545,23 @@ export const ReplayCanvas = () => {
 			ctx.save();
 			if (isSelected || isHovered) {
 				ctx.strokeStyle = "#ffffff";
-				ctx.lineWidth = 2.5;
-				ctx.shadowColor = catConfig.color;
-				ctx.shadowBlur = 10;
+				ctx.globalAlpha = 0.9;
+				ctx.lineWidth = 2;
 				ctx.beginPath();
 				ctx.arc(x, y, size + 4, 0, Math.PI * 2);
 				ctx.stroke();
-				ctx.shadowBlur = 0;
+				ctx.globalAlpha = 1;
 			}
 
-			// Draw Directional Carriage / Train Hull with Glow
+			// Draw Directional Carriage / Train Hull
 			ctx.translate(x, y);
 			ctx.rotate(train.headingAngle);
-
-			// Neon Shadow / Glow on train marker
-			ctx.shadowColor = catConfig.color;
-			ctx.shadowBlur = isSelected ? 12 : 6;
 
 			// Streamlined Aerodynamic Train Capsule Hull
 			const halfL = size * 1.3;
 			const halfW = size * 0.65;
 			ctx.fillStyle = catConfig.color;
-			ctx.strokeStyle = "#07131b";
+			ctx.strokeStyle = palette.bg;
 			ctx.lineWidth = 1.4;
 
 			ctx.beginPath();
@@ -560,6 +587,8 @@ export const ReplayCanvas = () => {
 
 			ctx.restore();
 		}
+
+		setReady(true);
 	}, [
 		activeTrains,
 		selectedServiceId,
@@ -778,8 +807,39 @@ export const ReplayCanvas = () => {
 				}}
 			/>
 
+			{/* Boot overlay: covers the canvas until the first frame is painted. */}
+			<div
+				aria-hidden={ready}
+				style={{
+					position: "absolute",
+					inset: 0,
+					display: "flex",
+					flexDirection: "column",
+					alignItems: "center",
+					justifyContent: "center",
+					gap: 10,
+					background: palette.bg,
+					pointerEvents: ready ? "none" : "auto",
+					opacity: ready ? 0 : 1,
+					transition: "opacity 0.4s var(--sr-ease)",
+				}}
+			>
+				<span
+					className="sr-skeleton"
+					style={{ width: 210, height: 10, maxWidth: "60vw" }}
+				/>
+				<span
+					className="sr-skeleton"
+					style={{ width: 140, height: 10, maxWidth: "40vw" }}
+				/>
+				<span style={{ color: palette.textFaint, fontSize: "0.75rem" }}>
+					Drawing the network
+				</span>
+			</div>
+
 			{/* Floating Map Navigation Controls */}
 			<div
+				className="sr-glass"
 				style={{
 					position: "absolute",
 					bottom: 96,
@@ -788,73 +848,69 @@ export const ReplayCanvas = () => {
 					display: "flex",
 					flexDirection: "column",
 					gap: 6,
-					background: "rgba(7, 19, 27, 0.88)",
-					backdropFilter: "blur(8px)",
-					border: "1px solid rgba(217, 226, 230, 0.25)",
 					borderRadius: 8,
 					padding: 4,
-					boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
 				}}
 			>
 				<button
 					type="button"
+					className="sr-press"
 					onClick={() => setZoom((prev) => Math.min(8, prev * 1.25))}
-					title="Zoom In (+)"
+					title="Zoom in"
 					style={{
-						background: "rgba(255, 255, 255, 0.08)",
+						background: "rgba(255, 255, 255, 0.06)",
 						border: "none",
-						borderRadius: 4,
-						color: "#edf3f5",
-						width: 28,
-						height: 28,
-						fontSize: "1rem",
+						borderRadius: 6,
+						color: palette.text,
+						width: 30,
+						height: 30,
 						cursor: "pointer",
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "center",
 					}}
 				>
-					+
+					<ZoomInOutlined />
 				</button>
 				<button
 					type="button"
+					className="sr-press"
 					onClick={() => setZoom((prev) => Math.max(0.6, prev * 0.8))}
-					title="Zoom Out (-)"
+					title="Zoom out"
 					style={{
-						background: "rgba(255, 255, 255, 0.08)",
+						background: "rgba(255, 255, 255, 0.06)",
 						border: "none",
-						borderRadius: 4,
-						color: "#edf3f5",
-						width: 28,
-						height: 28,
-						fontSize: "1.1rem",
+						borderRadius: 6,
+						color: palette.text,
+						width: 30,
+						height: 30,
 						cursor: "pointer",
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "center",
 					}}
 				>
-					−
+					<ZoomOutOutlined />
 				</button>
 				<button
 					type="button"
+					className="sr-press"
 					onClick={handleResetView}
-					title="Reset Map View (1x)"
+					title="Reset view"
 					style={{
-						background: "rgba(89, 215, 255, 0.15)",
+						background: palette.accentSoft,
 						border: "none",
-						borderRadius: 4,
-						color: "#59d7ff",
-						width: 28,
-						height: 28,
-						fontSize: "0.85rem",
+						borderRadius: 6,
+						color: palette.accent,
+						width: 30,
+						height: 30,
 						cursor: "pointer",
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "center",
 					}}
 				>
-					⌖
+					<AimOutlined />
 				</button>
 			</div>
 
@@ -867,16 +923,16 @@ export const ReplayCanvas = () => {
 						top: Math.max(16, hoverPos.y - 45),
 						zIndex: 25,
 						pointerEvents: "none",
-						background: "rgba(7, 19, 27, 0.95)",
+						background: "rgba(10, 20, 27, 0.95)",
 						backdropFilter: "blur(8px)",
 						border: `1px solid ${
 							CATEGORIES[hoveredTrain.service.category].color
 						}`,
 						borderRadius: 8,
 						padding: "6px 10px",
-						color: "#edf3f5",
+						color: palette.text,
 						fontSize: "0.8rem",
-						boxShadow: "0 6px 18px rgba(0,0,0,0.6)",
+						boxShadow: "0 14px 30px -18px rgba(0,0,0,0.95)",
 					}}
 				>
 					<div
@@ -887,6 +943,7 @@ export const ReplayCanvas = () => {
 						}}
 					>
 						<span
+							className="sr-num"
 							style={{
 								color: CATEGORIES[hoveredTrain.service.category].color,
 								fontWeight: "bold",
@@ -898,17 +955,28 @@ export const ReplayCanvas = () => {
 					</div>
 					<div
 						style={{
-							color: "#8ca0aa",
+							color: palette.textMuted,
 							fontSize: "0.74rem",
 							marginTop: 2,
+							display: "flex",
+							alignItems: "center",
+							gap: 4,
 						}}
 					>
 						{hoveredTrain.isDwelling ? (
-							<span style={{ color: "#59d7ff" }}>
-								📍 At station: {hoveredTrain.currentStopName}
-							</span>
+							<>
+								<EnvironmentOutlined
+									style={{
+										color: CATEGORIES[hoveredTrain.service.category].color,
+									}}
+								/>
+								<span>At {hoveredTrain.currentStopName}</span>
+							</>
 						) : (
-							<span>➡️ Next: {hoveredTrain.nextStopName ?? "Destination"}</span>
+							<>
+								<SwapRightOutlined />
+								<span>Next: {hoveredTrain.nextStopName ?? "Destination"}</span>
+							</>
 						)}
 					</div>
 				</div>

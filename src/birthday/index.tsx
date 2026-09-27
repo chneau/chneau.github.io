@@ -1,4 +1,10 @@
+import "@fontsource/geist-sans/400.css";
+import "@fontsource/geist-sans/500.css";
+import "@fontsource/geist-sans/600.css";
+import "@fontsource/geist-mono/400.css";
+import "@fontsource/geist-mono/500.css";
 import "antd/dist/reset.css";
+import "./taste.css";
 import "./i18n";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import posthog from "posthog-js/dist/module.full";
@@ -32,6 +38,16 @@ console.log("PostHog initialized");
 
 const container = document.getElementById("root");
 if (!container) throw new Error("No root element found");
+
+// Apply the persisted theme before first paint to avoid a flash.
+try {
+	const saved = localStorage.getItem("store");
+	const dark = saved ? JSON.parse(saved).darkMode !== false : true;
+	document.documentElement.dataset.theme = dark ? "dark" : "light";
+} catch {
+	document.documentElement.dataset.theme = "dark";
+}
+
 const root = createRoot(container);
 root.render(
 	<QueryClientProvider client={queryClient}>
