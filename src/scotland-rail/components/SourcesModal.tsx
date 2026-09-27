@@ -40,7 +40,7 @@ export const SourcesModal = ({
 
 		<Divider
 			style={{
-				borderColor: "rgba(255,255,255,0.15)",
+				borderColor: "var(--app-border)",
 				margin: "12px 0",
 			}}
 		/>
@@ -63,7 +63,7 @@ export const SourcesModal = ({
 				<Code
 					style={{
 						color: palette.accent,
-						background: "rgba(255,255,255,0.1)",
+						background: "var(--app-surface-2)",
 					}}
 				>
 					_getData.ts
@@ -161,7 +161,7 @@ export const SourcesModal = ({
 				<Code
 					style={{
 						color: palette.accent,
-						background: "rgba(255,255,255,0.1)",
+						background: "var(--app-surface-2)",
 					}}
 				>
 					data/timetable.json
@@ -170,7 +170,7 @@ export const SourcesModal = ({
 				<Code
 					style={{
 						color: palette.accent,
-						background: "rgba(255,255,255,0.1)",
+						background: "var(--app-surface-2)",
 					}}
 				>
 					_getData.ts
@@ -181,7 +181,7 @@ export const SourcesModal = ({
 
 		<Divider
 			style={{
-				borderColor: "rgba(255,255,255,0.15)",
+				borderColor: "var(--app-border)",
 				margin: "12px 0",
 			}}
 		/>

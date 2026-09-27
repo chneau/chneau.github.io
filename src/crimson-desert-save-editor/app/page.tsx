@@ -11,6 +11,7 @@ import {
 	Progress,
 	Stack,
 	Text,
+	useMantineColorScheme,
 } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import {
@@ -78,6 +79,7 @@ import {
 	projectRecords,
 	storageSummaries,
 } from "@/lib/staged-projection";
+import { SchemeToggle } from "../../shared";
 
 /**
  * The editor shell.
@@ -90,6 +92,8 @@ import {
  */
 export const Home = () => {
 	const inputRef = useRef<HTMLInputElement>(null);
+	const { colorScheme, setColorScheme } = useMantineColorScheme();
+	const dark = colorScheme === "dark";
 	const session = useMemo(() => new SaveSession(), []);
 	const currentFileNameRef = useRef("save.save");
 	const [navOpened, navHandlers] = useDisclosure(false);
@@ -491,7 +495,7 @@ export const Home = () => {
 					wrap="nowrap"
 					style={{
 						flexShrink: 0,
-						borderBottom: "1px solid var(--mantine-color-dark-4)",
+						borderBottom: "1px solid var(--app-border)",
 					}}
 				>
 					<Group gap="md" wrap="nowrap" style={{ minWidth: 0 }}>
@@ -525,6 +529,10 @@ export const Home = () => {
 						</Box>
 					</Group>
 					<Group gap="xs" wrap="nowrap">
+						<SchemeToggle
+							dark={dark}
+							onToggle={() => setColorScheme(dark ? "light" : "dark")}
+						/>
 						{result && (
 							<>
 								{fileName && (
@@ -805,13 +813,13 @@ export const Home = () => {
 						wrap="nowrap"
 						style={{
 							flexShrink: 0,
-							borderTop: "1px solid var(--mantine-color-dark-4)",
+							borderTop: "1px solid var(--app-border)",
 						}}
 					>
 						<Group gap={6} wrap="nowrap">
 							<LockKeyhole
 								size={12}
-								color="var(--mantine-color-dark-2)"
+								color="var(--app-text-muted)"
 								strokeWidth={2}
 							/>
 							<Text size="xs" c="dimmed">

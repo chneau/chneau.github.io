@@ -47,7 +47,7 @@ const HighlightRow = ({
 				textAlign: "left",
 				padding: "7px 9px",
 				borderRadius: 8,
-				background: "rgba(255,255,255,0.03)",
+				background: "var(--app-surface-2)",
 				border: "1px solid rgba(206,222,230,0.12)",
 				borderLeft: `2px solid ${accent}`,
 				// Staggered waterfall reveal driven purely by CSS.
@@ -293,7 +293,7 @@ export const StatsPanel = () => {
 										justifyContent: "space-between",
 										alignItems: "center",
 										paddingBottom: 6,
-										borderBottom: "1px solid rgba(255,255,255,0.08)",
+										borderBottom: "1px solid var(--app-border)",
 										fontSize: "0.77rem",
 									}}
 								>
@@ -341,7 +341,7 @@ export const StatsPanel = () => {
 										style={{
 											position: "relative",
 											height: 12,
-											background: "rgba(255,255,255,0.05)",
+											background: "var(--app-surface-2)",
 											borderRadius: 3,
 											overflow: "hidden",
 										}}

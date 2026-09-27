@@ -10,7 +10,8 @@ import {
 	useMantineColorScheme,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { Beer, Copy, Moon, Settings, Sun, Trophy } from "lucide-react";
+import { Beer, Copy, Settings, Trophy } from "lucide-react";
+import { SchemeToggle } from "../../shared";
 import type { CacheStats, VenueInfo } from "../types";
 import { PubSearch } from "./PubSearch";
 
@@ -127,16 +128,10 @@ export const AppHeader = ({
 						<Settings size={16} />
 					</ActionIcon>
 				</Tooltip>
-				<Tooltip label={dark ? "Light mode" : "Dark mode"}>
-					<ActionIcon
-						variant="default"
-						size="lg"
-						aria-label="Toggle colour scheme"
-						onClick={() => setColorScheme(dark ? "light" : "dark")}
-					>
-						{dark ? <Sun size={16} /> : <Moon size={16} />}
-					</ActionIcon>
-				</Tooltip>
+				<SchemeToggle
+					dark={dark}
+					onToggle={() => setColorScheme(dark ? "light" : "dark")}
+				/>
 			</Group>
 		</Group>
 	);

@@ -180,8 +180,8 @@ export const StagedEditsDrawer = ({
 										p="sm"
 										style={{
 											borderRadius: 8,
-											border: "1px solid var(--mantine-color-dark-4)",
-											background: "var(--mantine-color-dark-6)",
+											border: "1px solid var(--app-border)",
+											background: "var(--app-surface-3)",
 										}}
 									>
 										<Group justify="space-between" wrap="nowrap" align="start">

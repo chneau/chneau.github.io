@@ -12,7 +12,7 @@ import { CATEGORIES, type TrainService, VIEW_BOUNDS } from "../data/types";
 import { drawSmoothPath } from "../engine/curve";
 import { createProjection } from "../engine/projection";
 import { derivedStore, railActions, railStore } from "../store";
-import { palette } from "../theme";
+import { mapColors, palette } from "../theme";
 
 // Vector marker for a scenic landmark, replacing the emoji glyphs used before.
 const drawLandmarkMarker = (
@@ -24,7 +24,7 @@ const drawLandmarkMarker = (
 	ctx.translate(x, y);
 	ctx.rotate(Math.PI / 4);
 	ctx.fillStyle = "#c9a04e";
-	ctx.strokeStyle = palette.bg;
+	ctx.strokeStyle = mapColors.bg;
 	ctx.lineWidth = 1;
 	ctx.fillRect(-3.4, -3.4, 6.8, 6.8);
 	ctx.strokeRect(-3.4, -3.4, 6.8, 6.8);
@@ -44,7 +44,7 @@ const getDayNightAtmosphere = (
 } => {
 	if (!enabled) {
 		return {
-			bgColor: palette.bg,
+			bgColor: mapColors.bg,
 			landColor: "#0d222f",
 			coastColor: "#436577",
 			isNight: false,
@@ -368,7 +368,7 @@ export const ReplayCanvas = () => {
 
 			// Station dot
 			sCtx.fillStyle = st.isMajor ? "#ffffff" : "#98b1be";
-			sCtx.strokeStyle = palette.bg;
+			sCtx.strokeStyle = mapColors.bg;
 			sCtx.lineWidth = 1;
 			sCtx.beginPath();
 			sCtx.arc(x, y, st.isMajor ? 3.5 : 2.2, 0, Math.PI * 2);
@@ -555,7 +555,7 @@ export const ReplayCanvas = () => {
 			const halfL = size * 1.3;
 			const halfW = size * 0.65;
 			ctx.fillStyle = catConfig.color;
-			ctx.strokeStyle = palette.bg;
+			ctx.strokeStyle = mapColors.bg;
 			ctx.lineWidth = 1.4;
 
 			ctx.beginPath();
@@ -812,18 +812,18 @@ export const ReplayCanvas = () => {
 					alignItems: "center",
 					justifyContent: "center",
 					gap: 10,
-					background: palette.bg,
+					background: mapColors.bg,
 					pointerEvents: ready ? "none" : "auto",
 					opacity: ready ? 0 : 1,
 					transition: "opacity 0.4s var(--sr-ease)",
 				}}
 			>
 				<span
-					className="sr-skeleton"
+					className="app-skeleton"
 					style={{ width: 210, height: 10, maxWidth: "60vw" }}
 				/>
 				<span
-					className="sr-skeleton"
+					className="app-skeleton"
 					style={{ width: 140, height: 10, maxWidth: "40vw" }}
 				/>
 				<span style={{ color: palette.textFaint, fontSize: "0.75rem" }}>
@@ -852,7 +852,7 @@ export const ReplayCanvas = () => {
 					onClick={() => setZoom((prev) => Math.min(8, prev * 1.25))}
 					title="Zoom in"
 					style={{
-						background: "rgba(255, 255, 255, 0.06)",
+						background: "var(--app-surface-2)",
 						border: "none",
 						borderRadius: 6,
 						color: palette.text,
@@ -872,7 +872,7 @@ export const ReplayCanvas = () => {
 					onClick={() => setZoom((prev) => Math.max(0.6, prev * 0.8))}
 					title="Zoom out"
 					style={{
-						background: "rgba(255, 255, 255, 0.06)",
+						background: "var(--app-surface-2)",
 						border: "none",
 						borderRadius: 6,
 						color: palette.text,

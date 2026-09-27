@@ -14,6 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+import { StatusDot } from "../shared";
 import type { Birthday } from "./birthdays";
 import { triggerConfetti } from "./celebration";
 import {
@@ -184,15 +185,11 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 							onClick={handleToggleNotifications}
 							aria-label={t("app.header.enable_notifications")}
 						>
-							<span
-								className={
-									notificationsOn
-										? "tk-statusdot tk-statusdot--on"
-										: notificationsBlocked
-											? "tk-statusdot tk-statusdot--off"
-											: "tk-statusdot"
-								}
-							/>
+							{notificationState === "default" ? (
+								<span className="app-statusdot" aria-hidden="true" />
+							) : (
+								<StatusDot on={notificationsOn} />
+							)}
 							<Bell size={15} strokeWidth={1.9} />
 							<span className="tk-iconbtn__label">
 								{notificationsOn

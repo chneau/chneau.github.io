@@ -408,7 +408,7 @@ export const InventoryView = ({
 					flex: 1,
 					minWidth: 0,
 					minHeight: 0,
-					borderRight: "1px solid var(--mantine-color-dark-4)",
+					borderRight: "1px solid var(--app-border)",
 				}}
 			>
 				<Group
@@ -417,7 +417,7 @@ export const InventoryView = ({
 					justify="space-between"
 					style={{
 						flexShrink: 0,
-						borderBottom: "1px solid var(--mantine-color-dark-4)",
+						borderBottom: "1px solid var(--app-border)",
 					}}
 				>
 					<TextInput
@@ -505,8 +505,8 @@ export const InventoryView = ({
 						py="xs"
 						style={{
 							flexShrink: 0,
-							borderBottom: "1px solid var(--mantine-color-dark-4)",
-							background: "rgba(0,0,0,0.15)",
+							borderBottom: "1px solid var(--app-border)",
+							background: "var(--app-surface-2)",
 						}}
 					>
 						<ScrollArea type="never">
@@ -750,7 +750,7 @@ export const InventoryView = ({
 						<Box
 							p="lg"
 							style={{
-								borderBottom: "1px solid var(--mantine-color-dark-4)",
+								borderBottom: "1px solid var(--app-border)",
 							}}
 						>
 							<Group justify="space-between" gap="sm" align="flex-start">
@@ -813,7 +813,7 @@ export const InventoryView = ({
 									justify="space-between"
 									py={8}
 									style={{
-										borderBottom: "1px solid var(--mantine-color-dark-4)",
+										borderBottom: "1px solid var(--app-border)",
 									}}
 								>
 									<Group gap="xs">
@@ -831,7 +831,7 @@ export const InventoryView = ({
 										justify="space-between"
 										py={8}
 										style={{
-											borderBottom: "1px solid var(--mantine-color-dark-4)",
+											borderBottom: "1px solid var(--app-border)",
 										}}
 									>
 										<Text size="xs" c="dimmed">
@@ -846,7 +846,7 @@ export const InventoryView = ({
 										justify="space-between"
 										py={8}
 										style={{
-											borderBottom: "1px solid var(--mantine-color-dark-4)",
+											borderBottom: "1px solid var(--app-border)",
 										}}
 									>
 										<Group gap="xs">
@@ -865,7 +865,7 @@ export const InventoryView = ({
 										justify="space-between"
 										py={8}
 										style={{
-											borderBottom: "1px solid var(--mantine-color-dark-4)",
+											borderBottom: "1px solid var(--app-border)",
 										}}
 									>
 										<Text size="xs" c="dimmed">

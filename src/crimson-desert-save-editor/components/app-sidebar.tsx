@@ -88,8 +88,8 @@ export const AppSidebar = ({
 		h="100%"
 		w={272}
 		style={{
-			borderRight: "1px solid var(--mantine-color-dark-4)",
-			background: "var(--mantine-color-dark-9)",
+			borderRight: "1px solid var(--app-border)",
+			background: "var(--app-surface-2)",
 			flexShrink: 0,
 		}}
 	>
@@ -97,7 +97,7 @@ export const AppSidebar = ({
 			gap="sm"
 			p="lg"
 			wrap="nowrap"
-			style={{ borderBottom: "1px solid var(--mantine-color-dark-4)" }}
+			style={{ borderBottom: "1px solid var(--app-border)" }}
 		>
 			<Center
 				w={36}
@@ -133,11 +133,11 @@ export const AppSidebar = ({
 				Save file
 			</Text>
 			{result ? (
-				<Paper withBorder p="sm" bg="rgba(255,255,255,0.02)">
+				<Paper withBorder p="sm" bg="var(--app-surface-3)">
 					<Group gap="sm" wrap="nowrap" align="flex-start">
 						<HardDrive
 							size={16}
-							color="var(--mantine-color-dark-2)"
+							color="var(--app-text-muted)"
 							strokeWidth={2}
 							style={{ flexShrink: 0, marginTop: 2 }}
 						/>
@@ -364,7 +364,7 @@ export const AppSidebar = ({
 			)}
 		</ScrollArea>
 
-		<Box p="md" style={{ borderTop: "1px solid var(--mantine-color-dark-4)" }}>
+		<Box p="md" style={{ borderTop: "1px solid var(--app-border)" }}>
 			<Text
 				size="10px"
 				c="dimmed"
@@ -401,7 +401,7 @@ export const AppSidebar = ({
 			p="md"
 			wrap="nowrap"
 			align="flex-start"
-			style={{ borderTop: "1px solid var(--mantine-color-dark-4)" }}
+			style={{ borderTop: "1px solid var(--app-border)" }}
 		>
 			<LockKeyhole
 				size={14}

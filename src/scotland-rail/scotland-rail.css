@@ -1,12 +1,36 @@
+/*
+ * Scotland Rail chrome. The map itself is always dark; everything floating on
+ * top draws from the shared `--app-*` tokens so it follows the colour scheme.
+ */
+
 :root {
-	--sr-font:
-		"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-	--sr-font-display:
-		"Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system,
-		sans-serif;
-	--sr-font-mono:
-		"Cascadia Code", "JetBrains Mono", ui-monospace, Consolas, monospace;
-	--sr-ease: cubic-bezier(0.16, 1, 0.3, 1);
+	--rail-bg: var(--app-bg);
+	--rail-bg-deep: var(--app-bg-deep);
+	--rail-surface: var(--app-surface);
+	--rail-surface-solid: var(--app-surface);
+	--rail-border: var(--app-border);
+	--rail-border-strong: var(--app-border-strong);
+	--rail-text: var(--app-text);
+	--rail-text-muted: var(--app-text-muted);
+	--rail-text-faint: var(--app-text-faint);
+	--rail-danger: var(--app-danger);
+
+	--rail-accent: #2f7f9e;
+	--rail-accent-soft: rgba(47, 127, 158, 0.14);
+	--rail-accent-border: rgba(47, 127, 158, 0.5);
+
+	--app-accent: var(--rail-accent);
+
+	--sr-font: var(--app-font-sans);
+	--sr-font-display: var(--app-font-display);
+	--sr-font-mono: var(--app-font-mono);
+	--sr-ease: var(--app-ease);
+}
+
+:root[data-mantine-color-scheme="dark"] {
+	--rail-accent: #5aa9c9;
+	--rail-accent-soft: rgba(90, 169, 201, 0.16);
+	--rail-accent-border: rgba(90, 169, 201, 0.5);
 }
 
 html,
@@ -14,147 +38,105 @@ body,
 #root {
 	margin: 0;
 	min-height: 100dvh;
-	background: #0a141b;
-	font-family: var(--sr-font);
+	background: var(--app-bg);
+	color: var(--app-text);
+	font-family: var(--app-font-sans);
 	-webkit-font-smoothing: antialiased;
 	text-rendering: optimizeLegibility;
 }
 
 /* All figures are monospace so columns of times and counts line up. */
 .sr-num {
-	font-family: var(--sr-font-mono);
+	font-family: var(--app-font-mono);
 	font-variant-numeric: tabular-nums;
 }
 
 /* Frosted panel with a 1px inner refraction edge instead of a glow. */
 .sr-glass {
-	background: rgba(10, 20, 27, 0.9);
+	background: var(--app-glass);
 	backdrop-filter: blur(12px) saturate(120%);
 	-webkit-backdrop-filter: blur(12px) saturate(120%);
-	border: 1px solid rgba(206, 222, 230, 0.16);
+	border: 1px solid var(--app-border);
 	box-shadow:
 		inset 0 1px 0 rgba(255, 255, 255, 0.06),
-		0 18px 40px -24px rgba(0, 0, 0, 0.9);
+		var(--app-shadow);
 }
 
 /* Quiet jump-to-time chips: neutral until hovered, then the single accent. */
 .sr-chip {
-	background: rgba(255, 255, 255, 0.04);
-	border: 1px solid rgba(206, 222, 230, 0.16);
-	color: #93a6b0;
-	border-radius: 999px;
+	background: var(--app-surface-2);
+	border: 1px solid var(--app-border);
+	color: var(--app-text-muted);
+	border-radius: var(--app-radius-pill);
 	font-size: 0.75rem;
 	display: inline-flex;
 	align-items: center;
 	gap: 4px;
 }
 .sr-chip:hover {
-	background: rgba(90, 169, 201, 0.12);
-	border-color: rgba(90, 169, 201, 0.5);
-	color: #eef3f5;
+	background: var(--rail-accent-soft);
+	border-color: var(--rail-accent-border);
+	color: var(--app-text);
 }
 
 /* Physical push feedback on every interactive element. */
 .sr-press {
 	transition:
-		transform 0.18s var(--sr-ease),
-		background 0.18s var(--sr-ease),
-		border-color 0.18s var(--sr-ease),
-		color 0.18s var(--sr-ease);
+		transform 0.18s var(--app-ease),
+		background 0.18s var(--app-ease),
+		border-color 0.18s var(--app-ease),
+		color 0.18s var(--app-ease);
 }
 .sr-press:active {
 	transform: translateY(1px) scale(0.985);
 }
 
-/* Breathing status light, pure CSS on transform/opacity. */
-@keyframes sr-breathe {
-	0%,
-	100% {
-		opacity: 1;
-		transform: scale(1);
-	}
-	50% {
-		opacity: 0.35;
-		transform: scale(0.72);
-	}
-}
+/* Breathing status light, reusing the shared keyframes. */
 .sr-breathe {
-	animation: sr-breathe 2.4s ease-in-out infinite;
+	animation: app-breathe 2.4s ease-in-out infinite;
 }
 
 /* Sequential load-in for panels and stat rows. */
-@keyframes sr-rise {
-	from {
-		opacity: 0;
-		transform: translateY(8px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
 .sr-rise {
-	animation: sr-rise 0.5s var(--sr-ease) both;
+	animation: app-rise 0.5s var(--app-ease) both;
 	animation-delay: calc(var(--sr-index, 0) * 70ms);
-}
-
-/* Shimmer for loading placeholders. */
-@keyframes sr-shimmer {
-	from {
-		background-position: -160% 0;
-	}
-	to {
-		background-position: 260% 0;
-	}
-}
-.sr-skeleton {
-	background: linear-gradient(
-		90deg,
-		rgba(255, 255, 255, 0.04) 0%,
-		rgba(255, 255, 255, 0.12) 45%,
-		rgba(255, 255, 255, 0.04) 100%
-	);
-	background-size: 220% 100%;
-	animation: sr-shimmer 1.6s linear infinite;
-	border-radius: 4px;
 }
 
 .sr-scroll {
 	scrollbar-width: thin;
-	scrollbar-color: rgba(206, 222, 230, 0.22) transparent;
+	scrollbar-color: var(--app-border-strong) transparent;
 }
 .sr-scroll::-webkit-scrollbar {
 	width: 8px;
 	height: 8px;
 }
 .sr-scroll::-webkit-scrollbar-thumb {
-	background: rgba(206, 222, 230, 0.2);
-	border-radius: 999px;
+	background: var(--app-border-strong);
+	border-radius: var(--app-radius-pill);
 }
 .sr-scroll::-webkit-scrollbar-thumb:hover {
-	background: rgba(206, 222, 230, 0.32);
+	background: var(--app-text-faint);
 }
 
 /* Calling-point rows in the service inspector. */
 .sr-callpoint {
-	transition: background 0.18s var(--sr-ease);
+	transition: background 0.18s var(--app-ease);
 }
 .sr-callpoint:hover {
-	background: rgba(255, 255, 255, 0.06);
+	background: var(--app-surface-2);
 }
 
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible {
-	outline: 2px solid var(--sr-accent, #5aa9c9);
+	outline: 2px solid var(--app-accent, var(--app-text));
 	outline-offset: 2px;
 	border-radius: 4px;
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.sr-breathe,
-	.sr-rise,
-	.sr-skeleton {
+	.sr-rise {
 		animation: none;
 	}
 }

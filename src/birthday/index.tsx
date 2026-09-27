@@ -1,12 +1,9 @@
-import "@fontsource/geist-sans/400.css";
-import "@fontsource/geist-sans/500.css";
-import "@fontsource/geist-sans/600.css";
-import "@fontsource/geist-mono/400.css";
-import "@fontsource/geist-mono/500.css";
 import "@mantine/core/styles.css";
 import "@mantine/dates/styles.css";
 import "@mantine/notifications/styles.css";
 import "@mantine/charts/styles.css";
+import "../shared/tokens.css";
+import "../shared/base.css";
 import "./taste.css";
 import "./i18n";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

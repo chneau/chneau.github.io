@@ -71,7 +71,7 @@ export const ServiceDetails = () => {
 							radius={6}
 							tt="none"
 							style={{
-								background: "rgba(255,255,255,0.06)",
+								background: "var(--app-surface-2)",
 								color: palette.text,
 								fontWeight: 500,
 							}}
@@ -138,7 +138,7 @@ export const ServiceDetails = () => {
 			{activeState && (
 				<div
 					style={{
-						background: "rgba(255,255,255,0.04)",
+						background: "var(--app-surface-2)",
 						borderLeft: `2px solid ${catConfig.color}`,
 						borderRadius: 6,
 						padding: "8px 12px",
@@ -156,9 +156,7 @@ export const ServiceDetails = () => {
 				</div>
 			)}
 
-			<Divider
-				style={{ borderColor: "rgba(255,255,255,0.12)", margin: "12px 0" }}
-			/>
+			<Divider style={{ borderColor: "var(--app-border)", margin: "12px 0" }} />
 
 			<Text
 				fw={600}
@@ -227,7 +225,7 @@ export const ServiceDetails = () => {
 											className="sr-num"
 											style={{
 												color: catConfig.color,
-												background: "rgba(255, 255, 255, 0.05)",
+												background: "var(--app-surface-2)",
 												padding: "1px 7px",
 												borderRadius: 4,
 												fontSize: "0.76rem",

@@ -98,7 +98,7 @@ const CompanionBrowser = ({
 	};
 	const groupLabel = category === "mounts" ? "Breed" : "Animal type";
 	return (
-		<Paper withBorder p="md" bg="var(--mantine-color-dark-7)">
+		<Paper withBorder p="md" bg="var(--app-surface-2)">
 			<Stack gap="md">
 				<Group align="flex-end" gap="md">
 					<TextInput
@@ -314,7 +314,7 @@ export const CompanionPanel = (props: PanelProps) => {
 				</Text>
 			</Group>
 			{category === "camp" ? (
-				<Paper withBorder p="lg" bg="var(--mantine-color-dark-7)">
+				<Paper withBorder p="lg" bg="var(--app-surface-2)">
 					<Group gap="xs">
 						<Users size={20} color="var(--mantine-primary-color-filled)" />
 						<Text size="lg" fw={500}>

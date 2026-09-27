@@ -1,0 +1,240 @@
+/*
+ * Shared base layer: a small reset plus the few utility classes every site
+ * repeats (numbers, press feedback, frosted panels, skeletons, status lights,
+ * scrollbars, empty states and the grain overlay). Values come from
+ * `tokens.css` so all sites stay in sync.
+ */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	background: var(--app-bg);
+	color: var(--app-text);
+	font-family: var(--app-font-sans);
+	font-synthesis-weight: none;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	text-rendering: optimizeLegibility;
+}
+
+img,
+svg {
+	display: block;
+}
+
+button {
+	font: inherit;
+	color: inherit;
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Tabular figures so columns of times, counts and prices line up. */
+.app-num {
+	font-family: var(--app-font-mono);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Physical push feedback on every interactive element. */
+.app-press {
+	transition:
+		transform 0.18s var(--app-ease),
+		background-color var(--app-speed) var(--app-ease),
+		border-color var(--app-speed) var(--app-ease),
+		color var(--app-speed) var(--app-ease);
+}
+.app-press:active {
+	transform: translateY(1px) scale(0.985);
+}
+
+/* Frosted panel with a 1px inner refraction edge instead of a glow. */
+.app-glass {
+	background: var(--app-glass);
+	backdrop-filter: blur(12px) saturate(120%);
+	-webkit-backdrop-filter: blur(12px) saturate(120%);
+	border: 1px solid var(--app-border);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.06),
+		var(--app-shadow);
+}
+
+.app-surface {
+	border: 1px solid var(--app-border);
+	border-radius: var(--app-radius-lg);
+	background: var(--app-surface);
+	box-shadow: var(--app-shadow);
+}
+
+/* thin scrollbars */
+.app-scroll {
+	scrollbar-width: thin;
+	scrollbar-color: var(--app-border-strong) transparent;
+}
+.app-scroll::-webkit-scrollbar {
+	width: 9px;
+	height: 9px;
+}
+.app-scroll::-webkit-scrollbar-thumb {
+	background: var(--app-border-strong);
+	border: 2px solid transparent;
+	background-clip: content-box;
+	border-radius: var(--app-radius-pill);
+}
+.app-scroll::-webkit-scrollbar-thumb:hover {
+	background: var(--app-text-faint);
+	background-clip: content-box;
+}
+
+/* Shimmer for loading placeholders. */
+@keyframes app-shimmer {
+	100% {
+		transform: translateX(100%);
+	}
+}
+.app-skeleton {
+	position: relative;
+	display: block;
+	overflow: hidden;
+	border-radius: var(--app-radius-sm);
+	background: var(--app-surface-2);
+}
+.app-skeleton::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	transform: translateX(-100%);
+	background: linear-gradient(
+		90deg,
+		transparent,
+		color-mix(in srgb, var(--app-text) 7%, transparent),
+		transparent
+	);
+	animation: app-shimmer 1.5s infinite;
+}
+
+/* Breathing status light, pure CSS on transform/opacity. */
+@keyframes app-breathe {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.4;
+		transform: scale(0.72);
+	}
+}
+.app-statusdot {
+	display: inline-block;
+	width: 8px;
+	height: 8px;
+	flex: none;
+	border-radius: var(--app-radius-pill);
+	background: var(--app-text-faint);
+}
+.app-statusdot--on {
+	background: var(--app-accent, var(--app-text));
+	animation: app-breathe 2.4s var(--app-ease) infinite;
+}
+.app-statusdot--off {
+	background: var(--app-danger);
+}
+
+/* Sequential load-in for panels and rows. */
+@keyframes app-rise {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+.app-rise {
+	animation: app-rise 0.5s var(--app-ease) both;
+	animation-delay: calc(var(--app-index, 0) * 70ms);
+}
+
+/* Composed empty state. */
+.app-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 12px;
+	padding: clamp(36px, 7vw, 72px) 24px;
+	color: var(--app-text-muted);
+}
+.app-empty__mark {
+	width: 54px;
+	height: 54px;
+	border-radius: var(--app-radius-md);
+	display: grid;
+	place-items: center;
+	border: 1px dashed var(--app-border-strong);
+	color: var(--app-text-faint);
+	background: var(--app-surface-2);
+}
+.app-empty h3 {
+	margin: 0;
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--app-text);
+	letter-spacing: -0.02em;
+}
+.app-empty p {
+	margin: 0;
+	font-size: 13px;
+	max-width: 42ch;
+	line-height: 1.55;
+}
+
+/* Fixed, non-interactive film grain. */
+.app-grain {
+	position: fixed;
+	inset: 0;
+	z-index: 60;
+	pointer-events: none;
+	opacity: 0.028;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+:root[data-mantine-color-scheme="dark"] .app-grain,
+:root[data-theme="dark"] .app-grain {
+	opacity: 0.05;
+}
+
+:where(a, button, [tabindex], [role="button"]):focus-visible {
+	outline: 2px solid var(--app-accent, var(--app-text));
+	outline-offset: 2px;
+	border-radius: var(--app-radius-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.001ms;
+		animation-iteration-count: 1;
+		transition-duration: 0.001ms;
+	}
+}

@@ -1,4 +1,6 @@
 import "@mantine/core/styles.css";
+import "../shared/tokens.css";
+import "../shared/base.css";
 import "./scotland-rail.css";
 import { MantineProvider } from "@mantine/core";
 import { createRoot } from "react-dom/client";

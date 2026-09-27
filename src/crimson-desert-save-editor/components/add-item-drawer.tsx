@@ -462,7 +462,7 @@ export const AddItemDrawer = ({
 				</Box>
 
 				{target && (
-					<Paper withBorder p="sm" bg="rgba(0,0,0,0.15)">
+					<Paper withBorder p="sm" bg="var(--app-surface-2)">
 						<Group gap="md" wrap="nowrap">
 							<Picture kind="item" pictureKey={itemKey} size={64} />
 							<Text size="sm" fw={500}>
