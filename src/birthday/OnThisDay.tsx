@@ -1,4 +1,4 @@
-import { Collapse, Flex, Skeleton, Typography } from "antd";
+import { Accordion, Flex, Skeleton, Stack, Text } from "@mantine/core";
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -63,43 +63,45 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 
 	if (error) return null;
 
-	const items = [
-		{
-			key: "1",
-			label: (
-				<Typography.Text strong>
-					📜 {t("on_this_day")} (
-					{dayjs()
-						.month(month - 1)
-						.format("MMMM")}{" "}
-					{day})
-				</Typography.Text>
-			),
-			children: loading ? (
-				<Skeleton active paragraph={{ rows: 3 }} />
-			) : (
-				<Flex vertical gap="middle">
-					{events.map((item) => (
-						<Flex key={item.text} vertical>
-							<Typography.Text strong>{item.year}</Typography.Text>
-							<Typography.Text type="secondary">{item.text}</Typography.Text>
-						</Flex>
-					))}
-				</Flex>
-			),
-		},
-	];
-
 	return (
-		<Collapse
-			ghost
-			size="small"
-			items={items}
+		<Accordion
+			variant="default"
 			style={{
 				marginTop: 16,
 				background: "rgba(0, 0, 0, 0.02)",
 				borderRadius: "8px",
 			}}
-		/>
+			styles={{ item: { border: "none", background: "transparent" } }}
+		>
+			<Accordion.Item value="1">
+				<Accordion.Control>
+					<Text fw={600} component="span">
+						📜 {t("on_this_day")} (
+						{dayjs()
+							.month(month - 1)
+							.format("MMMM")}{" "}
+						{day})
+					</Text>
+				</Accordion.Control>
+				<Accordion.Panel>
+					{loading ? (
+						<Stack gap="xs">
+							<Skeleton height={12} />
+							<Skeleton height={12} />
+							<Skeleton height={12} />
+						</Stack>
+					) : (
+						<Flex direction="column" gap="md">
+							{events.map((item) => (
+								<Flex key={item.text} direction="column">
+									<Text fw={600}>{item.year}</Text>
+									<Text c="dimmed">{item.text}</Text>
+								</Flex>
+							))}
+						</Flex>
+					)}
+				</Accordion.Panel>
+			</Accordion.Item>
+		</Accordion>
 	);
 };

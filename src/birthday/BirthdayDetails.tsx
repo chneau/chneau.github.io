@@ -1,21 +1,20 @@
 import {
 	Alert,
+	Badge,
 	Button,
 	Card,
-	Col,
 	Divider,
-	message,
-	Row,
-	Tag,
+	SimpleGrid,
+	Text,
 	Tooltip,
-	Typography,
-} from "antd";
+} from "@mantine/core";
 import dayjs from "dayjs";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
 import { birthdays, getAgeEmoji, getKindColor } from "./birthdays";
 import { getCompatibleElements } from "./compatibility";
+import { notify } from "./notify";
 import { OnThisDay } from "./OnThisDay";
 import { store } from "./store";
 
@@ -54,10 +53,10 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 			link.download = `birthday-card-${record.name}.png`;
 			link.href = canvas.toDataURL("image/png");
 			link.click();
-			message.success(`Downloaded birthday card for ${record.name}! 📸`);
+			notify.success(`Downloaded birthday card for ${record.name}! 📸`);
 		} catch (e) {
 			console.error("Failed to generate card", e);
-			message.error("Failed to generate birthday card");
+			notify.error("Failed to generate birthday card");
 		} finally {
 			setDownloading(false);
 		}
@@ -66,13 +65,14 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 	return (
 		<div style={{ padding: "8px 12px" }}>
 			<Alert
-				message={t("app.title")}
-				description={t(`data.insights.${record.dailyInsight}`)}
-				type="info"
-				showIcon
-				icon="🔮"
+				title={t("app.title")}
+				icon={<span>🔮</span>}
+				color="blue"
+				variant="light"
 				style={{ marginBottom: 12 }}
-			/>
+			>
+				{t(`data.insights.${record.dailyInsight}`)}
+			</Alert>
 
 			<div
 				style={{
@@ -84,15 +84,14 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 				}}
 			>
 				<Button
-					type="primary"
-					size="small"
+					leftSection={<span>📸</span>}
+					size="sm"
 					loading={downloading}
 					onClick={handleDownloadCard}
-					icon="📸"
 				>
 					{t("app.card")}
 				</Button>
-				<Divider type="vertical" />
+				<Divider orientation="vertical" style={{ height: 20 }} />
 				<a
 					href={`https://en.wikipedia.org/wiki/${record.year}`}
 					target="_blank"
@@ -101,7 +100,7 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 				>
 					📜 Year {record.year} on Wikipedia
 				</a>
-				<Divider type="vertical" />
+				<Divider orientation="vertical" style={{ height: 20 }} />
 				<a
 					href={`https://en.wikipedia.org/wiki/${dayjs(record.birthday)
 						.locale("en")
@@ -117,8 +116,10 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 			<OnThisDay month={record.month} day={record.day} />
 
 			<div style={{ marginTop: 12, marginBottom: 16 }}>
-				<Typography.Text strong>📜 {t("headers.etymology")}:</Typography.Text>
-				<Typography.Text italic>
+				<Text fw={600} component="span">
+					📜 {t("headers.etymology")}:
+				</Text>
+				<Text fs="italic" component="span">
 					{record.name
 						.split(" & ")
 						.map((n) => {
@@ -136,166 +137,161 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 									: t("app.no_data");
 						})
 						.join(" | ")}
-				</Typography.Text>
+				</Text>
 			</div>
 
 			{/* Grouped, structured information cards */}
-			<Row gutter={[12, 12]}>
+			<SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing={12}>
 				{/* Life Progress & Milestones */}
-				<Col xs={24} sm={12} md={6}>
-					<Card
-						size="small"
-						title={<span>📈 {t("headers.life_progress")}</span>}
-						style={{ height: "100%" }}
+				<Card withBorder style={{ height: "100%" }}>
+					<Text fw={600} style={{ marginBottom: 8 }}>
+						📈 {t("headers.life_progress")}
+					</Text>
+					<ul
+						style={{
+							paddingLeft: 16,
+							margin: 0,
+							fontSize: "12px",
+							lineHeight: "1.8",
+						}}
 					>
-						<ul
-							style={{
-								paddingLeft: 16,
-								margin: 0,
-								fontSize: "12px",
-								lineHeight: "1.8",
-							}}
-						>
-							<li>
-								🗓️ {record.ageInDays.toLocaleString()} {t("units.d")} /{" "}
-								{record.ageInWeeks.toLocaleString()} {t("units.w")}
-							</li>
-							<li>
-								🗓️ {record.ageInMonths.toLocaleString()}{" "}
-								{t("units.months_lived")}
-							</li>
-							<li>
-								🌓 {t("units.half")}:{" "}
-								{t(`data.months.${record.halfBirthdayMonth}`)}{" "}
-								{record.halfBirthdayDay}
-							</li>
-							<li>
-								{record.moonPhaseIcon}{" "}
-								{t(`data.moon_phases.${record.moonPhase}`)}
-							</li>
-						</ul>
-						{record.milestone && (
-							<div style={{ marginTop: 8, fontSize: "12px" }}>
-								<Typography.Text strong>
-									🎯 {t("headers.milestones")}:
-								</Typography.Text>
-								<span>{t(record.milestone.key, record.milestone.params)}</span>
-							</div>
-						)}
-						{sameBirthday.length > 0 && (
-							<div style={{ marginTop: 4, fontSize: "12px" }}>
-								<Typography.Text type="secondary">
-									👯 Shared: {sameBirthday.map((b) => b.name).join(", ")}
-								</Typography.Text>
-							</div>
-						)}
-					</Card>
-				</Col>
+						<li>
+							🗓️ {record.ageInDays.toLocaleString()} {t("units.d")} /{" "}
+							{record.ageInWeeks.toLocaleString()} {t("units.w")}
+						</li>
+						<li>
+							🗓️ {record.ageInMonths.toLocaleString()} {t("units.months_lived")}
+						</li>
+						<li>
+							🌓 {t("units.half")}:{" "}
+							{t(`data.months.${record.halfBirthdayMonth}`)}{" "}
+							{record.halfBirthdayDay}
+						</li>
+						<li>
+							{record.moonPhaseIcon} {t(`data.moon_phases.${record.moonPhase}`)}
+						</li>
+					</ul>
+					{record.milestone && (
+						<div style={{ marginTop: 8, fontSize: "12px" }}>
+							<Text fw={600} component="span">
+								🎯 {t("headers.milestones")}:
+							</Text>
+							<span>{t(record.milestone.key, record.milestone.params)}</span>
+						</div>
+					)}
+					{sameBirthday.length > 0 && (
+						<div style={{ marginTop: 4, fontSize: "12px" }}>
+							<Text c="dimmed" component="span">
+								👯 Shared: {sameBirthday.map((b) => b.name).join(", ")}
+							</Text>
+						</div>
+					)}
+				</Card>
 
 				{/* Astrology & Numerology */}
-				<Col xs={24} sm={12} md={6}>
-					<Card
-						size="small"
-						title={<span>✨ {t("headers.traits_match")}</span>}
-						style={{ height: "100%" }}
-					>
-						<p style={{ margin: "0 0 8px 0", fontSize: "12px" }}>
-							{t(`data.zodiac_traits.${record.sign}`)}
-						</p>
-						<div style={{ marginBottom: 8, fontSize: "12px" }}>
-							<Tooltip title={t("units.path_tooltip")}>
-								<Typography.Text strong>
+				<Card withBorder style={{ height: "100%" }}>
+					<Text fw={600} style={{ marginBottom: 8 }}>
+						✨ {t("headers.traits_match")}
+					</Text>
+					<p style={{ margin: "0 0 8px 0", fontSize: "12px" }}>
+						{t(`data.zodiac_traits.${record.sign}`)}
+					</p>
+					<div style={{ marginBottom: 8, fontSize: "12px" }}>
+						<Tooltip label={t("units.path_tooltip")}>
+							<span>
+								<Text fw={600} component="span">
 									🔢 {t("units.path")} {record.lifePathNumber}:
-								</Typography.Text>
-								<Typography.Text type="secondary">
+								</Text>
+								<Text c="dimmed" component="span">
 									{t(`data.life_path.${record.lifePathMeaning}`)}
-								</Typography.Text>
-							</Tooltip>
-						</div>
-						<div>
-							<Typography.Text strong style={{ fontSize: "11px" }}>
-								Compatible:
-							</Typography.Text>
-							{compatibleElements.map((element) => (
-								<Tag
-									key={element}
-									style={{
-										cursor: "pointer",
-										fontSize: "10px",
-										padding: "0 4px",
-									}}
-									onClick={() => {
-										store.search = element;
-										window.scrollTo({ top: 0, behavior: "smooth" });
-									}}
-								>
-									{t(`data.elements.${element}`)}
-								</Tag>
-							))}
-						</div>
-					</Card>
-				</Col>
+								</Text>
+							</span>
+						</Tooltip>
+					</div>
+					<div>
+						<Text fw={600} component="span" style={{ fontSize: "11px" }}>
+							Compatible:
+						</Text>
+						{compatibleElements.map((element) => (
+							<Badge
+								key={element}
+								variant="light"
+								style={{
+									cursor: "pointer",
+									fontSize: "10px",
+									padding: "0 4px",
+								}}
+								onClick={() => {
+									store.search = element;
+									window.scrollTo({ top: 0, behavior: "smooth" });
+								}}
+							>
+								{t(`data.elements.${element}`)}
+							</Badge>
+						))}
+					</div>
+				</Card>
 
 				{/* Cosmic & Biological Stats */}
-				<Col xs={24} sm={12} md={6}>
-					<Card
-						size="small"
-						title={<span>💓 {t("headers.stats")}</span>}
-						style={{ height: "100%" }}
+				<Card withBorder style={{ height: "100%" }}>
+					<Text fw={600} style={{ marginBottom: 8 }}>
+						💓 {t("headers.stats")}
+					</Text>
+					<ul
+						style={{
+							paddingLeft: 16,
+							margin: 0,
+							fontSize: "12px",
+							lineHeight: "1.8",
+						}}
 					>
-						<ul
-							style={{
-								paddingLeft: 16,
-								margin: 0,
-								fontSize: "12px",
-								lineHeight: "1.8",
-							}}
-						>
-							<li>
-								<Tooltip title={t("units.beats_tooltip")}>
+						<li>
+							<Tooltip label={t("units.beats_tooltip")}>
+								<span>
 									💓 {record.heartbeats.toLocaleString()} {t("units.beats")}
-								</Tooltip>
-							</li>
-							<li>
-								<Tooltip title={t("units.breaths_tooltip")}>
+								</span>
+							</Tooltip>
+						</li>
+						<li>
+							<Tooltip label={t("units.breaths_tooltip")}>
+								<span>
 									🫁 {record.breaths.toLocaleString()} {t("units.breaths")}
-								</Tooltip>
-							</li>
-							<li>
-								<Tooltip title={t("units.km_orbit_tooltip")}>
+								</span>
+							</Tooltip>
+						</li>
+						<li>
+							<Tooltip label={t("units.km_orbit_tooltip")}>
+								<span>
 									🚀 {record.distanceTraveled.toLocaleString()}{" "}
 									{t("units.km_orbit")}
-								</Tooltip>
-							</li>
-						</ul>
-					</Card>
-				</Col>
+								</span>
+							</Tooltip>
+						</li>
+					</ul>
+				</Card>
 
 				{/* Planetary Ages */}
-				<Col xs={24} sm={12} md={6}>
-					<Card
-						size="small"
-						title={<span>🪐 {t("headers.planets")}</span>}
-						style={{ height: "100%" }}
+				<Card withBorder style={{ height: "100%" }}>
+					<Text fw={600} style={{ marginBottom: 8 }}>
+						🪐 {t("headers.planets")}
+					</Text>
+					<ul
+						style={{
+							paddingLeft: 16,
+							margin: 0,
+							fontSize: "12px",
+							lineHeight: "1.8",
+						}}
 					>
-						<ul
-							style={{
-								paddingLeft: 16,
-								margin: 0,
-								fontSize: "12px",
-								lineHeight: "1.8",
-							}}
-						>
-							{record.planetAges.map((p) => (
-								<li key={p.name}>
-									{p.icon} {t(`data.planets.${p.name}`)}: {p.age.toFixed(1)}{" "}
-									{t("units.y")}
-								</li>
-							))}
-						</ul>
-					</Card>
-				</Col>
-			</Row>
+						{record.planetAges.map((p) => (
+							<li key={p.name}>
+								{p.icon} {t(`data.planets.${p.name}`)}: {p.age.toFixed(1)}{" "}
+								{t("units.y")}
+							</li>
+						))}
+					</ul>
+				</Card>
+			</SimpleGrid>
 
 			{/* Biorhythms Visual Chart */}
 			<div style={{ marginTop: 12 }}>

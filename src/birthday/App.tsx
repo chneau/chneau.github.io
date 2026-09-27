@@ -1,9 +1,11 @@
-import { ConfigProvider, Modal, Tabs, theme } from "antd";
-import deDE from "antd/locale/de_DE";
-import enUS from "antd/locale/en_US";
-import esES from "antd/locale/es_ES";
-import frFR from "antd/locale/fr_FR";
-import zhCN from "antd/locale/zh_CN";
+import {
+	createTheme,
+	type MantineColorsTuple,
+	MantineProvider,
+	Modal,
+	Tabs,
+} from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import { Plus } from "lucide-react";
 import {
 	type CSSProperties,
@@ -41,23 +43,34 @@ const Statistics = lazy(() =>
 const FONT_STACK =
 	"'Geist', 'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
 
-const buildTheme = (dark: boolean) => ({
-	algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
-	token: {
+/** Emerald accent matching the existing zinc/emerald taste theme. */
+const emerald: MantineColorsTuple = [
+	"#e6fbf3",
+	"#c3f3e1",
+	"#9de9cd",
+	"#74dfb8",
+	"#52d6a8",
+	"#34d399",
+	"#12b485",
+	"#0f9d76",
+	"#0c7f60",
+	"#085843",
+];
+
+const appTheme = createTheme({
+	primaryColor: "emerald",
+	primaryShade: { light: 6, dark: 5 },
+	colors: { emerald },
+	defaultRadius: "md",
+	fontFamily: FONT_STACK,
+	headings: {
 		fontFamily: FONT_STACK,
-		colorPrimary: dark ? "#34d399" : "#0f9d76",
-		colorInfo: dark ? "#34d399" : "#0f9d76",
-		colorBgBase: dark ? "#09090b" : "#f6f6f7",
-		colorTextBase: dark ? "#f4f4f5" : "#18181b",
-		colorBorder: dark ? "#2a2a30" : "#e4e4e7",
-		colorBorderSecondary: dark ? "#1f1f24" : "#ececef",
-		borderRadius: 12,
-		borderRadiusLG: 18,
-		controlHeight: 36,
+		fontWeight: "600",
 	},
 	components: {
-		Table: { headerBg: "transparent" },
-		Tabs: { inkBarColor: dark ? "#34d399" : "#0f9d76" },
+		Modal: { defaultProps: { centered: true, radius: "lg" } },
+		Card: { defaultProps: { radius: "lg" } },
+		Button: { defaultProps: { radius: "md" } },
 	},
 });
 
@@ -94,25 +107,8 @@ export const App = () => {
 	const dataSnap = useSnapshot(dataStore);
 	const storeSnap = useSnapshot(store);
 	const data = dataSnap.filtered;
-	const { t, i18n } = useTranslation();
+	const { t } = useTranslation();
 	const [manageOpen, setManageOpen] = useState(false);
-
-	const antdLocale = useMemo(() => {
-		const lang = i18n.language.slice(0, 2);
-		const locales: Record<string, typeof enUS> = {
-			fr: frFR,
-			ty: frFR,
-			es: esES,
-			de: deDE,
-			zh: zhCN,
-		};
-		return locales[lang] || enUS;
-	}, [i18n.language]);
-
-	const antdTheme = useMemo(
-		() => buildTheme(storeSnap.darkMode),
-		[storeSnap.darkMode],
-	);
 
 	useEffect(() => {
 		document.documentElement.dataset.theme = storeSnap.darkMode
@@ -156,7 +152,11 @@ export const App = () => {
 	];
 
 	return (
-		<ConfigProvider locale={antdLocale} theme={antdTheme}>
+		<MantineProvider
+			theme={appTheme}
+			forceColorScheme={storeSnap.darkMode ? "dark" : "light"}
+		>
+			<Notifications position="top-right" />
 			<div className="tk-shell">
 				<AppHeader data={data} onOpenManage={() => setManageOpen(true)} />
 
@@ -190,7 +190,20 @@ export const App = () => {
 
 							<FilterSearch style={{ marginBottom: 18 }} />
 
-							<Tabs defaultActiveKey="table" items={tabItems} />
+							<Tabs defaultValue="table">
+								<Tabs.List>
+									{tabItems.map((item) => (
+										<Tabs.Tab key={item.key} value={item.key}>
+											{item.label}
+										</Tabs.Tab>
+									))}
+								</Tabs.List>
+								{tabItems.map((item) => (
+									<Tabs.Panel key={item.key} value={item.key} pt="md">
+										{item.children}
+									</Tabs.Panel>
+								))}
+							</Tabs>
 						</section>
 
 						<ErrorBoundary label="Milestones">
@@ -223,13 +236,11 @@ export const App = () => {
 						? `${dataSnap.selectedBirthday.name} ${dataSnap.selectedBirthday.kind} (${dataSnap.selectedBirthday.birthdayString})`
 						: undefined
 				}
-				open={Boolean(dataSnap.selectedBirthday)}
-				onCancel={() => {
+				opened={Boolean(dataSnap.selectedBirthday)}
+				onClose={() => {
 					dataStore.selectedBirthday = null;
 				}}
-				footer={null}
-				width={760}
-				destroyOnClose
+				size="xl"
 			>
 				{dataSnap.selectedBirthday && (
 					<div style={{ marginTop: 16 }}>
@@ -239,6 +250,6 @@ export const App = () => {
 			</Modal>
 
 			<div className="tk-grain" aria-hidden="true" />
-		</ConfigProvider>
+		</MantineProvider>
 	);
 };

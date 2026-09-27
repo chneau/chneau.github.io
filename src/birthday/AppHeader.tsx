@@ -1,8 +1,9 @@
-import { Dropdown, message, Tooltip } from "antd";
+import { Menu, Tooltip } from "@mantine/core";
 import dayjs from "dayjs";
 import {
 	Bell,
 	Cake,
+	Check,
 	Download,
 	FlaskConical,
 	Languages,
@@ -20,6 +21,7 @@ import {
 	requestNotificationPermission,
 	sendTestNotification,
 } from "./notifications";
+import { notify } from "./notify";
 import { store } from "./store";
 
 declare const BUILD_DATE: string;
@@ -86,11 +88,11 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 
 	const handleToggleNotifications = async () => {
 		if (typeof window === "undefined" || !("Notification" in window)) {
-			message.warning("Notifications are not supported in this browser");
+			notify.warning("Notifications are not supported in this browser");
 			return;
 		}
 		if (notificationState === "denied") {
-			message.warning(
+			notify.warning(
 				"Notifications are blocked in your browser settings. Enable them to receive alerts.",
 			);
 			return;
@@ -98,10 +100,10 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 		const granted = await requestNotificationPermission();
 		setNotificationState(Notification.permission);
 		if (granted) {
-			message.success("Notifications enabled");
+			notify.success("Notifications enabled");
 			checkAndNotify(data);
 		} else {
-			message.info("Notifications not enabled");
+			notify.info("Notifications not enabled");
 		}
 	};
 
@@ -112,7 +114,7 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 			icon: <Bell size={14} />,
 			onClick: () => {
 				sendTestNotification();
-				message.info("Sent test notification");
+				notify.info("Sent test notification");
 			},
 		},
 		{
@@ -122,7 +124,7 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 			onClick: () => {
 				sendTestNotification();
 				triggerConfetti();
-				message.success("Simulated a celebration");
+				notify.success("Simulated a celebration");
 			},
 		},
 	];
@@ -168,7 +170,7 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 					)}
 
 					<Tooltip
-						title={
+						label={
 							notificationsOn
 								? "Alerts are active. Click to verify."
 								: notificationsBlocked
@@ -202,36 +204,60 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 						</button>
 					</Tooltip>
 
-					<Dropdown menu={{ items: demoToolsMenu }} trigger={["click"]}>
-						<button type="button" className="tk-iconbtn tk-iconbtn--ghost">
-							<FlaskConical size={15} strokeWidth={1.9} />
-							<span className="tk-iconbtn__label">Demo</span>
-						</button>
-					</Dropdown>
+					<Menu position="bottom-end" shadow="md" withinPortal>
+						<Menu.Target>
+							<button type="button" className="tk-iconbtn tk-iconbtn--ghost">
+								<FlaskConical size={15} strokeWidth={1.9} />
+								<span className="tk-iconbtn__label">Demo</span>
+							</button>
+						</Menu.Target>
+						<Menu.Dropdown>
+							{demoToolsMenu.map((item) => (
+								<Menu.Item
+									key={item.key}
+									leftSection={item.icon}
+									onClick={item.onClick}
+								>
+									{item.label}
+								</Menu.Item>
+							))}
+						</Menu.Dropdown>
+					</Menu>
 
-					<Dropdown
-						menu={{
-							items: LANGUAGES.map((x) => ({ key: x.key, label: x.label })),
-							onClick: (e) => {
-								i18n.changeLanguage(e.key);
-								dayjs.locale(e.key);
-							},
-							selectedKeys: [i18n.language.slice(0, 2)],
-						}}
-						trigger={["click"]}
-					>
-						<button
-							type="button"
-							className="tk-iconbtn tk-iconbtn--ghost"
-							aria-label="Change language"
-						>
-							<Languages size={15} strokeWidth={1.9} />
-							<span className="tk-iconbtn__label">{current.short}</span>
-						</button>
-					</Dropdown>
+					<Menu position="bottom-end" shadow="md" withinPortal>
+						<Menu.Target>
+							<button
+								type="button"
+								className="tk-iconbtn tk-iconbtn--ghost"
+								aria-label="Change language"
+							>
+								<Languages size={15} strokeWidth={1.9} />
+								<span className="tk-iconbtn__label">{current.short}</span>
+							</button>
+						</Menu.Target>
+						<Menu.Dropdown>
+							{LANGUAGES.map((x) => {
+								const isCurrent = i18n.language.startsWith(x.key);
+								return (
+									<Menu.Item
+										key={x.key}
+										c={isCurrent ? "teal" : undefined}
+										fw={isCurrent ? 600 : undefined}
+										rightSection={isCurrent ? <Check size={14} /> : undefined}
+										onClick={() => {
+											i18n.changeLanguage(x.key);
+											dayjs.locale(x.key);
+										}}
+									>
+										{x.label}
+									</Menu.Item>
+								);
+							})}
+						</Menu.Dropdown>
+					</Menu>
 
 					<Tooltip
-						title={
+						label={
 							storeSnap.darkMode ? t("app.header.light") : t("app.header.dark")
 						}
 					>
@@ -255,7 +281,7 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 						</button>
 					</Tooltip>
 
-					<Tooltip title={t("app.header.github")}>
+					<Tooltip label={t("app.header.github")}>
 						<a
 							className="tk-iconbtn tk-iconbtn--square tk-iconbtn--ghost"
 							href="https://github.com/chneau/chneau.github.io"

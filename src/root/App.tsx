@@ -1,15 +1,17 @@
-import { GithubOutlined } from "@ant-design/icons";
 import {
+	Badge,
+	Box,
 	Button,
 	Card,
-	ConfigProvider,
-	Layout,
-	Space,
-	Tag,
+	createTheme,
+	Group,
+	type MantineColorsTuple,
+	MantineProvider,
+	Stack,
+	Text,
+	Title,
 	Tooltip,
-	Typography,
-	theme,
-} from "antd";
+} from "@mantine/core";
 import {
 	ArrowRight,
 	Beer,
@@ -22,9 +24,6 @@ import {
 	TrainFront,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-
-const { Header, Content, Footer } = Layout;
-const { Title, Paragraph, Text } = Typography;
 
 declare const BUILD_DATE: string;
 
@@ -78,7 +77,7 @@ const APPS: AppEntry[] = [
 		icon: Swords,
 		title: "Crimson Desert Save Editor",
 		tag: "100% Client-Side",
-		tagColor: "gold",
+		tagColor: "yellow",
 		shortcutKey: "Press 4",
 		hotkey: "4",
 		description:
@@ -99,6 +98,48 @@ const APPS: AppEntry[] = [
 
 type AppItem = (typeof APPS)[number];
 
+/** A blue accent (#1677ff), expanded to Mantine's 10-shade tuple (main shade at index 6). */
+const antBlue: MantineColorsTuple = [
+	"#e6f4ff",
+	"#bae0ff",
+	"#91caff",
+	"#69b1ff",
+	"#4096ff",
+	"#1677ff",
+	"#0958d9",
+	"#003eb3",
+	"#002c8c",
+	"#001d66",
+];
+
+const appTheme = createTheme({
+	colors: { antBlue },
+	primaryColor: "antBlue",
+	primaryShade: 6,
+	defaultRadius: 8,
+	fontFamily:
+		'"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif',
+	headings: {
+		fontFamily:
+			'"Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif',
+		fontWeight: "600",
+	},
+});
+
+/** GitHub mark, inlined so we don't depend on an icon package. */
+const GithubIcon = ({ size = 18 }: { size?: number }) => (
+	<svg
+		width={size}
+		height={size}
+		viewBox="0 0 16 16"
+		fill="currentColor"
+		aria-hidden="true"
+		focusable="false"
+	>
+		<path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+	</svg>
+);
+
 const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 	const [hovered, setHovered] = useState(false);
 	const Icon = item.icon;
@@ -114,7 +155,7 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 			}}
 		>
 			<Card
-				hoverable
+				withBorder
 				onMouseEnter={() => setHovered(true)}
 				onMouseLeave={() => setHovered(false)}
 				style={{
@@ -180,7 +221,7 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 								}}
 							>
 								<Text
-									strong
+									fw={600}
 									style={{
 										fontSize: "1.05rem",
 										color: darkMode ? "#edf3f5" : "inherit",
@@ -188,16 +229,18 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 								>
 									{item.title}
 								</Text>
-								<Tag
+								<Badge
+									variant="light"
 									color={item.tagColor}
-									bordered={false}
+									tt="none"
+									fw="normal"
 									style={{ margin: 0, fontSize: "0.75rem", borderRadius: 4 }}
 								>
 									{item.tag}
-								</Tag>
+								</Badge>
 							</div>
-							<Paragraph
-								type="secondary"
+							<Text
+								c="dimmed"
 								style={{
 									margin: 0,
 									color: darkMode ? "#8ca0aa" : undefined,
@@ -206,7 +249,7 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 								}}
 							>
 								{item.description}
-							</Paragraph>
+							</Text>
 						</div>
 					</div>
 					<div
@@ -228,7 +271,11 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 									"transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s ease",
 							}}
 						/>
-						<Tag
+						<Badge
+							variant="light"
+							color="gray"
+							tt="none"
+							fw="normal"
 							style={{
 								margin: 0,
 								fontSize: "0.7rem",
@@ -239,12 +286,11 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 								background: darkMode
 									? "rgba(255, 255, 255, 0.08)"
 									: "rgba(0, 0, 0, 0.05)",
-								borderColor: "transparent",
 								color: darkMode ? "#8ca0aa" : "#8c8c8c",
 							}}
 						>
 							{item.shortcutKey}
-						</Tag>
+						</Badge>
 					</div>
 				</div>
 			</Card>
@@ -290,23 +336,22 @@ export const App = () => {
 	}, []);
 
 	return (
-		<ConfigProvider
-			theme={{
-				algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
-				token: {
-					colorPrimary: "#1677ff",
-					borderRadius: 8,
-				},
-			}}
+		<MantineProvider
+			theme={appTheme}
+			forceColorScheme={darkMode ? "dark" : "light"}
 		>
-			<Layout
+			<Box
 				style={{
 					minHeight: "100vh",
+					display: "flex",
+					flexDirection: "column",
 					background: darkMode ? "#07131b" : "#f5f5f5",
 				}}
 			>
-				<Header
+				<Box
+					component="header"
 					style={{
+						height: 64,
 						background: darkMode ? "#0d222f" : "#fff",
 						display: "flex",
 						alignItems: "center",
@@ -318,7 +363,7 @@ export const App = () => {
 					}}
 				>
 					<Text
-						strong
+						fw={600}
 						style={{
 							fontSize: "1.2rem",
 							color: darkMode ? "#edf3f5" : "inherit",
@@ -326,16 +371,17 @@ export const App = () => {
 					>
 						chneau.github.io
 					</Text>
-					<Space size="middle">
+					<Group gap="md">
 						<Tooltip
-							title={
+							label={
 								darkMode
 									? "Switch to light mode (Press T)"
 									: "Switch to dark mode (Press T)"
 							}
 						>
 							<Button
-								size="small"
+								size="xs"
+								variant="default"
 								onClick={() => setDarkMode(!darkMode)}
 								style={{
 									background: darkMode
@@ -349,12 +395,12 @@ export const App = () => {
 								aria-label={
 									darkMode ? "Switch to light mode" : "Switch to dark mode"
 								}
-								icon={darkMode ? <Sun size={14} /> : <Moon size={14} />}
+								leftSection={darkMode ? <Sun size={14} /> : <Moon size={14} />}
 							>
 								{darkMode ? "Light" : "Dark"}
 							</Button>
 						</Tooltip>
-						<Tooltip title="GitHub Profile">
+						<Tooltip label="GitHub Profile">
 							<a
 								href="https://github.com/chneau"
 								target="_blank"
@@ -362,19 +408,20 @@ export const App = () => {
 								aria-label="GitHub Profile"
 								style={{
 									color: darkMode ? "#edf3f5" : "inherit",
-									fontSize: "1.2rem",
 									display: "flex",
 									alignItems: "center",
 								}}
 							>
-								<GithubOutlined />
+								<GithubIcon size={20} />
 							</a>
 						</Tooltip>
-					</Space>
-				</Header>
+					</Group>
+				</Box>
 
-				<Content
+				<Box
+					component="main"
 					style={{
+						flex: 1,
 						display: "flex",
 						justifyContent: "center",
 						alignItems: "center",
@@ -382,47 +429,45 @@ export const App = () => {
 					}}
 				>
 					<div style={{ maxWidth: 640, width: "100%" }}>
-						<Space
-							orientation="vertical"
-							size="large"
-							style={{ width: "100%" }}
-						>
+						<Stack gap="lg" style={{ width: "100%" }}>
 							<div style={{ textAlign: "center" }}>
 								<Title
-									level={2}
+									order={2}
 									style={{ color: darkMode ? "#edf3f5" : "inherit" }}
 								>
 									Welcome
 								</Title>
-								<Paragraph
-									type="secondary"
+								<Text
+									c="dimmed"
 									style={{ color: darkMode ? "#8ca0aa" : undefined }}
 								>
 									Personal hub and web apps by chneau
-								</Paragraph>
+								</Text>
 							</div>
 
 							{APPS.map((item) => (
 								<AppCard key={item.href} item={item} darkMode={darkMode} />
 							))}
-						</Space>
+						</Stack>
 					</div>
-				</Content>
+				</Box>
 
-				<Footer
+				<Box
+					component="footer"
 					style={{
 						textAlign: "center",
 						color: darkMode ? "#8ca0aa" : "#8c8c8c",
 						background: "transparent",
 						fontSize: "0.8rem",
+						padding: "0 24px 24px",
 					}}
 				>
 					chneau © {new Date().getFullYear()}{" "}
 					<span style={{ opacity: 0.6, fontSize: "0.75rem", marginLeft: 6 }}>
 						({BUILD_DATE})
 					</span>
-				</Footer>
-			</Layout>
-		</ConfigProvider>
+				</Box>
+			</Box>
+		</MantineProvider>
 	);
 };

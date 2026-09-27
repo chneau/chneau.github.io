@@ -1,4 +1,4 @@
-import { Avatar, Card, Flex, Typography } from "antd";
+import { Avatar, Card, Flex, Text } from "@mantine/core";
 import dayjs from "dayjs";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,12 +17,11 @@ export const MilestonesWidget = () => {
 	if (upcomingMilestones.length === 0) return null;
 
 	return (
-		<Card
-			title={t("app.milestones.title")}
-			size="small"
-			style={{ marginTop: 16 }}
-		>
-			<Flex gap="large" wrap="wrap" justify="center">
+		<Card withBorder style={{ marginTop: 16 }}>
+			<Text fw={600} style={{ marginBottom: 8 }}>
+				{t("app.milestones.title")}
+			</Text>
+			<Flex gap="lg" wrap="wrap" justify="center">
 				{upcomingMilestones.map((item) => (
 					<button
 						type="button"
@@ -41,7 +40,7 @@ export const MilestonesWidget = () => {
 							dataStore.selectedBirthday = item;
 						}}
 					>
-						<Flex gap="small" align="center" vertical>
+						<Flex gap="sm" align="center" direction="column">
 							<Avatar
 								style={{
 									backgroundColor:
@@ -53,17 +52,17 @@ export const MilestonesWidget = () => {
 							>
 								<KindIcon kind={item.kind} size={16} />
 							</Avatar>
-							<Flex vertical flex={1}>
+							<Flex direction="column" flex={1}>
 								<span>
-									<Typography.Text strong style={{ color: "#1677ff" }}>
+									<Text component="span" fw={600} style={{ color: "#1677ff" }}>
 										{item.name}
-									</Typography.Text>
+									</Text>
 									{" - "}
 									{item.milestone
 										? t(item.milestone.key, item.milestone.params)
 										: ""}
 								</span>
-								<Typography.Text type="secondary">
+								<Text c="dimmed">
 									{item.daysBeforeBirthday === 0
 										? t("app.milestones.today")
 										: t("app.milestones.in_days", {
@@ -71,12 +70,12 @@ export const MilestonesWidget = () => {
 												date: dayjs(item.birthday).format("D MMM"),
 											})}
 									{" • "}
-									<Typography.Text type="secondary" italic>
+									<Text component="span" c="dimmed" fs="italic">
 										{item.milestoneStatus
 											? t(item.milestoneStatus.key, item.milestoneStatus.params)
 											: ""}
-									</Typography.Text>
-								</Typography.Text>
+									</Text>
+								</Text>
 							</Flex>
 						</Flex>
 					</button>

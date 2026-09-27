@@ -1,23 +1,21 @@
+import { Button, Divider, Drawer, Switch, Text } from "@mantine/core";
 import {
-	AimOutlined,
-	ApartmentOutlined,
-	AudioOutlined,
-	CloudOutlined,
-	CompassOutlined,
-	EnvironmentOutlined,
-	FireOutlined,
-	RiseOutlined,
-	SettingOutlined,
-	ThunderboltOutlined,
-} from "@ant-design/icons";
-import { Button, Divider, Drawer, Switch, Typography } from "antd";
+	Building2,
+	Cloud,
+	Compass,
+	Crosshair,
+	Flame,
+	MapPin,
+	Settings,
+	TrendingUp,
+	Volume2,
+	Zap,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { useSnapshot } from "valtio";
 import type { AppSettings } from "../data/types";
 import { railActions, railStore } from "../store";
 import { palette } from "../theme";
-
-const { Text } = Typography;
 
 type SettingRow = {
 	key: keyof AppSettings;
@@ -29,25 +27,25 @@ type SettingRow = {
 const ATMOSPHERE_SETTINGS: SettingRow[] = [
 	{
 		key: "dayNightCycle",
-		icon: <RiseOutlined />,
+		icon: <TrendingUp size={15} />,
 		label: "Dynamic day / night lighting",
 		hint: "Shifts sky, land tone and twilight as the day progresses",
 	},
 	{
 		key: "trainHeadlights",
-		icon: <ThunderboltOutlined />,
+		icon: <Zap size={15} />,
 		label: "Train headlight beams",
 		hint: "Projects directional light cones from cruising trains after dark",
 	},
 	{
 		key: "weatherEffects",
-		icon: <CloudOutlined />,
+		icon: <Cloud size={15} />,
 		label: "Highland weather engine",
 		hint: "Simulates drifting highland rain across the map",
 	},
 	{
 		key: "cityLights",
-		icon: <ApartmentOutlined />,
+		icon: <Building2 size={15} />,
 		label: "Urban glow at night",
 		hint: "Illuminates Glasgow, Edinburgh, Dundee and Aberdeen after dusk",
 	},
@@ -56,31 +54,31 @@ const ATMOSPHERE_SETTINGS: SettingRow[] = [
 const NETWORK_SETTINGS: SettingRow[] = [
 	{
 		key: "showLochs",
-		icon: <EnvironmentOutlined />,
+		icon: <MapPin size={15} />,
 		label: "Scottish lochs",
 		hint: "Renders Loch Ness, Loch Lomond, Loch Tay and Loch Morar",
 	},
 	{
 		key: "showLandmarks",
-		icon: <CompassOutlined />,
+		icon: <Compass size={15} />,
 		label: "Famous rail landmarks",
 		hint: "Glenfinnan, Forth Bridge, Tay Bridge and Drumochter Summit",
 	},
 	{
 		key: "congestionHeatmap",
-		icon: <FireOutlined />,
+		icon: <Flame size={15} />,
 		label: "Congestion emphasis",
 		hint: "Highlights high-frequency corridors through the Central Belt",
 	},
 	{
 		key: "cameraFollowTrain",
-		icon: <AimOutlined />,
+		icon: <Crosshair size={15} />,
 		label: "Cab ride",
 		hint: "Keeps the camera centred on the train you inspect",
 	},
 	{
 		key: "soundEffects",
-		icon: <AudioOutlined />,
+		icon: <Volume2 size={15} />,
 		label: "Ambient audio and chimes",
 		hint: "Synthesised arrival tones and rail chimes",
 	},
@@ -114,7 +112,7 @@ export const SettingsModal = () => {
 		>
 			<div style={{ minWidth: 0 }}>
 				<Text
-					strong
+					fw={600}
 					style={{
 						color: palette.text,
 						display: "flex",
@@ -140,7 +138,9 @@ export const SettingsModal = () => {
 			</div>
 			<Switch
 				checked={settings[key]}
-				onChange={(val) => handleSettingToggle(key, val)}
+				onChange={(event) =>
+					handleSettingToggle(key, event.currentTarget.checked)
+				}
 			/>
 		</div>
 	);
@@ -157,14 +157,15 @@ export const SettingsModal = () => {
 						gap: 8,
 					}}
 				>
-					<SettingOutlined />
+					<Settings size={16} />
 					Map and simulation
 				</span>
 			}
-			placement="right"
+			position="right"
 			onClose={() => railActions.setIsSettingsOpen(false)}
-			open={isSettingsOpen}
+			opened={isSettingsOpen}
 			styles={{
+				content: { background: palette.surfaceSolid },
 				body: {
 					background: palette.surfaceSolid,
 					color: palette.text,
@@ -217,8 +218,8 @@ export const SettingsModal = () => {
 				/>
 
 				<Button
-					block
-					ghost
+					fullWidth
+					variant="default"
 					className="sr-press"
 					onClick={() => railActions.resetSettings()}
 					style={{

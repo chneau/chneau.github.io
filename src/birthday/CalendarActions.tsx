@@ -1,6 +1,7 @@
-import { Dropdown, message } from "antd";
+import { Menu } from "@mantine/core";
 import { CalendarDays, Download, Link as LinkIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { notify } from "./notify";
 
 const getIcsUrl = () => {
 	const base = `${window.location.origin}${window.location.pathname}`.replace(
@@ -56,7 +57,7 @@ export const CalendarActions = () => {
 			onClick: () => {
 				const url = getIcsUrl();
 				navigator.clipboard.writeText(url);
-				message.success(t("app.calendar.copied"));
+				notify.success(t("app.calendar.copied"));
 			},
 		},
 		{ type: "divider" as const },
@@ -69,11 +70,28 @@ export const CalendarActions = () => {
 	];
 
 	return (
-		<Dropdown menu={{ items: calendarItems }}>
-			<button type="button" className="tk-iconbtn">
-				<CalendarDays size={15} strokeWidth={1.9} />
-				<span className="tk-iconbtn__label">{t("app.calendar.export")}</span>
-			</button>
-		</Dropdown>
+		<Menu position="bottom-end" shadow="md" withinPortal>
+			<Menu.Target>
+				<button type="button" className="tk-iconbtn">
+					<CalendarDays size={15} strokeWidth={1.9} />
+					<span className="tk-iconbtn__label">{t("app.calendar.export")}</span>
+				</button>
+			</Menu.Target>
+			<Menu.Dropdown>
+				{calendarItems.map((item) =>
+					"type" in item ? (
+						<Menu.Divider key="calendar-divider" />
+					) : (
+						<Menu.Item
+							key={item.key}
+							leftSection={item.icon}
+							onClick={item.onClick}
+						>
+							{item.label}
+						</Menu.Item>
+					),
+				)}
+			</Menu.Dropdown>
+		</Menu>
 	);
 };

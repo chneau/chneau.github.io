@@ -1,8 +1,24 @@
-import { Progress, Table } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import {
+	Group,
+	Pagination,
+	Progress,
+	Select,
+	Table,
+	Text,
+	UnstyledButton,
+} from "@mantine/core";
 import type { TFunction } from "i18next";
-import { Clock, Gem, RotateCcw, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+	ArrowDown,
+	ArrowUp,
+	ChevronDown,
+	ChevronRight,
+	Clock,
+	Gem,
+	RotateCcw,
+	Search,
+} from "lucide-react";
+import { Fragment, type ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { BirthdayDetails } from "./BirthdayDetails";
@@ -11,11 +27,35 @@ import { Highlight } from "./Highlight";
 import { KindIcon, kindLabelKey } from "./KindIcon";
 import { store } from "./store";
 
-const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
+type SortKey =
+	| "name"
+	| "birthday"
+	| "age"
+	| "progress"
+	| "daysBeforeBirthday"
+	| "sign"
+	| "birthgem"
+	| "chineseZodiac";
+
+type SortDir = "asc" | "desc";
+
+type Visibility = "sm" | "md" | "lg" | "xl";
+
+type ColumnDef = {
+	key: SortKey;
+	title: string;
+	visibleFrom?: Visibility;
+	render: (record: Birthday) => ReactNode;
+	sorter: (a: Birthday, b: Birthday) => number;
+};
+
+const PAGE_SIZE_OPTIONS = [10, 15, 25, 50, 100];
+
+const getColumns = (search: string, t: TFunction): ColumnDef[] => [
 	{
+		key: "name",
 		title: t("table.name"),
-		dataIndex: "name",
-		render: (_, x) => (
+		render: (x) => (
 			<>
 				<span
 					style={{
@@ -58,9 +98,9 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 		sorter: (a, b) => a.name.localeCompare(b.name),
 	},
 	{
+		key: "birthday",
 		title: t("table.birthday"),
-		dataIndex: "birthdayString",
-		render: (_, x) => (
+		render: (x) => (
 			<span style={{ fontFamily: "var(--tk-font-mono)", fontSize: 12 }}>
 				<Highlight text={x.birthdayString} search={search} />
 			</span>
@@ -68,24 +108,22 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 		sorter: (a, b) => a.birthday.getTime() - b.birthday.getTime(),
 	},
 	{
+		key: "age",
 		title: t("table.age"),
-		dataIndex: "age",
-		render: (age) => <Highlight text={String(age)} search={search} />,
+		render: (x) => <Highlight text={String(x.age)} search={search} />,
 		sorter: (a, b) => a.age - b.age,
 	},
 	{
+		key: "progress",
 		title: t("table.progress"),
-		dataIndex: "progress",
-		render: (progress) => (
-			<Progress percent={Math.round(progress)} size="small" showInfo={false} />
-		),
+		render: (x) => <Progress value={Math.round(x.progress)} size="sm" />,
 		sorter: (a, b) => a.progress - b.progress,
-		responsive: ["sm"],
+		visibleFrom: "sm",
 	},
 	{
+		key: "daysBeforeBirthday",
 		title: t("table.in"),
-		dataIndex: "daysBeforeBirthday",
-		render: (days) => (
+		render: (x) => (
 			<span
 				style={{
 					display: "inline-flex",
@@ -93,19 +131,22 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 					gap: 5,
 					fontFamily: "var(--tk-font-mono)",
 					fontSize: 12,
-					color: days === 0 ? "var(--tk-accent-ink)" : "var(--tk-text-dim)",
+					color:
+						x.daysBeforeBirthday === 0
+							? "var(--tk-accent-ink)"
+							: "var(--tk-text-dim)",
 				}}
 			>
 				<Clock size={12} strokeWidth={1.9} />
-				{days} {t("table.days")}
+				{x.daysBeforeBirthday} {t("table.days")}
 			</span>
 		),
 		sorter: (a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday,
 	},
 	{
+		key: "sign",
 		title: t("table.sign"),
-		dataIndex: "sign",
-		render: (_, x) => (
+		render: (x) => (
 			<span style={{ whiteSpace: "nowrap" }}>
 				{x.signSymbol}{" "}
 				<Highlight text={t(`data.zodiac.${x.sign}`)} search={search} />
@@ -113,12 +154,12 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 		),
 		sorter: (a, b) =>
 			t(`data.zodiac.${a.sign}`).localeCompare(t(`data.zodiac.${b.sign}`)),
-		responsive: ["md"],
+		visibleFrom: "md",
 	},
 	{
+		key: "birthgem",
 		title: t("table.birthgem"),
-		dataIndex: "birthgem",
-		render: (_, x) => (
+		render: (x) => (
 			<span
 				style={{
 					display: "inline-flex",
@@ -137,12 +178,12 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 			</span>
 		),
 		sorter: (a, b) => a.birthgem.localeCompare(b.birthgem),
-		responsive: ["lg"],
+		visibleFrom: "lg",
 	},
 	{
+		key: "chineseZodiac",
 		title: t("table.chinese"),
-		dataIndex: "chineseZodiac",
-		render: (_, x) => (
+		render: (x) => (
 			<Highlight
 				text={t(`data.chinese_zodiac.${x.chineseZodiac}`)}
 				search={search}
@@ -152,7 +193,7 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 			t(`data.chinese_zodiac.${a.chineseZodiac}`).localeCompare(
 				t(`data.chinese_zodiac.${b.chineseZodiac}`),
 			),
-		responsive: ["xl"],
+		visibleFrom: "xl",
 	},
 ];
 
@@ -160,6 +201,10 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 	const { search } = useSnapshot(store);
 	const { t } = useTranslation();
 	const [pageSize, setPageSize] = useState(15);
+	const [page, setPage] = useState(1);
+	const [sortKey, setSortKey] = useState<SortKey | null>(null);
+	const [sortDir, setSortDir] = useState<SortDir>("asc");
+	const [expandedKey, setExpandedKey] = useState<string | null>(null);
 	const columns = useMemo(() => getColumns(search, t), [search, t]);
 
 	const handleResetFilters = () => {
@@ -169,45 +214,155 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 		store.showWeddings = false;
 	};
 
+	const toggleSort = (key: SortKey) => {
+		if (sortKey === key) {
+			setSortDir((dir) => (dir === "asc" ? "desc" : "asc"));
+		} else {
+			setSortKey(key);
+			setSortDir("asc");
+		}
+	};
+
+	const sorted = useMemo(() => {
+		if (!sortKey) return [...data];
+		const column = columns.find((candidate) => candidate.key === sortKey);
+		if (!column) return [...data];
+		const next = [...data].sort(column.sorter);
+		return sortDir === "asc" ? next : next.reverse();
+	}, [data, columns, sortKey, sortDir]);
+
+	const total = sorted.length;
+	const pageCount = Math.max(1, Math.ceil(total / pageSize));
+	const currentPage = Math.min(page, pageCount);
+	const start = (currentPage - 1) * pageSize;
+	const pageRows = sorted.slice(start, start + pageSize);
+
+	if (total === 0) {
+		return (
+			<div className="tk-empty">
+				<span className="tk-empty__mark">
+					<Search size={20} strokeWidth={1.5} />
+				</span>
+				<h3>{t("app.list.empty_title")}</h3>
+				<p>{t("app.list.empty_body")}</p>
+				<button
+					type="button"
+					className="tk-iconbtn"
+					onClick={handleResetFilters}
+				>
+					<RotateCcw size={14} strokeWidth={1.9} />
+					{t("app.list.reset")}
+				</button>
+			</div>
+		);
+	}
+
 	return (
-		<Table
-			rowKey={(record) => `${record.name}-${record.birthdayString}`}
-			columns={columns}
-			dataSource={data as Birthday[]}
-			pagination={{
-				pageSize,
-				onShowSizeChange: (_current, size) => setPageSize(size),
-				showSizeChanger: true,
-				pageSizeOptions: ["10", "15", "25", "50", "100"],
-				showTotal: (total) => `${total} ${t("app.birthdays")}`,
-				size: "small",
-			}}
-			size="small"
-			locale={{
-				emptyText: (
-					<div className="tk-empty">
-						<span className="tk-empty__mark">
-							<Search size={20} strokeWidth={1.5} />
-						</span>
-						<h3>{t("app.list.empty_title")}</h3>
-						<p>{t("app.list.empty_body")}</p>
-						<button
-							type="button"
-							className="tk-iconbtn"
-							onClick={handleResetFilters}
-						>
-							<RotateCcw size={14} strokeWidth={1.9} />
-							{t("app.list.reset")}
-						</button>
-					</div>
-				),
-			}}
-			rowClassName={(record) =>
-				record.daysBeforeBirthday === 0 ? "tk-row-today" : ""
-			}
-			expandable={{
-				expandedRowRender: (record) => <BirthdayDetails record={record} />,
-			}}
-		/>
+		<>
+			<Table className="tk-table" highlightOnHover verticalSpacing="sm">
+				<Table.Thead>
+					<Table.Tr>
+						<Table.Th style={{ width: 32 }} />
+						{columns.map((column) => (
+							<Table.Th
+								key={column.key}
+								visibleFrom={column.visibleFrom}
+								onClick={() => toggleSort(column.key)}
+								style={{ cursor: "pointer", userSelect: "none" }}
+							>
+								<span
+									style={{
+										display: "inline-flex",
+										alignItems: "center",
+										gap: 4,
+									}}
+								>
+									{column.title}
+									{sortKey === column.key &&
+										(sortDir === "asc" ? (
+											<ArrowUp size={12} />
+										) : (
+											<ArrowDown size={12} />
+										))}
+								</span>
+							</Table.Th>
+						))}
+					</Table.Tr>
+				</Table.Thead>
+				<Table.Tbody>
+					{pageRows.map((record) => {
+						const rowKey = `${record.name}-${record.birthdayString}`;
+						const expanded = expandedKey === rowKey;
+						return (
+							<Fragment key={rowKey}>
+								<Table.Tr
+									className={
+										record.daysBeforeBirthday === 0 ? "tk-row-today" : undefined
+									}
+								>
+									<Table.Td>
+										<UnstyledButton
+											onClick={() => setExpandedKey(expanded ? null : rowKey)}
+											aria-label={
+												expanded ? "Collapse details" : "Expand details"
+											}
+											aria-expanded={expanded}
+										>
+											{expanded ? (
+												<ChevronDown size={14} />
+											) : (
+												<ChevronRight size={14} />
+											)}
+										</UnstyledButton>
+									</Table.Td>
+									{columns.map((column) => (
+										<Table.Td key={column.key} visibleFrom={column.visibleFrom}>
+											{column.render(record)}
+										</Table.Td>
+									))}
+								</Table.Tr>
+								{expanded && (
+									<Table.Tr className="tk-expanded-row">
+										<Table.Td colSpan={columns.length + 1}>
+											<BirthdayDetails record={record} />
+										</Table.Td>
+									</Table.Tr>
+								)}
+							</Fragment>
+						);
+					})}
+				</Table.Tbody>
+			</Table>
+
+			<Group justify="space-between" mt="md">
+				<Text size="xs" c="dimmed">
+					{total} {t("app.birthdays")}
+				</Text>
+				<Group gap="sm">
+					<Select
+						size="xs"
+						w={80}
+						allowDeselect={false}
+						aria-label={t("table.progress")}
+						value={String(pageSize)}
+						data={PAGE_SIZE_OPTIONS.map((size) => ({
+							value: String(size),
+							label: String(size),
+						}))}
+						onChange={(value) => {
+							if (!value) return;
+							setPageSize(Number(value));
+							setPage(1);
+						}}
+					/>
+					<Pagination
+						size="sm"
+						total={pageCount}
+						value={currentPage}
+						onChange={setPage}
+					/>
+				</Group>
+			</Group>
+		</>
 	);
 };
