@@ -73,7 +73,7 @@ export const portionLabel = (label: string): string => {
 	return CANONICAL_LABEL[low] ?? low;
 };
 
-export const classifyPortion = (label: string): PortionKind => {
+const classifyPortion = (label: string): PortionKind => {
 	const low = portionLabel(label).toLowerCase();
 	if (low.includes("pint") && low.includes("half")) return "half";
 	if (low.includes("half")) return "half";
@@ -91,7 +91,7 @@ export const classifyPortion = (label: string): PortionKind => {
 };
 
 /** ml in one portion: from the label ("175ml glass") or from the kind. */
-export const portionMl = (label: string): number | null => {
+const portionMl = (label: string): number | null => {
 	const match = /(\d+(?:\.\d+)?)\s*ml/.exec(portionLabel(label));
 	if (match?.[1]) {
 		return Number(match[1]);
@@ -209,7 +209,7 @@ const NATURE_KINDS: Record<ItemNature, PortionKind[]> = {
  * The price for a venue, preferring the requested portion, then the item's
  * canonical portion, then the venue's own first/largest portion.
  */
-export const choosePrice = (
+const choosePrice = (
 	portions: Record<string, number>,
 	requested: string | null,
 	nature: ItemNature,
@@ -245,7 +245,7 @@ export const choosePrice = (
 // --------------------------------------------------------------------------- #
 
 /** "330ml" written in a description rather than in the portion label. */
-export const parseVolumeMl = (
+const parseVolumeMl = (
 	description: string | null | undefined,
 ): number | null => {
 	const match = /(\d{2,4})\s*ml\b/i.exec(description ?? "");
@@ -256,9 +256,7 @@ export const parseVolumeMl = (
 	return value > 0 ? value : null;
 };
 
-export const parseAbv = (
-	description: string | null | undefined,
-): number | null => {
+const parseAbv = (description: string | null | undefined): number | null => {
 	const match = /([\d.]+)\s*%\s*(?:abv|alc\b|vol)?/i.exec(description ?? "");
 	if (!match?.[1]) {
 		return null;
@@ -267,9 +265,7 @@ export const parseAbv = (
 	return value > 0 && value < 100 ? value : null;
 };
 
-export const parseUnits = (
-	description: string | null | undefined,
-): number | null => {
+const parseUnits = (description: string | null | undefined): number | null => {
 	const match = /([\d.]+)\s*units?\b/i.exec(description ?? "");
 	if (!match?.[1]) {
 		return null;
@@ -280,11 +276,46 @@ export const parseUnits = (
 
 type Value = { kind: ValueKind; value: number };
 
+/** Facts decoded from an item's description, parsed once per definition. */
+type DescriptionFacts = {
+	abv: number | null;
+	units: number | null;
+	volumeMl: number | null;
+	calories: number | null;
+};
+
+const EMPTY_FACTS: DescriptionFacts = {
+	abv: null,
+	units: null,
+	volumeMl: null,
+	calories: null,
+};
+
+const FACTS_CACHE = new WeakMap<ItemDefinition, DescriptionFacts>();
+
+const describe = (definition: ItemDefinition | null): DescriptionFacts => {
+	if (!definition) {
+		return EMPTY_FACTS;
+	}
+	const cached = FACTS_CACHE.get(definition);
+	if (cached) {
+		return cached;
+	}
+	const facts: DescriptionFacts = {
+		abv: parseAbv(definition.description),
+		units: parseUnits(definition.description),
+		volumeMl: parseVolumeMl(definition.description),
+		calories: definition.calories ?? null,
+	};
+	FACTS_CACHE.set(definition, facts);
+	return facts;
+};
+
 /**
  * The comparable metric for one portion: price per alcohol unit (best), price
  * per 100 ml for measured drinks, or calories per pound for food.
  */
-export const computeValue = (input: {
+const computeValue = (input: {
 	nature: ItemNature;
 	price: number;
 	abv: number | null;
@@ -328,6 +359,48 @@ export const computeValue = (input: {
 /** Lower is better, except for calories per pound where higher is better. */
 export const valueDirection = (kind: ValueKind): 1 | -1 =>
 	kind === "calorie" ? -1 : 1;
+
+/** One venue's resolved price for an item, with its comparable value metric. */
+type ItemValue = {
+	portion: string;
+	price: number;
+	value: Value | null;
+};
+
+/**
+ * Resolve one venue's price for an item: choose the canonical portion and derive
+ * the comparable value metric. Shared by the round calculator, the value
+ * leaderboards and the venue menu.
+ */
+export const pickItemValue = (
+	portions: Record<string, number>,
+	definition: ItemDefinition | null,
+): ItemValue | null => {
+	const nature = itemNature(definition);
+	const picked = choosePrice(portions, null, nature);
+	if (!picked) {
+		return null;
+	}
+	const facts = describe(definition);
+	const kind = classifyPortion(picked.portion);
+	const ml =
+		portionMl(picked.portion) ??
+		(kind === "bottle" || kind === "can" || kind === "glass"
+			? facts.volumeMl
+			: null);
+	return {
+		portion: picked.portion,
+		price: picked.price,
+		value: computeValue({
+			nature,
+			price: picked.price,
+			abv: facts.abv,
+			ml,
+			calories: facts.calories,
+			descriptionUnits: facts.units,
+		}),
+	};
+};
 
 export const metricText = (value: Value, currency = "GBP"): string => {
 	if (value.kind === "unit") {

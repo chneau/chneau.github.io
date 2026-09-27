@@ -1,5 +1,6 @@
 import { Box, Group, Text, Tooltip } from "@mantine/core";
 import { useMemo } from "react";
+import { medianTrend } from "../derive";
 import { money, type PriceScale, priceColor } from "../price";
 import type { HistoryPoint } from "../types";
 import { Sparkline } from "./Sparkline";
@@ -54,12 +55,8 @@ export const Distribution = ({
 			? ((medianPrice - scale.min) / (scale.max - scale.min)) * 100
 			: null;
 	const historyPoints = history?.map((point) => point.median) ?? [];
-	const trend =
-		historyPoints.length >= 2
-			? ((historyPoints[historyPoints.length - 1] ?? 0) -
-					(historyPoints[0] ?? 0)) /
-				(historyPoints[0] || 1)
-			: null;
+	const trendPercent = history ? medianTrend(history) : null;
+	const trend = trendPercent != null ? trendPercent / 100 : null;
 
 	return (
 		<>

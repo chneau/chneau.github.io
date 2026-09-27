@@ -26,12 +26,24 @@ export const priceColor = (price: number, scale: PriceScale): string => {
 	return `hsl(${hue.toFixed(0)} 68% ${light.toFixed(0)}%)`;
 };
 
-export const money = (value: number, currency = "GBP"): string => {
-	try {
-		return new Intl.NumberFormat("en-GB", {
+/** Intl formatters are expensive to build, so they are cached per currency. */
+const moneyFormatters = new Map<string, Intl.NumberFormat>();
+
+const moneyFormat = (currency: string): Intl.NumberFormat => {
+	let formatter = moneyFormatters.get(currency);
+	if (!formatter) {
+		formatter = new Intl.NumberFormat("en-GB", {
 			style: "currency",
 			currency,
-		}).format(value);
+		});
+		moneyFormatters.set(currency, formatter);
+	}
+	return formatter;
+};
+
+export const money = (value: number, currency = "GBP"): string => {
+	try {
+		return moneyFormat(currency).format(value);
 	} catch {
 		return `£${value.toFixed(2)}`;
 	}
@@ -48,38 +60,61 @@ export const median = (values: number[]): number => {
 	return sorted.length % 2 ? upper : (upper + lower) / 2;
 };
 
+const symbolCache = new Map<string, string>();
+
 /** The currency's symbol ("£", "€", "US$"), falling back to the code. */
 export const currencySymbol = (currency: string): string => {
+	const cached = symbolCache.get(currency);
+	if (cached != null) {
+		return cached;
+	}
 	try {
-		return (
-			new Intl.NumberFormat("en-GB", { style: "currency", currency })
+		const symbol =
+			moneyFormat(currency)
 				.formatToParts(0)
-				.find((part) => part.type === "currency")?.value ?? currency
-		);
+				.find((part) => part.type === "currency")?.value ?? currency;
+		symbolCache.set(currency, symbol);
+		return symbol;
 	} catch {
 		return currency;
 	}
 };
 
-/** "3.10" — the amount alone, for when the symbol is displayed separately.
- *  Uses the currency's own number of decimals (JPY has none, GBP/EUR have 2). */
-export const amount = (value: number, currency?: string): string => {
+const digitsCache = new Map<string, number>();
+
+/** The currency's own number of decimals (JPY has none, GBP/EUR have 2). */
+const digitsFor = (currency?: string): number => {
+	if (!currency) {
+		return 2;
+	}
+	const cached = digitsCache.get(currency);
+	if (cached != null) {
+		return cached;
+	}
 	let digits = 2;
 	try {
-		if (currency) {
-			digits =
-				new Intl.NumberFormat("en-GB", {
-					style: "currency",
-					currency,
-				}).resolvedOptions().maximumFractionDigits ?? 2;
-		}
+		digits = moneyFormat(currency).resolvedOptions().maximumFractionDigits ?? 2;
 	} catch {
 		digits = 2;
 	}
-	return new Intl.NumberFormat("en-GB", {
-		minimumFractionDigits: digits,
-		maximumFractionDigits: digits,
-	}).format(value);
+	digitsCache.set(currency, digits);
+	return digits;
+};
+
+const amountFormatters = new Map<number, Intl.NumberFormat>();
+
+/** "3.10" — the amount alone, for when the symbol is displayed separately. */
+export const amount = (value: number, currency?: string): string => {
+	const digits = digitsFor(currency);
+	let formatter = amountFormatters.get(digits);
+	if (!formatter) {
+		formatter = new Intl.NumberFormat("en-GB", {
+			minimumFractionDigits: digits,
+			maximumFractionDigits: digits,
+		});
+		amountFormatters.set(digits, formatter);
+	}
+	return formatter.format(value);
 };
 
 /** "0.4 mi" / "12 mi" */

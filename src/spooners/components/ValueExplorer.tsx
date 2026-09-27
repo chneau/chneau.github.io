@@ -10,8 +10,7 @@ import {
 } from "@mantine/core";
 import { useMemo, useState } from "react";
 import { type ValueLeader, valueLeaders } from "../derive";
-import { metricText, valueDirection } from "../portions";
-import { money } from "../price";
+import { valueDirection } from "../portions";
 import type { Formatter, SpoonersCache, ValueKind } from "../types";
 
 type Props = {
@@ -20,7 +19,7 @@ type Props = {
 	cache: SpoonersCache;
 	onItem: (name: string) => void;
 	onVenue: (ref: number) => void;
-	format?: Formatter;
+	format: Formatter;
 };
 
 const TABS: { label: string; value: ValueKind }[] = [
@@ -120,12 +119,7 @@ export const ValueExplorer = ({
 								</Group>
 								<Box style={{ textAlign: "right", flexShrink: 0 }}>
 									<Text size="sm" fw={700}>
-										{format
-											? format.metric(row.kind, row.value, row.currency)
-											: metricText(
-													{ kind: row.kind, value: row.value },
-													row.currency,
-												)}
+										{format.metric(row.kind, row.value, row.currency)}
 									</Text>
 									<Text
 										size="xs"
@@ -135,11 +129,8 @@ export const ValueExplorer = ({
 											onVenue(row.venueRef);
 										}}
 									>
-										{row.portion}{" "}
-										{format
-											? format.money(row.price, row.currency)
-											: money(row.price, row.currency)}{" "}
-										· {row.venueName}
+										{row.portion} {format.money(row.price, row.currency)} ·{" "}
+										{row.venueName}
 									</Text>
 								</Box>
 							</Group>

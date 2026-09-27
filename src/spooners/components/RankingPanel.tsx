@@ -11,7 +11,7 @@ import {
 } from "@mantine/core";
 import { Info } from "lucide-react";
 import { useState } from "react";
-import { SPOT_META } from "../derive";
+import { isTemporarilyClosed, SPOT_META } from "../derive";
 import { metricText, valueDirection } from "../portions";
 import {
 	amount,
@@ -75,10 +75,7 @@ const Row = ({
 	value: boolean;
 }) => {
 	const change = changeText(venue);
-	const temporarilyClosed =
-		venue.status === "closing_temporary" ||
-		venue.status === "closed_temporary" ||
-		venue.status === "opening_soon";
+	const temporarilyClosed = isTemporarilyClosed(venue.status);
 	return (
 		<Box
 			role="button"

@@ -1,14 +1,4 @@
-import {
-	choosePrice,
-	classifyPortion,
-	computeValue,
-	itemNature,
-	parseAbv,
-	parseUnits,
-	parseVolumeMl,
-	portionMl,
-	valueDirection,
-} from "./portions";
+import { itemNature, pickItemValue, valueDirection } from "./portions";
 import { median } from "./price";
 import type {
 	CacheStats,
@@ -64,7 +54,7 @@ export const buildItemIndex = (cache: SpoonersCache): ItemInfo[] => {
 			keywords: definition.keywords ?? [],
 			count,
 			nature: itemNature(definition),
-			trend: trendPercent(historyOf(cache, name)),
+			trend: medianTrend(historyOf(cache, name)),
 		});
 	}
 
@@ -213,6 +203,10 @@ export const venueFacilities = (detail: VenueDetail | null): string[] =>
 		(facility: unknown): facility is string => typeof facility === "string",
 	);
 
+/** ISO code the venue prices in (GBP for Great Britain, EUR for Ireland). */
+export const venueCurrency = (detail: VenueDetail | null): string =>
+	detail?.currency?.code ?? detail?.currency?.currencyCode ?? "GBP";
+
 /** Great-circle distance in miles. */
 export const haversineMiles = (
 	from: { lat: number; lng: number },
@@ -271,7 +265,7 @@ export const matchesFilters = (item: ItemInfo, active: string[]): boolean =>
 const historyOf = (cache: SpoonersCache, itemName: string): HistoryPoint[] =>
 	cache.history?.items?.[itemName] ?? [];
 
-const trendPercent = (points: HistoryPoint[]): number | null => {
+export const medianTrend = (points: HistoryPoint[]): number | null => {
 	if (points.length < 2) {
 		return null;
 	}
@@ -301,7 +295,7 @@ export const itemTrend = (
 	if (points.length < 2) {
 		return null;
 	}
-	const percent = trendPercent(points);
+	const percent = medianTrend(points);
 	const first = points[0];
 	const last = points[points.length - 1];
 	if (percent == null || !first || !last) {
@@ -334,10 +328,47 @@ export const availableFacilities = (
 		.slice(0, limit);
 };
 
-export const matchesFacilities = (
-	venue: PricedVenue,
+const matchesFacilities = (
+	venue: { facilities: string[] },
 	active: string[],
 ): boolean => active.every((facility) => venue.facilities.includes(facility));
+
+/** The map/list filters the sidebar toggles. */
+type VenueFilters = {
+	openNow: boolean;
+	hideSpecial: boolean;
+	hideClosed: boolean;
+	facilities: string[];
+};
+
+/** The minimum a venue needs to be filtered by the sidebar toggles. */
+type FilterableVenue = {
+	facilities: string[];
+	isOpenNow: boolean;
+	isClosed: boolean;
+	status: string | null;
+	spot: VenueSpot;
+};
+
+/** True when a venue survives the "open now / special / closed / facilities" filters. */
+export const matchesVenueFilters = (
+	venue: FilterableVenue,
+	filters: VenueFilters,
+): boolean => {
+	if (filters.openNow && !venue.isOpenNow) {
+		return false;
+	}
+	if (filters.hideSpecial && isCaptiveSpot(venue.spot)) {
+		return false;
+	}
+	if (
+		filters.hideClosed &&
+		(venue.isClosed || isTemporarilyClosed(venue.status))
+	) {
+		return false;
+	}
+	return matchesFacilities(venue, filters.facilities);
+};
 
 // --------------------------------------------------------------------------- #
 // geography                                                                      #
@@ -429,10 +460,9 @@ export const nearestSellers = (
 			if (current && current.distance <= distance) {
 				continue;
 			}
-			const picked = choosePrice(
+			const picked = pickItemValue(
 				entry.items[name] ?? {},
-				null,
-				itemNature(cache.items[name] ?? null),
+				cache.items[name] ?? null,
 			);
 			if (!picked) {
 				continue;
@@ -443,10 +473,7 @@ export const nearestSellers = (
 				town: entry.venue.address?.town ?? null,
 				price: picked.price,
 				portion: picked.portion,
-				currency:
-					entry.detail?.currency?.code ??
-					entry.detail?.currency?.currencyCode ??
-					"GBP",
+				currency: venueCurrency(entry.detail),
 				distance,
 			};
 		}
@@ -498,10 +525,7 @@ export const venuesWithoutPrices = (
 			hoursToday: open.hours,
 			facilities: venueFacilities(entry.detail),
 			phone: entry.detail?.contactDetails?.telephone || null,
-			currency:
-				entry.detail?.currency?.code ??
-				entry.detail?.currency?.currencyCode ??
-				"GBP",
+			currency: venueCurrency(entry.detail),
 			reason: entry.error ?? "menu not published",
 			images: venueImages(entry.detail),
 		});
@@ -538,9 +562,6 @@ export const valueLeaders = (cache: SpoonersCache): ValueLeader[] => {
 	const out: ValueLeader[] = [];
 	for (const [name, definition] of Object.entries(cache.items)) {
 		const nature = itemNature(definition);
-		const abv = parseAbv(definition?.description);
-		const descriptionUnits = parseUnits(definition?.description);
-		const calories = definition?.calories ?? null;
 		let best: ValueLeader | null = null;
 		let count = 0;
 		for (const entry of Object.values(cache.venues)) {
@@ -548,25 +569,12 @@ export const valueLeaders = (cache: SpoonersCache): ValueLeader[] => {
 			if (!portions) {
 				continue;
 			}
-			const picked = choosePrice(portions, null, nature);
+			const picked = pickItemValue(portions, definition);
 			if (!picked) {
 				continue;
 			}
 			count += 1;
-			const kind = classifyPortion(picked.portion);
-			const ml =
-				portionMl(picked.portion) ??
-				(kind === "bottle" || kind === "can" || kind === "glass"
-					? parseVolumeMl(definition?.description)
-					: null);
-			const value = computeValue({
-				nature,
-				price: picked.price,
-				abv,
-				ml,
-				calories,
-				descriptionUnits,
-			});
+			const value = picked.value;
 			if (!value) {
 				continue;
 			}
@@ -582,10 +590,7 @@ export const valueLeaders = (cache: SpoonersCache): ValueLeader[] => {
 					value: value.value,
 					price: picked.price,
 					portion: picked.portion,
-					currency:
-						entry.detail?.currency?.code ??
-						entry.detail?.currency?.currencyCode ??
-						"GBP",
+					currency: venueCurrency(entry.detail),
 					venueRef: entry.venue.venueRef,
 					venueName: entry.venue.name,
 					count,
@@ -626,33 +631,15 @@ export const venueValues = (
 	const out: VenueValue[] = [];
 	for (const [name, portions] of Object.entries(entry.items ?? {})) {
 		const definition = cache.items[name] ?? null;
-		const nature = itemNature(definition);
-		const picked = choosePrice(portions, null, nature);
-		if (!picked) {
-			continue;
-		}
-		const kind = classifyPortion(picked.portion);
-		const ml =
-			portionMl(picked.portion) ??
-			(kind === "bottle" || kind === "can" || kind === "glass"
-				? parseVolumeMl(definition?.description)
-				: null);
-		const value = computeValue({
-			nature,
-			price: picked.price,
-			abv: parseAbv(definition?.description),
-			ml,
-			calories: definition?.calories ?? null,
-			descriptionUnits: parseUnits(definition?.description),
-		});
-		if (!value) {
+		const picked = pickItemValue(portions, definition);
+		if (!picked?.value) {
 			continue;
 		}
 		out.push({
 			name,
 			menu: definition?.menu ?? null,
-			kind: value.kind,
-			value: value.value,
+			kind: picked.value.kind,
+			value: picked.value.value,
 			price: picked.price,
 			portion: picked.portion,
 		});

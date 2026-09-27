@@ -11,7 +11,6 @@ import {
 	optionGroups,
 	promos,
 } from "../itemFacts";
-import { amount, currencySymbol } from "../price";
 import type { Formatter, ItemDefinition, ItemOption } from "../types";
 
 const OptionRow = ({
@@ -19,19 +18,12 @@ const OptionRow = ({
 	format,
 }: {
 	option: ItemOption;
-	format?: Formatter;
+	format: Formatter;
 }) => {
 	const was = optionDiscount(option);
 	const price = option.price;
-	const moneyText =
-		price == null
-			? null
-			: format
-				? format.money(price, option.currency ?? "GBP")
-				: `${currencySymbol(option.currency ?? "GBP")}${amount(
-						price,
-						option.currency ?? "GBP",
-					)}`;
+	const currency = option.currency ?? "GBP";
+	const moneyText = price == null ? null : format.money(price, currency);
 	return (
 		<Group justify="space-between" gap={8} wrap="nowrap">
 			<Box style={{ minWidth: 0 }}>
@@ -74,7 +66,7 @@ type Props = {
 	/** Show the add-ons / swaps / tags with their prices. */
 	showOptions?: boolean;
 	/** Currency conversion for the option prices. */
-	format?: Formatter;
+	format: Formatter;
 };
 
 /** Everything the API keeps about one item, in readable form. */

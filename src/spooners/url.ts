@@ -4,8 +4,8 @@
  */
 
 type UrlState = {
+	/** Legacy single-item link; the round supersedes it. */
 	item?: string;
-	portion?: string;
 	cur?: string;
 	filters?: string[];
 	facilities?: string[];
@@ -58,7 +58,6 @@ export const readUrl = (): UrlState => {
 	const params = new URLSearchParams(window.location.search);
 	return {
 		item: params.get("item") ?? undefined,
-		portion: params.get("portion") ?? undefined,
 		cur: params.get("cur") ?? undefined,
 		filters: list(params, "filters"),
 		facilities: list(params, "facilities"),
@@ -83,8 +82,7 @@ const buildQuery = (state: UrlState): string => {
 			params.set(key, String(value));
 		}
 	};
-	put("item", state.item);
-	put("portion", state.portion);
+	// "item" is read for legacy links but never written; the round supersedes it.
 	put("cur", state.cur);
 	put("filters", state.filters?.join(","));
 	put("facilities", state.facilities?.join(","));

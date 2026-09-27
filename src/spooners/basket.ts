@@ -8,21 +8,13 @@
  */
 
 import {
+	venueCurrency,
 	venueFacilities,
 	venueImages,
 	venueOpenState,
 	venueSpot,
 } from "./derive";
-import {
-	choosePrice,
-	classifyPortion,
-	computeValue,
-	itemNature,
-	parseAbv,
-	parseUnits,
-	parseVolumeMl,
-	portionMl,
-} from "./portions";
+import { pickItemValue } from "./portions";
 import type { PricedVenue, SpoonersCache, VenuePriceLine } from "./types";
 
 export type BasketItem = { name: string; qty: number };
@@ -40,12 +32,6 @@ export const basketVenues = (
 	const definitions = new Map(
 		wanted.map((item) => [item.name, cache.items[item.name] ?? null]),
 	);
-	const natures = new Map(
-		wanted.map((item) => [
-			item.name,
-			itemNature(cache.items[item.name] ?? null),
-		]),
-	);
 	const single = wanted.length === 1 ? (wanted[0]?.name ?? null) : null;
 	const totalQty = wanted.reduce((sum, item) => sum + item.qty, 0);
 
@@ -59,61 +45,30 @@ export const basketVenues = (
 		const lines: VenuePriceLine[] = [];
 		const missing: string[] = [];
 		// filled in when the round is a single item
-		let volumeMl: number | null = null;
-		let units: number | null = null;
-		let abvValue: number | null = null;
-		let calories: number | null = null;
 		let metricKind: VenuePriceLine["metricKind"] = null;
 		let metricValue: number | null = null;
 		let portion = `${totalQty} items`;
 
 		for (const { name, qty } of wanted) {
 			const portions = entry.items[name];
-			const nature = natures.get(name) ?? "other";
-			const picked = portions ? choosePrice(portions, null, nature) : null;
+			const definition = definitions.get(name) ?? null;
+			const picked = portions ? pickItemValue(portions, definition) : null;
 			if (!picked) {
 				missing.push(name);
 				continue;
 			}
-			const definition = definitions.get(name) ?? null;
-			const kind = classifyPortion(picked.portion);
-			const ml =
-				portionMl(picked.portion) ??
-				(kind === "bottle" || kind === "can" || kind === "glass"
-					? parseVolumeMl(definition?.description)
-					: null);
-			const abv = parseAbv(definition?.description);
-			const descriptionUnits = parseUnits(definition?.description);
-			const lineUnits =
-				abv != null && ml != null
-					? (abv * ml) / 1000
-					: nature === "spirit"
-						? null
-						: descriptionUnits;
-			const value = computeValue({
-				nature,
-				price: picked.price,
-				abv,
-				ml,
-				calories: definition?.calories ?? null,
-				descriptionUnits,
-			});
 			if (single === name) {
 				portion = picked.portion;
-				volumeMl = ml;
-				units = lineUnits;
-				abvValue = abv;
-				calories = definition?.calories ?? null;
-				metricKind = value?.kind ?? null;
-				metricValue = value?.value ?? null;
+				metricKind = picked.value?.kind ?? null;
+				metricValue = picked.value?.value ?? null;
 			}
 			total += picked.price * qty;
 			lines.push({
 				name,
 				portion: picked.portion,
 				price: picked.price,
-				metricKind: value?.kind ?? null,
-				metricValue: value?.value ?? null,
+				metricKind: picked.value?.kind ?? null,
+				metricValue: picked.value?.value ?? null,
 			});
 		}
 		if (!lines.length) {
@@ -121,14 +76,12 @@ export const basketVenues = (
 		}
 		const open = venueOpenState(entry.detail, now);
 		let previousPrice: number | null = null;
-		let previousAt: string | null = null;
 		if (single) {
 			const changes =
 				cache.history?.venues?.[String(entry.venue.venueRef)]?.[single] ?? [];
-			for (const [at, price] of changes) {
+			for (const [, price] of changes) {
 				if (price !== (lines[0]?.price ?? 0)) {
 					previousPrice = price;
-					previousAt = at;
 				}
 			}
 		}
@@ -150,26 +103,17 @@ export const basketVenues = (
 			status: entry.venue.status ?? null,
 			price: total,
 			portion,
-			portions: {},
 			lines,
 			missing,
 			images: venueImages(entry.detail),
-			currency:
-				entry.detail?.currency?.code ??
-				entry.detail?.currency?.currencyCode ??
-				"GBP",
+			currency: venueCurrency(entry.detail),
 			isOpenNow: open.open,
 			hoursToday: open.hours,
 			facilities: venueFacilities(entry.detail),
 			phone: entry.detail?.contactDetails?.telephone || null,
-			volumeMl,
-			units,
-			abv: abvValue,
-			calories,
 			metricKind,
 			metricValue,
 			previousPrice,
-			previousAt,
 		});
 	}
 	return venues;
