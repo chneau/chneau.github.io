@@ -148,9 +148,18 @@ bun run deploy   # Builds and publishes to GitHub Pages (master branch)
 
 ## ⌨️ Keyboard Shortcuts
 
-Press `?` anywhere to see the shortcuts for the current app. Globally, `1`–`6`
-launch apps from the dashboard, `T` toggles the theme, and `Esc` closes the top
-panel or returns to the dashboard.
+Press `?` anywhere to see the shortcuts for the current app. Press `⌘/Ctrl + K`
+to open the command palette and jump to any app or run a quick action. Globally,
+`1`–`6` launch apps from the dashboard, `T` toggles the theme, and `Esc` closes
+the top panel or returns to the dashboard.
+
+---
+
+## 🛟 Resilience
+
+Every app is installable (PWA manifest + theme colour) and registers a shared
+service worker that serves an offline fallback when the network drops. Unknown
+URLs render a branded 404 page linking back to the hub.
 
 ---
 

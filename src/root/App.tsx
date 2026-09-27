@@ -8,7 +8,7 @@ import {
 	Text,
 	Title,
 } from "@mantine/core";
-import { ArrowRight, Rocket } from "lucide-react";
+import { ArrowRight, Keyboard, Moon, Rocket, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
 	APP_SWITCH_SHORTCUTS,
@@ -17,12 +17,17 @@ import {
 	AppHeader,
 	AppSwitcher,
 	Brand,
+	type Command,
+	CommandPalette,
+	CommandPaletteButton,
 	createAppTheme,
 	Footer,
 	HeaderAction,
 	SchemeToggle,
 	ShortcutsHelp,
 	ShortcutsHelpButton,
+	SkipLink,
+	useCommandPalette,
 	useShortcutsHelp,
 } from "../shared";
 
@@ -193,6 +198,7 @@ const AppCard = ({ item }: { item: AppItem }) => {
 
 export const App = () => {
 	const shortcuts = useShortcutsHelp();
+	const palette = useCommandPalette();
 	const [darkMode, setDarkMode] = useState<boolean>(() => {
 		try {
 			const saved = localStorage.getItem("root_dark_mode");
@@ -239,6 +245,25 @@ export const App = () => {
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, []);
 
+	const commands: Command[] = [
+		{
+			id: "toggle-theme",
+			label: "Toggle light / dark theme",
+			hint: "T",
+			keywords: "theme dark light mode appearance",
+			icon: darkMode ? <Sun size={16} /> : <Moon size={16} />,
+			run: () => setDarkMode((value) => !value),
+		},
+		{
+			id: "keyboard-shortcuts",
+			label: "Keyboard shortcuts",
+			hint: "?",
+			keywords: "shortcuts keyboard keys help",
+			icon: <Keyboard size={16} />,
+			run: () => shortcuts.open(),
+		},
+	];
+
 	return (
 		<MantineProvider
 			theme={appTheme}
@@ -252,6 +277,7 @@ export const App = () => {
 					background: "var(--app-bg)",
 				}}
 			>
+				<SkipLink />
 				<AppHeader
 					brand={
 						<Brand
@@ -275,6 +301,7 @@ export const App = () => {
 								onClick={shortcuts.open}
 								expanded={shortcuts.opened}
 							/>
+							<CommandPaletteButton onClick={palette.open} />
 							<SchemeToggle
 								dark={darkMode}
 								onToggle={() => setDarkMode((value) => !value)}
@@ -285,6 +312,7 @@ export const App = () => {
 
 				<Box
 					component="main"
+					id="main"
 					style={{
 						flex: 1,
 						display: "flex",
@@ -317,6 +345,12 @@ export const App = () => {
 				onClose={shortcuts.close}
 				groups={[]}
 				globalShortcuts={APP_SWITCH_SHORTCUTS}
+			/>
+
+			<CommandPalette
+				opened={palette.opened}
+				onClose={palette.close}
+				commands={commands}
 			/>
 		</MantineProvider>
 	);

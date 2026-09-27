@@ -21,8 +21,11 @@ import {
 	Download,
 	FileUp,
 	HardDrive,
+	Keyboard,
 	LockKeyhole,
+	Moon,
 	Plus,
+	Sun,
 	Trash2,
 	Undo2,
 } from "lucide-react";
@@ -46,6 +49,7 @@ import { SkillsPanel } from "@/components/skills-panel";
 import { StagedEditsDrawer } from "@/components/staged-edits-drawer";
 import {
 	type CompanionCatalog,
+	type CompanionCategory,
 	type CompanionEdit,
 	companionLabels,
 } from "@/lib/companions";
@@ -87,12 +91,49 @@ import {
 	AppSwitcher,
 	BackHome,
 	Brand,
+	type Command,
+	CommandPalette,
 	HeaderAction,
 	SchemeToggle,
 	ShortcutsHelp,
 	ShortcutsHelpButton,
+	SkipLink,
+	useCommandPalette,
 	useShortcutsHelp,
 } from "../../shared";
+
+/**
+ * Every `SaveView` id, so a URL parameter can be checked against the app before
+ * it is trusted.
+ */
+const SAVE_VIEWS = new Set<string>([
+	"inventory",
+	...Object.keys(editorViewInfo),
+	...Object.keys(companionLabels),
+]);
+
+const isSaveView = (value: string | null): value is SaveView =>
+	value !== null && SAVE_VIEWS.has(value);
+
+/**
+ * Read `?view=` and `?storage=` for the initial render. Only stable ids are
+ * accepted and anything else falls back to the defaults. No save content, file
+ * name or personal data is ever read from or written to the URL.
+ */
+const readDeepLink = (): { view: SaveView; storage: number | null } => {
+	if (typeof window === "undefined") {
+		return { view: "inventory", storage: null };
+	}
+	const params = new URLSearchParams(window.location.search);
+	const view = params.get("view");
+	const rawStorage = params.get("storage");
+	const parsedStorage = rawStorage === null ? Number.NaN : Number(rawStorage);
+	const storage =
+		Number.isSafeInteger(parsedStorage) && parsedStorage > 0
+			? parsedStorage
+			: null;
+	return { view: isSaveView(view) ? view : "inventory", storage };
+};
 
 /**
  * The editor shell.
@@ -109,13 +150,16 @@ export const Home = () => {
 	const dark = colorScheme === "dark";
 	const session = useMemo(() => new SaveSession(), []);
 	const currentFileNameRef = useRef("save.save");
+	const deepLink = useMemo(readDeepLink, []);
+	const pendingViewRef = useRef<SaveView>(deepLink.view);
+	const pendingStorageRef = useRef<number | null>(deepLink.storage);
 	const [navOpened, navHandlers] = useDisclosure(false);
 	const isDesktop = useMediaQuery("(min-width: 48em)") ?? true;
 	const [baseCatalog, setCatalog] = useState<ItemCatalogFile | null>(null);
 	const [equipmentCatalog, setEquipmentCatalog] =
 		useState<EquipmentCatalog | null>(null);
 	const companionCatalog = companionCatalogData as CompanionCatalog;
-	const [view, setView] = useState<SaveView>("inventory");
+	const [view, setView] = useState<SaveView>(deepLink.view);
 	const catalog = useMemo(() => {
 		if (!baseCatalog) return null;
 		const items: Record<string, CatalogItem> = { ...baseCatalog.items };
@@ -161,10 +205,13 @@ export const Home = () => {
 	const [discardModalOpen, setDiscardModalOpen] = useState(false);
 	const [reviewOpen, setReviewOpen] = useState(false);
 	const [stagedMenuOpen, setStagedMenuOpen] = useState(false);
-	const [activeStorage, setActiveStorage] = useState<number | null>(null);
+	const [activeStorage, setActiveStorage] = useState<number | null>(
+		deepLink.storage,
+	);
 	const [addOpen, setAddOpen] = useState(false);
 	const [edits, setEdits] = useState<SaveEdit[]>([]);
 	const shortcuts = useShortcutsHelp();
+	const palette = useCommandPalette();
 
 	const removeStagedEdit = (index: number) => {
 		setEdits((current) => current.filter((_, i) => i !== index));
@@ -190,6 +237,24 @@ export const Home = () => {
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [edits.length]);
+
+	// Keep the active view (and, in the inventory, the selected storage) in the
+	// URL so a section can be linked to. Only these stable ids are written;
+	// save content, file names and other data never reach the URL.
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.search);
+		params.set("view", view);
+		if (view === "inventory" && activeStorage !== null) {
+			params.set("storage", String(activeStorage));
+		} else {
+			params.delete("storage");
+		}
+		const query = params.toString();
+		const url = `${window.location.pathname}${
+			query ? `?${query}` : ""
+		}${window.location.hash}`;
+		window.history.replaceState(null, "", url);
+	}, [view, activeStorage]);
 
 	useEffect(() => {
 		void itemCatalogTable()
@@ -226,8 +291,16 @@ export const Home = () => {
 			const keys = [
 				...new Set(parsed.records.map((record) => record.inventoryKey)),
 			].sort((a, b) => a - b);
+			const pending = pendingStorageRef.current;
+			pendingStorageRef.current = null;
 			setResult(parsed);
-			setActiveStorage(keys.includes(2) ? 2 : (keys[0] ?? null));
+			setActiveStorage(
+				pending !== null && keys.includes(pending)
+					? pending
+					: keys.includes(2)
+						? 2
+						: (keys[0] ?? null),
+			);
 			setStatus("");
 			setDownloadProgress(null);
 		}
@@ -270,7 +343,8 @@ export const Home = () => {
 			setFileName(file.name);
 			setFileSize(file.size);
 			setResult(null);
-			setView("inventory");
+			setView(pendingViewRef.current);
+			pendingViewRef.current = "inventory";
 			setActiveStorage(null);
 			setFocus(null);
 			setAddOpen(false);
@@ -478,6 +552,61 @@ export const Home = () => {
 				? editorViewInfo[view].blurb
 				: "Pets, horses, special mounts and camp mercenaries";
 
+	const commands = useMemo<Command[]>(() => {
+		const list: Command[] = [
+			{
+				id: "toggle-theme",
+				label: "Toggle light / dark theme",
+				keywords: "theme dark light mode appearance",
+				icon: dark ? <Sun size={16} /> : <Moon size={16} />,
+				run: () => setColorScheme(dark ? "light" : "dark"),
+			},
+			{
+				id: "keyboard-shortcuts",
+				label: "Keyboard shortcuts",
+				keywords: "shortcuts keyboard keys help",
+				icon: <Keyboard size={16} />,
+				run: () => shortcuts.open(),
+			},
+		];
+		if (edits.length > 0) {
+			list.push({
+				id: "undo-last-change",
+				label: "Undo last change",
+				hint: `${edits.length} staged`,
+				keywords: "undo revert staged change",
+				icon: <Undo2 size={16} />,
+				run: () => setEdits((current) => current.slice(0, -1)),
+			});
+		}
+		if (result) {
+			const views: SaveView[] = [
+				"inventory",
+				...(Object.keys(editorViewInfo) as (keyof typeof editorViewInfo)[]),
+				...(Object.keys(companionLabels) as CompanionCategory[]),
+			];
+			for (const id of views) {
+				const label =
+					id === "inventory"
+						? "Inventory"
+						: isEditorView(id)
+							? editorViewInfo[id].label
+							: companionLabels[id];
+				list.push({
+					id: `view-${id}`,
+					label: `Go to ${label}`,
+					hint: "View",
+					keywords: `view section ${id}`,
+					run: () => {
+						setView(id);
+						setAddOpen(false);
+					},
+				});
+			}
+		}
+		return list;
+	}, [dark, setColorScheme, shortcuts.open, edits.length, result]);
+
 	const sidebar = (
 		<AppSidebar
 			result={result}
@@ -511,6 +640,7 @@ export const Home = () => {
 					"radial-gradient(circle at 82% -10%, rgba(157, 80, 98, 0.16), transparent 34rem)",
 			}}
 		>
+			<SkipLink />
 			{isDesktop && sidebar}
 			<Drawer
 				opened={!isDesktop && navOpened}
@@ -524,7 +654,12 @@ export const Home = () => {
 				{sidebar}
 			</Drawer>
 
-			<Flex direction="column" style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+			<Flex
+				component="main"
+				id="main"
+				direction="column"
+				style={{ flex: 1, minWidth: 0, minHeight: 0 }}
+			>
 				<AppHeader
 					staticPosition
 					brand={
@@ -915,6 +1050,12 @@ export const Home = () => {
 						],
 					},
 				]}
+			/>
+
+			<CommandPalette
+				opened={palette.opened}
+				onClose={palette.close}
+				commands={commands}
 			/>
 
 			<Modal

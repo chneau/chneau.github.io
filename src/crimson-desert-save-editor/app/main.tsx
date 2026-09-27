@@ -5,7 +5,11 @@ import "../../shared/tokens.css";
 import "../../shared/base.css";
 import { Notifications } from "@mantine/notifications";
 import { createRoot } from "react-dom/client";
-import { createAppTheme } from "../../shared";
+import {
+	createAppTheme,
+	initAnalytics,
+	registerServiceWorker,
+} from "../../shared";
 import { Home } from "./page";
 
 /**
@@ -41,6 +45,10 @@ const container = document.getElementById("root");
 if (!container) {
 	throw new Error("Root container #root was not found in index.html.");
 }
+
+// Site-wide analytics and offline support. Neither touches save data.
+initAnalytics();
+registerServiceWorker();
 
 // Deliberately not wrapped in StrictMode: it double-invokes every render in
 // development, and this page keeps all of its state in one component, so that

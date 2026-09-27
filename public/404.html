@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Page not found · chneau.github.io</title>
+		<meta name="theme-color" content="#f4f4f5" />
+		<style>
+		:root {
+			color-scheme: light dark;
+			--bg: #f4f4f5;
+			--surface: #ffffff;
+			--surface-2: #f4f4f6;
+			--border: rgba(24, 24, 27, 0.1);
+			--text: #18181b;
+			--muted: #52525b;
+			--faint: #71717a;
+			--accent: #4f46e5;
+			--shadow: 0 1px 2px rgba(24, 24, 27, 0.06);
+		}
+		@media (prefers-color-scheme: dark) {
+			:root {
+				--bg: #09090b;
+				--surface: #121215;
+				--surface-2: #17171b;
+				--border: rgba(255, 255, 255, 0.08);
+				--text: #f4f4f5;
+				--muted: #a1a1aa;
+				--faint: #8a8a92;
+				--accent: #a5b4fc;
+				--shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+			}
+		}
+		* {
+			box-sizing: border-box;
+		}
+		body {
+			margin: 0;
+			min-height: 100vh;
+			display: grid;
+			place-items: center;
+			padding: 24px;
+			background: var(--bg);
+			color: var(--text);
+			font-family:
+				"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
+				BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+			line-height: 1.5;
+		}
+		.wrap {
+			width: 100%;
+			max-width: 560px;
+			background: var(--surface);
+			border: 1px solid var(--border);
+			border-radius: 18px;
+			box-shadow: var(--shadow);
+			padding: 40px;
+		}
+		.code {
+			margin: 0;
+			font-size: 0.8rem;
+			font-weight: 700;
+			letter-spacing: 0.14em;
+			text-transform: uppercase;
+			color: var(--accent);
+		}
+		h1 {
+			margin: 8px 0 6px;
+			font-size: 1.6rem;
+			letter-spacing: -0.02em;
+		}
+		.lead {
+			margin: 0 0 24px;
+			color: var(--muted);
+		}
+		.home {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			margin-bottom: 28px;
+			padding: 9px 16px;
+			border-radius: 10px;
+			background: var(--accent);
+			color: var(--bg);
+			text-decoration: none;
+			font-weight: 600;
+			font-size: 0.9rem;
+		}
+		.apps {
+			list-style: none;
+			margin: 0;
+			padding: 0;
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+			gap: 8px;
+		}
+		.apps a {
+			display: block;
+			padding: 10px 12px;
+			border-radius: 10px;
+			background: var(--surface-2);
+			border: 1px solid var(--border);
+			color: var(--text);
+			text-decoration: none;
+			font-size: 0.88rem;
+		}
+		.apps a:hover {
+			border-color: var(--accent);
+		}
+		.apps span {
+			display: block;
+			color: var(--faint);
+			font-size: 0.75rem;
+		}
+		</style>
+	</head>
+	<body>
+		<main class="wrap">
+			<p class="code">404</p>
+			<h1>That page doesn’t exist</h1>
+			<p class="lead">
+				The link may be out of date, or the address may be mistyped.
+			</p>
+			<a class="home" href="/">← Back to the dashboard</a>
+			<ul class="apps">
+				<li><a href="/cv/">Curriculum Vitae<span>Print-friendly résumé</span></a></li>
+				<li><a href="/birthday/">Birthday Tracker<span>Milestones &amp; stats</span></a></li>
+				<li><a href="/scotland-rail/">A Day in Scottish Rail<span>24h train replay</span></a></li>
+				<li><a href="/crimson-desert-save-editor/">Crimson Desert Save Editor<span>Client-side save tool</span></a></li>
+				<li><a href="/spooners/">Spooners<span>Pub price map</span></a></li>
+				<li><a href="/design/">Design System<span>Tokens &amp; components</span></a></li>
+			</ul>
+		</main>
+	</body>
+</html>
