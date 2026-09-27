@@ -1,11 +1,10 @@
-const CACHE_NAME = "birthday-tracker-v2";
+const CACHE_NAME = "app-shell-v3";
+const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {
 	self.skipWaiting(); // Activate worker immediately
 	event.waitUntil(
-		caches.open(CACHE_NAME).then((cache) => {
-			return cache.addAll(["/", "/index.html"]);
-		}),
+		caches.open(CACHE_NAME).then((cache) => cache.addAll([OFFLINE_URL, "/"])),
 	);
 });
 
@@ -28,7 +27,7 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-	// Network-first for HTML documents to ensure we always have the latest version
+	// Network-first for HTML documents, falling back to the offline page.
 	if (event.request.mode === "navigate") {
 		event.respondWith(
 			fetch(event.request)
@@ -39,8 +38,9 @@ self.addEventListener("fetch", (event) => {
 					});
 					return response;
 				})
-				.catch(() => {
-					return caches.match(event.request);
+				.catch(async () => {
+					const cached = await caches.match(event.request);
+					return cached || caches.match(OFFLINE_URL);
 				}),
 		);
 		return;
