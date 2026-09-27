@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+	APP_SWITCH_SHORTCUTS,
 	APPS,
 	AppHeader,
 	AppSwitcher,
@@ -40,9 +41,12 @@ import {
 	HeaderAction,
 	SchemeToggle,
 	Section,
+	ShortcutsHelp,
+	ShortcutsHelpButton,
 	Skeleton,
 	Stat,
 	StatusDot,
+	useShortcutsHelp,
 } from "../shared";
 
 const brand: MantineColorsTuple = [
@@ -214,6 +218,7 @@ const Swatch = ({ token }: { token: ColourToken }) => (
 export const App = () => {
 	const [dark, setDark] = useState(readInitialDark);
 	const [stops, setStops] = useState(24);
+	const shortcuts = useShortcutsHelp();
 
 	useEffect(() => {
 		try {
@@ -277,6 +282,10 @@ export const App = () => {
 						<>
 							<AppSwitcher />
 							<BackHome />
+							<ShortcutsHelpButton
+								onClick={shortcuts.open}
+								expanded={shortcuts.opened}
+							/>
 							<SchemeToggle
 								dark={dark}
 								onToggle={() => setDark((value) => !value)}
@@ -489,6 +498,12 @@ export const App = () => {
 				/>
 			</Stack>
 			<Grain />
+			<ShortcutsHelp
+				opened={shortcuts.opened}
+				onClose={shortcuts.close}
+				groups={[]}
+				globalShortcuts={APP_SWITCH_SHORTCUTS}
+			/>
 		</MantineProvider>
 	);
 };

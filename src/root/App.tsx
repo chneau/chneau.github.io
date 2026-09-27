@@ -11,6 +11,7 @@ import {
 import { ArrowRight, Rocket } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+	APP_SWITCH_SHORTCUTS,
 	APPS,
 	type AppEntry,
 	AppHeader,
@@ -20,6 +21,9 @@ import {
 	Footer,
 	HeaderAction,
 	SchemeToggle,
+	ShortcutsHelp,
+	ShortcutsHelpButton,
+	useShortcutsHelp,
 } from "../shared";
 
 declare const BUILD_DATE: string;
@@ -188,6 +192,7 @@ const AppCard = ({ item }: { item: AppItem }) => {
 };
 
 export const App = () => {
+	const shortcuts = useShortcutsHelp();
 	const [darkMode, setDarkMode] = useState<boolean>(() => {
 		try {
 			const saved = localStorage.getItem("root_dark_mode");
@@ -266,6 +271,10 @@ export const App = () => {
 								label="GitHub profile"
 								icon={<GithubIcon size={18} />}
 							/>
+							<ShortcutsHelpButton
+								onClick={shortcuts.open}
+								expanded={shortcuts.opened}
+							/>
 							<SchemeToggle
 								dark={darkMode}
 								onToggle={() => setDarkMode((value) => !value)}
@@ -302,6 +311,13 @@ export const App = () => {
 					right={`Built ${BUILD_DATE}`}
 				/>
 			</Box>
+
+			<ShortcutsHelp
+				opened={shortcuts.opened}
+				onClose={shortcuts.close}
+				groups={[]}
+				globalShortcuts={APP_SWITCH_SHORTCUTS}
+			/>
 		</MantineProvider>
 	);
 };

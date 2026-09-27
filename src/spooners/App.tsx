@@ -1,7 +1,13 @@
 import { Box, Button, Group, Loader, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useMemo, useState } from "react";
-import { EmptyState, Section } from "../shared";
+import {
+	EmptyState,
+	Section,
+	type ShortcutGroup,
+	ShortcutsHelp,
+	useShortcutsHelp,
+} from "../shared";
 import { type BasketItem, parseBasket, serializeBasket } from "./basket";
 import { AppHeader } from "./components/AppHeader";
 import { DiscoverPanel } from "./components/DiscoverPanel";
@@ -32,12 +38,25 @@ import { useSpoonersView } from "./useSpoonersView";
 
 const RATE_SOURCE = "European Central Bank, via frankfurter.dev";
 
+// Only keys implemented in this app — see `components/PubSearch.tsx`.
+const SHORTCUT_GROUPS: ShortcutGroup[] = [
+	{
+		title: "Search",
+		shortcuts: [
+			{ keys: ["↑", "↓"], description: "Move through the pub results" },
+			{ keys: ["Enter"], description: "Open the highlighted pub" },
+			{ keys: ["Esc"], description: "Close the pub results" },
+		],
+	},
+];
+
 export const App = () => {
 	const url = useMemo(() => readUrl(), []);
 	const { data, error, loading, reload } = useDataset();
 	const isMobile = useMediaQuery("(max-width: 62em)");
 	const [settings, setSettings] = useSettings();
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const shortcuts = useShortcutsHelp();
 	const {
 		table: rates,
 		loading: ratesLoading,
@@ -377,6 +396,8 @@ export const App = () => {
 				onShare={copyShare}
 				onValueOpen={() => setValueOpen(true)}
 				onSettingsOpen={() => setSettingsOpen(true)}
+				shortcutsOpened={shortcuts.opened}
+				onShortcutsOpen={shortcuts.open}
 			/>
 
 			<Box
@@ -703,6 +724,12 @@ export const App = () => {
 				ratesLoading={ratesLoading}
 				ratesError={ratesError}
 				onRefreshRates={refreshRates}
+			/>
+
+			<ShortcutsHelp
+				opened={shortcuts.opened}
+				onClose={shortcuts.close}
+				groups={SHORTCUT_GROUPS}
 			/>
 		</Box>
 	);

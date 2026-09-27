@@ -1,3 +1,4 @@
+import { type MantineColorsTuple, MantineProvider } from "@mantine/core";
 import {
 	ArrowUp,
 	ArrowUpRight,
@@ -20,14 +21,34 @@ import {
 	AppSwitcher,
 	BackHome,
 	Brand,
+	createAppTheme,
 	Footer,
 	Grain,
 	HeaderAction,
 	prefersReducedMotion,
 	SchemeToggle,
+	ShortcutsHelp,
+	ShortcutsHelpButton,
+	useShortcutsHelp,
 } from "../shared";
 
 declare const BUILD_DATE: string;
+
+/** Desaturated emerald ramp, mirroring the CV's `--accent` token. */
+const cvAccent: MantineColorsTuple = [
+	"#e7f7f0",
+	"#c5ecdd",
+	"#9fdcc7",
+	"#74cbae",
+	"#4fbd99",
+	"#22b083",
+	"#127f5f",
+	"#0e6a4f",
+	"#0a553f",
+	"#06402f",
+];
+
+const cvTheme = createAppTheme({ accent: cvAccent });
 
 const EMAIL = "charles63500@gmail.com";
 const PHONE_DISPLAY = "+44 7397 174345";
@@ -590,6 +611,7 @@ const getInitialTheme = (): boolean =>
 	document.documentElement.dataset.theme === "dark";
 
 export const App = () => {
+	const shortcuts = useShortcutsHelp();
 	const [darkMode, setDarkMode] = useState(getInitialTheme);
 	const heroRef = useRef<HTMLElement>(null);
 	const heroInView = useInView(heroRef);
@@ -601,12 +623,14 @@ export const App = () => {
 		localStorage.setItem("chneau_cv_theme", theme);
 	}, [darkMode]);
 
-	// Keyboard shortcut: Esc to return to the dashboard, unless a menu or
-	// editable field already handled the key (e.g. the app switcher).
+	// Keyboard shortcut: Esc to return to the dashboard, unless a menu, an
+	// editable field or the shortcuts dialog already handled the key (the modal
+	// manages its own Escape so this handler must not navigate away).
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.key !== "Escape") return;
 			if (event.defaultPrevented) return;
+			if (shortcuts.opened) return;
 			const active = document.activeElement;
 			if (
 				active instanceof HTMLElement &&
@@ -618,317 +642,338 @@ export const App = () => {
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, []);
+	}, [shortcuts.opened]);
 
 	return (
-		<div className="cv-root">
-			<div className="no-print">
-				<Grain />
-			</div>
-
-			<AppHeader
-				className="no-print"
-				brand={
-					<Brand
-						href="/"
-						icon={<span style={{ fontSize: 13, fontWeight: 700 }}>CN</span>}
-						title="Charles Neau"
-						subtitle="Curriculum Vitae"
-					/>
-				}
-				actions={
-					<>
-						<BackHome label="Back to dashboard (Esc)" />
-						<AppSwitcher />
-						<HeaderAction
-							iconOnly
-							active={linkCopy.state === "ok"}
-							label={linkCopy.title}
-							onClick={linkCopy.copy}
-							icon={
-								linkCopy.state === "ok" ? (
-									<Check size={16} />
-								) : linkCopy.state === "error" ? (
-									<TriangleAlert size={16} />
-								) : (
-									<Link2 size={16} />
-								)
-							}
-						/>
-						{linkCopy.feedback ? (
-							<span
-								className="cv-copy-feedback cv-copy-feedback--header"
-								role="status"
-								data-state={linkCopy.state}
-							>
-								{linkCopy.feedback}
-							</span>
-						) : null}
-						<HeaderAction
-							accent
-							href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
-							target="_blank"
-							label="View or download the raw PDF from GitHub"
-							icon={<FileText size={15} />}
-						>
-							PDF
-						</HeaderAction>
-						<HeaderAction
-							href="https://raw.githubusercontent.com/chneau/cv/master/cv.docx"
-							target="_blank"
-							label="View or download the raw DOCX from GitHub"
-							icon={<FileType size={15} />}
-						>
-							DOCX
-						</HeaderAction>
-						<HeaderAction
-							iconOnly
-							label="Print or save as PDF (Ctrl+P)"
-							onClick={() => window.print()}
-							icon={<Printer size={16} />}
-						/>
-						<SchemeToggle
-							dark={darkMode}
-							onToggle={() => setDarkMode((value) => !value)}
-						/>
-					</>
-				}
-			/>
-
-			<section className="cv-shell cv-hero" ref={heroRef}>
-				<div data-reveal style={reveal(0)}>
-					<span className="cv-eyebrow">Curriculum Vitae</span>
-					<h1 className="cv-name">Charles Neau</h1>
-					<p className="cv-role">Senior Full-Stack & Systems Engineer</p>
-					<div className="cv-status">
-						<a
-							className="cv-status-item"
-							href="https://maps.google.com/?q=Edinburgh,+UK"
-							target="_blank"
-							rel="noreferrer"
-						>
-							<span className="cv-status-dot" aria-hidden />
-							Edinburgh, United Kingdom
-						</a>
-						<span className="cv-status-sep" aria-hidden />
-						<span className="cv-status-item">
-							<Clock aria-hidden />
-							<LocalClock />
-						</span>
-					</div>
+		<MantineProvider
+			theme={cvTheme}
+			forceColorScheme={darkMode ? "dark" : "light"}
+		>
+			<div className="cv-root">
+				<div className="no-print">
+					<Grain />
 				</div>
 
-				<ul
-					className="cv-contact cv-contact-list"
-					data-reveal
-					style={reveal(1)}
-				>
-					{CONTACTS.map((contact) => (
-						<li className="cv-contact-item" key={contact.label}>
-							{contact.icon}
-							<span className="cv-contact-label">{contact.label}</span>
-							<a
-								className="cv-contact-value"
-								href={contact.href}
-								{...(contact.external
-									? { target: "_blank", rel: "noreferrer" }
-									: {})}
+				<AppHeader
+					className="no-print"
+					brand={
+						<Brand
+							href="/"
+							icon={<span style={{ fontSize: 13, fontWeight: 700 }}>CN</span>}
+							title="Charles Neau"
+							subtitle="Curriculum Vitae"
+						/>
+					}
+					actions={
+						<>
+							<BackHome label="Back to dashboard (Esc)" />
+							<AppSwitcher />
+							<HeaderAction
+								iconOnly
+								active={linkCopy.state === "ok"}
+								label={linkCopy.title}
+								onClick={linkCopy.copy}
+								icon={
+									linkCopy.state === "ok" ? (
+										<Check size={16} />
+									) : linkCopy.state === "error" ? (
+										<TriangleAlert size={16} />
+									) : (
+										<Link2 size={16} />
+									)
+								}
+							/>
+							{linkCopy.feedback ? (
+								<span
+									className="cv-copy-feedback cv-copy-feedback--header"
+									role="status"
+									data-state={linkCopy.state}
+								>
+									{linkCopy.feedback}
+								</span>
+							) : null}
+							<HeaderAction
+								accent
+								href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
+								target="_blank"
+								label="View or download the raw PDF from GitHub"
+								icon={<FileText size={15} />}
 							>
-								{contact.value}
-								{contact.external && (
-									<ArrowUpRight className="cv-ext" aria-hidden />
-								)}
-							</a>
-							{contact.copy && (
-								<CopyButton text={contact.copy} label={contact.label} />
-							)}
-						</li>
-					))}
-				</ul>
-			</section>
+								PDF
+							</HeaderAction>
+							<HeaderAction
+								href="https://raw.githubusercontent.com/chneau/cv/master/cv.docx"
+								target="_blank"
+								label="View or download the raw DOCX from GitHub"
+								icon={<FileType size={15} />}
+							>
+								DOCX
+							</HeaderAction>
+							<HeaderAction
+								iconOnly
+								label="Print or save as PDF (Ctrl+P)"
+								onClick={() => window.print()}
+								icon={<Printer size={16} />}
+							/>
+							<ShortcutsHelpButton
+								onClick={shortcuts.open}
+								expanded={shortcuts.opened}
+							/>
+							<SchemeToggle
+								dark={darkMode}
+								onToggle={() => setDarkMode((value) => !value)}
+							/>
+						</>
+					}
+				/>
 
-			<main className="cv-shell cv-main">
-				<div className="cv-col cv-col--main">
-					<section className="cv-section" data-reveal style={reveal(2)}>
-						<div className="cv-section-head">
-							<h2 className="cv-section-title">Summary</h2>
-							<span className="cv-section-hint">10+ years</span>
-						</div>
-						<p className="cv-lead">
-							Versatile, hands-on{" "}
-							<strong>Senior Full-Stack & Systems Engineer</strong> with 10+
-							years of experience engineering high-performance distributed
-							platforms, discrete-event simulation & logistics optimization
-							engines, and full-stack cloud-native web applications. Proven
-							track record leading architecture and end-to-end delivery: from
-							database tuning, GIS/routing algorithms, and real-time streaming
-							to modern web UIs (React 19, TypeScript, Vite), Go/Bun
-							microservices, Docker/Kubernetes infrastructure, CI/CD automation,
-							and AI-accelerated workflows.
-						</p>
-					</section>
-
-					<section className="cv-section" data-reveal style={reveal(3)}>
-						<div className="cv-section-head">
-							<h2 className="cv-section-title">Experience</h2>
-							<span className="cv-section-hint">{JOBS.length} roles</span>
-						</div>
-						<div className="cv-timeline">
-							{JOBS.map((job) => (
-								<JobItem job={job} key={job.title} />
-							))}
-						</div>
-					</section>
-
-					<section className="cv-section" data-reveal style={reveal(4)}>
-						<div className="cv-section-head">
-							<h2 className="cv-section-title">Publication</h2>
-							<span className="cv-section-hint">peer-reviewed</span>
-						</div>
-						<article className="cv-paper">
+				<section className="cv-shell cv-hero" ref={heroRef}>
+					<div data-reveal style={reveal(0)}>
+						<span className="cv-eyebrow">Curriculum Vitae</span>
+						<h1 className="cv-name">Charles Neau</h1>
+						<p className="cv-role">Senior Full-Stack & Systems Engineer</p>
+						<div className="cv-status">
 							<a
-								className="cv-paper-title"
-								href="https://ieeexplore.ieee.org/document/8477967"
+								className="cv-status-item"
+								href="https://maps.google.com/?q=Edinburgh,+UK"
 								target="_blank"
 								rel="noreferrer"
-								title="View on IEEE Xplore"
 							>
-								An Analysis of Indirect Optimisation Strategies for Scheduling
-								<ArrowUpRight className="cv-ext" aria-hidden />
+								<span className="cv-status-dot" aria-hidden />
+								Edinburgh, United Kingdom
 							</a>
-							<p className="cv-paper-authors">
-								Charles Neau, Olivier Regnier-Coudert, and John McCall.
-							</p>
-							<p className="cv-paper-venue">
-								IEEE World Congress on Computational Intelligence (IEEE WCCI
-								2018)
-							</p>
-						</article>
-					</section>
-				</div>
-
-				<aside className="cv-col cv-col--aside">
-					<section className="cv-section" data-reveal style={reveal(5)}>
-						<div className="cv-section-head">
-							<h2 className="cv-section-title">Expertise</h2>
-							<span className="cv-section-hint">{SKILLS.length} domains</span>
+							<span className="cv-status-sep" aria-hidden />
+							<span className="cv-status-item">
+								<Clock aria-hidden />
+								<LocalClock />
+							</span>
 						</div>
-						{SKILLS.map((group) => (
-							<div className="cv-skill-group" key={group.category}>
-								<h3 className="cv-skill-name">{group.category}</h3>
-								<div className="cv-skill-tags">
-									{group.items.map((item) => (
-										<a
-											className="cv-tag"
-											key={item}
-											href={getSkillSearchUrl(item)}
-											target="_blank"
-											rel="noreferrer"
-											title={`Search "${item}" projects on GitHub`}
-										>
-											{item}
-											<ArrowUpRight className="cv-ext" aria-hidden />
-										</a>
-									))}
-								</div>
-							</div>
+					</div>
+
+					<ul
+						className="cv-contact cv-contact-list"
+						data-reveal
+						style={reveal(1)}
+					>
+						{CONTACTS.map((contact) => (
+							<li className="cv-contact-item" key={contact.label}>
+								{contact.icon}
+								<span className="cv-contact-label">{contact.label}</span>
+								<a
+									className="cv-contact-value"
+									href={contact.href}
+									{...(contact.external
+										? { target: "_blank", rel: "noreferrer" }
+										: {})}
+								>
+									{contact.value}
+									{contact.external && (
+										<ArrowUpRight className="cv-ext" aria-hidden />
+									)}
+								</a>
+								{contact.copy && (
+									<CopyButton text={contact.copy} label={contact.label} />
+								)}
+							</li>
 						))}
-					</section>
+					</ul>
+				</section>
 
-					<section className="cv-section" data-reveal style={reveal(6)}>
-						<div className="cv-section-head">
-							<h2 className="cv-section-title">Education</h2>
-						</div>
-						<div className="cv-edu-item">
-							<div className="cv-edu-head">
-								<p className="cv-edu-degree">
-									Bachelor of Science in Computer Science (Software Development
-									for Mobile Devices)
-								</p>
-								<span className="cv-edu-years">2013 – 2014</span>
+				<main className="cv-shell cv-main">
+					<div className="cv-col cv-col--main">
+						<section className="cv-section" data-reveal style={reveal(2)}>
+							<div className="cv-section-head">
+								<h2 className="cv-section-title">Summary</h2>
+								<span className="cv-section-hint">10+ years</span>
 							</div>
-							<p className="cv-edu-school">
-								<a href="https://www.uca.fr" target="_blank" rel="noreferrer">
-									Université Blaise Pascal
+							<p className="cv-lead">
+								Versatile, hands-on{" "}
+								<strong>Senior Full-Stack & Systems Engineer</strong> with 10+
+								years of experience engineering high-performance distributed
+								platforms, discrete-event simulation & logistics optimization
+								engines, and full-stack cloud-native web applications. Proven
+								track record leading architecture and end-to-end delivery: from
+								database tuning, GIS/routing algorithms, and real-time streaming
+								to modern web UIs (React 19, TypeScript, Vite), Go/Bun
+								microservices, Docker/Kubernetes infrastructure, CI/CD
+								automation, and AI-accelerated workflows.
+							</p>
+						</section>
+
+						<section className="cv-section" data-reveal style={reveal(3)}>
+							<div className="cv-section-head">
+								<h2 className="cv-section-title">Experience</h2>
+								<span className="cv-section-hint">{JOBS.length} roles</span>
+							</div>
+							<div className="cv-timeline">
+								{JOBS.map((job) => (
+									<JobItem job={job} key={job.title} />
+								))}
+							</div>
+						</section>
+
+						<section className="cv-section" data-reveal style={reveal(4)}>
+							<div className="cv-section-head">
+								<h2 className="cv-section-title">Publication</h2>
+								<span className="cv-section-hint">peer-reviewed</span>
+							</div>
+							<article className="cv-paper">
+								<a
+									className="cv-paper-title"
+									href="https://ieeexplore.ieee.org/document/8477967"
+									target="_blank"
+									rel="noreferrer"
+									title="View on IEEE Xplore"
+								>
+									An Analysis of Indirect Optimisation Strategies for Scheduling
 									<ArrowUpRight className="cv-ext" aria-hidden />
 								</a>
-								, Clermont-Ferrand, France
-							</p>
-						</div>
-						<div className="cv-edu-item">
-							<div className="cv-edu-head">
-								<p className="cv-edu-degree">
-									Bachelor of Science in Computer Science
+								<p className="cv-paper-authors">
+									Charles Neau, Olivier Regnier-Coudert, and John McCall.
 								</p>
-								<span className="cv-edu-years">2011 – 2013</span>
-							</div>
-							<p className="cv-edu-school">
-								<a href="https://iut.uca.fr" target="_blank" rel="noreferrer">
-									IUT Clermont-Ferrand
-									<ArrowUpRight className="cv-ext" aria-hidden />
-								</a>
-								, France
-							</p>
-						</div>
-					</section>
-				</aside>
-			</main>
+								<p className="cv-paper-venue">
+									IEEE World Congress on Computational Intelligence (IEEE WCCI
+									2018)
+								</p>
+							</article>
+						</section>
+					</div>
 
-			<Footer
-				className="no-print"
-				left={
-					<>
-						<a href="/">Dashboard</a>
-						<a
-							href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
-							target="_blank"
-							rel="noreferrer"
-						>
-							Download PDF
-						</a>
-						<a
-							href="https://raw.githubusercontent.com/chneau/cv/master/cv.docx"
-							target="_blank"
-							rel="noreferrer"
-						>
-							Download DOCX
-						</a>
-						<a
-							href="https://github.com/chneau"
-							target="_blank"
-							rel="noreferrer"
-						>
-							<GithubMark />
-							GitHub
-						</a>
-						<a
-							href="https://linkedin.com/in/chneau"
-							target="_blank"
-							rel="noreferrer"
-						>
-							<LinkedinMark />
-							LinkedIn
-						</a>
-					</>
-				}
-				right={BUILD_DATE ? `Built ${BUILD_DATE}` : undefined}
+					<aside className="cv-col cv-col--aside">
+						<section className="cv-section" data-reveal style={reveal(5)}>
+							<div className="cv-section-head">
+								<h2 className="cv-section-title">Expertise</h2>
+								<span className="cv-section-hint">{SKILLS.length} domains</span>
+							</div>
+							{SKILLS.map((group) => (
+								<div className="cv-skill-group" key={group.category}>
+									<h3 className="cv-skill-name">{group.category}</h3>
+									<div className="cv-skill-tags">
+										{group.items.map((item) => (
+											<a
+												className="cv-tag"
+												key={item}
+												href={getSkillSearchUrl(item)}
+												target="_blank"
+												rel="noreferrer"
+												title={`Search "${item}" projects on GitHub`}
+											>
+												{item}
+												<ArrowUpRight className="cv-ext" aria-hidden />
+											</a>
+										))}
+									</div>
+								</div>
+							))}
+						</section>
+
+						<section className="cv-section" data-reveal style={reveal(6)}>
+							<div className="cv-section-head">
+								<h2 className="cv-section-title">Education</h2>
+							</div>
+							<div className="cv-edu-item">
+								<div className="cv-edu-head">
+									<p className="cv-edu-degree">
+										Bachelor of Science in Computer Science (Software
+										Development for Mobile Devices)
+									</p>
+									<span className="cv-edu-years">2013 – 2014</span>
+								</div>
+								<p className="cv-edu-school">
+									<a href="https://www.uca.fr" target="_blank" rel="noreferrer">
+										Université Blaise Pascal
+										<ArrowUpRight className="cv-ext" aria-hidden />
+									</a>
+									, Clermont-Ferrand, France
+								</p>
+							</div>
+							<div className="cv-edu-item">
+								<div className="cv-edu-head">
+									<p className="cv-edu-degree">
+										Bachelor of Science in Computer Science
+									</p>
+									<span className="cv-edu-years">2011 – 2013</span>
+								</div>
+								<p className="cv-edu-school">
+									<a href="https://iut.uca.fr" target="_blank" rel="noreferrer">
+										IUT Clermont-Ferrand
+										<ArrowUpRight className="cv-ext" aria-hidden />
+									</a>
+									, France
+								</p>
+							</div>
+						</section>
+					</aside>
+				</main>
+
+				<Footer
+					className="no-print"
+					left={
+						<>
+							<a href="/">Dashboard</a>
+							<a
+								href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
+								target="_blank"
+								rel="noreferrer"
+							>
+								Download PDF
+							</a>
+							<a
+								href="https://raw.githubusercontent.com/chneau/cv/master/cv.docx"
+								target="_blank"
+								rel="noreferrer"
+							>
+								Download DOCX
+							</a>
+							<a
+								href="https://github.com/chneau"
+								target="_blank"
+								rel="noreferrer"
+							>
+								<GithubMark />
+								GitHub
+							</a>
+							<a
+								href="https://linkedin.com/in/chneau"
+								target="_blank"
+								rel="noreferrer"
+							>
+								<LinkedinMark />
+								LinkedIn
+							</a>
+						</>
+					}
+					right={BUILD_DATE ? `Built ${BUILD_DATE}` : undefined}
+				/>
+
+				<button
+					type="button"
+					className="cv-top no-print"
+					data-visible={!heroInView}
+					onClick={() =>
+						window.scrollTo({
+							top: 0,
+							behavior: prefersReducedMotion() ? "auto" : "smooth",
+						})
+					}
+					title="Back to top"
+					aria-label="Back to top"
+				>
+					<ArrowUp aria-hidden />
+				</button>
+			</div>
+			<ShortcutsHelp
+				opened={shortcuts.opened}
+				onClose={shortcuts.close}
+				groups={[
+					{
+						title: "Page",
+						shortcuts: [
+							{ keys: ["Esc"], description: "Return to the dashboard" },
+						],
+					},
+				]}
 			/>
-
-			<button
-				type="button"
-				className="cv-top no-print"
-				data-visible={!heroInView}
-				onClick={() =>
-					window.scrollTo({
-						top: 0,
-						behavior: prefersReducedMotion() ? "auto" : "smooth",
-					})
-				}
-				title="Back to top"
-				aria-label="Back to top"
-			>
-				<ArrowUp aria-hidden />
-			</button>
-		</div>
+		</MantineProvider>
 	);
 };

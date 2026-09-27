@@ -86,7 +86,11 @@ const NETWORK_SETTINGS: SettingRow[] = [
 	},
 ];
 
-export const SettingsModal = () => {
+export const SettingsModal = ({
+	onOpenShortcuts,
+}: {
+	onOpenShortcuts: () => void;
+}) => {
 	const snap = useSnapshot(railStore);
 	const { isSettingsOpen, settings } = snap;
 	const [confirmingReset, setConfirmingReset] = useState(false);
@@ -237,7 +241,7 @@ export const SettingsModal = () => {
 					leftSection={<Keyboard size={14} />}
 					onClick={() => {
 						railActions.setIsSettingsOpen(false);
-						railActions.setIsShortcutsOpen(true);
+						onOpenShortcuts();
 					}}
 					style={{
 						color: palette.textMuted,

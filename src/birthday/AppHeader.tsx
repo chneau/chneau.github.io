@@ -9,7 +9,7 @@ import {
 	Languages,
 	Settings,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import {
@@ -36,6 +36,7 @@ declare const BUILD_DATE: string;
 type AppHeaderProps = {
 	data: readonly Birthday[];
 	onOpenManage?: () => void;
+	shortcutsButton?: ReactNode;
 };
 
 type BeforeInstallPromptEvent = Event & {
@@ -69,7 +70,11 @@ const LANGUAGES = [
 	{ key: "ty", label: "Tahitien", short: "TY" },
 ];
 
-export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
+export const AppHeader = ({
+	data,
+	onOpenManage,
+	shortcutsButton,
+}: AppHeaderProps) => {
 	const { t, i18n } = useTranslation();
 	const storeSnap = useSnapshot(store);
 	const [installPrompt, setInstallPrompt] =
@@ -271,6 +276,8 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 							{t("app.hero.manage")}
 						</HeaderAction>
 					)}
+
+					{shortcutsButton}
 
 					<SchemeToggle
 						dark={storeSnap.darkMode}
