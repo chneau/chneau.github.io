@@ -9,9 +9,9 @@ import {
 	Text,
 	Tooltip,
 } from "@mantine/core";
-import { Info } from "lucide-react";
+import { Ban, Info } from "lucide-react";
 import { useState } from "react";
-import { isTemporarilyClosed, SPOT_META } from "../derive";
+import { isTemporarilyClosed } from "../derive";
 import { metricText, valueDirection } from "../portions";
 import {
 	amount,
@@ -22,6 +22,8 @@ import {
 	priceColor,
 } from "../price";
 import type { PricedVenue, ValueKind } from "../types";
+import { SpotLabel } from "./SpotLabel";
+import { StatusDot } from "./StatusDot";
 import { VenueImage } from "./VenueImage";
 
 type Mode = "cheapest" | "dearest" | "nearest" | "value";
@@ -110,17 +112,22 @@ const Row = ({
 					<Box style={{ minWidth: 0 }}>
 						<Group gap={6} wrap="nowrap" align="center" style={{ minWidth: 0 }}>
 							<Text size="sm" lineClamp={1}>
-								{venue.isOpenNow ? "" : "🔴 "}
+								<StatusDot open={venue.isOpenNow} />
 								{venue.name}
 							</Text>
 							{venue.spot !== "high-street" ? (
 								<Badge size="xs" variant="light" color="grape">
-									{SPOT_META[venue.spot].emoji} {SPOT_META[venue.spot].label}
+									<SpotLabel spot={venue.spot} />
 								</Badge>
 							) : null}
 							{temporarilyClosed ? (
-								<Badge size="xs" variant="light" color="red">
-									⛔ {venue.status?.replace("_", " ")}
+								<Badge
+									size="xs"
+									variant="light"
+									color="red"
+									leftSection={<Ban size={11} />}
+								>
+									{venue.status?.replace("_", " ")}
 								</Badge>
 							) : null}
 							{venue.missing.length ? (

@@ -316,8 +316,8 @@ export const useSpoonersView = (input: SpoonersViewInput) => {
 		}
 		const sign = insight.premiumPercent >= 0 ? "+" : "−";
 		const where = completeVenues.some((venue) => venue.spot === "airport")
-			? "✈️ Airport"
-			: "⛱️ Travel";
+			? "Airport"
+			: "Travel";
 		return `${where} venues charge ${sign}${Math.abs(
 			Math.round(insight.premiumPercent),
 		)}% more than the rest — median ${money(

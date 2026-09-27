@@ -1,10 +1,13 @@
 import {
+	CaretDownOutlined,
+	CaretUpOutlined,
 	CrownOutlined,
 	FieldTimeOutlined,
 	FireOutlined,
+	MoonOutlined,
 	ThunderboltOutlined,
 } from "@ant-design/icons";
-import { Badge, Card, Segmented, Space, Typography } from "antd";
+import { Card, Segmented, Space, Typography } from "antd";
 import { useMemo, useState } from "react";
 import { useSnapshot } from "valtio";
 import { CATEGORIES, type TrainService } from "../data/types";
@@ -13,70 +16,79 @@ import {
 	getPolylineDistances,
 } from "../engine/interpolator";
 import { derivedStore, railActions, railStore } from "../store";
+import { palette } from "../theme";
+import { formatTime } from "../utils";
 
 const { Text } = Typography;
 
 const HighlightRow = ({
 	icon,
 	title,
-	titleColor,
-	borderColor,
+	accent,
 	value,
 	service,
+	index,
 	onClick,
 }: {
 	icon: React.ReactNode;
 	title: string;
-	titleColor: string;
-	borderColor: string;
+	accent: string;
 	value: React.ReactNode;
 	service: TrainService;
+	index: number;
 	onClick: () => void;
 }) => (
 	<button
 		type="button"
+		className="sr-press sr-rise"
 		onClick={onClick}
-		style={{
-			cursor: "pointer",
-			width: "100%",
-			textAlign: "left",
-			padding: "6px 8px",
-			borderRadius: 6,
-			background: "rgba(255,255,255,0.04)",
-			border: `1px solid ${borderColor}`,
-			transition: "all 0.2s",
-		}}
+		style={
+			{
+				cursor: "pointer",
+				width: "100%",
+				textAlign: "left",
+				padding: "7px 9px",
+				borderRadius: 8,
+				background: "rgba(255,255,255,0.03)",
+				border: "1px solid rgba(206,222,230,0.12)",
+				borderLeft: `2px solid ${accent}`,
+				// Staggered waterfall reveal driven purely by CSS.
+				"--sr-index": index,
+			} as React.CSSProperties
+		}
 	>
 		<div
 			style={{
 				display: "flex",
 				justifyContent: "space-between",
 				alignItems: "center",
+				gap: 8,
 			}}
 		>
 			<Text
 				style={{
-					color: titleColor,
-					fontSize: "0.75rem",
+					color: accent,
+					fontSize: "0.72rem",
 					fontWeight: 600,
+					display: "flex",
+					alignItems: "center",
+					gap: 6,
 				}}
 			>
-				{icon} {title}
+				{icon}
+				{title}
 			</Text>
 			<span
-				style={{
-					color: titleColor,
-					fontWeight: "bold",
-					fontSize: "0.78rem",
-				}}
+				className="sr-num"
+				style={{ color: palette.text, fontWeight: 600, fontSize: "0.78rem" }}
 			>
 				{value}
 			</span>
 		</div>
 		<div
 			style={{
-				color: "#edf3f5",
-				fontSize: "0.78rem",
+				color: palette.textMuted,
+				fontSize: "0.76rem",
 				whiteSpace: "nowrap",
 				overflow: "hidden",
 				textOverflow: "ellipsis",
@@ -84,10 +96,11 @@ const HighlightRow = ({
 			}}
 		>
 			<span
+				className="sr-num"
 				style={{
 					color: CATEGORIES[service.category].color,
 					fontWeight: "bold",
-					marginRight: 4,
+					marginRight: 5,
 				}}
 			>
 				{service.serviceNumber}
@@ -168,11 +181,9 @@ export const StatsPanel = () => {
 		};
 	}, [activeTrains]);
 
-	if (!stats || activeTrains.length === 0) return null;
-
 	const isImperial = unit === "imperial";
 	const kmToMiles = (km: number) => km * 0.621371;
-	const { fastest, longest, mostStops } = stats;
+	const { fastest, longest, mostStops } = stats ?? {};
 
 	return (
 		<div
@@ -181,12 +192,14 @@ export const StatsPanel = () => {
 				top: 72,
 				left: 16,
 				zIndex: 10,
-				width: 255,
+				width: 262,
+				maxWidth: "calc(100vw - 32px)",
 				pointerEvents: "auto",
 			}}
 		>
 			<Card
 				size="small"
+				className="sr-glass sr-rise"
 				title={
 					<div
 						style={{
@@ -198,27 +211,28 @@ export const StatsPanel = () => {
 					>
 						<button
 							type="button"
+							className="sr-press"
 							style={{
 								background: "none",
 								border: "none",
 								padding: 0,
 								cursor: "pointer",
-								fontSize: "0.82rem",
-								color: "#59d7ff",
+								fontSize: "0.8rem",
+								color: palette.accent,
 								display: "flex",
 								alignItems: "center",
-								gap: 4,
+								gap: 6,
 							}}
 							onClick={() => setCollapsed(!collapsed)}
-							title={collapsed ? "Expand Highlights" : "Collapse Highlights"}
+							title={collapsed ? "Expand highlights" : "Collapse highlights"}
 						>
 							<FireOutlined />
-							<span>Live Highlights</span>
+							<span style={{ fontWeight: 600 }}>Live highlights</span>
 							<span style={{ fontSize: "0.7rem", opacity: 0.7 }}>
-								{collapsed ? "▼" : "▲"}
+								{collapsed ? <CaretDownOutlined /> : <CaretUpOutlined />}
 							</span>
 						</button>
-						{!collapsed && (
+						{!collapsed && stats && (
 							<Segmented
 								size="small"
 								value={unit}
@@ -229,169 +243,210 @@ export const StatsPanel = () => {
 								]}
 								style={{
 									fontSize: "0.72rem",
-									background: "rgba(0,0,0,0.3)",
+									background: "rgba(0,0,0,0.28)",
 								}}
 							/>
 						)}
 					</div>
 				}
 				style={{
-					background: "rgba(7, 19, 27, 0.88)",
-					backdropFilter: "blur(10px)",
-					border: "1px solid rgba(217, 226, 230, 0.22)",
-					borderRadius: 10,
-					color: "#edf3f5",
-					boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+					borderRadius: 12,
+					color: palette.text,
 				}}
 				styles={{
 					body: {
-						padding: collapsed ? 0 : "8px 12px",
+						padding: collapsed ? 0 : "10px 12px",
 						display: collapsed ? "none" : "block",
 					},
 				}}
 			>
-				<Space orientation="vertical" style={{ width: "100%" }} size={8}>
-					{/* Active status pulse */}
+				{!stats ? (
+					/* Composed empty state: how to get data back. */
 					<div
 						style={{
 							display: "flex",
-							justifyContent: "space-between",
+							flexDirection: "column",
 							alignItems: "center",
-							paddingBottom: 4,
-							borderBottom: "1px solid rgba(255,255,255,0.08)",
-							fontSize: "0.78rem",
+							gap: 6,
+							padding: "14px 8px",
+							textAlign: "center",
 						}}
 					>
-						<span style={{ color: "#a8b5bc" }}>
-							<Badge status="processing" color="#59d7ff" /> {stats.movingTrains}{" "}
-							cruising
+						<MoonOutlined style={{ fontSize: 22, color: palette.textFaint }} />
+						<span style={{ color: palette.text, fontSize: "0.82rem" }}>
+							Quiet on the network
 						</span>
-						<span style={{ color: "#8ca0aa" }}>
-							{stats.dwellingTrains} at station
+						<span
+							style={{
+								color: palette.textMuted,
+								fontSize: "0.74rem",
+								lineHeight: 1.5,
+							}}
+						>
+							No service is running or matching your filters at{" "}
+							<span className="sr-num">{formatTime(timeOffset)}</span>. Clear
+							the search or pick another time.
 						</span>
 					</div>
-
-					{/* 24-hour Activity Curve Mini Bar */}
-					<div style={{ padding: "2px 0 4px 0" }}>
+				) : (
+					<Space orientation="vertical" style={{ width: "100%" }} size={8}>
+						{/* Active status pulse */}
 						<div
 							style={{
 								display: "flex",
 								justifyContent: "space-between",
-								fontSize: "0.68rem",
-								color: "#8ca0aa",
-								marginBottom: 2,
+								alignItems: "center",
+								paddingBottom: 6,
+								borderBottom: "1px solid rgba(255,255,255,0.08)",
+								fontSize: "0.77rem",
 							}}
 						>
-							<span>05:00</span>
-							<span style={{ color: "#59d7ff" }}>Rush Hours</span>
-							<span>24:00</span>
+							<span
+								style={{
+									color: palette.text,
+									display: "flex",
+									alignItems: "center",
+									gap: 6,
+								}}
+							>
+								<span
+									className="sr-breathe"
+									style={{
+										display: "inline-block",
+										width: 7,
+										height: 7,
+										borderRadius: "50%",
+										background: palette.accent,
+									}}
+								/>
+								<b className="sr-num">{stats.movingTrains}</b> cruising
+							</span>
+							<span className="sr-num" style={{ color: palette.textFaint }}>
+								{stats.dwellingTrains} at station
+							</span>
 						</div>
-						<div
-							style={{
-								position: "relative",
-								height: 12,
-								background: "rgba(255,255,255,0.06)",
-								borderRadius: 3,
-								overflow: "hidden",
-							}}
-						>
-							{/* Morning Rush Glow */}
+
+						{/* 24-hour Activity Curve Mini Bar */}
+						<div style={{ padding: "2px 0 4px 0" }}>
 							<div
 								style={{
-									position: "absolute",
-									left: "12%",
-									width: "18%",
-									height: "100%",
-									background: "rgba(89, 215, 255, 0.25)",
+									display: "flex",
+									justifyContent: "space-between",
+									fontSize: "0.66rem",
+									color: palette.textFaint,
+									marginBottom: 4,
 								}}
-							/>
-							{/* Evening Rush Glow */}
+							>
+								<span className="sr-num">05:00</span>
+								<span style={{ color: palette.accent }}>Rush hours</span>
+								<span className="sr-num">24:00</span>
+							</div>
 							<div
 								style={{
-									position: "absolute",
-									left: "52%",
-									width: "16%",
-									height: "100%",
-									background: "rgba(255, 186, 99, 0.25)",
+									position: "relative",
+									height: 12,
+									background: "rgba(255,255,255,0.05)",
+									borderRadius: 3,
+									overflow: "hidden",
 								}}
-							/>
-							{/* Sleeper Glow */}
-							<div
-								style={{
-									position: "absolute",
-									left: "82%",
-									width: "14%",
-									height: "100%",
-									background: "rgba(255, 43, 214, 0.25)",
-								}}
-							/>
-							{/* Current Time Needle */}
-							<div
-								style={{
-									position: "absolute",
-									left: `${Math.min(
-										100,
-										Math.max(0, ((timeOffset - 300) / 1140) * 100),
-									)}%`,
-									width: 3,
-									height: "100%",
-									background: "#ffffff",
-									boxShadow: "0 0 6px #ffffff",
-								}}
-							/>
+							>
+								{/* Morning rush band */}
+								<div
+									style={{
+										position: "absolute",
+										left: "12%",
+										width: "18%",
+										height: "100%",
+										background: "rgba(90, 169, 201, 0.22)",
+									}}
+								/>
+								{/* Evening rush band */}
+								<div
+									style={{
+										position: "absolute",
+										left: "52%",
+										width: "16%",
+										height: "100%",
+										background: "rgba(201, 160, 78, 0.22)",
+									}}
+								/>
+								{/* Sleeper band */}
+								<div
+									style={{
+										position: "absolute",
+										left: "82%",
+										width: "14%",
+										height: "100%",
+										background: "rgba(128, 144, 191, 0.24)",
+									}}
+								/>
+								{/* Current time needle */}
+								<div
+									style={{
+										position: "absolute",
+										left: `${Math.min(
+											100,
+											Math.max(0, ((timeOffset - 300) / 1140) * 100),
+										)}%`,
+										width: 2,
+										height: "100%",
+										background: palette.text,
+									}}
+								/>
+							</div>
 						</div>
-					</div>
 
-					{fastest && (
-						<HighlightRow
-							icon={<ThunderboltOutlined />}
-							title="Fastest Active"
-							titleColor="#59d7ff"
-							borderColor="rgba(89, 215, 255, 0.25)"
-							value={
-								isImperial
-									? `~${Math.round(kmToMiles(fastest.speedKmh))} mph`
-									: `~${Math.round(fastest.speedKmh)} km/h`
-							}
-							service={fastest.state.service}
-							onClick={() =>
-								railActions.setSelectedService(fastest.state.service)
-							}
-						/>
-					)}
+						{fastest && (
+							<HighlightRow
+								icon={<ThunderboltOutlined />}
+								title="Fastest active"
+								accent={CATEGORIES.Express.color}
+								index={0}
+								value={
+									isImperial
+										? `~${Math.round(kmToMiles(fastest.speedKmh))} mph`
+										: `~${Math.round(fastest.speedKmh)} km/h`
+								}
+								service={fastest.state.service}
+								onClick={() =>
+									railActions.setSelectedService(fastest.state.service)
+								}
+							/>
+						)}
 
-					{longest && (
-						<HighlightRow
-							icon={<CrownOutlined />}
-							title="Longest Distance"
-							titleColor="#b347ff"
-							borderColor="rgba(179, 71, 255, 0.25)"
-							value={
-								isImperial
-									? `${Math.round(kmToMiles(longest.distKm))} mi`
-									: `${Math.round(longest.distKm)} km`
-							}
-							service={longest.state.service}
-							onClick={() =>
-								railActions.setSelectedService(longest.state.service)
-							}
-						/>
-					)}
+						{longest && (
+							<HighlightRow
+								icon={<CrownOutlined />}
+								title="Longest distance"
+								accent={CATEGORIES.CrossBorder.color}
+								index={1}
+								value={
+									isImperial
+										? `${Math.round(kmToMiles(longest.distKm))} mi`
+										: `${Math.round(longest.distKm)} km`
+								}
+								service={longest.state.service}
+								onClick={() =>
+									railActions.setSelectedService(longest.state.service)
+								}
+							/>
+						)}
 
-					{mostStops && (
-						<HighlightRow
-							icon={<FieldTimeOutlined />}
-							title="Most Calling Stops"
-							titleColor="#a6e36a"
-							borderColor="rgba(166, 227, 106, 0.25)"
-							value={`${mostStops.stopCount} stops`}
-							service={mostStops.state.service}
-							onClick={() =>
-								railActions.setSelectedService(mostStops.state.service)
-							}
-						/>
-					)}
-				</Space>
+						{mostStops && (
+							<HighlightRow
+								icon={<FieldTimeOutlined />}
+								title="Most calling stops"
+								accent={CATEGORIES.Highland.color}
+								index={2}
+								value={`${mostStops.stopCount} stops`}
+								service={mostStops.state.service}
+								onClick={() =>
+									railActions.setSelectedService(mostStops.state.service)
+								}
+							/>
+						)}
+					</Space>
+				)}
 			</Card>
 		</div>
 	);

@@ -23,6 +23,20 @@ type Datum = {
 	names: string[];
 };
 
+/** A restrained, non-purple categorical palette that sits with the emerald UI. */
+const CHART_PALETTE = [
+	"#34d399",
+	"#7dd3fc",
+	"#e6c069",
+	"#ef9a9a",
+	"#5eead4",
+	"#bef264",
+	"#fdba74",
+	"#a1a1aa",
+	"#86efac",
+	"#67e8f9",
+];
+
 const getDistribution = (
 	data: readonly Birthday[],
 	getValue: (b: Birthday) => string | undefined,
@@ -308,6 +322,7 @@ export const Statistics = () => {
 	const storeSnap = useSnapshot(store);
 	const data = dataSnap.filtered;
 	const dayjsLocale = dayjs.locale();
+	const isDark = storeSnap.darkMode;
 
 	const stats = useMemo(() => {
 		dayjs.locale(dayjsLocale);
@@ -342,7 +357,13 @@ export const Statistics = () => {
 
 	return (
 		<ChartConfigProvider
-			common={{ theme: storeSnap.darkMode ? "dark" : "light" }}
+			common={{
+				theme: {
+					type: isDark ? "dark" : "light",
+					category10: CHART_PALETTE,
+					category20: CHART_PALETTE,
+				},
+			}}
 		>
 			<Card
 				title={t("app.statistics.title")}

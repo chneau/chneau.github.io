@@ -1,20 +1,18 @@
-import { PlusOutlined, SettingOutlined } from "@ant-design/icons";
-import {
-	Button,
-	Card,
-	ConfigProvider,
-	Layout,
-	Modal,
-	Space,
-	Tabs,
-	theme,
-} from "antd";
+import { ConfigProvider, Modal, Tabs, theme } from "antd";
 import deDE from "antd/locale/de_DE";
 import enUS from "antd/locale/en_US";
 import esES from "antd/locale/es_ES";
 import frFR from "antd/locale/fr_FR";
 import zhCN from "antd/locale/zh_CN";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
+import {
+	type CSSProperties,
+	lazy,
+	Suspense,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { AppFooter } from "./AppFooter";
@@ -26,6 +24,7 @@ import { CalendarActions } from "./CalendarActions";
 import { CompatibilityMatrix } from "./CompatibilityMatrix";
 import { Countdown } from "./Countdown";
 import { triggerConfetti } from "./celebration";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { FilterButtons, FilterSearch } from "./Filter";
 import { ManageBirthdaysModal } from "./ManageBirthdaysModal";
 import { MilestonesWidget } from "./MilestonesWidget";
@@ -37,6 +36,58 @@ import { WeatherTab } from "./WeatherTab";
 
 const Statistics = lazy(() =>
 	import("./Statistics").then((m) => ({ default: m.Statistics })),
+);
+
+const FONT_STACK =
+	"'Geist', 'Satoshi', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+
+const buildTheme = (dark: boolean) => ({
+	algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+	token: {
+		fontFamily: FONT_STACK,
+		colorPrimary: dark ? "#34d399" : "#0f9d76",
+		colorInfo: dark ? "#34d399" : "#0f9d76",
+		colorBgBase: dark ? "#09090b" : "#f6f6f7",
+		colorTextBase: dark ? "#f4f4f5" : "#18181b",
+		colorBorder: dark ? "#2a2a30" : "#e4e4e7",
+		colorBorderSecondary: dark ? "#1f1f24" : "#ececef",
+		borderRadius: 12,
+		borderRadiusLG: 18,
+		controlHeight: 36,
+	},
+	components: {
+		Table: { headerBg: "transparent" },
+		Tabs: { inkBarColor: dark ? "#34d399" : "#0f9d76" },
+	},
+});
+
+const StatisticsSkeleton = () => (
+	<div
+		className="tk-surface"
+		role="status"
+		aria-label="Loading insights"
+		aria-busy="true"
+	>
+		<div
+			className="tk-skeleton"
+			style={{ height: 18, width: 160, marginBottom: 20 }}
+		/>
+		<div
+			style={{
+				display: "grid",
+				gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+				gap: 16,
+			}}
+		>
+			{["a", "b", "c", "d", "e", "f"].map((id) => (
+				<div
+					key={id}
+					className="tk-skeleton"
+					style={{ height: 220, borderRadius: 18 }}
+				/>
+			))}
+		</div>
+	</div>
 );
 
 export const App = () => {
@@ -58,9 +109,19 @@ export const App = () => {
 		return locales[lang] || enUS;
 	}, [i18n.language]);
 
+	const antdTheme = useMemo(
+		() => buildTheme(storeSnap.darkMode),
+		[storeSnap.darkMode],
+	);
+
+	useEffect(() => {
+		document.documentElement.dataset.theme = storeSnap.darkMode
+			? "dark"
+			: "light";
+	}, [storeSnap.darkMode]);
+
 	useEffect(() => {
 		checkAndNotify(birthdays);
-
 		if (birthdays.some((b) => b.daysBeforeBirthday === 0)) {
 			triggerConfetti();
 		}
@@ -71,107 +132,85 @@ export const App = () => {
 		[],
 	);
 
+	const tabItems = [
+		{
+			key: "table",
+			label: t("app.table.title"),
+			children: <BirthdayTable data={data} />,
+		},
+		{
+			key: "timeline",
+			label: t("app.timeline.title"),
+			children: <TimelineView data={data} />,
+		},
+		{
+			key: "compatibility",
+			label: t("app.compatibility.title"),
+			children: <CompatibilityMatrix data={data} />,
+		},
+		{
+			key: "weather",
+			label: t("app.weather.title"),
+			children: <WeatherTab />,
+		},
+	];
+
 	return (
-		<ConfigProvider
-			locale={antdLocale}
-			theme={{
-				algorithm: storeSnap.darkMode
-					? theme.darkAlgorithm
-					: theme.defaultAlgorithm,
-			}}
-		>
-			<style>
-				{`
-				.birthday-today-row {
-					background-color: rgba(255, 77, 79, 0.15) !important;
-					font-weight: bold;
-				}
-				.birthday-today-row:hover > td {
-					background-color: rgba(255, 77, 79, 0.25) !important;
-				}
-			`}
-			</style>
-			<Layout style={{ minHeight: "100vh" }}>
+		<ConfigProvider locale={antdLocale} theme={antdTheme}>
+			<div className="tk-shell">
 				<AppHeader data={data} onOpenManage={() => setManageOpen(true)} />
-				<Layout.Content style={{ padding: 16, minHeight: "100vh" }}>
-					<div style={{ minHeight: nextBirthdays.length > 0 ? 120 : 0 }}>
-						{nextBirthdays.length > 0 && (
-							<Countdown birthdays={nextBirthdays} />
-						)}
-					</div>
-					<Card
-						title={t("app.birthdays")}
-						size="small"
-						style={{ minHeight: 600 }}
-						extra={
-							<Button
-								type="primary"
-								size="small"
-								icon={<SettingOutlined />}
-								onClick={() => setManageOpen(true)}
-							>
-								Manage List
-							</Button>
-						}
-					>
-						<Space
-							direction="vertical"
-							style={{ width: "100%", marginBottom: 16 }}
-							size="middle"
+
+				<main className="tk-main">
+					<div className="tk-container tk-stack">
+						<Countdown
+							birthdays={nextBirthdays}
+							onManage={() => setManageOpen(true)}
+						/>
+
+						<section
+							className="tk-surface reveal"
+							style={{ "--i": 2 } as CSSProperties}
 						>
-							<Space
-								wrap
-								style={{ justifyContent: "space-between", width: "100%" }}
-							>
-								<Space wrap>
+							<div className="tk-toolbar">
+								<div className="tk-toolbar__group">
 									<CalendarActions />
-									<Button
-										icon={<PlusOutlined />}
+									<button
+										type="button"
+										className="tk-iconbtn"
 										onClick={() => setManageOpen(true)}
 									>
-										Add Birthday
-									</Button>
-								</Space>
+										<Plus size={15} strokeWidth={2} />
+										<span className="tk-iconbtn__label">
+											{t("app.hero.add")}
+										</span>
+									</button>
+								</div>
 								<FilterButtons />
-							</Space>
-							<FilterSearch style={{ width: "100%" }} />
-						</Space>
-						<Tabs
-							defaultActiveKey="table"
-							items={[
-								{
-									key: "table",
-									label: t("app.table.title"),
-									children: <BirthdayTable data={data} />,
-								},
-								{
-									key: "timeline",
-									label: t("app.timeline.title"),
-									children: <TimelineView data={data} />,
-								},
-								{
-									key: "compatibility",
-									label: t("app.compatibility.title"),
-									children: <CompatibilityMatrix data={data} />,
-								},
-								{
-									key: "weather",
-									label: t("app.weather.title"),
-									children: <WeatherTab />,
-								},
-							]}
-						/>
-					</Card>
-					<MilestonesWidget />
-					<RecordsWidget data={data} />
-					<Suspense
-						fallback={<Card size="small" style={{ marginTop: 16 }} loading />}
-					>
-						<Statistics />
-					</Suspense>
-				</Layout.Content>
+							</div>
+
+							<FilterSearch style={{ marginBottom: 18 }} />
+
+							<Tabs defaultActiveKey="table" items={tabItems} />
+						</section>
+
+						<ErrorBoundary label="Milestones">
+							<MilestonesWidget />
+						</ErrorBoundary>
+
+						<ErrorBoundary label="Records">
+							<RecordsWidget data={data} />
+						</ErrorBoundary>
+
+						<ErrorBoundary label="Statistics">
+							<Suspense fallback={<StatisticsSkeleton />}>
+								<Statistics />
+							</Suspense>
+						</ErrorBoundary>
+					</div>
+				</main>
+
 				<AppFooter />
-			</Layout>
+			</div>
 
 			<ManageBirthdaysModal
 				open={manageOpen}
@@ -198,6 +237,8 @@ export const App = () => {
 					</div>
 				)}
 			</Modal>
+
+			<div className="tk-grain" aria-hidden="true" />
 		</ConfigProvider>
 	);
 };

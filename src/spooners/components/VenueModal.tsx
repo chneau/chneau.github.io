@@ -14,11 +14,23 @@ import {
 	Tooltip,
 	UnstyledButton,
 } from "@mantine/core";
-import { ArrowRight, Check, Plus } from "lucide-react";
+import {
+	ArrowRight,
+	Ban,
+	Check,
+	ChevronDown,
+	ChevronRight,
+	FileText,
+	Globe,
+	Mail,
+	Milk,
+	Phone,
+	Plus,
+	Wheat,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
 	isTemporarilyClosed,
-	SPOT_META,
 	venueImages,
 	venueSpot,
 	venueValues,
@@ -27,6 +39,7 @@ import { portionLabel, portionRank } from "../portions";
 import { amount, currencySymbol, money } from "../price";
 import type { Formatter, SpoonersCache } from "../types";
 import { ItemFacts } from "./ItemFacts";
+import { SpotLabel } from "./SpotLabel";
 import { VenueImage } from "./VenueImage";
 
 const DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -231,12 +244,12 @@ export const VenueModal = ({
 				<Group gap={6} wrap="wrap">
 					{spot !== "high-street" ? (
 						<Badge variant="light" color="grape">
-							{SPOT_META[spot].emoji} {SPOT_META[spot].label}
+							<SpotLabel spot={spot} />
 						</Badge>
 					) : null}
 					{temporarilyClosed ? (
-						<Badge variant="light" color="red">
-							⛔ {venue.status?.replace("_", " ")}
+						<Badge variant="light" color="red" leftSection={<Ban size={12} />}>
+							{venue.status?.replace("_", " ")}
 						</Badge>
 					) : null}
 					{venue.selectHandler?.type === "message" ? (
@@ -300,21 +313,31 @@ export const VenueModal = ({
 
 				<Group gap="md" wrap="wrap">
 					{contact?.telephone ? (
-						<Text size="sm">
-							📞{" "}
+						<Text
+							size="sm"
+							style={{ display: "flex", alignItems: "center", gap: 6 }}
+						>
+							<Phone size={14} />
 							<a href={`tel:${contact.telephone.replace(/\s/g, "")}`}>
 								{contact.telephone}
 							</a>
 						</Text>
 					) : null}
 					{contact?.email ? (
-						<Text size="sm">
-							✉️ <a href={`mailto:${contact.email}`}>{contact.email}</a>
+						<Text
+							size="sm"
+							style={{ display: "flex", alignItems: "center", gap: 6 }}
+						>
+							<Mail size={14} />
+							<a href={`mailto:${contact.email}`}>{contact.email}</a>
 						</Text>
 					) : null}
 					{contact?.website ? (
-						<Text size="sm">
-							🌐{" "}
+						<Text
+							size="sm"
+							style={{ display: "flex", alignItems: "center", gap: 6 }}
+						>
+							<Globe size={14} />
 							<a href={contact.website} target="_blank" rel="noreferrer">
 								website
 							</a>
@@ -337,7 +360,7 @@ export const VenueModal = ({
 								>
 									<strong>{DAY_LABEL[key]}</strong>{" "}
 									{day?.open ? `${day.open}–${day.close ?? ""}` : "closed"}
-									{today ? "  ← today" : ""}
+									{today ? " · today" : ""}
 								</Text>
 							);
 						})}
@@ -480,16 +503,22 @@ export const VenueModal = ({
 				) : null}
 				<Group gap="md" wrap="wrap">
 					{detail?.allergensUrl ? (
-						<Text size="sm">
-							🧾{" "}
+						<Text
+							size="sm"
+							style={{ display: "flex", alignItems: "center", gap: 6 }}
+						>
+							<FileText size={14} />
 							<a href={detail.allergensUrl} target="_blank" rel="noreferrer">
 								Allergen information
 							</a>
 						</Text>
 					) : null}
 					{detail?.menuUrl?.dairyFree ? (
-						<Text size="sm">
-							🥛{" "}
+						<Text
+							size="sm"
+							style={{ display: "flex", alignItems: "center", gap: 6 }}
+						>
+							<Milk size={14} />
 							<a
 								href={detail.menuUrl.dairyFree}
 								target="_blank"
@@ -500,8 +529,11 @@ export const VenueModal = ({
 						</Text>
 					) : null}
 					{detail?.menuUrl?.glutenFree ? (
-						<Text size="sm">
-							🌾{" "}
+						<Text
+							size="sm"
+							style={{ display: "flex", alignItems: "center", gap: 6 }}
+						>
+							<Wheat size={14} />
 							<a
 								href={detail.menuUrl.glutenFree}
 								target="_blank"
@@ -588,8 +620,21 @@ export const VenueModal = ({
 													)
 												}
 											>
-												<Text size="sm" lineClamp={1}>
-													{expanded === row.name ? "▾" : "▸"} {row.name}
+												<Text
+													size="sm"
+													lineClamp={1}
+													style={{
+														display: "flex",
+														alignItems: "center",
+														gap: 4,
+													}}
+												>
+													{expanded === row.name ? (
+														<ChevronDown size={13} />
+													) : (
+														<ChevronRight size={13} />
+													)}
+													{row.name}
 												</Text>
 												<Text size="xs" c="dimmed" lineClamp={1}>
 													{[

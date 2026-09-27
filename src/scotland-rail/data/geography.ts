@@ -203,7 +203,7 @@ export const LANDMARKS: Landmark[] = [
 		id: "glenfinnan-viaduct",
 		name: "Glenfinnan Viaduct",
 		coordinate: [-5.431, 56.876] as Coordinate,
-		icon: "🚂",
+		kind: "viaduct",
 		description:
 			"21-arch concrete viaduct made famous by the Jacobite / Hogwarts Express",
 	},
@@ -211,7 +211,7 @@ export const LANDMARKS: Landmark[] = [
 		id: "forth-bridge",
 		name: "Forth Rail Bridge",
 		coordinate: [-3.395, 55.994] as Coordinate,
-		icon: "🌉",
+		kind: "bridge",
 		description:
 			"UNESCO World Heritage cantilever railway bridge opened in 1890",
 	},
@@ -219,21 +219,21 @@ export const LANDMARKS: Landmark[] = [
 		id: "tay-bridge",
 		name: "Tay Rail Bridge",
 		coordinate: [-2.938, 56.445] as Coordinate,
-		icon: "🌊",
+		kind: "crossing",
 		description: "2.75-mile tidal crossing into Dundee",
 	},
 	{
 		id: "drumochter-summit",
 		name: "Drumochter Pass Summit",
 		coordinate: [-4.162, 56.885] as Coordinate,
-		icon: "🏔️",
+		kind: "summit",
 		description: "Highest railway summit in Great Britain (1,484 ft / 452 m)",
 	},
 	{
 		id: "culloden-viaduct",
 		name: "Culloden Viaduct",
 		coordinate: [-4.155, 57.452] as Coordinate,
-		icon: "🏛️",
+		kind: "hall",
 		description:
 			"Scotland's longest masonry viaduct (29 arches across the Nairn valley)",
 	},

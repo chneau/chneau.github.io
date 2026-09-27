@@ -2,8 +2,10 @@ import {
 	AudioMutedOutlined,
 	AudioOutlined,
 	CloseOutlined,
+	CompassOutlined,
 	InfoCircleOutlined,
 	QuestionCircleOutlined,
+	SearchOutlined,
 	SettingOutlined,
 } from "@ant-design/icons";
 import { Button, ConfigProvider, Layout, Tooltip, theme } from "antd";
@@ -21,6 +23,7 @@ import {
 	railStore,
 	recomputeActiveTrains,
 } from "./store";
+import { palette } from "./theme";
 import { formatTime } from "./utils";
 
 declare const BUILD_DATE: string;
@@ -156,51 +159,69 @@ export const App = () => {
 			theme={{
 				algorithm: theme.darkAlgorithm,
 				token: {
-					colorPrimary: "#59d7ff",
+					colorPrimary: palette.accent,
+					colorBgElevated: palette.surfaceSolid,
+					colorTextBase: palette.text,
+					borderRadius: 8,
+					fontFamily:
+						'"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif',
+					fontFamilyCode:
+						'"Cascadia Code", "JetBrains Mono", ui-monospace, monospace',
 				},
 			}}
 		>
 			<Layout
 				style={{
 					width: "100vw",
-					height: "100vh",
+					minHeight: "100dvh",
+					height: "100dvh",
 					overflow: "hidden",
-					background: "#07131b",
+					background: palette.bg,
 				}}
 			>
 				{/* Top Branding & Quick Actions Bar */}
 				<div
+					className="sr-glass sr-rise"
 					style={{
 						position: "absolute",
 						top: 16,
 						left: 16,
 						zIndex: 10,
-						background: "rgba(7, 19, 27, 0.88)",
-						backdropFilter: "blur(8px)",
-						border: "1px solid rgba(217, 226, 230, 0.25)",
-						borderRadius: 8,
+						borderRadius: 10,
 						padding: "6px 12px",
-						color: "#edf3f5",
+						color: palette.text,
 						display: "flex",
+						flexWrap: "wrap",
 						alignItems: "center",
 						gap: 10,
+						maxWidth: "calc(100vw - 32px)",
 					}}
 				>
-					<span style={{ fontSize: "1.2rem" }}>🏴󠁧󠁢󠁳󠁣󠁴󠁿</span>
-					<span style={{ fontWeight: 600, fontSize: "0.95rem" }}>
-						A Day in Scottish Rail
-					</span>
-					<span style={{ color: "#8ca0aa", fontSize: "0.75rem" }}>
-						| 24h Replay
-					</span>
+					<CompassOutlined style={{ color: palette.accent }} />
 					<span
 						style={{
-							color: "#8ca0aa",
-							fontSize: "0.7rem",
-							opacity: 0.7,
+							fontFamily: "var(--sr-font-display)",
+							fontWeight: 600,
+							fontSize: "0.95rem",
+							letterSpacing: "-0.01em",
 						}}
 					>
-						({BUILD_DATE})
+						A Day in Scottish Rail
+					</span>
+					<span
+						className="sr-num"
+						style={{ color: palette.textMuted, fontSize: "0.72rem" }}
+					>
+						24h replay
+					</span>
+					<span
+						className="sr-num"
+						style={{
+							color: palette.textFaint,
+							fontSize: "0.7rem",
+						}}
+					>
+						{BUILD_DATE}
 					</span>
 
 					{/* Quick Audio Mute Toggle */}
@@ -216,9 +237,9 @@ export const App = () => {
 							size="small"
 							icon={
 								settings.soundEffects ? (
-									<AudioOutlined style={{ color: "#59d7ff" }} />
+									<AudioOutlined style={{ color: palette.accent }} />
 								) : (
-									<AudioMutedOutlined style={{ color: "#8ca0aa" }} />
+									<AudioMutedOutlined style={{ color: palette.textMuted }} />
 								)
 							}
 							onClick={() => {
@@ -231,7 +252,9 @@ export const App = () => {
 								railActions.updateSetting("soundEffects", nextSound);
 							}}
 							style={{
-								color: settings.soundEffects ? "#59d7ff" : "#8ca0aa",
+								color: settings.soundEffects
+									? palette.accent
+									: palette.textMuted,
 								padding: "0 4px",
 								height: "auto",
 							}}
@@ -246,7 +269,7 @@ export const App = () => {
 						icon={<InfoCircleOutlined />}
 						onClick={() => railActions.setIsInfoOpen(true)}
 						style={{
-							color: "#59d7ff",
+							color: palette.accent,
 							padding: "0 4px",
 							height: "auto",
 						}}
@@ -259,7 +282,7 @@ export const App = () => {
 						icon={<SettingOutlined />}
 						onClick={() => railActions.setIsSettingsOpen(true)}
 						style={{
-							color: "#a8b5bc",
+							color: palette.textMuted,
 							padding: "0 4px",
 							height: "auto",
 						}}
@@ -296,7 +319,11 @@ export const App = () => {
 							type="text"
 							size="small"
 							icon={<QuestionCircleOutlined />}
-							style={{ color: "#8ca0aa", padding: "0 4px", height: "auto" }}
+							style={{
+								color: palette.textFaint,
+								padding: "0 4px",
+								height: "auto",
+							}}
 						>
 							Shortcuts
 						</Button>
@@ -315,36 +342,39 @@ export const App = () => {
 				{/* Floating Empty Search Recovery Banner */}
 				{searchQuery.trim().length > 0 && activeTrains.length === 0 && (
 					<div
+						className="sr-glass sr-rise"
 						style={{
 							position: "absolute",
 							top: 72,
 							left: "50%",
 							transform: "translateX(-50%)",
 							zIndex: 20,
-							background: "rgba(7, 19, 27, 0.92)",
-							backdropFilter: "blur(10px)",
-							border: "1px solid rgba(255, 77, 79, 0.4)",
-							borderRadius: 8,
-							padding: "8px 16px",
+							border: `1px solid ${palette.danger}`,
+							borderRadius: 10,
+							padding: "8px 14px",
 							display: "flex",
 							alignItems: "center",
 							gap: 12,
-							color: "#edf3f5",
-							boxShadow: "0 8px 24px rgba(0,0,0,0.6)",
+							color: palette.text,
+							maxWidth: "calc(100vw - 32px)",
 						}}
 					>
-						<span>
-							🔍 No active services matching <b>"{searchQuery}"</b> at{" "}
-							{formatTime(timeOffset)}
+						<SearchOutlined style={{ color: palette.danger }} />
+						<span style={{ fontSize: "0.85rem" }}>
+							No service matches <b>"{searchQuery}"</b> at{" "}
+							<span className="sr-num">{formatTime(timeOffset)}</span>
 						</span>
 						<Button
 							size="small"
-							type="primary"
-							danger
+							type="text"
 							icon={<CloseOutlined />}
 							onClick={() => railActions.setSearchQuery("")}
+							style={{
+								color: palette.danger,
+								border: `1px solid ${palette.danger}`,
+							}}
 						>
-							Clear Search
+							Clear
 						</Button>
 					</div>
 				)}

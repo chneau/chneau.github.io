@@ -1,4 +1,4 @@
-import { ArrowRightOutlined, GithubOutlined } from "@ant-design/icons";
+import { GithubOutlined } from "@ant-design/icons";
 import {
 	Button,
 	Card,
@@ -10,6 +10,17 @@ import {
 	Typography,
 	theme,
 } from "antd";
+import {
+	ArrowRight,
+	Beer,
+	Cake,
+	FileText,
+	type LucideIcon,
+	Moon,
+	Sun,
+	Swords,
+	TrainFront,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 const { Header, Content, Footer } = Layout;
@@ -17,10 +28,21 @@ const { Title, Paragraph, Text } = Typography;
 
 declare const BUILD_DATE: string;
 
-const APPS = [
+type AppEntry = {
+	href: string;
+	icon: LucideIcon;
+	title: string;
+	tag: string;
+	tagColor: string;
+	shortcutKey: string;
+	hotkey: string;
+	description: string;
+};
+
+const APPS: AppEntry[] = [
 	{
 		href: "/cv/",
-		emoji: "📄",
+		icon: FileText,
 		title: "Curriculum Vitae",
 		tag: "Senior Full-Stack & Systems",
 		tagColor: "purple",
@@ -31,7 +53,7 @@ const APPS = [
 	},
 	{
 		href: "/birthday/",
-		emoji: "🎂",
+		icon: Cake,
 		title: "Birthday Tracker",
 		tag: "Tracker",
 		tagColor: "blue",
@@ -42,7 +64,7 @@ const APPS = [
 	},
 	{
 		href: "/scotland-rail/",
-		emoji: "🚆",
+		icon: TrainFront,
 		title: "A Day in Scottish Rail",
 		tag: "24h Replay",
 		tagColor: "cyan",
@@ -53,7 +75,7 @@ const APPS = [
 	},
 	{
 		href: "/crimson-desert-save-editor/",
-		emoji: "⚔️",
+		icon: Swords,
 		title: "Crimson Desert Save Editor",
 		tag: "100% Client-Side",
 		tagColor: "gold",
@@ -64,7 +86,7 @@ const APPS = [
 	},
 	{
 		href: "/spooners/",
-		emoji: "🍺",
+		icon: Beer,
 		title: "Spooners",
 		tag: "Price map",
 		tagColor: "green",
@@ -73,12 +95,13 @@ const APPS = [
 		description:
 			"See what every pub charges for the same drink or dish — searchable map, cheapest-to-dearest rankings and price distribution charts.",
 	},
-] as const;
+];
 
 type AppItem = (typeof APPS)[number];
 
 const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 	const [hovered, setHovered] = useState(false);
+	const Icon = item.icon;
 
 	return (
 		<a
@@ -95,12 +118,13 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 				onMouseEnter={() => setHovered(true)}
 				onMouseLeave={() => setHovered(false)}
 				style={{
-					transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+					transition:
+						"transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, background-color 0.3s ease",
 					transform: hovered ? "translateY(-3px)" : "none",
 					boxShadow: hovered
 						? darkMode
-							? "0 8px 24px rgba(0, 0, 0, 0.45)"
-							: "0 8px 24px rgba(0, 0, 0, 0.08)"
+							? "0 10px 28px rgba(0, 0, 0, 0.5)"
+							: "0 10px 28px rgba(22, 119, 255, 0.12)"
 						: undefined,
 					background: darkMode ? "#0d222f" : "#fff",
 					borderColor: hovered
@@ -129,13 +153,21 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 					>
 						<span
 							style={{
-								fontSize: "2.2rem",
-								lineHeight: 1,
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+								width: 40,
+								height: 40,
+								borderRadius: 10,
 								flexShrink: 0,
 								marginTop: 2,
+								color: "#1677ff",
+								background: darkMode
+									? "rgba(22, 119, 255, 0.14)"
+									: "rgba(22, 119, 255, 0.08)",
 							}}
 						>
-							{item.emoji}
+							<Icon size={26} strokeWidth={1.5} />
 						</span>
 						<div style={{ flex: 1, minWidth: 0 }}>
 							<div
@@ -186,12 +218,14 @@ const AppCard = ({ item, darkMode }: { item: AppItem; darkMode: boolean }) => {
 							flexShrink: 0,
 						}}
 					>
-						<ArrowRightOutlined
+						<ArrowRight
+							size={18}
+							strokeWidth={1.5}
 							style={{
-								fontSize: "1.1rem",
 								color: hovered ? "#1677ff" : darkMode ? "#8ca0aa" : "#bfbfbf",
 								transform: hovered ? "translateX(4px)" : "none",
-								transition: "all 0.2s ease",
+								transition:
+									"transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s ease",
 							}}
 						/>
 						<Tag
@@ -315,8 +349,9 @@ export const App = () => {
 								aria-label={
 									darkMode ? "Switch to light mode" : "Switch to dark mode"
 								}
+								icon={darkMode ? <Sun size={14} /> : <Moon size={14} />}
 							>
-								{darkMode ? "☀️ Light" : "🌙 Dark"}
+								{darkMode ? "Light" : "Dark"}
 							</Button>
 						</Tooltip>
 						<Tooltip title="GitHub Profile">

@@ -8,7 +8,7 @@ import {
 	Text,
 } from "@mantine/core";
 import type { Map as LeafletMap } from "leaflet";
-import { Crosshair, Info, X } from "lucide-react";
+import { ChevronRight, Circle, Crosshair, Info, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
 	CircleMarker,
@@ -19,9 +19,10 @@ import {
 	useMap,
 	useMapEvents,
 } from "react-leaflet";
-import { SPOT_META } from "../derive";
 import { miles, money, normalize, type PriceScale, priceColor } from "../price";
 import type { MapPoint } from "../types";
+import { SpotLabel } from "./SpotLabel";
+import { StatusDot } from "./StatusDot";
 import { VenueImage } from "./VenueImage";
 
 export const UK_CENTER: [number, number] = [54.4, -3.2];
@@ -103,9 +104,14 @@ const PopupAction = ({
 			cursor: "pointer",
 			fontSize: 12,
 			fontWeight: 600,
+			display: "flex",
+			alignItems: "center",
+			justifyContent: "space-between",
+			gap: 6,
 		}}
 	>
-		{label}
+		<span>{label}</span>
+		<ChevronRight size={12} />
 	</button>
 );
 
@@ -117,7 +123,7 @@ const DetailsButton = ({
 	onOpen?: (ref: number) => void;
 }) =>
 	onOpen ? (
-		<PopupAction label="Pub details ▸" onClick={() => onOpen(point.ref)} />
+		<PopupAction label="Pub details" onClick={() => onOpen(point.ref)} />
 	) : null;
 
 const PointPopup = ({
@@ -141,7 +147,7 @@ const PointPopup = ({
 				</div>
 				{onArea ? (
 					<PopupAction
-						label="Show these pubs ▸"
+						label="Show these pubs"
 						onClick={() => onArea(point.name)}
 					/>
 				) : null}
@@ -175,15 +181,16 @@ const PointPopup = ({
 			</div>
 			{point.hoursToday !== undefined ? (
 				<div style={{ fontSize: 12, marginTop: 4 }}>
-					{point.isOpenNow ? "🟢 Open now" : "🔴 Closed now"}
+					<StatusDot open={point.isOpenNow} />
+					{point.isOpenNow ? "Open now" : "Closed now"}
 					{point.hoursToday ? ` · ${point.hoursToday}` : ""}
 				</div>
 			) : null}
 			{point.spot !== "high-street" || point.canOrder === false ? (
 				<div style={{ fontSize: 12, marginTop: 4 }}>
-					{point.spot !== "high-street"
-						? `${SPOT_META[point.spot].emoji} ${SPOT_META[point.spot].label}`
-						: ""}
+					{point.spot !== "high-street" ? (
+						<SpotLabel spot={point.spot} />
+					) : null}
 					{point.canOrder === false
 						? `${point.spot !== "high-street" ? " · " : ""}no ordering`
 						: ""}
@@ -495,8 +502,12 @@ export const MapPanel = ({
 						</Text>
 					) : null}
 					{unpriced?.length ? (
-						<Text size="xs" c="dimmed">
-							○ {unpriced.length} no menu
+						<Text
+							size="xs"
+							c="dimmed"
+							style={{ display: "flex", alignItems: "center", gap: 4 }}
+						>
+							<Circle size={9} /> {unpriced.length} no menu
 						</Text>
 					) : null}
 					{compact ? (

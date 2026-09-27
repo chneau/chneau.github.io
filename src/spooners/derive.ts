@@ -1,3 +1,5 @@
+import type { LucideIcon } from "lucide-react";
+import { Building2, Hotel, Plane, Store, Umbrella } from "lucide-react";
 import { itemNature, pickItemValue, valueDirection } from "./portions";
 import { median } from "./price";
 import type {
@@ -82,13 +84,14 @@ export const availableCurrencies = (
 // special venues (airports, havens, hotels, ...)                                 #
 // --------------------------------------------------------------------------- #
 
-export const SPOT_META: Record<VenueSpot, { label: string; emoji: string }> = {
-	"high-street": { label: "High street", emoji: "🏙" },
-	airport: { label: "Airport", emoji: "✈️" },
-	haven: { label: "Haven park", emoji: "⛱️" },
-	concession: { label: "Concession", emoji: "🏪" },
-	hotel: { label: "Hotel", emoji: "🏨" },
-};
+export const SPOT_META: Record<VenueSpot, { label: string; icon: LucideIcon }> =
+	{
+		"high-street": { label: "High street", icon: Building2 },
+		airport: { label: "Airport", icon: Plane },
+		haven: { label: "Haven park", icon: Umbrella },
+		concession: { label: "Concession", icon: Store },
+		hotel: { label: "Hotel", icon: Hotel },
+	};
 
 export const venueSpot = (
 	venue: VenueInfo,

@@ -2,6 +2,7 @@ import { Timeline, Typography } from "antd";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
+import { KindIcon } from "./KindIcon";
 import { dataStore } from "./store";
 
 export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
@@ -42,7 +43,16 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 							}}
 						>
 							<Typography.Text strong style={{ color: "#1677ff" }}>
-								{x.name} {x.kind}
+								<span
+									style={{
+										display: "inline-flex",
+										alignItems: "center",
+										gap: 6,
+									}}
+								>
+									<KindIcon kind={x.kind} size={12} />
+									{x.name}
+								</span>
 							</Typography.Text>
 							<br />
 							<Typography.Text type="secondary" style={{ fontSize: "0.85em" }}>

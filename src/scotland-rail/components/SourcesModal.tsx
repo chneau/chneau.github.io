@@ -1,4 +1,6 @@
 import { Button, Divider, Modal, Typography } from "antd";
+import { CATEGORIES } from "../data/types";
+import { palette } from "../theme";
 
 const { Title, Paragraph, Text, Link } = Typography;
 
@@ -21,15 +23,15 @@ export const SourcesModal = ({
 		]}
 		styles={{
 			body: {
-				color: "#edf3f5",
+				color: palette.text,
 			},
 			header: {
 				background: "transparent",
-				color: "#edf3f5",
+				color: palette.text,
 			},
 		}}
 	>
-		<Paragraph style={{ color: "#d9e2e6" }}>
+		<Paragraph style={{ color: palette.textMuted }}>
 			<strong>A Day in Scottish Rail</strong> is an interactive 24-hour
 			simulation reconstructing passenger train activity across Scotland's
 			national and regional rail network.
@@ -42,17 +44,17 @@ export const SourcesModal = ({
 			}}
 		/>
 
-		<Title level={5} style={{ color: "#59d7ff", marginTop: 0 }}>
+		<Title level={5} style={{ color: palette.accent, marginTop: 0 }}>
 			Geospatial & Cartographic Data
 		</Title>
-		<ul style={{ color: "#d9e2e6", paddingLeft: 20 }}>
+		<ul style={{ color: palette.textMuted, paddingLeft: 20 }}>
 			<li>
 				<strong>Coastlines & Islands:</strong>{" "}
 				<Link
 					href="https://www.naturalearthdata.com/downloads/50m-physical-vectors/"
 					target="_blank"
 					rel="noreferrer"
-					style={{ color: "#59d7ff" }}
+					style={{ color: palette.accent }}
 				>
 					Natural Earth 50m Physical Vectors
 				</Link>{" "}
@@ -60,7 +62,7 @@ export const SourcesModal = ({
 				<Text
 					code
 					style={{
-						color: "#59d7ff",
+						color: palette.accent,
 						background: "rgba(255,255,255,0.1)",
 					}}
 				>
@@ -74,7 +76,7 @@ export const SourcesModal = ({
 					href="https://www.openrailwaymap.org/"
 					target="_blank"
 					rel="noreferrer"
-					style={{ color: "#59d7ff" }}
+					style={{ color: palette.accent }}
 				>
 					OpenRailwayMap
 				</Link>{" "}
@@ -83,7 +85,7 @@ export const SourcesModal = ({
 					href="https://www.openstreetmap.org/"
 					target="_blank"
 					rel="noreferrer"
-					style={{ color: "#59d7ff" }}
+					style={{ color: palette.accent }}
 				>
 					OpenStreetMap
 				</Link>{" "}
@@ -91,10 +93,10 @@ export const SourcesModal = ({
 			</li>
 		</ul>
 
-		<Title level={5} style={{ color: "#59d7ff", marginTop: 16 }}>
+		<Title level={5} style={{ color: palette.accent, marginTop: 16 }}>
 			Official Timetable & Schedule Feeds
 		</Title>
-		<ul style={{ color: "#d9e2e6", paddingLeft: 20 }}>
+		<ul style={{ color: palette.textMuted, paddingLeft: 20 }}>
 			<li>
 				<strong>National Rail & Operator Feeds:</strong> Real-world operational
 				timetables compiled from:
@@ -104,7 +106,7 @@ export const SourcesModal = ({
 							href="https://www.scotrail.co.uk/plan-your-journey/timetables"
 							target="_blank"
 							rel="noreferrer"
-							style={{ color: "#59d7ff" }}
+							style={{ color: palette.accent }}
 						>
 							ScotRail Official Timetable Publications
 						</Link>{" "}
@@ -115,7 +117,7 @@ export const SourcesModal = ({
 							href="https://www.lner.co.uk/travel-information/travelling-now/travel-updates/timetables/"
 							target="_blank"
 							rel="noreferrer"
-							style={{ color: "#b347ff" }}
+							style={{ color: CATEGORIES.CrossBorder.color }}
 						>
 							LNER Timetable Feed
 						</Link>{" "}
@@ -127,7 +129,7 @@ export const SourcesModal = ({
 							href="https://www.sleeper.co.uk/timetables/"
 							target="_blank"
 							rel="noreferrer"
-							style={{ color: "#ff2bd6" }}
+							style={{ color: CATEGORIES.Sleeper.color }}
 						>
 							Caledonian Sleeper Timetables
 						</Link>{" "}
@@ -138,7 +140,7 @@ export const SourcesModal = ({
 							href="https://www.avantiwestcoast.co.uk/travel-information/timetables"
 							target="_blank"
 							rel="noreferrer"
-							style={{ color: "#59d7ff" }}
+							style={{ color: palette.accent }}
 						>
 							Avanti West Coast
 						</Link>{" "}
@@ -147,7 +149,7 @@ export const SourcesModal = ({
 							href="https://www.crosscountrytrains.co.uk/travel-updates-information/timetables"
 							target="_blank"
 							rel="noreferrer"
-							style={{ color: "#59d7ff" }}
+							style={{ color: palette.accent }}
 						>
 							CrossCountry
 						</Link>
@@ -159,7 +161,7 @@ export const SourcesModal = ({
 				<Text
 					code
 					style={{
-						color: "#59d7ff",
+						color: palette.accent,
 						background: "rgba(255,255,255,0.1)",
 					}}
 				>
@@ -169,7 +171,7 @@ export const SourcesModal = ({
 				<Text
 					code
 					style={{
-						color: "#59d7ff",
+						color: palette.accent,
 						background: "rgba(255,255,255,0.1)",
 					}}
 				>
@@ -186,13 +188,16 @@ export const SourcesModal = ({
 			}}
 		/>
 
-		<Text type="secondary" style={{ fontSize: "0.8rem", color: "#8ca0aa" }}>
+		<Text
+			type="secondary"
+			style={{ fontSize: "0.8rem", color: palette.textFaint }}
+		>
 			Built with React 19, Ant Design, and Canvas 2D. Inspired by the{" "}
 			<Link
 				href="https://white-smoke-0b215f103.7.azurestaticapps.net/"
 				target="_blank"
 				rel="noreferrer"
-				style={{ color: "#59d7ff" }}
+				style={{ color: palette.accent }}
 			>
 				A Day in Irish Rail
 			</Link>{" "}

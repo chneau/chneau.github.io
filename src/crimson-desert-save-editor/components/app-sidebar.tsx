@@ -103,13 +103,14 @@ export const AppSidebar = ({
 				w={36}
 				h={36}
 				style={{
+					borderRadius: "var(--mantine-radius-md)",
 					border: "1px solid var(--mantine-primary-color-filled)",
 					background: "var(--mantine-primary-color-light)",
 					color: "var(--mantine-primary-color-filled)",
 					flexShrink: 0,
 				}}
 			>
-				<Database size={16} />
+				<Database size={16} strokeWidth={2} />
 			</Center>
 			<Box style={{ minWidth: 0 }}>
 				<Text fw={600} size="md" lh={1}>
@@ -132,18 +133,19 @@ export const AppSidebar = ({
 				Save file
 			</Text>
 			{result ? (
-				<Paper withBorder p="sm" bg="rgba(0,0,0,0.15)">
+				<Paper withBorder p="sm" bg="rgba(255,255,255,0.02)">
 					<Group gap="sm" wrap="nowrap" align="flex-start">
 						<HardDrive
 							size={16}
-							color="var(--mantine-primary-color-filled)"
+							color="var(--mantine-color-dark-2)"
+							strokeWidth={2}
 							style={{ flexShrink: 0, marginTop: 2 }}
 						/>
 						<Box style={{ minWidth: 0 }}>
 							<Text size="sm" fw={500} truncate>
 								{fileName}
 							</Text>
-							<Text size="xs" c="dimmed">
+							<Text size="xs" c="dimmed" ff="monospace">
 								{formatBytes(fileSize)} · container v{result.containerVersion}
 							</Text>
 						</Box>

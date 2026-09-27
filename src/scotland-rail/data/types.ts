@@ -1,3 +1,5 @@
+import { categoryColors } from "../theme";
+
 export type Coordinate = [longitude: number, latitude: number];
 
 export type Station = {
@@ -31,31 +33,31 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
 	Express: {
 		category: "Express",
 		label: "Central Belt Express",
-		color: "#59d7ff", // Cyan
+		color: categoryColors.Express,
 		shape: "circle",
 	},
 	Highland: {
 		category: "Highland",
 		label: "Highland & Scenic",
-		color: "#a6e36a", // Lime Green
+		color: categoryColors.Highland,
 		shape: "diamond",
 	},
 	Commuter: {
 		category: "Commuter",
 		label: "Suburban / Commuter",
-		color: "#ffba63", // Amber
+		color: categoryColors.Commuter,
 		shape: "square",
 	},
 	CrossBorder: {
 		category: "CrossBorder",
 		label: "InterCity / Cross-Border",
-		color: "#b347ff", // Purple
+		color: categoryColors.CrossBorder,
 		shape: "triangle",
 	},
 	Sleeper: {
 		category: "Sleeper",
 		label: "Caledonian Sleeper",
-		color: "#ff2bd6", // Magenta
+		color: categoryColors.Sleeper,
 		shape: "hexagon",
 	},
 };
@@ -77,11 +79,13 @@ export type TrainService = {
 	calls: ServiceCall[];
 };
 
+type LandmarkKind = "viaduct" | "bridge" | "crossing" | "summit" | "hall";
+
 export type Landmark = {
 	id: string;
 	name: string;
 	coordinate: Coordinate;
-	icon: string;
+	kind: LandmarkKind;
 	description: string;
 };
 

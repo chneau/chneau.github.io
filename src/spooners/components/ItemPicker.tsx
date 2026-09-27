@@ -1,4 +1,5 @@
 import { Box, Group, InputBase, Popover, Text } from "@mantine/core";
+import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ItemInfo } from "../types";
 
@@ -125,7 +126,7 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 							setOpened(false);
 						}
 					}}
-					leftSection={<span aria-hidden>🔎</span>}
+					leftSection={<Search size={14} />}
 					rightSection={
 						<Text size="xs" c="dimmed">
 							{filtered.length}

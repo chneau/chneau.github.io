@@ -1,70 +1,83 @@
-import { Button, Empty, Progress, Table, Tag, Tooltip } from "antd";
+import { Progress, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { TFunction } from "i18next";
+import { Clock, Gem, RotateCcw, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { BirthdayDetails } from "./BirthdayDetails";
-import { type Birthday, getAgeEmoji, getKindColor } from "./birthdays";
+import type { Birthday } from "./birthdays";
 import { Highlight } from "./Highlight";
+import { KindIcon, kindLabelKey } from "./KindIcon";
 import { store } from "./store";
 
 const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 	{
 		title: t("table.name"),
 		dataIndex: "name",
-		render: (_, x) => {
-			const kindLabel =
-				x.kind === "♂️"
-					? t("app.filters.boys")
-					: x.kind === "♀️"
-						? t("app.filters.girls")
-						: t("app.filters.weddings");
-			return (
-				<>
-					<Tooltip title={kindLabel}>
-						<Tag color={getKindColor(x.kind)}>
-							<Highlight text={x.name} search={search} /> {x.kind}
-						</Tag>
-					</Tooltip>
-					{x.milestone && (
-						<Tag color="gold" style={{ marginLeft: 4 }}>
-							{t(x.milestone.key, x.milestone.params)}
-						</Tag>
-					)}
-				</>
-			);
-		},
+		render: (_, x) => (
+			<>
+				<span
+					style={{
+						display: "inline-flex",
+						alignItems: "center",
+						gap: 6,
+						fontWeight: 500,
+					}}
+				>
+					<KindIcon kind={x.kind} size={13} />
+					<Highlight text={x.name} search={search} />
+					<span
+						style={{
+							fontSize: 10,
+							letterSpacing: "0.08em",
+							textTransform: "uppercase",
+							color: "var(--tk-text-faint)",
+						}}
+					>
+						{t(kindLabelKey(x.kind))}
+					</span>
+				</span>
+				{x.milestone && (
+					<span
+						style={{
+							marginLeft: 8,
+							fontSize: 11,
+							color: "var(--tk-accent-ink)",
+							border: "1px solid var(--tk-accent-line)",
+							background: "var(--tk-accent-soft)",
+							borderRadius: 999,
+							padding: "1px 8px",
+						}}
+					>
+						{t(x.milestone.key, x.milestone.params)}
+					</span>
+				)}
+			</>
+		),
 		sorter: (a, b) => a.name.localeCompare(b.name),
 	},
 	{
 		title: t("table.birthday"),
 		dataIndex: "birthdayString",
 		render: (_, x) => (
-			<>
-				📅 <Highlight text={x.birthdayString} search={search} />
-			</>
+			<span style={{ fontFamily: "var(--tk-font-mono)", fontSize: 12 }}>
+				<Highlight text={x.birthdayString} search={search} />
+			</span>
 		),
 		sorter: (a, b) => a.birthday.getTime() - b.birthday.getTime(),
 	},
 	{
 		title: t("table.age"),
 		dataIndex: "age",
-		render: (age, x) => (
-			<Highlight text={`${age} ${getAgeEmoji(age, x.kind)}`} search={search} />
-		),
+		render: (age) => <Highlight text={String(age)} search={search} />,
 		sorter: (a, b) => a.age - b.age,
 	},
 	{
 		title: t("table.progress"),
 		dataIndex: "progress",
 		render: (progress) => (
-			<Progress
-				percent={Math.round(progress)}
-				size="small"
-				status={progress === 100 ? "success" : "active"}
-				strokeColor={progress > 90 ? "#f5222d" : undefined}
-			/>
+			<Progress percent={Math.round(progress)} size="small" showInfo={false} />
 		),
 		sorter: (a, b) => a.progress - b.progress,
 		responsive: ["sm"],
@@ -73,9 +86,19 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 		title: t("table.in"),
 		dataIndex: "daysBeforeBirthday",
 		render: (days) => (
-			<Tag color={days === 0 ? "red" : days < 30 ? "orange" : undefined}>
-				⏳ {days} {t("table.days")}
-			</Tag>
+			<span
+				style={{
+					display: "inline-flex",
+					alignItems: "center",
+					gap: 5,
+					fontFamily: "var(--tk-font-mono)",
+					fontSize: 12,
+					color: days === 0 ? "var(--tk-accent-ink)" : "var(--tk-text-dim)",
+				}}
+			>
+				<Clock size={12} strokeWidth={1.9} />
+				{days} {t("table.days")}
+			</span>
 		),
 		sorter: (a, b) => a.daysBeforeBirthday - b.daysBeforeBirthday,
 	},
@@ -83,10 +106,10 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 		title: t("table.sign"),
 		dataIndex: "sign",
 		render: (_, x) => (
-			<Tag>
+			<span style={{ whiteSpace: "nowrap" }}>
 				{x.signSymbol}{" "}
 				<Highlight text={t(`data.zodiac.${x.sign}`)} search={search} />
-			</Tag>
+			</span>
 		),
 		sorter: (a, b) =>
 			t(`data.zodiac.${a.sign}`).localeCompare(t(`data.zodiac.${b.sign}`)),
@@ -95,18 +118,24 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 	{
 		title: t("table.birthgem"),
 		dataIndex: "birthgem",
-		render: (_, x) => {
-			const month = t(`data.months.${x.monthName}`);
-			const gem = t(`data.birthgems.${x.birthgem}`);
-			return (
-				<Tag color="blue">
-					<Highlight
-						text={`${gem} ${x.birthgemEmoji} (${month})`}
-						search={search}
-					/>
-				</Tag>
-			);
-		},
+		render: (_, x) => (
+			<span
+				style={{
+					display: "inline-flex",
+					alignItems: "center",
+					gap: 5,
+					whiteSpace: "nowrap",
+				}}
+			>
+				<Gem size={12} strokeWidth={1.9} color="var(--tk-text-faint)" />
+				<Highlight
+					text={`${t(`data.birthgems.${x.birthgem}`)} · ${t(
+						`data.months.${x.monthName}`,
+					)}`}
+					search={search}
+				/>
+			</span>
+		),
 		sorter: (a, b) => a.birthgem.localeCompare(b.birthgem),
 		responsive: ["lg"],
 	},
@@ -114,12 +143,10 @@ const getColumns = (search: string, t: TFunction): ColumnsType<Birthday> => [
 		title: t("table.chinese"),
 		dataIndex: "chineseZodiac",
 		render: (_, x) => (
-			<Tag>
-				<Highlight
-					text={t(`data.chinese_zodiac.${x.chineseZodiac}`)}
-					search={search}
-				/>
-			</Tag>
+			<Highlight
+				text={t(`data.chinese_zodiac.${x.chineseZodiac}`)}
+				search={search}
+			/>
 		),
 		sorter: (a, b) =>
 			t(`data.chinese_zodiac.${a.chineseZodiac}`).localeCompare(
@@ -158,20 +185,25 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 			size="small"
 			locale={{
 				emptyText: (
-					<Empty
-						image={Empty.PRESENTED_IMAGE_SIMPLE}
-						description={
-							search ? `No birthdays matching "${search}"` : undefined
-						}
-					>
-						<Button type="primary" size="small" onClick={handleResetFilters}>
-							🔄 Reset Filters
-						</Button>
-					</Empty>
+					<div className="tk-empty">
+						<span className="tk-empty__mark">
+							<Search size={20} strokeWidth={1.5} />
+						</span>
+						<h3>{t("app.list.empty_title")}</h3>
+						<p>{t("app.list.empty_body")}</p>
+						<button
+							type="button"
+							className="tk-iconbtn"
+							onClick={handleResetFilters}
+						>
+							<RotateCcw size={14} strokeWidth={1.9} />
+							{t("app.list.reset")}
+						</button>
+					</div>
 				),
 			}}
 			rowClassName={(record) =>
-				record.daysBeforeBirthday === 0 ? "birthday-today-row" : ""
+				record.daysBeforeBirthday === 0 ? "tk-row-today" : ""
 			}
 			expandable={{
 				expandedRowRender: (record) => <BirthdayDetails record={record} />,

@@ -1,7 +1,12 @@
 import {
+	ClockCircleOutlined,
+	FallOutlined,
+	MoonOutlined,
 	PauseOutlined,
 	PlayCircleOutlined,
 	RedoOutlined,
+	RiseOutlined,
+	SunOutlined,
 } from "@ant-design/icons";
 import {
 	Button,
@@ -17,6 +22,7 @@ import {
 import { useSnapshot } from "valtio";
 import { CATEGORIES, type Category, type ViewPreset } from "../data/types";
 import { derivedStore, railActions, railStore } from "../store";
+import { palette } from "../theme";
 import { formatTime } from "../utils";
 
 const { Text, Title } = Typography;
@@ -50,14 +56,12 @@ export const Controls = () => {
 		>
 			{/* Bottom Control Bar */}
 			<Card
+				className="sr-glass sr-rise"
 				style={{
-					background: "rgba(7, 19, 27, 0.88)",
-					backdropFilter: "blur(8px)",
-					border: "1px solid rgba(217, 226, 230, 0.25)",
-					borderRadius: 12,
+					borderRadius: 14,
 					pointerEvents: "auto",
 				}}
-				styles={{ body: { padding: "12px 20px" } }}
+				styles={{ body: { padding: "12px 18px" } }}
 			>
 				{/* Top Bar: Live Clock & Category Badges */}
 				<div
@@ -73,25 +77,36 @@ export const Controls = () => {
 					<Space size="middle" align="center">
 						<Title
 							level={3}
+							className="sr-num"
 							style={{
-								color: "#edf3f5",
+								color: palette.text,
 								margin: 0,
-								fontFamily: "monospace",
-								letterSpacing: "1px",
+								fontSize: "1.4rem",
+								fontWeight: 600,
+								letterSpacing: "0.02em",
+								display: "flex",
+								alignItems: "center",
+								gap: 8,
 							}}
 						>
-							🕒 {formatTime(timeOffset)}
+							<ClockCircleOutlined
+								style={{ color: palette.accent, fontSize: "1rem" }}
+							/>
+							{formatTime(timeOffset)}
 						</Title>
 						<Tag
-							color="#1677ff"
+							bordered={false}
 							style={{
-								fontSize: "0.85rem",
-								padding: "2px 8px",
+								fontSize: "0.8rem",
+								padding: "2px 10px",
 								cursor: "pointer",
+								background: palette.accentSoft,
+								color: palette.accent,
+								borderRadius: 999,
 							}}
 							onClick={() => railActions.setSelectedCategory("all")}
 						>
-							{activeTrains.length} Active Trains
+							<span className="sr-num">{activeTrains.length}</span> active
 						</Tag>
 					</Space>
 
@@ -104,27 +119,39 @@ export const Controls = () => {
 							return (
 								<Tag
 									key={cat}
+									className="sr-press"
 									onClick={() =>
 										railActions.setSelectedCategory(isCatSelected ? "all" : cat)
 									}
 									style={{
 										background: isCatSelected
-											? `${cfg.color}33`
-											: "rgba(255,255,255,0.05)",
-										border: `1px solid ${cfg.color}`,
-										color: "#edf3f5",
-										fontSize: "0.75rem",
+											? `${cfg.color}22`
+											: "rgba(255,255,255,0.04)",
+										border: `1px solid ${
+											isCatSelected ? cfg.color : palette.border
+										}`,
+										color: palette.text,
+										fontSize: "0.74rem",
 										cursor: "pointer",
-										transition: "all 0.2s",
-										boxShadow: isCatSelected
-											? `0 0 8px ${cfg.color}66`
-											: "none",
+										borderRadius: 999,
+										padding: "1px 10px",
 									}}
 								>
-									<span style={{ color: cfg.color, fontWeight: "bold" }}>
-										●
-									</span>{" "}
-									{cfg.label}: <b style={{ color: cfg.color }}>{count}</b>
+									<span
+										style={{
+											display: "inline-block",
+											width: 6,
+											height: 6,
+											borderRadius: "50%",
+											background: cfg.color,
+											marginRight: 6,
+											verticalAlign: "middle",
+										}}
+									/>
+									{cfg.label}:{" "}
+									<b className="sr-num" style={{ color: cfg.color }}>
+										{count}
+									</b>
 								</Tag>
 							);
 						})}
@@ -133,15 +160,15 @@ export const Controls = () => {
 					{/* Search and View Selector */}
 					<Space size="small" wrap>
 						<Input
-							placeholder="Search service/station..."
+							placeholder="Search service or station"
 							value={searchQuery}
 							allowClear
 							onChange={(e) => railActions.setSearchQuery(e.target.value)}
 							style={{
 								width: 200,
-								background: "rgba(255, 255, 255, 0.08)",
-								borderColor: "rgba(217, 226, 230, 0.3)",
-								color: "#edf3f5",
+								background: "rgba(255, 255, 255, 0.06)",
+								borderColor: palette.borderStrong,
+								color: palette.text,
 								fontSize: "0.8rem",
 							}}
 							size="small"
@@ -172,8 +199,8 @@ export const Controls = () => {
 							formatter: (val) => (val !== undefined ? formatTime(val) : ""),
 						}}
 						styles={{
-							track: { background: "#59d7ff" },
-							rail: { background: "rgba(255,255,255,0.2)" },
+							track: { background: palette.accent },
+							rail: { background: "rgba(255,255,255,0.14)" },
 						}}
 					/>
 				</div>
@@ -184,6 +211,8 @@ export const Controls = () => {
 						display: "flex",
 						justifyContent: "space-between",
 						alignItems: "center",
+						gap: 12,
+						flexWrap: "wrap",
 						marginTop: 6,
 					}}
 				>
@@ -191,31 +220,35 @@ export const Controls = () => {
 						<Button
 							type="primary"
 							shape="circle"
+							className="sr-press"
+							aria-label={isPlaying ? "Pause" : "Play"}
 							icon={isPlaying ? <PauseOutlined /> : <PlayCircleOutlined />}
 							onClick={() => railActions.togglePlay()}
 							style={{
-								background: "#59d7ff",
-								borderColor: "#59d7ff",
-								color: "#07131b",
+								background: palette.accent,
+								borderColor: palette.accent,
+								color: palette.bgDeep,
 							}}
 						/>
 						<Button
 							ghost
 							shape="circle"
+							className="sr-press"
+							aria-label="Restart day"
 							icon={<RedoOutlined />}
 							onClick={() => railActions.restart()}
-							style={{ color: "#edf3f5", borderColor: "rgba(255,255,255,0.3)" }}
+							style={{ color: palette.text, borderColor: palette.borderStrong }}
 						/>
 
 						<Space size="small" style={{ marginLeft: 8 }}>
-							<Text style={{ color: "#a8b5bc", fontSize: "0.8rem" }}>
-								Speed:
+							<Text style={{ color: palette.textMuted, fontSize: "0.8rem" }}>
+								Speed
 							</Text>
 							<Select
 								value={speed}
 								onChange={(val) => railActions.setSpeed(val)}
 								size="small"
-								style={{ width: 110 }}
+								style={{ width: 116 }}
 								options={[
 									{ value: 0.5, label: "0.5x (30s/s)" },
 									{ value: 1, label: "1x (1m/s)" },
@@ -230,61 +263,38 @@ export const Controls = () => {
 					{/* Quick Jump Times */}
 					<Space size={6} wrap align="center">
 						<Text
-							style={{ color: "#59d7ff", fontSize: "0.85rem", fontWeight: 600 }}
+							className="sr-num"
+							style={{ color: palette.textFaint, fontSize: "0.78rem" }}
 						>
-							Jump to:
+							Jump to
 						</Text>
 						<Button
 							size="small"
+							className="sr-chip sr-press"
 							onClick={() => railActions.setTimeOffset(480)}
-							style={{
-								background: "rgba(89, 215, 255, 0.15)",
-								borderColor: "#59d7ff",
-								color: "#edf3f5",
-								fontWeight: 500,
-								borderRadius: 6,
-							}}
 						>
-							🌅 08:00 Morning Rush
+							<RiseOutlined /> 08:00 Morning
 						</Button>
 						<Button
 							size="small"
+							className="sr-chip sr-press"
 							onClick={() => railActions.setTimeOffset(780)}
-							style={{
-								background: "rgba(255, 255, 255, 0.08)",
-								borderColor: "rgba(217, 226, 230, 0.35)",
-								color: "#edf3f5",
-								fontWeight: 500,
-								borderRadius: 6,
-							}}
 						>
-							☀️ 13:00 Midday
+							<SunOutlined /> 13:00 Midday
 						</Button>
 						<Button
 							size="small"
+							className="sr-chip sr-press"
 							onClick={() => railActions.setTimeOffset(1050)}
-							style={{
-								background: "rgba(255, 186, 99, 0.15)",
-								borderColor: "#ffba63",
-								color: "#edf3f5",
-								fontWeight: 500,
-								borderRadius: 6,
-							}}
 						>
-							🌇 17:30 Evening Rush
+							<FallOutlined /> 17:30 Evening
 						</Button>
 						<Button
 							size="small"
+							className="sr-chip sr-press"
 							onClick={() => railActions.setTimeOffset(1320)}
-							style={{
-								background: "rgba(255, 43, 214, 0.15)",
-								borderColor: "#ff2bd6",
-								color: "#edf3f5",
-								fontWeight: 500,
-								borderRadius: 6,
-							}}
 						>
-							🌙 22:00 Caledonian Sleeper
+							<MoonOutlined /> 22:00 Sleeper
 						</Button>
 					</Space>
 				</div>

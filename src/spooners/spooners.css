@@ -64,3 +64,22 @@
 .spooners-scroll {
 	scrollbar-width: thin;
 }
+
+/* "open" status light: a slow breath, on the compositor-only properties */
+@keyframes spooners-breathe {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.45;
+		transform: scale(0.8);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.spooners-status-dot {
+		animation: none;
+	}
+}

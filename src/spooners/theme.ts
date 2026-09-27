@@ -19,7 +19,12 @@ export const spoonersTheme = createTheme({
 	primaryShade: { light: 5, dark: 4 },
 	colors: { amber },
 	defaultRadius: "md",
-	fontFamily: '"Segoe UI Variable", "Segoe UI", Arial, sans-serif',
-	fontFamilyMonospace: '"Cascadia Code", Consolas, monospace',
-	headings: { fontFamily: 'Georgia, "Times New Roman", serif' },
+	fontFamily:
+		'"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif',
+	fontFamilyMonospace: '"Cascadia Code", "JetBrains Mono", Consolas, monospace',
+	headings: {
+		fontFamily:
+			'"Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif',
+		fontWeight: "600",
+	},
 });

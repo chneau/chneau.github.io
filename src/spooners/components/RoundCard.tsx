@@ -18,6 +18,7 @@ import {
 	ChevronDown,
 	CircleHelp,
 	LocateFixed,
+	MapPin,
 	Minus,
 	Plus,
 	RotateCcw,
@@ -480,7 +481,11 @@ export const RoundCard = ({
 
 					{hasLocation ? (
 						<Group gap={6}>
-							<Badge variant="light" color="teal" leftSection="📍">
+							<Badge
+								variant="light"
+								color="teal"
+								leftSection={<MapPin size={12} />}
+							>
 								Location on
 							</Badge>
 							<Button

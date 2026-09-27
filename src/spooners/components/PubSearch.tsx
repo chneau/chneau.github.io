@@ -1,4 +1,5 @@
 import { Box, Group, InputBase, Popover, Text } from "@mantine/core";
+import { Beer } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { VenueInfo } from "../types";
 
@@ -48,7 +49,7 @@ export const PubSearch = ({ venues, onSelect, label }: Props) => {
 					label={label}
 					placeholder="Find a pub by name or town…"
 					value={opened ? query : ""}
-					leftSection={<span aria-hidden>🍺</span>}
+					leftSection={<Beer size={14} />}
 					rightSection={
 						<Text size="xs" c="dimmed">
 							{results.length}
