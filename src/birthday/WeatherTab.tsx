@@ -1,39 +1,37 @@
 import {
-	ArrowDownOutlined,
-	ArrowUpOutlined,
-	ClockCircleOutlined,
-	DeleteOutlined,
-	MenuOutlined,
-	PlusOutlined,
-	ReloadOutlined,
-} from "@ant-design/icons";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
+	Accordion,
+	Box,
 	Button,
 	Card,
-	Col,
-	Collapse,
 	Divider,
-	Empty,
-	Input,
-	List,
-	message,
-	Popconfirm,
-	Row,
+	Group,
+	SimpleGrid,
 	Skeleton,
-	Space,
+	Stack,
+	Text,
+	TextInput,
+	Title,
 	Tooltip,
-	Typography,
-} from "antd";
+} from "@mantine/core";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
+import {
+	ArrowDown,
+	ArrowUp,
+	Clock,
+	GripVertical,
+	Plus,
+	RefreshCw,
+	Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
+import { ConfirmPopover } from "./ConfirmPopover";
 import type en from "./locales/en.json";
+import { notify } from "./notify";
 import { store } from "./store";
 import { getWeather, type WttrResponse } from "./wttr";
-
-const { Text, Title } = Typography;
 
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
@@ -138,14 +136,14 @@ const HourlyForecast = ({ weather }: { weather: WttrResponse }) => {
 						borderRight: i < hourly.length - 1 ? "1px solid #f0f0f0" : "none",
 					}}
 				>
-					<Text type="secondary" style={{ fontSize: 12 }}>
+					<Text c="dimmed" style={{ fontSize: 12 }}>
 						{h.time === 0 ? "00:00" : `${h.time / 100}:00`}
 					</Text>
 					<div style={{ margin: "4px 0", fontSize: 20 }}>
 						{getWeatherEmoji(h.weatherCode)}
 					</div>
 					<div style={{ margin: "4px 0" }}>
-						<Text strong>{h.tempC}°</Text>
+						<Text fw={700}>{h.tempC}°</Text>
 					</div>
 					<Text style={{ fontSize: 10, display: "block" }}>
 						{t(`app.weather.codes.${h.weatherCode}` as WeatherKey)}
@@ -159,38 +157,35 @@ const HourlyForecast = ({ weather }: { weather: WttrResponse }) => {
 const DailyForecast = ({ weather }: { weather: WttrResponse }) => {
 	const { t } = useTranslation();
 	return (
-		<List
-			size="small"
-			dataSource={weather.weather}
-			renderItem={(day) => (
-				<List.Item style={{ padding: "8px 0" }}>
-					<Row style={{ width: "100%" }} align="middle">
-						<Col span={8}>
-							<Text strong>{dayjs(day.date).format("ddd D MMM")}</Text>
-						</Col>
-						<Col span={10}>
-							<Space>
-								<span style={{ fontSize: 18 }}>
-									{getWeatherEmoji(day.hourly[4]?.weatherCode)}
-								</span>
-								<Text type="secondary">
-									{day.hourly[4]?.weatherCode &&
-										t(
-											`app.weather.codes.${
-												day.hourly[4].weatherCode
-											}` as WeatherKey,
-										)}
-								</Text>
-							</Space>
-						</Col>
-						<Col span={6} style={{ textAlign: "right" }}>
-							<Text strong>{day.maxtempC}°</Text> /{" "}
-							<Text type="secondary">{day.mintempC}°</Text>
-						</Col>
-					</Row>
-				</List.Item>
-			)}
-		/>
+		<Stack gap={0}>
+			{weather.weather.map((day, i) => (
+				<Box key={dayjs(day.date).format("YYYY-MM-DD")}>
+					{i > 0 && <Divider />}
+					<Group justify="space-between" align="center" py="xs" wrap="nowrap">
+						<Text fw={700} style={{ minWidth: 110 }}>
+							{dayjs(day.date).format("ddd D MMM")}
+						</Text>
+						<Group gap={6} wrap="nowrap" style={{ flex: 1 }}>
+							<span style={{ fontSize: 18 }}>
+								{getWeatherEmoji(day.hourly[4]?.weatherCode)}
+							</span>
+							<Text c="dimmed">
+								{day.hourly[4]?.weatherCode &&
+									t(
+										`app.weather.codes.${
+											day.hourly[4].weatherCode
+										}` as WeatherKey,
+									)}
+							</Text>
+						</Group>
+						<Group gap={4} wrap="nowrap">
+							<Text fw={700}>{day.maxtempC}°</Text> /{" "}
+							<Text c="dimmed">{day.mintempC}°</Text>
+						</Group>
+					</Group>
+				</Box>
+			))}
+		</Stack>
 	);
 };
 
@@ -212,41 +207,40 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 
 	if (isLoading) {
 		return (
-			<Card size="small" style={{ marginBottom: 12 }}>
-				<Skeleton active avatar paragraph={{ rows: 1 }} />
+			<Card withBorder padding="sm" style={{ marginBottom: 12 }}>
+				<Stack gap="xs">
+					<Skeleton height={14} width="40%" />
+					<Skeleton height={14} width="70%" />
+				</Stack>
 			</Card>
 		);
 	}
 
 	if (error || !data || !data.current_condition?.[0]) {
 		return (
-			<Card size="small" style={{ marginBottom: 12 }}>
-				<Text type="danger">Error loading weather for {location}</Text>
-				<Button
-					size="small"
-					onClick={() => refetch()}
-					style={{ marginLeft: 8 }}
-				>
-					Retry
-				</Button>
-				<Popconfirm
-					title={`Remove ${location} from weather list?`}
-					onConfirm={() => {
-						store.weatherLocations = store.weatherLocations.filter(
-							(l) => l !== location,
-						);
-						message.info(`Removed ${location}`);
-					}}
-					okText="Remove"
-					cancelText="Cancel"
-				>
-					<Button
-						size="small"
+			<Card withBorder padding="sm" style={{ marginBottom: 12 }}>
+				<Group gap="sm" align="center">
+					<Text c="red">Error loading weather for {location}</Text>
+					<Button size="xs" variant="default" onClick={() => refetch()}>
+						Retry
+					</Button>
+					<ConfirmPopover
+						title={`Remove ${location} from weather list?`}
+						confirmLabel="Remove"
+						cancelLabel="Cancel"
 						danger
-						icon={<DeleteOutlined />}
-						style={{ marginLeft: 8 }}
-					/>
-				</Popconfirm>
+						onConfirm={() => {
+							store.weatherLocations = store.weatherLocations.filter(
+								(l) => l !== location,
+							);
+							notify.info(`Removed ${location}`);
+						}}
+					>
+						<Button size="xs" variant="default" color="red">
+							<Trash2 size={14} />
+						</Button>
+					</ConfirmPopover>
+				</Group>
 			</Card>
 		);
 	}
@@ -256,149 +250,156 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 	const today = data.weather[0];
 
 	return (
-		<Collapse
-			ghost
-			style={{
-				marginBottom: 12,
-				backgroundColor: storeSnap.darkMode ? "#1f1f1f" : "#fafafa",
-				borderRadius: 8,
+		<Accordion
+			variant="contained"
+			styles={{
+				item: {
+					backgroundColor: storeSnap.darkMode ? "#1f1f1f" : "#fafafa",
+					border: "none",
+				},
+				control: { backgroundColor: "transparent" },
 			}}
-			items={[
-				{
-					key: "1",
-					label: (
-						<Row align="middle" style={{ width: "100%" }}>
-							<Col
-								style={{
-									marginRight: 12,
-									display: "flex",
-									alignItems: "center",
-								}}
-							>
-								<Tooltip title="Drag to reorder">
-									<MenuOutlined
-										style={{ cursor: "grab", color: "#bfbfbf", marginRight: 8 }}
-									/>
-								</Tooltip>
-								<Space size={2}>
-									<Button
-										type="text"
-										size="small"
-										icon={<ArrowUpOutlined />}
-										disabled={index === 0}
-										onClick={(e) => {
-											e.stopPropagation();
-											onMove(index, index - 1);
-										}}
-										title="Move up"
-									/>
-									<Button
-										type="text"
-										size="small"
-										icon={<ArrowDownOutlined />}
-										disabled={index === total - 1}
-										onClick={(e) => {
-											e.stopPropagation();
-											onMove(index, index + 1);
-										}}
-										title="Move down"
-									/>
-								</Space>
-							</Col>
-							<Col flex="auto">
-								<Title level={4} style={{ margin: 0 }}>
+			style={{ marginBottom: 12, borderRadius: 8, overflow: "hidden" }}
+		>
+			<Accordion.Item value="1">
+				<Accordion.Control>
+					<Group justify="space-between" align="center" wrap="nowrap">
+						<Group gap="xs" wrap="nowrap">
+							<Tooltip label="Drag to reorder">
+								<GripVertical
+									size={16}
+									style={{ cursor: "grab", color: "#bfbfbf" }}
+								/>
+							</Tooltip>
+							<Group gap={2} wrap="nowrap">
+								<Button
+									variant="subtle"
+									size="xs"
+									disabled={index === 0}
+									onClick={(e) => {
+										e.stopPropagation();
+										onMove(index, index - 1);
+									}}
+									title="Move up"
+									aria-label="Move up"
+								>
+									<ArrowUp size={14} />
+								</Button>
+								<Button
+									variant="subtle"
+									size="xs"
+									disabled={index === total - 1}
+									onClick={(e) => {
+										e.stopPropagation();
+										onMove(index, index + 1);
+									}}
+									title="Move down"
+									aria-label="Move down"
+								>
+									<ArrowDown size={14} />
+								</Button>
+							</Group>
+							<div>
+								<Title order={4} style={{ margin: 0 }}>
 									{location}
 								</Title>
-								<Space>
+								<Group gap={6} wrap="nowrap">
 									<span style={{ fontSize: 20 }}>
 										{getWeatherEmoji(current.weatherCode)}
 									</span>
-									<Text type="secondary">
+									<Text c="dimmed">
 										{t(
 											`app.weather.codes.${current.weatherCode}` as WeatherKey,
 										)}
 									</Text>
-								</Space>
-							</Col>
-							<Col style={{ textAlign: "right" }}>
-								<Title level={2} style={{ margin: 0 }}>
+								</Group>
+							</div>
+						</Group>
+						<Group gap="sm" wrap="nowrap">
+							<div style={{ textAlign: "right" }}>
+								<Title order={2} style={{ margin: 0 }}>
 									{current.temp_C}°
 								</Title>
 								{today && (
-									<Text type="secondary">
+									<Text c="dimmed" size="sm">
 										H:{today.maxtempC}° L:{today.mintempC}°
 									</Text>
 								)}
-							</Col>
-						</Row>
-					),
-					extra: (
-						<Popconfirm
-							title={`Remove ${location} from weather locations?`}
-							onConfirm={() => {
-								store.weatherLocations = store.weatherLocations.filter(
-									(l) => l !== location,
-								);
-								message.info(`Removed ${location}`);
-							}}
-							okText="Remove"
-							cancelText="Cancel"
-						>
-							<Button
-								type="text"
+							</div>
+							<ConfirmPopover
+								title={`Remove ${location} from weather locations?`}
+								confirmLabel="Remove"
+								cancelLabel="Cancel"
 								danger
-								icon={<DeleteOutlined />}
-								title={`Remove ${location}`}
-								onClick={(e) => e.stopPropagation()}
-							/>
-						</Popconfirm>
-					),
-					children: (
-						<div>
-							<Divider style={{ margin: "12px 0" }} />
-							<Text strong>{t("app.weather.hourly")}</Text>
-							<HourlyForecast weather={data} />
-							<Divider style={{ margin: "12px 0" }} />
-							<Text strong>{t("app.weather.daily")}</Text>
-							<DailyForecast weather={data} />
-							<Divider style={{ margin: "12px 0" }} />
-							<Row gutter={[16, 16]}>
-								<Col span={12}>
-									<Card size="small" title={t("app.weather.feels_like")}>
-										<Text strong>{current.FeelsLikeC}°</Text>
-									</Card>
-								</Col>
-								<Col span={12}>
-									<Card size="small" title={t("app.weather.humidity")}>
-										<Text strong>{current.humidity}%</Text>
-									</Card>
-								</Col>
-								<Col span={12}>
-									<Card size="small" title={t("app.weather.uv_index")}>
-										<Text strong>{current.uvIndex}</Text>
-									</Card>
-								</Col>
-								<Col span={12}>
-									<Card size="small" title={t("app.weather.wind")}>
-										<Text strong>{current.windspeedKmph} km/h</Text>
-									</Card>
-								</Col>
-							</Row>
-							{lastFetched && (
-								<div style={{ marginTop: 16, textAlign: "center" }}>
-									<Text type="secondary" style={{ fontSize: 12 }}>
-										<ClockCircleOutlined />{" "}
-										{t("app.weather.last_fetched", {
-											time: dayjs(lastFetched).format("HH:mm:ss"),
-										})}
-									</Text>
-								</div>
-							)}
-						</div>
-					),
-				},
-			]}
-		/>
+								onConfirm={() => {
+									store.weatherLocations = store.weatherLocations.filter(
+										(l) => l !== location,
+									);
+									notify.info(`Removed ${location}`);
+								}}
+							>
+								<Button
+									variant="subtle"
+									color="red"
+									title={`Remove ${location}`}
+									aria-label={`Remove ${location}`}
+									onClick={(e) => e.stopPropagation()}
+								>
+									<Trash2 size={16} />
+								</Button>
+							</ConfirmPopover>
+						</Group>
+					</Group>
+				</Accordion.Control>
+				<Accordion.Panel>
+					<div>
+						<Divider style={{ margin: "12px 0" }} />
+						<Text fw={700}>{t("app.weather.hourly")}</Text>
+						<HourlyForecast weather={data} />
+						<Divider style={{ margin: "12px 0" }} />
+						<Text fw={700}>{t("app.weather.daily")}</Text>
+						<DailyForecast weather={data} />
+						<Divider style={{ margin: "12px 0" }} />
+						<SimpleGrid cols={2} spacing="sm">
+							<Card withBorder padding="sm">
+								<Text size="xs" c="dimmed">
+									{t("app.weather.feels_like")}
+								</Text>
+								<Text fw={700}>{current.FeelsLikeC}°</Text>
+							</Card>
+							<Card withBorder padding="sm">
+								<Text size="xs" c="dimmed">
+									{t("app.weather.humidity")}
+								</Text>
+								<Text fw={700}>{current.humidity}%</Text>
+							</Card>
+							<Card withBorder padding="sm">
+								<Text size="xs" c="dimmed">
+									{t("app.weather.uv_index")}
+								</Text>
+								<Text fw={700}>{current.uvIndex}</Text>
+							</Card>
+							<Card withBorder padding="sm">
+								<Text size="xs" c="dimmed">
+									{t("app.weather.wind")}
+								</Text>
+								<Text fw={700}>{current.windspeedKmph} km/h</Text>
+							</Card>
+						</SimpleGrid>
+						{lastFetched && (
+							<div style={{ marginTop: 16, textAlign: "center" }}>
+								<Text c="dimmed" style={{ fontSize: 12 }}>
+									<Clock size={12} />{" "}
+									{t("app.weather.last_fetched", {
+										time: dayjs(lastFetched).format("HH:mm:ss"),
+									})}
+								</Text>
+							</div>
+						)}
+					</div>
+				</Accordion.Panel>
+			</Accordion.Item>
+		</Accordion>
 	);
 };
 
@@ -411,7 +412,7 @@ export const WeatherTab = () => {
 	const handleAddLocation = () => {
 		const trimmed = newLocation.trim();
 		if (!trimmed) {
-			message.warning("Please enter a city or location name");
+			notify.warning("Please enter a city or location name");
 			return;
 		}
 		if (
@@ -419,12 +420,12 @@ export const WeatherTab = () => {
 				.map((l) => l.toLowerCase())
 				.includes(trimmed.toLowerCase())
 		) {
-			message.info(`${trimmed} is already in your weather list`);
+			notify.info(`${trimmed} is already in your weather list`);
 			return;
 		}
 
 		store.weatherLocations.push(trimmed);
-		message.success(`Added ${trimmed}`);
+		notify.success(`Added ${trimmed}`);
 		setNewLocation("");
 	};
 
@@ -434,7 +435,7 @@ export const WeatherTab = () => {
 			delete store.weatherCache[loc];
 		}
 		queryClient.invalidateQueries({ queryKey: ["weather"] });
-		message.success("Weather refreshed");
+		notify.success("Weather refreshed");
 	};
 
 	const handleMove = (fromIndex: number, toIndex: number) => {
@@ -459,28 +460,33 @@ export const WeatherTab = () => {
 
 	return (
 		<div>
-			<Space direction="vertical" style={{ width: "100%" }} size="large">
-				<Space.Compact style={{ width: "100%" }}>
-					<Input
+			<Stack gap="lg" style={{ width: "100%" }}>
+				<Group gap="xs" wrap="nowrap" align="stretch">
+					<TextInput
+						flex={1}
 						placeholder={t("app.weather.placeholder")}
 						value={newLocation}
 						onChange={(e) => setNewLocation(e.target.value)}
-						onPressEnter={handleAddLocation}
+						onKeyDown={(e) => {
+							if (e.key === "Enter") handleAddLocation();
+						}}
 					/>
-					<Button
-						type="primary"
-						icon={<PlusOutlined />}
-						onClick={handleAddLocation}
-					>
+					<Button leftSection={<Plus size={16} />} onClick={handleAddLocation}>
 						{t("app.weather.add_location")}
 					</Button>
-					<Button icon={<ReloadOutlined />} onClick={handleRefreshAll}>
+					<Button
+						variant="default"
+						leftSection={<RefreshCw size={16} />}
+						onClick={handleRefreshAll}
+					>
 						{t("app.weather.refresh")}
 					</Button>
-				</Space.Compact>
+				</Group>
 
 				{storeSnap.weatherLocations.length === 0 ? (
-					<Empty description={t("app.weather.no_locations")} />
+					<Stack align="center" gap="xs" py="xl">
+						<Text c="dimmed">{t("app.weather.no_locations")}</Text>
+					</Stack>
 				) : (
 					<ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
 						{storeSnap.weatherLocations.map((loc, index) => (
@@ -522,7 +528,7 @@ export const WeatherTab = () => {
 						))}
 					</ul>
 				)}
-			</Space>
+			</Stack>
 		</div>
 	);
 };

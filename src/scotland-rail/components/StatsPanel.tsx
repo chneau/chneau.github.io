@@ -1,13 +1,13 @@
+import { Card, SegmentedControl, Stack, Text } from "@mantine/core";
 import {
-	CaretDownOutlined,
-	CaretUpOutlined,
-	CrownOutlined,
-	FieldTimeOutlined,
-	FireOutlined,
-	MoonOutlined,
-	ThunderboltOutlined,
-} from "@ant-design/icons";
-import { Card, Segmented, Space, Typography } from "antd";
+	ChevronDown,
+	ChevronUp,
+	Clock,
+	Crown,
+	Flame,
+	Moon,
+	Zap,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSnapshot } from "valtio";
 import { CATEGORIES, type TrainService } from "../data/types";
@@ -18,8 +18,6 @@ import {
 import { derivedStore, railActions, railStore } from "../store";
 import { palette } from "../theme";
 import { formatTime } from "../utils";
-
-const { Text } = Typography;
 
 const HighlightRow = ({
 	icon,
@@ -198,254 +196,254 @@ export const StatsPanel = () => {
 			}}
 		>
 			<Card
-				size="small"
 				className="sr-glass sr-rise"
-				title={
-					<div
-						style={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-							width: "100%",
-						}}
-					>
-						<button
-							type="button"
-							className="sr-press"
-							style={{
-								background: "none",
-								border: "none",
-								padding: 0,
-								cursor: "pointer",
-								fontSize: "0.8rem",
-								color: palette.accent,
-								display: "flex",
-								alignItems: "center",
-								gap: 6,
-							}}
-							onClick={() => setCollapsed(!collapsed)}
-							title={collapsed ? "Expand highlights" : "Collapse highlights"}
-						>
-							<FireOutlined />
-							<span style={{ fontWeight: 600 }}>Live highlights</span>
-							<span style={{ fontSize: "0.7rem", opacity: 0.7 }}>
-								{collapsed ? <CaretDownOutlined /> : <CaretUpOutlined />}
-							</span>
-						</button>
-						{!collapsed && stats && (
-							<Segmented
-								size="small"
-								value={unit}
-								onChange={(val) => setUnit(val as "metric" | "imperial")}
-								options={[
-									{ label: "km", value: "metric" },
-									{ label: "mi", value: "imperial" },
-								]}
-								style={{
-									fontSize: "0.72rem",
-									background: "rgba(0,0,0,0.28)",
-								}}
-							/>
-						)}
-					</div>
-				}
+				radius={12}
+				padding={0}
 				style={{
-					borderRadius: 12,
 					color: palette.text,
 				}}
-				styles={{
-					body: {
-						padding: collapsed ? 0 : "10px 12px",
-						display: collapsed ? "none" : "block",
-					},
-				}}
 			>
-				{!stats ? (
-					/* Composed empty state: how to get data back. */
-					<div
+				<div
+					style={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+						width: "100%",
+						padding: "10px 12px 0",
+					}}
+				>
+					<button
+						type="button"
+						className="sr-press"
 						style={{
+							background: "none",
+							border: "none",
+							padding: 0,
+							cursor: "pointer",
+							fontSize: "0.8rem",
+							color: palette.accent,
 							display: "flex",
-							flexDirection: "column",
 							alignItems: "center",
 							gap: 6,
-							padding: "14px 8px",
-							textAlign: "center",
 						}}
+						onClick={() => setCollapsed(!collapsed)}
+						title={collapsed ? "Expand highlights" : "Collapse highlights"}
 					>
-						<MoonOutlined style={{ fontSize: 22, color: palette.textFaint }} />
-						<span style={{ color: palette.text, fontSize: "0.82rem" }}>
-							Quiet on the network
+						<Flame size={15} />
+						<span style={{ fontWeight: 600 }}>Live highlights</span>
+						<span style={{ fontSize: "0.7rem", opacity: 0.7 }}>
+							{collapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
 						</span>
-						<span
-							style={{
-								color: palette.textMuted,
-								fontSize: "0.74rem",
-								lineHeight: 1.5,
+					</button>
+					{!collapsed && stats && (
+						<SegmentedControl
+							size="xs"
+							value={unit}
+							onChange={(val) => setUnit(val as "metric" | "imperial")}
+							data={[
+								{ label: "km", value: "metric" },
+								{ label: "mi", value: "imperial" },
+							]}
+							styles={{
+								root: {
+									fontSize: "0.72rem",
+									background: "rgba(0,0,0,0.28)",
+								},
 							}}
-						>
-							No service is running or matching your filters at{" "}
-							<span className="sr-num">{formatTime(timeOffset)}</span>. Clear
-							the search or pick another time.
-						</span>
-					</div>
-				) : (
-					<Space orientation="vertical" style={{ width: "100%" }} size={8}>
-						{/* Active status pulse */}
-						<div
-							style={{
-								display: "flex",
-								justifyContent: "space-between",
-								alignItems: "center",
-								paddingBottom: 6,
-								borderBottom: "1px solid rgba(255,255,255,0.08)",
-								fontSize: "0.77rem",
-							}}
-						>
-							<span
+						/>
+					)}
+				</div>
+
+				{!collapsed && (
+					<div style={{ padding: "10px 12px" }}>
+						{!stats ? (
+							/* Composed empty state: how to get data back. */
+							<div
 								style={{
-									color: palette.text,
 									display: "flex",
+									flexDirection: "column",
 									alignItems: "center",
 									gap: 6,
+									padding: "14px 8px",
+									textAlign: "center",
 								}}
 							>
+								<Moon size={22} style={{ color: palette.textFaint }} />
+								<span style={{ color: palette.text, fontSize: "0.82rem" }}>
+									Quiet on the network
+								</span>
 								<span
-									className="sr-breathe"
 									style={{
-										display: "inline-block",
-										width: 7,
-										height: 7,
-										borderRadius: "50%",
-										background: palette.accent,
+										color: palette.textMuted,
+										fontSize: "0.74rem",
+										lineHeight: 1.5,
 									}}
-								/>
-								<b className="sr-num">{stats.movingTrains}</b> cruising
-							</span>
-							<span className="sr-num" style={{ color: palette.textFaint }}>
-								{stats.dwellingTrains} at station
-							</span>
-						</div>
-
-						{/* 24-hour Activity Curve Mini Bar */}
-						<div style={{ padding: "2px 0 4px 0" }}>
-							<div
-								style={{
-									display: "flex",
-									justifyContent: "space-between",
-									fontSize: "0.66rem",
-									color: palette.textFaint,
-									marginBottom: 4,
-								}}
-							>
-								<span className="sr-num">05:00</span>
-								<span style={{ color: palette.accent }}>Rush hours</span>
-								<span className="sr-num">24:00</span>
+								>
+									No service is running or matching your filters at{" "}
+									<span className="sr-num">{formatTime(timeOffset)}</span>.
+									Clear the search or pick another time.
+								</span>
 							</div>
-							<div
-								style={{
-									position: "relative",
-									height: 12,
-									background: "rgba(255,255,255,0.05)",
-									borderRadius: 3,
-									overflow: "hidden",
-								}}
-							>
-								{/* Morning rush band */}
+						) : (
+							<Stack gap={8} style={{ width: "100%" }}>
+								{/* Active status pulse */}
 								<div
 									style={{
-										position: "absolute",
-										left: "12%",
-										width: "18%",
-										height: "100%",
-										background: "rgba(90, 169, 201, 0.22)",
+										display: "flex",
+										justifyContent: "space-between",
+										alignItems: "center",
+										paddingBottom: 6,
+										borderBottom: "1px solid rgba(255,255,255,0.08)",
+										fontSize: "0.77rem",
 									}}
-								/>
-								{/* Evening rush band */}
-								<div
-									style={{
-										position: "absolute",
-										left: "52%",
-										width: "16%",
-										height: "100%",
-										background: "rgba(201, 160, 78, 0.22)",
-									}}
-								/>
-								{/* Sleeper band */}
-								<div
-									style={{
-										position: "absolute",
-										left: "82%",
-										width: "14%",
-										height: "100%",
-										background: "rgba(128, 144, 191, 0.24)",
-									}}
-								/>
-								{/* Current time needle */}
-								<div
-									style={{
-										position: "absolute",
-										left: `${Math.min(
-											100,
-											Math.max(0, ((timeOffset - 300) / 1140) * 100),
-										)}%`,
-										width: 2,
-										height: "100%",
-										background: palette.text,
-									}}
-								/>
-							</div>
-						</div>
+								>
+									<span
+										style={{
+											color: palette.text,
+											display: "flex",
+											alignItems: "center",
+											gap: 6,
+										}}
+									>
+										<span
+											className="sr-breathe"
+											style={{
+												display: "inline-block",
+												width: 7,
+												height: 7,
+												borderRadius: "50%",
+												background: palette.accent,
+											}}
+										/>
+										<b className="sr-num">{stats.movingTrains}</b> cruising
+									</span>
+									<span className="sr-num" style={{ color: palette.textFaint }}>
+										{stats.dwellingTrains} at station
+									</span>
+								</div>
 
-						{fastest && (
-							<HighlightRow
-								icon={<ThunderboltOutlined />}
-								title="Fastest active"
-								accent={CATEGORIES.Express.color}
-								index={0}
-								value={
-									isImperial
-										? `~${Math.round(kmToMiles(fastest.speedKmh))} mph`
-										: `~${Math.round(fastest.speedKmh)} km/h`
-								}
-								service={fastest.state.service}
-								onClick={() =>
-									railActions.setSelectedService(fastest.state.service)
-								}
-							/>
-						)}
+								{/* 24-hour Activity Curve Mini Bar */}
+								<div style={{ padding: "2px 0 4px 0" }}>
+									<div
+										style={{
+											display: "flex",
+											justifyContent: "space-between",
+											fontSize: "0.66rem",
+											color: palette.textFaint,
+											marginBottom: 4,
+										}}
+									>
+										<span className="sr-num">05:00</span>
+										<span style={{ color: palette.accent }}>Rush hours</span>
+										<span className="sr-num">24:00</span>
+									</div>
+									<div
+										style={{
+											position: "relative",
+											height: 12,
+											background: "rgba(255,255,255,0.05)",
+											borderRadius: 3,
+											overflow: "hidden",
+										}}
+									>
+										{/* Morning rush band */}
+										<div
+											style={{
+												position: "absolute",
+												left: "12%",
+												width: "18%",
+												height: "100%",
+												background: "rgba(90, 169, 201, 0.22)",
+											}}
+										/>
+										{/* Evening rush band */}
+										<div
+											style={{
+												position: "absolute",
+												left: "52%",
+												width: "16%",
+												height: "100%",
+												background: "rgba(201, 160, 78, 0.22)",
+											}}
+										/>
+										{/* Sleeper band */}
+										<div
+											style={{
+												position: "absolute",
+												left: "82%",
+												width: "14%",
+												height: "100%",
+												background: "rgba(128, 144, 191, 0.24)",
+											}}
+										/>
+										{/* Current time needle */}
+										<div
+											style={{
+												position: "absolute",
+												left: `${Math.min(
+													100,
+													Math.max(0, ((timeOffset - 300) / 1140) * 100),
+												)}%`,
+												width: 2,
+												height: "100%",
+												background: palette.text,
+											}}
+										/>
+									</div>
+								</div>
 
-						{longest && (
-							<HighlightRow
-								icon={<CrownOutlined />}
-								title="Longest distance"
-								accent={CATEGORIES.CrossBorder.color}
-								index={1}
-								value={
-									isImperial
-										? `${Math.round(kmToMiles(longest.distKm))} mi`
-										: `${Math.round(longest.distKm)} km`
-								}
-								service={longest.state.service}
-								onClick={() =>
-									railActions.setSelectedService(longest.state.service)
-								}
-							/>
-						)}
+								{fastest && (
+									<HighlightRow
+										icon={<Zap size={14} />}
+										title="Fastest active"
+										accent={CATEGORIES.Express.color}
+										index={0}
+										value={
+											isImperial
+												? `~${Math.round(kmToMiles(fastest.speedKmh))} mph`
+												: `~${Math.round(fastest.speedKmh)} km/h`
+										}
+										service={fastest.state.service}
+										onClick={() =>
+											railActions.setSelectedService(fastest.state.service)
+										}
+									/>
+								)}
 
-						{mostStops && (
-							<HighlightRow
-								icon={<FieldTimeOutlined />}
-								title="Most calling stops"
-								accent={CATEGORIES.Highland.color}
-								index={2}
-								value={`${mostStops.stopCount} stops`}
-								service={mostStops.state.service}
-								onClick={() =>
-									railActions.setSelectedService(mostStops.state.service)
-								}
-							/>
+								{longest && (
+									<HighlightRow
+										icon={<Crown size={14} />}
+										title="Longest distance"
+										accent={CATEGORIES.CrossBorder.color}
+										index={1}
+										value={
+											isImperial
+												? `${Math.round(kmToMiles(longest.distKm))} mi`
+												: `${Math.round(longest.distKm)} km`
+										}
+										service={longest.state.service}
+										onClick={() =>
+											railActions.setSelectedService(longest.state.service)
+										}
+									/>
+								)}
+
+								{mostStops && (
+									<HighlightRow
+										icon={<Clock size={14} />}
+										title="Most calling stops"
+										accent={CATEGORIES.Highland.color}
+										index={2}
+										value={`${mostStops.stopCount} stops`}
+										service={mostStops.state.service}
+										onClick={() =>
+											railActions.setSelectedService(mostStops.state.service)
+										}
+									/>
+								)}
+							</Stack>
 						)}
-					</Space>
+					</div>
 				)}
 			</Card>
 		</div>

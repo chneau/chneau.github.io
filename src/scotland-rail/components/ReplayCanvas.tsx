@@ -1,10 +1,4 @@
-import {
-	AimOutlined,
-	EnvironmentOutlined,
-	SwapRightOutlined,
-	ZoomInOutlined,
-	ZoomOutOutlined,
-} from "@ant-design/icons";
+import { Crosshair, MapPin, MoveRight, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 import {
@@ -870,7 +864,7 @@ export const ReplayCanvas = () => {
 						justifyContent: "center",
 					}}
 				>
-					<ZoomInOutlined />
+					<ZoomIn size={16} />
 				</button>
 				<button
 					type="button"
@@ -890,7 +884,7 @@ export const ReplayCanvas = () => {
 						justifyContent: "center",
 					}}
 				>
-					<ZoomOutOutlined />
+					<ZoomOut size={16} />
 				</button>
 				<button
 					type="button"
@@ -910,7 +904,7 @@ export const ReplayCanvas = () => {
 						justifyContent: "center",
 					}}
 				>
-					<AimOutlined />
+					<Crosshair size={16} />
 				</button>
 			</div>
 
@@ -965,7 +959,8 @@ export const ReplayCanvas = () => {
 					>
 						{hoveredTrain.isDwelling ? (
 							<>
-								<EnvironmentOutlined
+								<MapPin
+									size={13}
 									style={{
 										color: CATEGORIES[hoveredTrain.service.category].color,
 									}}
@@ -974,7 +969,7 @@ export const ReplayCanvas = () => {
 							</>
 						) : (
 							<>
-								<SwapRightOutlined />
+								<MoveRight size={13} />
 								<span>Next: {hoveredTrain.nextStopName ?? "Destination"}</span>
 							</>
 						)}

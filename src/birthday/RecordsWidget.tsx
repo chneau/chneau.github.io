@@ -1,4 +1,4 @@
-import { Card, Col, Row, Statistic, Tooltip } from "antd";
+import { Card, SimpleGrid, Text, Tooltip } from "@mantine/core";
 import { Baby, Crown, HeartHandshake, Users } from "lucide-react";
 import { type ReactNode, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -67,16 +67,21 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 
 	if (!records) return null;
 
+	const valueStyle = {
+		fontSize: "1em",
+		color: "var(--tk-accent-ink)",
+		textDecoration: "underline",
+	} as const;
+
 	return (
-		<Card
-			title={t("app.records.title")}
-			size="small"
-			style={{ marginTop: 16, minHeight: 100 }}
-		>
-			<Row gutter={[16, 16]} justify="center">
-				<Col xs={12} sm={6} style={{ textAlign: "center" }}>
+		<Card withBorder style={{ marginTop: 16, minHeight: 100 }}>
+			<Text fw={600} style={{ marginBottom: 8 }}>
+				{t("app.records.title")}
+			</Text>
+			<SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
+				<div style={{ textAlign: "center" }}>
 					<Tooltip
-						title={t("app.records.elder_tooltip", {
+						label={t("app.records.elder_tooltip", {
 							name: records.elder?.name,
 						})}
 					>
@@ -93,27 +98,18 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 								if (records.elder) dataStore.selectedBirthday = records.elder;
 							}}
 						>
-							<Statistic
-								title={
-									<RecordTitle icon={<Crown size={13} strokeWidth={1.9} />}>
-										{t("app.records.elder")}
-									</RecordTitle>
-								}
-								value={records.elder?.name}
-								styles={{
-									content: {
-										fontSize: "1em",
-										color: "var(--tk-accent-ink)",
-										textDecoration: "underline",
-									},
-								}}
-							/>
+							<Text size="sm" c="dimmed">
+								<RecordTitle icon={<Crown size={13} strokeWidth={1.9} />}>
+									{t("app.records.elder")}
+								</RecordTitle>
+							</Text>
+							<Text style={valueStyle}>{records.elder?.name}</Text>
 						</button>
 					</Tooltip>
-				</Col>
-				<Col xs={12} sm={6} style={{ textAlign: "center" }}>
+				</div>
+				<div style={{ textAlign: "center" }}>
 					<Tooltip
-						title={t("app.records.rookie_tooltip", {
+						label={t("app.records.rookie_tooltip", {
 							name: records.rookie?.name,
 						})}
 					>
@@ -130,27 +126,18 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 								if (records.rookie) dataStore.selectedBirthday = records.rookie;
 							}}
 						>
-							<Statistic
-								title={
-									<RecordTitle icon={<Baby size={13} strokeWidth={1.9} />}>
-										{t("app.records.rookie")}
-									</RecordTitle>
-								}
-								value={records.rookie?.name}
-								styles={{
-									content: {
-										fontSize: "1em",
-										color: "var(--tk-accent-ink)",
-										textDecoration: "underline",
-									},
-								}}
-							/>
+							<Text size="sm" c="dimmed">
+								<RecordTitle icon={<Baby size={13} strokeWidth={1.9} />}>
+									{t("app.records.rookie")}
+								</RecordTitle>
+							</Text>
+							<Text style={valueStyle}>{records.rookie?.name}</Text>
 						</button>
 					</Tooltip>
-				</Col>
-				<Col xs={12} sm={6} style={{ textAlign: "center" }}>
+				</div>
+				<div style={{ textAlign: "center" }}>
 					<Tooltip
-						title={t("app.records.socialite_tooltip", {
+						label={t("app.records.socialite_tooltip", {
 							name: records.bestSocialite?.name,
 							count: records.bestSocialite?.count,
 						})}
@@ -173,29 +160,20 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 								}
 							}}
 						>
-							<Statistic
-								title={
-									<RecordTitle
-										icon={<HeartHandshake size={13} strokeWidth={1.9} />}
-									>
-										{t("app.records.socialite")}
-									</RecordTitle>
-								}
-								value={records.bestSocialite?.name}
-								styles={{
-									content: {
-										fontSize: "1em",
-										color: "var(--tk-accent-ink)",
-										textDecoration: "underline",
-									},
-								}}
-							/>
+							<Text size="sm" c="dimmed">
+								<RecordTitle
+									icon={<HeartHandshake size={13} strokeWidth={1.9} />}
+								>
+									{t("app.records.socialite")}
+								</RecordTitle>
+							</Text>
+							<Text style={valueStyle}>{records.bestSocialite?.name}</Text>
 						</button>
 					</Tooltip>
-				</Col>
-				<Col xs={12} sm={6} style={{ textAlign: "center" }}>
+				</div>
+				<div style={{ textAlign: "center" }}>
 					<Tooltip
-						title={
+						label={
 							records.twins.length > 0
 								? t("app.records.twins_tooltip", {
 										pairs: records.twins.map((t) => t.join(" & ")).join(", "),
@@ -203,19 +181,17 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 								: t("app.records.no_twins")
 						}
 					>
-						<Statistic
-							title={
-								<RecordTitle icon={<Users size={13} strokeWidth={1.9} />}>
-									{t("app.records.twins")}
-								</RecordTitle>
-							}
-							value={records.twins.length}
-							suffix={t("app.records.twins_suffix")}
-							styles={{ content: { fontSize: "1em" } }}
-						/>
+						<Text size="sm" c="dimmed">
+							<RecordTitle icon={<Users size={13} strokeWidth={1.9} />}>
+								{t("app.records.twins")}
+							</RecordTitle>
+						</Text>
+						<Text style={{ fontSize: "1em" }}>
+							{records.twins.length} {t("app.records.twins_suffix")}
+						</Text>
 					</Tooltip>
-				</Col>
-			</Row>
+				</div>
+			</SimpleGrid>
 		</Card>
 	);
 };

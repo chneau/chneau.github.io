@@ -1,84 +1,62 @@
-import {
-	ConfigProvider as ChartConfigProvider,
-	Line,
-} from "@ant-design/charts";
-import { Typography } from "antd";
+import { LineChart } from "@mantine/charts";
+import { Title } from "@mantine/core";
 import dayjs from "dayjs";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useSnapshot } from "valtio";
-import { store } from "./store";
 
 type BiorhythmsChartProps = {
 	birthday: Date;
 };
 
+const CYCLES = [
+	{ key: "physical", period: 23, color: "teal.5" },
+	{ key: "emotional", period: 28, color: "blue.5" },
+	{ key: "intellectual", period: 33, color: "yellow.6" },
+] as const;
+
 export const BiorhythmsChart = ({ birthday }: BiorhythmsChartProps) => {
 	const { t } = useTranslation();
-	const { darkMode } = useSnapshot(store);
 
 	const data = useMemo(() => {
-		const result = [];
+		const result: Record<string, string | number>[] = [];
 		const start = dayjs().startOf("day");
 		const birth = dayjs(birthday).startOf("day");
-		const cycles = [
-			{ period: 23, type: t("biorhythms.physical") },
-			{ period: 28, type: t("biorhythms.emotional") },
-			{ period: 33, type: t("biorhythms.intellectual") },
-		];
 
 		for (let i = 0; i < 30; i++) {
 			const current = start.add(i, "day");
 			const daysLived = current.diff(birth, "day");
-			const dayLabel = current.format("MMM DD");
-
-			for (const { period, type } of cycles) {
-				result.push({
-					day: dayLabel,
-					value: Math.sin((2 * Math.PI * daysLived) / period) * 100,
-					type,
-				});
+			const row: Record<string, string | number> = {
+				day: current.format("MMM DD"),
+			};
+			for (const { key, period } of CYCLES) {
+				row[key] = Math.sin((2 * Math.PI * daysLived) / period) * 100;
 			}
+			result.push(row);
 		}
 		return result;
-	}, [birthday, t]);
+	}, [birthday]);
+
+	const series = CYCLES.map((cycle) => ({
+		name: cycle.key,
+		label: t(`biorhythms.${cycle.key}`),
+		color: cycle.color,
+	}));
 
 	return (
 		<div style={{ marginTop: 16 }}>
-			<Typography.Title level={5}>{t("biorhythms.title")}</Typography.Title>
-			<ChartConfigProvider common={{ theme: darkMode ? "dark" : "light" }}>
-				<Line
-					data={data}
-					theme={darkMode ? "dark" : "light"}
-					xField="day"
-					yField="value"
-					colorField="type"
-					height={200}
-					seriesField="type"
-					smooth={true}
-					legend={{
-						color: {
-							itemLabelFill: darkMode
-								? "rgba(255, 255, 255, 0.85)"
-								: "rgba(0, 0, 0, 0.88)",
-						},
-					}}
-					axis={{
-						y: {
-							labelFormatter: (v: number) => `${Math.round(v)}%`,
-						},
-					}}
-					tooltip={{
-						title: (d) => d.day,
-						items: [
-							{
-								channel: "y",
-								valueFormatter: (v: number) => `${Math.round(v)}%`,
-							},
-						],
-					}}
-				/>
-			</ChartConfigProvider>
+			<Title order={5}>{t("biorhythms.title")}</Title>
+			<LineChart
+				h={200}
+				data={data}
+				dataKey="day"
+				series={series}
+				curveType="natural"
+				withDots={false}
+				withLegend
+				valueFormatter={(value) => `${Math.round(value)}%`}
+				yAxisProps={{ domain: [-100, 100] }}
+				xAxisProps={{ interval: 4 }}
+			/>
 		</div>
 	);
 };

@@ -1,14 +1,14 @@
+import { Box, Button, Tooltip } from "@mantine/core";
 import {
-	AudioMutedOutlined,
-	AudioOutlined,
-	CloseOutlined,
-	CompassOutlined,
-	InfoCircleOutlined,
-	QuestionCircleOutlined,
-	SearchOutlined,
-	SettingOutlined,
-} from "@ant-design/icons";
-import { Button, ConfigProvider, Layout, Tooltip, theme } from "antd";
+	CircleHelp,
+	Compass,
+	Info,
+	Search,
+	Settings,
+	Volume2,
+	VolumeX,
+	X,
+} from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useSnapshot } from "valtio";
 import { Controls } from "./components/Controls";
@@ -155,242 +155,225 @@ export const App = () => {
 	}, [activeTrains, selectedService, settings.soundEffects]);
 
 	return (
-		<ConfigProvider
-			theme={{
-				algorithm: theme.darkAlgorithm,
-				token: {
-					colorPrimary: palette.accent,
-					colorBgElevated: palette.surfaceSolid,
-					colorTextBase: palette.text,
-					borderRadius: 8,
-					fontFamily:
-						'"Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif',
-					fontFamilyCode:
-						'"Cascadia Code", "JetBrains Mono", ui-monospace, monospace',
-				},
+		<Box
+			style={{
+				width: "100vw",
+				minHeight: "100dvh",
+				height: "100dvh",
+				overflow: "hidden",
+				background: palette.bg,
 			}}
 		>
-			<Layout
+			{/* Top Branding & Quick Actions Bar */}
+			<div
+				className="sr-glass sr-rise"
 				style={{
-					width: "100vw",
-					minHeight: "100dvh",
-					height: "100dvh",
-					overflow: "hidden",
-					background: palette.bg,
+					position: "absolute",
+					top: 16,
+					left: 16,
+					zIndex: 10,
+					borderRadius: 10,
+					padding: "6px 12px",
+					color: palette.text,
+					display: "flex",
+					flexWrap: "wrap",
+					alignItems: "center",
+					gap: 10,
+					maxWidth: "calc(100vw - 32px)",
 				}}
 			>
-				{/* Top Branding & Quick Actions Bar */}
+				<Compass size={16} style={{ color: palette.accent }} />
+				<span
+					style={{
+						fontFamily: "var(--sr-font-display)",
+						fontWeight: 600,
+						fontSize: "0.95rem",
+						letterSpacing: "-0.01em",
+					}}
+				>
+					A Day in Scottish Rail
+				</span>
+				<span
+					className="sr-num"
+					style={{ color: palette.textMuted, fontSize: "0.72rem" }}
+				>
+					24h replay
+				</span>
+				<span
+					className="sr-num"
+					style={{
+						color: palette.textFaint,
+						fontSize: "0.7rem",
+					}}
+				>
+					{BUILD_DATE}
+				</span>
+
+				{/* Quick Audio Mute Toggle */}
+				<Tooltip
+					label={
+						settings.soundEffects
+							? "Sound effects active (Press M to mute)"
+							: "Sound effects muted (Press M to unmute)"
+					}
+				>
+					<Button
+						variant="subtle"
+						size="xs"
+						leftSection={
+							settings.soundEffects ? (
+								<Volume2 size={15} style={{ color: palette.accent }} />
+							) : (
+								<VolumeX size={15} style={{ color: palette.textMuted }} />
+							)
+						}
+						onClick={() => {
+							const nextSound = !settings.soundEffects;
+							if (nextSound) {
+								import("./engine/audio").then(({ railAudio }) =>
+									railAudio.unlockAudio(),
+								);
+							}
+							railActions.updateSetting("soundEffects", nextSound);
+						}}
+						style={{
+							color: settings.soundEffects ? palette.accent : palette.textMuted,
+							padding: "0 4px",
+							height: "auto",
+						}}
+					>
+						{settings.soundEffects ? "Audio On" : "Audio Off"}
+					</Button>
+				</Tooltip>
+
+				<Button
+					variant="subtle"
+					size="xs"
+					leftSection={<Info size={15} />}
+					onClick={() => railActions.setIsInfoOpen(true)}
+					style={{
+						color: palette.accent,
+						padding: "0 4px",
+						height: "auto",
+					}}
+				>
+					Sources
+				</Button>
+				<Button
+					variant="subtle"
+					size="xs"
+					leftSection={<Settings size={15} />}
+					onClick={() => railActions.setIsSettingsOpen(true)}
+					style={{
+						color: palette.textMuted,
+						padding: "0 4px",
+						height: "auto",
+					}}
+				>
+					Settings
+				</Button>
+
+				{/* Keyboard Shortcuts Hint Popover */}
+				<Tooltip
+					label={
+						<div style={{ fontSize: "0.78rem", lineHeight: "1.6" }}>
+							<div>
+								<b>Space:</b> Play / Pause
+							</div>
+							<div>
+								<b>← / →:</b> Scrub time (±5 min)
+							</div>
+							<div>
+								<b>↑ / ↓:</b> Change speed
+							</div>
+							<div>
+								<b>M:</b> Toggle audio
+							</div>
+							<div>
+								<b>Esc:</b> Deselect train / Close
+							</div>
+							<div>
+								<b>Click:</b> Inspect train or station
+							</div>
+						</div>
+					}
+				>
+					<Button
+						variant="subtle"
+						size="xs"
+						leftSection={<CircleHelp size={15} />}
+						style={{
+							color: palette.textFaint,
+							padding: "0 4px",
+							height: "auto",
+						}}
+					>
+						Shortcuts
+					</Button>
+				</Tooltip>
+			</div>
+
+			{/* Data Sources Modal */}
+			<SourcesModal
+				open={isInfoOpen}
+				onClose={() => railActions.setIsInfoOpen(false)}
+			/>
+
+			{/* Map Canvas */}
+			<ReplayCanvas />
+
+			{/* Floating Empty Search Recovery Banner */}
+			{searchQuery.trim().length > 0 && activeTrains.length === 0 && (
 				<div
 					className="sr-glass sr-rise"
 					style={{
 						position: "absolute",
-						top: 16,
-						left: 16,
-						zIndex: 10,
+						top: 72,
+						left: "50%",
+						transform: "translateX(-50%)",
+						zIndex: 20,
+						border: `1px solid ${palette.danger}`,
 						borderRadius: 10,
-						padding: "6px 12px",
-						color: palette.text,
+						padding: "8px 14px",
 						display: "flex",
-						flexWrap: "wrap",
 						alignItems: "center",
-						gap: 10,
+						gap: 12,
+						color: palette.text,
 						maxWidth: "calc(100vw - 32px)",
 					}}
 				>
-					<CompassOutlined style={{ color: palette.accent }} />
-					<span
-						style={{
-							fontFamily: "var(--sr-font-display)",
-							fontWeight: 600,
-							fontSize: "0.95rem",
-							letterSpacing: "-0.01em",
-						}}
-					>
-						A Day in Scottish Rail
+					<Search size={16} style={{ color: palette.danger }} />
+					<span style={{ fontSize: "0.85rem" }}>
+						No service matches <b>"{searchQuery}"</b> at{" "}
+						<span className="sr-num">{formatTime(timeOffset)}</span>
 					</span>
-					<span
-						className="sr-num"
-						style={{ color: palette.textMuted, fontSize: "0.72rem" }}
-					>
-						24h replay
-					</span>
-					<span
-						className="sr-num"
-						style={{
-							color: palette.textFaint,
-							fontSize: "0.7rem",
-						}}
-					>
-						{BUILD_DATE}
-					</span>
-
-					{/* Quick Audio Mute Toggle */}
-					<Tooltip
-						title={
-							settings.soundEffects
-								? "Sound effects active (Press M to mute)"
-								: "Sound effects muted (Press M to unmute)"
-						}
-					>
-						<Button
-							type="text"
-							size="small"
-							icon={
-								settings.soundEffects ? (
-									<AudioOutlined style={{ color: palette.accent }} />
-								) : (
-									<AudioMutedOutlined style={{ color: palette.textMuted }} />
-								)
-							}
-							onClick={() => {
-								const nextSound = !settings.soundEffects;
-								if (nextSound) {
-									import("./engine/audio").then(({ railAudio }) =>
-										railAudio.unlockAudio(),
-									);
-								}
-								railActions.updateSetting("soundEffects", nextSound);
-							}}
-							style={{
-								color: settings.soundEffects
-									? palette.accent
-									: palette.textMuted,
-								padding: "0 4px",
-								height: "auto",
-							}}
-						>
-							{settings.soundEffects ? "Audio On" : "Audio Off"}
-						</Button>
-					</Tooltip>
-
 					<Button
-						type="text"
-						size="small"
-						icon={<InfoCircleOutlined />}
-						onClick={() => railActions.setIsInfoOpen(true)}
+						size="xs"
+						variant="subtle"
+						color="red"
+						leftSection={<X size={14} />}
+						onClick={() => railActions.setSearchQuery("")}
 						style={{
-							color: palette.accent,
-							padding: "0 4px",
-							height: "auto",
-						}}
-					>
-						Sources
-					</Button>
-					<Button
-						type="text"
-						size="small"
-						icon={<SettingOutlined />}
-						onClick={() => railActions.setIsSettingsOpen(true)}
-						style={{
-							color: palette.textMuted,
-							padding: "0 4px",
-							height: "auto",
-						}}
-					>
-						Settings
-					</Button>
-
-					{/* Keyboard Shortcuts Hint Popover */}
-					<Tooltip
-						title={
-							<div style={{ fontSize: "0.78rem", lineHeight: "1.6" }}>
-								<div>
-									<b>Space:</b> Play / Pause
-								</div>
-								<div>
-									<b>← / →:</b> Scrub time (±5 min)
-								</div>
-								<div>
-									<b>↑ / ↓:</b> Change speed
-								</div>
-								<div>
-									<b>M:</b> Toggle audio
-								</div>
-								<div>
-									<b>Esc:</b> Deselect train / Close
-								</div>
-								<div>
-									<b>Click:</b> Inspect train or station
-								</div>
-							</div>
-						}
-					>
-						<Button
-							type="text"
-							size="small"
-							icon={<QuestionCircleOutlined />}
-							style={{
-								color: palette.textFaint,
-								padding: "0 4px",
-								height: "auto",
-							}}
-						>
-							Shortcuts
-						</Button>
-					</Tooltip>
-				</div>
-
-				{/* Data Sources Modal */}
-				<SourcesModal
-					open={isInfoOpen}
-					onClose={() => railActions.setIsInfoOpen(false)}
-				/>
-
-				{/* Map Canvas */}
-				<ReplayCanvas />
-
-				{/* Floating Empty Search Recovery Banner */}
-				{searchQuery.trim().length > 0 && activeTrains.length === 0 && (
-					<div
-						className="sr-glass sr-rise"
-						style={{
-							position: "absolute",
-							top: 72,
-							left: "50%",
-							transform: "translateX(-50%)",
-							zIndex: 20,
+							color: palette.danger,
 							border: `1px solid ${palette.danger}`,
-							borderRadius: 10,
-							padding: "8px 14px",
-							display: "flex",
-							alignItems: "center",
-							gap: 12,
-							color: palette.text,
-							maxWidth: "calc(100vw - 32px)",
 						}}
 					>
-						<SearchOutlined style={{ color: palette.danger }} />
-						<span style={{ fontSize: "0.85rem" }}>
-							No service matches <b>"{searchQuery}"</b> at{" "}
-							<span className="sr-num">{formatTime(timeOffset)}</span>
-						</span>
-						<Button
-							size="small"
-							type="text"
-							icon={<CloseOutlined />}
-							onClick={() => railActions.setSearchQuery("")}
-							style={{
-								color: palette.danger,
-								border: `1px solid ${palette.danger}`,
-							}}
-						>
-							Clear
-						</Button>
-					</div>
-				)}
+						Clear
+					</Button>
+				</div>
+			)}
 
-				{/* Live Dynamic Stats Panel (Left HUD) */}
-				<StatsPanel />
+			{/* Live Dynamic Stats Panel (Left HUD) */}
+			<StatsPanel />
 
-				{/* Settings Drawer */}
-				<SettingsModal />
+			{/* Settings Drawer */}
+			<SettingsModal />
 
-				{/* Controls */}
-				<Controls />
+			{/* Controls */}
+			<Controls />
 
-				{/* Inspector Sidebar */}
-				<ServiceDetails />
-			</Layout>
-		</ConfigProvider>
+			{/* Inspector Sidebar */}
+			<ServiceDetails />
+		</Box>
 	);
 };

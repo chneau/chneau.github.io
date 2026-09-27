@@ -1,5 +1,4 @@
-import { Table, Tag, Tooltip } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import { Badge, Box, Group, Table, Tooltip } from "@mantine/core";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
@@ -10,111 +9,137 @@ type CompatibilityMatrixProps = {
 	data: readonly Birthday[];
 };
 
+type PersonButtonProps = {
+	person: Birthday;
+	label: string;
+	color?: string;
+	onClick: () => void;
+};
+
+const PersonButton = ({ person, label, color, onClick }: PersonButtonProps) => (
+	<button
+		type="button"
+		style={{
+			background: "none",
+			border: "none",
+			padding: 0,
+			cursor: "pointer",
+			color,
+			textAlign: "left",
+			fontSize: "0.8em",
+			fontWeight: "bold",
+		}}
+		onClick={onClick}
+	>
+		{label} {person.signSymbol}
+	</button>
+);
+
 export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 	const { t } = useTranslation();
 	const people = useMemo(() => data.filter((x) => x.kind !== "💒"), [data]);
 
-	const columns: ColumnsType<Birthday> = useMemo(
-		() => [
-			{
-				title: "",
-				dataIndex: "name",
-				key: "name",
-				fixed: "left",
-				width: 110,
-				render: (name, record) => (
-					<button
-						type="button"
-						style={{
-							background: "none",
-							border: "none",
-							padding: 0,
-							cursor: "pointer",
-							color: "#1677ff",
-							textAlign: "left",
-							fontSize: "0.8em",
-							fontWeight: "bold",
-						}}
-						onClick={() => {
-							dataStore.selectedBirthday = record;
-						}}
-					>
-						{name} {record.signSymbol}
-					</button>
-				),
-			},
-			...people.map((person): ColumnsType<Birthday>[number] => ({
-				title: (
-					<Tooltip
-						title={`${person.name} (${t(
-							`data.zodiac.${person.sign}`,
-						)}) — Click to view details`}
-					>
-						<button
-							type="button"
-							style={{
-								background: "none",
-								border: "none",
-								padding: 0,
-								cursor: "pointer",
-								color: "inherit",
-								fontSize: "0.8em",
-							}}
-							onClick={() => {
-								dataStore.selectedBirthday = person;
-							}}
-						>
-							{person.name.slice(0, 3)}. {person.signSymbol}
-						</button>
-					</Tooltip>
-				),
-				key: person.name,
-				align: "center",
-				width: 60,
-				render: (_, record) => {
-					const score = getCompatibilityScore(record, person);
-					return (
-						<Tooltip
-							title={`${record.name} & ${person.name}: ${score}% (${t(
-								`data.elements.${record.element}`,
-							)} + ${t(`data.elements.${person.element}`)})`}
-						>
-							<div
-								style={{
-									backgroundColor: getScoreColor(score),
-									color: "white",
-									borderRadius: "4px",
-									fontSize: "0.75em",
-									padding: "4px 0",
-									cursor: "help",
-								}}
-							>
-								{score}%
-							</div>
-						</Tooltip>
-					);
-				},
-			})),
-		],
-		[people, t],
-	);
 	return (
 		<div style={{ marginTop: 16 }}>
-			<div style={{ marginBottom: 16 }}>
-				<Tag color="#52c41a">{t("app.compatibility.excellent")}</Tag>
-				<Tag color="#a0d911">{t("app.compatibility.great")}</Tag>
-				<Tag color="#faad14">{t("app.compatibility.neutral")}</Tag>
-				<Tag color="#f5222d">{t("app.compatibility.challenging")}</Tag>
-			</div>
-			<Table
-				key={people.map((p) => p.name).join(",")}
-				dataSource={[...people]}
-				columns={columns}
-				pagination={false}
-				size="small"
-				scroll={{ x: "max-content", y: 500 }}
-				rowKey="name"
-			/>
+			<Group mb="md" gap="xs">
+				<Badge variant="light" color="green">
+					{t("app.compatibility.excellent")}
+				</Badge>
+				<Badge variant="light" color="lime">
+					{t("app.compatibility.great")}
+				</Badge>
+				<Badge variant="light" color="yellow">
+					{t("app.compatibility.neutral")}
+				</Badge>
+				<Badge variant="light" color="red">
+					{t("app.compatibility.challenging")}
+				</Badge>
+			</Group>
+
+			<Box style={{ maxHeight: 500, overflow: "auto" }}>
+				<Table.ScrollContainer minWidth={110 + people.length * 60}>
+					<Table className="tk-table" highlightOnHover>
+						<Table.Thead>
+							<Table.Tr>
+								<Table.Th style={{ width: 110 }} />
+								{people.map((person) => (
+									<Table.Th
+										key={person.name}
+										style={{ width: 60, textAlign: "center" }}
+									>
+										<Tooltip
+											label={`${person.name} (${t(
+												`data.zodiac.${person.sign}`,
+											)}) — Click to view details`}
+										>
+											<button
+												type="button"
+												style={{
+													background: "none",
+													border: "none",
+													padding: 0,
+													cursor: "pointer",
+													color: "inherit",
+													fontSize: "0.8em",
+												}}
+												onClick={() => {
+													dataStore.selectedBirthday = person;
+												}}
+											>
+												{person.name.slice(0, 3)}. {person.signSymbol}
+											</button>
+										</Tooltip>
+									</Table.Th>
+								))}
+							</Table.Tr>
+						</Table.Thead>
+						<Table.Tbody>
+							{people.map((record) => (
+								<Table.Tr key={record.name}>
+									<Table.Td>
+										<PersonButton
+											person={record}
+											label={record.name}
+											color="var(--mantine-primary-color-filled)"
+											onClick={() => {
+												dataStore.selectedBirthday = record;
+											}}
+										/>
+									</Table.Td>
+									{people.map((person) => {
+										const score = getCompatibilityScore(record, person);
+										return (
+											<Table.Td
+												key={person.name}
+												style={{ textAlign: "center", padding: 2 }}
+											>
+												<Tooltip
+													label={`${record.name} & ${person.name}: ${score}% (${t(
+														`data.elements.${record.element}`,
+													)} + ${t(`data.elements.${person.element}`)})`}
+												>
+													<div
+														style={{
+															backgroundColor: getScoreColor(score),
+															color: "white",
+															borderRadius: "4px",
+															fontSize: "0.75em",
+															padding: "4px 0",
+															cursor: "help",
+														}}
+													>
+														{score}%
+													</div>
+												</Tooltip>
+											</Table.Td>
+										);
+									})}
+								</Table.Tr>
+							))}
+						</Table.Tbody>
+					</Table>
+				</Table.ScrollContainer>
+			</Box>
 		</div>
 	);
 };

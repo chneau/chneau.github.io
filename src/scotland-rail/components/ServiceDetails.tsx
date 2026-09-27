@@ -1,18 +1,20 @@
 import {
-	BankOutlined,
-	BuildOutlined,
-	ClockCircleOutlined,
-	CloseOutlined,
-} from "@ant-design/icons";
-import { Button, Card, Divider, Space, Steps, Tag, Typography } from "antd";
+	Badge,
+	Button,
+	Card,
+	Divider,
+	Group,
+	Stepper,
+	Text,
+	Title,
+} from "@mantine/core";
+import { Clock, Landmark, Wrench, X } from "lucide-react";
 import { useSnapshot } from "valtio";
 import { STATIONS_BY_ID } from "../data/geography";
 import { CATEGORIES } from "../data/types";
 import { derivedStore, railActions, railStore } from "../store";
 import { palette } from "../theme";
 import { formatTime } from "../utils";
-
-const { Title, Text } = Typography;
 
 export const ServiceDetails = () => {
 	const snap = useSnapshot(railStore);
@@ -29,6 +31,7 @@ export const ServiceDetails = () => {
 	return (
 		<Card
 			className="sr-glass sr-rise sr-scroll"
+			padding="md"
 			style={{
 				position: "absolute",
 				top: 16,
@@ -41,7 +44,6 @@ export const ServiceDetails = () => {
 				color: palette.text,
 				zIndex: 10,
 			}}
-			styles={{ body: { padding: 16 } }}
 		>
 			<div
 				style={{
@@ -52,46 +54,52 @@ export const ServiceDetails = () => {
 				}}
 			>
 				<div style={{ minWidth: 0 }}>
-					<Space wrap size={[4, 6]}>
-						<Tag
-							bordered={false}
+					<Group gap={4} wrap="wrap">
+						<Badge
+							radius={6}
+							tt="none"
+							className="sr-num"
 							style={{
 								background: catConfig.color,
 								color: palette.bgDeep,
 								fontWeight: "bold",
-								borderRadius: 6,
 							}}
-							className="sr-num"
 						>
 							{selectedService.serviceNumber}
-						</Tag>
-						<Tag
-							bordered={false}
+						</Badge>
+						<Badge
+							radius={6}
+							tt="none"
 							style={{
 								background: "rgba(255,255,255,0.06)",
 								color: palette.text,
 								fontWeight: 500,
-								borderRadius: 6,
-								display: "inline-flex",
-								alignItems: "center",
-								gap: 5,
 							}}
 						>
-							<BankOutlined style={{ color: catConfig.color }} />
-							{selectedService.operator}
-						</Tag>
-						<Tag
-							bordered={false}
+							<span
+								style={{
+									display: "inline-flex",
+									alignItems: "center",
+									gap: 5,
+								}}
+							>
+								<Landmark size={12} style={{ color: catConfig.color }} />
+								{selectedService.operator}
+							</span>
+						</Badge>
+						<Badge
+							radius={6}
+							tt="none"
+							variant="transparent"
 							style={{
-								background: "transparent",
 								color: palette.textMuted,
 							}}
 						>
 							{catConfig.label}
-						</Tag>
-					</Space>
+						</Badge>
+					</Group>
 					<Title
-						level={4}
+						order={4}
 						style={{
 							color: palette.text,
 							margin: "10px 0 4px 0",
@@ -110,19 +118,21 @@ export const ServiceDetails = () => {
 								gap: 5,
 							}}
 						>
-							<BuildOutlined />
+							<Wrench size={13} />
 							{selectedService.rollingStock}
 						</Text>
 					)}
 				</div>
 				<Button
-					type="text"
-					size="small"
+					variant="subtle"
+					size="sm"
+					p={4}
 					className="sr-press"
 					aria-label="Close service details"
-					icon={<CloseOutlined style={{ color: palette.text }} />}
 					onClick={() => railActions.setSelectedService(null)}
-				/>
+				>
+					<X size={16} style={{ color: palette.text }} />
+				</Button>
 			</div>
 
 			{activeState && (
@@ -151,7 +161,7 @@ export const ServiceDetails = () => {
 			/>
 
 			<Text
-				strong
+				fw={600}
 				style={{
 					color: palette.textMuted,
 					fontSize: "0.78rem",
@@ -163,11 +173,12 @@ export const ServiceDetails = () => {
 			</Text>
 
 			<div style={{ marginTop: 12 }}>
-				<Steps
-					direction="vertical"
-					size="small"
-					current={activeState?.currentSegmentIndex ?? -1}
-					items={selectedService.calls.map((call, idx) => {
+				<Stepper
+					orientation="vertical"
+					size="sm"
+					active={Math.max(0, activeState?.currentSegmentIndex ?? -1)}
+				>
+					{selectedService.calls.map((call, idx) => {
 						const st = STATIONS_BY_ID.get(call.stationId);
 						const targetTime =
 							call.departureOffset !== null
@@ -175,69 +186,76 @@ export const ServiceDetails = () => {
 								: call.arrivalOffset;
 						const timeStr = formatTime(targetTime);
 
-						return {
-							title: (
-								<button
-									type="button"
-									className="sr-callpoint"
-									onClick={() => {
-										if (targetTime !== null) {
-											railActions.setTimeOffset(targetTime);
-										}
-									}}
-									style={{
-										display: "flex",
-										justifyContent: "space-between",
-										alignItems: "center",
-										gap: 8,
-										cursor: "pointer",
-										padding: "3px 6px",
-										borderRadius: 6,
-										width: "100%",
-										background: "transparent",
-										border: "none",
-										textAlign: "left",
-									}}
-								>
-									<span
-										style={{
-											color: palette.text,
-											fontWeight: 500,
-											fontSize: "0.82rem",
+						return (
+							<Stepper.Step
+								key={`${call.stationId}-${call.arrivalOffset ?? "x"}-${
+									call.departureOffset ?? "x"
+								}`}
+								label={
+									<button
+										type="button"
+										className="sr-callpoint"
+										onClick={() => {
+											if (targetTime !== null) {
+												railActions.setTimeOffset(targetTime);
+											}
 										}}
-									>
-										{st?.name || call.stationId}
-									</span>
-									<span
-										className="sr-num"
 										style={{
-											color: catConfig.color,
-											background: "rgba(255, 255, 255, 0.05)",
-											padding: "1px 7px",
-											borderRadius: 4,
-											fontSize: "0.76rem",
-											display: "inline-flex",
+											display: "flex",
+											justifyContent: "space-between",
 											alignItems: "center",
-											gap: 4,
+											gap: 8,
+											cursor: "pointer",
+											padding: "3px 6px",
+											borderRadius: 6,
+											width: "100%",
+											background: "transparent",
+											border: "none",
+											textAlign: "left",
 										}}
 									>
-										<ClockCircleOutlined />
-										{timeStr}
-									</span>
-								</button>
-							),
-							description: (
-								<Text style={{ color: palette.textFaint, fontSize: "0.72rem" }}>
-									{idx === 0
-										? "Origin departure"
-										: idx === selectedService.calls.length - 1
-											? "Destination terminus"
-											: "Calling point"}
-								</Text>
-							),
-						};
+										<span
+											style={{
+												color: palette.text,
+												fontWeight: 500,
+												fontSize: "0.82rem",
+											}}
+										>
+											{st?.name || call.stationId}
+										</span>
+										<span
+											className="sr-num"
+											style={{
+												color: catConfig.color,
+												background: "rgba(255, 255, 255, 0.05)",
+												padding: "1px 7px",
+												borderRadius: 4,
+												fontSize: "0.76rem",
+												display: "inline-flex",
+												alignItems: "center",
+												gap: 4,
+											}}
+										>
+											<Clock size={12} />
+											{timeStr}
+										</span>
+									</button>
+								}
+								description={
+									<Text
+										style={{ color: palette.textFaint, fontSize: "0.72rem" }}
+									>
+										{idx === 0
+											? "Origin departure"
+											: idx === selectedService.calls.length - 1
+												? "Destination terminus"
+												: "Calling point"}
+									</Text>
+								}
+							/>
+						);
 					})}
-				/>
+				</Stepper>
 			</div>
 		</Card>
 	);
