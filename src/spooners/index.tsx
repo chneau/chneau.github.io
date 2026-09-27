@@ -7,8 +7,12 @@ import "./spooners.css";
 import { MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { createRoot } from "react-dom/client";
+import { initAnalytics, registerServiceWorker } from "../shared";
 import { App } from "./App";
 import { spoonersTheme } from "./theme";
+
+initAnalytics();
+registerServiceWorker();
 
 const container = document.getElementById("root");
 if (!container) {

@@ -5,10 +5,11 @@ import {
 	Tabs,
 } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
-import { Plus } from "lucide-react";
+import { Keyboard, LayoutGrid, Moon, Plus, Sun } from "lucide-react";
 import {
 	type CSSProperties,
 	lazy,
+	type ReactNode,
 	Suspense,
 	useEffect,
 	useMemo,
@@ -17,11 +18,15 @@ import {
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import {
+	type Command,
+	CommandPalette,
 	createAppTheme,
 	Grain,
 	ShortcutsHelp,
 	ShortcutsHelpButton,
 	Skeleton,
+	SkipLink,
+	useCommandPalette,
 	useShortcutsHelp,
 } from "../shared";
 import { AppFooter } from "./AppFooter";
@@ -72,6 +77,20 @@ const appTheme = createAppTheme({
 	},
 });
 
+const TAB_KEYS = ["table", "timeline", "compatibility", "weather"] as const;
+
+type TabKey = (typeof TAB_KEYS)[number];
+
+const isTabKey = (value: string | null): value is TabKey =>
+	value !== null && (TAB_KEYS as readonly string[]).includes(value);
+
+/** Read the active tab from `?tab=<id>`, falling back to the default tab. */
+const readInitialTab = (): TabKey => {
+	if (typeof window === "undefined") return "table";
+	const tab = new URLSearchParams(window.location.search).get("tab");
+	return isTabKey(tab) ? tab : "table";
+};
+
 const StatisticsSkeleton = () => (
 	<div
 		className="tk-surface"
@@ -101,12 +120,21 @@ export const App = () => {
 	const { t } = useTranslation();
 	const [manageOpen, setManageOpen] = useState(false);
 	const shortcuts = useShortcutsHelp();
+	const palette = useCommandPalette();
+	const [activeTab, setActiveTab] = useState<TabKey>(readInitialTab);
 
 	useEffect(() => {
 		document.documentElement.dataset.theme = storeSnap.darkMode
 			? "dark"
 			: "light";
 	}, [storeSnap.darkMode]);
+
+	useEffect(() => {
+		const url = new URL(window.location.href);
+		if (url.searchParams.get("tab") === activeTab) return;
+		url.searchParams.set("tab", activeTab);
+		window.history.replaceState(null, "", url);
+	}, [activeTab]);
 
 	useEffect(() => {
 		checkAndNotify(birthdays);
@@ -120,7 +148,7 @@ export const App = () => {
 		[],
 	);
 
-	const tabItems = [
+	const tabItems: { key: TabKey; label: string; children: ReactNode }[] = [
 		{
 			key: "table",
 			label: t("app.table.title"),
@@ -143,11 +171,43 @@ export const App = () => {
 		},
 	];
 
+	const commands: Command[] = [
+		{
+			id: "toggle-theme",
+			label: storeSnap.darkMode
+				? "Switch to light theme"
+				: "Switch to dark theme",
+			hint: "Appearance",
+			keywords: "theme dark light appearance mode toggle",
+			icon: storeSnap.darkMode ? <Sun size={16} /> : <Moon size={16} />,
+			run: () => {
+				store.darkMode = !store.darkMode;
+			},
+		},
+		{
+			id: "keyboard-shortcuts",
+			label: "Keyboard shortcuts",
+			hint: "Help",
+			keywords: "keyboard shortcuts keys help",
+			icon: <Keyboard size={16} />,
+			run: () => shortcuts.open(),
+		},
+		...tabItems.map((item) => ({
+			id: `tab-${item.key}`,
+			label: `Go to ${item.label}`,
+			hint: "Tab",
+			keywords: `tab ${item.key}`,
+			icon: <LayoutGrid size={16} />,
+			run: () => setActiveTab(item.key),
+		})),
+	];
+
 	return (
 		<MantineProvider
 			theme={appTheme}
 			forceColorScheme={storeSnap.darkMode ? "dark" : "light"}
 		>
+			<SkipLink />
 			<Notifications position="top-right" />
 			<div className="tk-shell">
 				<AppHeader
@@ -161,7 +221,7 @@ export const App = () => {
 					}
 				/>
 
-				<main className="tk-main">
+				<main className="tk-main" id="main">
 					<div className="tk-container tk-stack">
 						<Countdown
 							birthdays={nextBirthdays}
@@ -191,7 +251,12 @@ export const App = () => {
 
 							<FilterSearch style={{ marginBottom: 18 }} />
 
-							<Tabs defaultValue="table">
+							<Tabs
+								value={activeTab}
+								onChange={(value) => {
+									if (isTabKey(value)) setActiveTab(value);
+								}}
+							>
 								<Tabs.List>
 									{tabItems.map((item) => (
 										<Tabs.Tab key={item.key} value={item.key}>
@@ -261,6 +326,12 @@ export const App = () => {
 						shortcuts: [{ keys: ["/"], description: "Focus the search field" }],
 					},
 				]}
+			/>
+
+			<CommandPalette
+				opened={palette.opened}
+				onClose={palette.close}
+				commands={commands}
 			/>
 		</MantineProvider>
 	);

@@ -5,6 +5,7 @@ import { cleanup, render } from "@testing-library/react";
 import axe from "axe-core";
 import type { ReactNode } from "react";
 import {
+	CommandPalette,
 	EmptyState,
 	HeaderAction,
 	Section,
@@ -89,6 +90,19 @@ describe("shared components a11y", () => {
 							],
 						},
 					]}
+				/>,
+			),
+		);
+		await expectNoViolations(baseElement);
+	});
+
+	test("command palette has no detectable violations", async () => {
+		const { baseElement } = render(
+			provider(
+				<CommandPalette
+					opened
+					onClose={() => {}}
+					commands={[{ id: "theme", label: "Toggle theme", run: () => {} }]}
 				/>,
 			),
 		);

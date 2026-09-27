@@ -13,6 +13,7 @@ import {
 	type ActiveTrainState,
 	resolveServiceAtTime,
 } from "./engine/interpolator";
+import { readUrlState, writeUrlState } from "./url";
 
 type RailStore = {
 	timeOffset: number; // minutes from 00:00 (default 480 = 08:00)
@@ -28,6 +29,10 @@ type RailStore = {
 	settings: AppSettings;
 };
 
+// All loaded static services and station index
+const allServices: TrainService[] = TIMETABLE_DATA as TrainService[];
+const stationNamesById = new Map(STATIONS.map((s) => [s.id, s.name]));
+
 const getInitialState = (): RailStore => {
 	const defaults: RailStore = {
 		timeOffset: 480,
@@ -42,6 +47,21 @@ const getInitialState = (): RailStore => {
 		isSettingsOpen: false,
 		settings: DEFAULT_SETTINGS,
 	};
+
+	// Deep links override the defaults; invalid/unknown values are ignored.
+	const urlState = readUrlState();
+	if (urlState.timeOffset !== undefined) {
+		defaults.timeOffset = urlState.timeOffset;
+	}
+	if (urlState.speed !== undefined) defaults.speed = urlState.speed;
+	if (urlState.category !== undefined) {
+		defaults.selectedCategory = urlState.category;
+	}
+	if (urlState.query !== undefined) defaults.searchQuery = urlState.query;
+	if (urlState.serviceId) {
+		defaults.selectedService =
+			allServices.find((service) => service.id === urlState.serviceId) ?? null;
+	}
 
 	if (typeof localStorage === "undefined") {
 		return defaults;
@@ -82,9 +102,21 @@ const saveSettings = debounce(() => {
 // Persist settings changes
 subscribe(railStore.settings, saveSettings);
 
-// All loaded static services and station index
-const allServices: TrainService[] = TIMETABLE_DATA as TrainService[];
-const stationNamesById = new Map(STATIONS.map((s) => [s.id, s.name]));
+// Mirror the shareable subset of the store into the URL. Debounced because
+// timeOffset changes on every animation frame while the replay is playing.
+const saveUrl = debounce(() => {
+	writeUrlState({
+		timeOffset: railStore.timeOffset,
+		speed: railStore.speed,
+		serviceId: railStore.selectedService?.id ?? null,
+		category: railStore.selectedCategory,
+		query: railStore.searchQuery,
+	});
+}, 250);
+
+subscribe(railStore, () => {
+	saveUrl();
+});
 
 // Derived computed store for filtered services & active trains
 export const derivedStore = proxy<{

@@ -584,6 +584,26 @@ button {
 	border-radius: var(--app-radius-xs);
 }
 
+/* Keyboard-only "skip to content" link; hidden until focused. */
+.app-skip-link {
+	position: fixed;
+	top: 8px;
+	left: 8px;
+	z-index: 2000;
+	padding: 8px 14px;
+	border-radius: var(--app-radius-sm);
+	background: var(--app-surface);
+	color: var(--app-text);
+	box-shadow: var(--app-shadow);
+	text-decoration: none;
+	font-size: 0.85rem;
+	transform: translateY(-160%);
+	transition: transform var(--app-speed) var(--app-ease);
+}
+.app-skip-link:focus {
+	transform: translateY(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,

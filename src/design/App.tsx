@@ -17,12 +17,15 @@ import {
 } from "@mantine/core";
 import {
 	Check,
+	Keyboard,
 	Layers,
+	Moon,
 	Palette,
 	RotateCcw,
 	Search,
 	Sparkles,
 	SquareStack,
+	Sun,
 	Type,
 	Zap,
 } from "lucide-react";
@@ -34,6 +37,9 @@ import {
 	AppSwitcher,
 	BackHome,
 	Brand,
+	type Command,
+	CommandPalette,
+	CommandPaletteButton,
 	createAppTheme,
 	EmptyState,
 	Footer,
@@ -44,8 +50,10 @@ import {
 	ShortcutsHelp,
 	ShortcutsHelpButton,
 	Skeleton,
+	SkipLink,
 	Stat,
 	StatusDot,
+	useCommandPalette,
 	useShortcutsHelp,
 } from "../shared";
 
@@ -219,6 +227,7 @@ export const App = () => {
 	const [dark, setDark] = useState(readInitialDark);
 	const [stops, setStops] = useState(24);
 	const shortcuts = useShortcutsHelp();
+	const palette = useCommandPalette();
 
 	useEffect(() => {
 		try {
@@ -260,11 +269,41 @@ export const App = () => {
 		setDark(systemPrefersDark());
 	};
 
+	const commands: Command[] = [
+		{
+			id: "toggle-theme",
+			label: "Toggle light / dark theme",
+			hint: "T",
+			keywords: "theme dark light mode appearance",
+			icon: dark ? <Sun size={16} /> : <Moon size={16} />,
+			run: () => setDark((value) => !value),
+		},
+		{
+			id: "keyboard-shortcuts",
+			label: "Keyboard shortcuts",
+			hint: "?",
+			keywords: "shortcuts keyboard keys help",
+			icon: <Keyboard size={16} />,
+			run: () => shortcuts.open(),
+		},
+		{
+			id: "reset-demo-controls",
+			label: "Reset demo controls",
+			keywords: "reset demo controls default stops theme",
+			icon: <RotateCcw size={16} />,
+			run: () => {
+				setStops(24);
+				resetScheme();
+			},
+		},
+	];
+
 	return (
 		<MantineProvider
 			theme={appTheme}
 			forceColorScheme={dark ? "dark" : "light"}
 		>
+			<SkipLink />
 			<Stack
 				gap={0}
 				style={{ minHeight: "100dvh", background: "var(--app-bg)" }}
@@ -286,6 +325,7 @@ export const App = () => {
 								onClick={shortcuts.open}
 								expanded={shortcuts.opened}
 							/>
+							<CommandPaletteButton onClick={palette.open} />
 							<SchemeToggle
 								dark={dark}
 								onToggle={() => setDark((value) => !value)}
@@ -295,6 +335,7 @@ export const App = () => {
 				/>
 
 				<main
+					id="main"
 					style={{
 						flex: 1,
 						width: "100%",
@@ -357,6 +398,7 @@ export const App = () => {
 						<Section title="Controls" badge={<SquareStack size={14} />}>
 							<Stack gap="md">
 								<Group gap="sm" wrap="wrap">
+									<CommandPaletteButton onClick={palette.open} />
 									<HeaderAction
 										iconOnly
 										label="Icon only"
@@ -503,6 +545,11 @@ export const App = () => {
 				onClose={shortcuts.close}
 				groups={[]}
 				globalShortcuts={APP_SWITCH_SHORTCUTS}
+			/>
+			<CommandPalette
+				opened={palette.opened}
+				onClose={palette.close}
+				commands={commands}
 			/>
 		</MantineProvider>
 	);

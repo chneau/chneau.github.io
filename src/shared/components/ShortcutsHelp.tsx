@@ -77,6 +77,7 @@ export const ShortcutsHelp = ({
 }: ShortcutsHelpProps) => {
 	const global = [
 		...(globalShortcuts ?? []),
+		{ keys: ["⌘/Ctrl", "K"], description: "Open the command palette" },
 		{ keys: ["?"], description: "Show this help" },
 	];
 	return (

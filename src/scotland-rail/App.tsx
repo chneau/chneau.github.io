@@ -2,8 +2,13 @@ import { Box, Button, useMantineColorScheme } from "@mantine/core";
 import {
 	Compass,
 	Info,
+	Keyboard,
+	Moon,
+	Pause,
+	Play,
 	Search,
 	Settings,
+	Sun,
 	Volume2,
 	VolumeX,
 	X,
@@ -15,11 +20,15 @@ import {
 	AppSwitcher,
 	BackHome,
 	Brand,
+	type Command,
+	CommandPalette,
 	HeaderAction,
 	SchemeToggle,
 	type ShortcutGroup,
 	ShortcutsHelp,
 	ShortcutsHelpButton,
+	SkipLink,
+	useCommandPalette,
 	useShortcutsHelp,
 } from "../shared";
 import { Controls } from "./components/Controls";
@@ -71,6 +80,7 @@ export const App = () => {
 	const { colorScheme, setColorScheme } = useMantineColorScheme();
 	const dark = colorScheme === "dark";
 	const shortcuts = useShortcutsHelp();
+	const commandPalette = useCommandPalette();
 	const shortcutsOpenRef = useRef(shortcuts.opened);
 	const {
 		isInfoOpen,
@@ -227,6 +237,33 @@ export const App = () => {
 		prevSelectedDwellingRef.current = !!activeSelected?.isDwelling;
 	}, [activeTrains, selectedService, settings.soundEffects]);
 
+	const commands: Command[] = [
+		{
+			id: "toggle-playback",
+			label: isPlaying ? "Pause replay" : "Play replay",
+			hint: "Playback",
+			keywords: "play pause replay animation time",
+			icon: isPlaying ? <Pause size={16} /> : <Play size={16} />,
+			run: () => railActions.togglePlay(),
+		},
+		{
+			id: "toggle-theme",
+			label: `Switch to ${dark ? "light" : "dark"} theme`,
+			hint: "Appearance",
+			keywords: "theme light dark color scheme",
+			icon: dark ? <Sun size={16} /> : <Moon size={16} />,
+			run: () => setColorScheme(dark ? "light" : "dark"),
+		},
+		{
+			id: "keyboard-shortcuts",
+			label: "Keyboard shortcuts",
+			hint: "Help",
+			keywords: "keys help keyboard bindings",
+			icon: <Keyboard size={16} />,
+			run: () => shortcuts.open(),
+		},
+	];
+
 	return (
 		<Box
 			style={{
@@ -238,6 +275,7 @@ export const App = () => {
 				background: palette.bg,
 			}}
 		>
+			<SkipLink />
 			<AppHeader
 				staticPosition
 				brand={
@@ -305,6 +343,8 @@ export const App = () => {
 
 			{/* Map canvas and its floating overlays */}
 			<Box
+				component="main"
+				id="main"
 				style={{
 					position: "relative",
 					flex: 1,
@@ -323,6 +363,13 @@ export const App = () => {
 					opened={shortcuts.opened}
 					onClose={shortcuts.close}
 					groups={SHORTCUT_GROUPS}
+				/>
+
+				{/* Command Palette (Cmd/Ctrl-K) */}
+				<CommandPalette
+					opened={commandPalette.opened}
+					onClose={commandPalette.close}
+					commands={commands}
 				/>
 
 				{/* Map Canvas */}

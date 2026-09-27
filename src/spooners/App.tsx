@@ -1,11 +1,24 @@
-import { Box, Button, Group, Loader, Stack, Text } from "@mantine/core";
+import {
+	Box,
+	Button,
+	Group,
+	Loader,
+	Stack,
+	Text,
+	useMantineColorScheme,
+} from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import { FilterX, Keyboard, Moon, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
+	type Command,
+	CommandPalette,
 	EmptyState,
 	Section,
 	type ShortcutGroup,
 	ShortcutsHelp,
+	SkipLink,
+	useCommandPalette,
 	useShortcutsHelp,
 } from "../shared";
 import { type BasketItem, parseBasket, serializeBasket } from "./basket";
@@ -57,6 +70,8 @@ export const App = () => {
 	const [settings, setSettings] = useSettings();
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const shortcuts = useShortcutsHelp();
+	const palette = useCommandPalette();
+	const { colorScheme, setColorScheme } = useMantineColorScheme();
 	const {
 		table: rates,
 		loading: ratesLoading,
@@ -231,6 +246,31 @@ export const App = () => {
 		setOnlyComplete(settings.onlyComplete);
 	};
 
+	const commands: Command[] = [
+		{
+			id: "toggle-theme",
+			label: "Toggle light / dark theme",
+			keywords: "theme dark light mode appearance",
+			icon: colorScheme === "dark" ? <Sun size={16} /> : <Moon size={16} />,
+			run: () => setColorScheme(colorScheme === "dark" ? "light" : "dark"),
+		},
+		{
+			id: "keyboard-shortcuts",
+			label: "Keyboard shortcuts",
+			hint: "?",
+			keywords: "shortcuts keyboard keys help",
+			icon: <Keyboard size={16} />,
+			run: () => shortcuts.open(),
+		},
+		{
+			id: "clear-filters",
+			label: "Clear all filters",
+			keywords: "reset clear filters area",
+			icon: <FilterX size={16} />,
+			run: resetFilters,
+		},
+	];
+
 	const requestLocation = () => {
 		if (!navigator.geolocation) {
 			setGeoState("error");
@@ -384,6 +424,7 @@ export const App = () => {
 				height: "100dvh",
 			}}
 		>
+			<SkipLink />
 			<AppHeader
 				stats={stats}
 				itemCount={index.length}
@@ -400,7 +441,8 @@ export const App = () => {
 				onShortcutsOpen={shortcuts.open}
 			/>
 
-			<Box
+			<main
+				id="main"
 				style={{
 					display: "flex",
 					flexDirection: isMobile ? "column-reverse" : "row",
@@ -654,7 +696,7 @@ export const App = () => {
 						onViewport={(center, zoom) => setMapView({ center, zoom })}
 					/>
 				</Box>
-			</Box>
+			</main>
 
 			<VenueModal
 				opened={venueRef != null}
@@ -724,6 +766,12 @@ export const App = () => {
 				ratesLoading={ratesLoading}
 				ratesError={ratesError}
 				onRefreshRates={refreshRates}
+			/>
+
+			<CommandPalette
+				opened={palette.opened}
+				onClose={palette.close}
+				commands={commands}
 			/>
 
 			<ShortcutsHelp

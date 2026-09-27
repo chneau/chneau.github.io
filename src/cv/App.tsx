@@ -8,10 +8,13 @@ import {
 	FileText,
 	FileType,
 	Globe,
+	Keyboard,
 	Link2,
 	Mail,
+	Moon,
 	Phone,
 	Printer,
+	Sun,
 	TriangleAlert,
 } from "lucide-react";
 import type { CSSProperties, ReactNode, RefObject } from "react";
@@ -21,6 +24,8 @@ import {
 	AppSwitcher,
 	BackHome,
 	Brand,
+	type Command,
+	CommandPalette,
 	createAppTheme,
 	Footer,
 	Grain,
@@ -29,6 +34,8 @@ import {
 	SchemeToggle,
 	ShortcutsHelp,
 	ShortcutsHelpButton,
+	SkipLink,
+	useCommandPalette,
 	useShortcutsHelp,
 } from "../shared";
 
@@ -53,6 +60,8 @@ const cvTheme = createAppTheme({ accent: cvAccent });
 const EMAIL = "charles63500@gmail.com";
 const PHONE_DISPLAY = "+44 7397 174345";
 const PHONE_HREF = "+447397174345";
+const PDF_URL = "https://raw.githubusercontent.com/chneau/cv/master/cv.pdf";
+const DOCX_URL = "https://raw.githubusercontent.com/chneau/cv/master/cv.docx";
 
 const SKILLS: { category: string; items: string[] }[] = [
 	{
@@ -612,6 +621,7 @@ const getInitialTheme = (): boolean =>
 
 export const App = () => {
 	const shortcuts = useShortcutsHelp();
+	const palette = useCommandPalette();
 	const [darkMode, setDarkMode] = useState(getInitialTheme);
 	const heroRef = useRef<HTMLElement>(null);
 	const heroInView = useInView(heroRef);
@@ -644,11 +654,45 @@ export const App = () => {
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [shortcuts.opened]);
 
+	const commands: Command[] = [
+		{
+			id: "toggle-theme",
+			label: "Toggle light / dark theme",
+			hint: "Theme",
+			icon: darkMode ? <Sun size={16} /> : <Moon size={16} />,
+			run: () => setDarkMode((value) => !value),
+		},
+		{
+			id: "keyboard-shortcuts",
+			label: "Keyboard shortcuts",
+			hint: "Help",
+			icon: <Keyboard size={16} />,
+			run: shortcuts.open,
+		},
+		{
+			id: "download-pdf",
+			label: "Download PDF",
+			hint: "Export",
+			keywords: "cv resume export",
+			icon: <FileText size={16} />,
+			run: () => window.open(PDF_URL, "_blank", "noopener,noreferrer"),
+		},
+		{
+			id: "download-docx",
+			label: "Download DOCX",
+			hint: "Export",
+			keywords: "cv resume word export",
+			icon: <FileType size={16} />,
+			run: () => window.open(DOCX_URL, "_blank", "noopener,noreferrer"),
+		},
+	];
+
 	return (
 		<MantineProvider
 			theme={cvTheme}
 			forceColorScheme={darkMode ? "dark" : "light"}
 		>
+			<SkipLink />
 			<div className="cv-root">
 				<div className="no-print">
 					<Grain />
@@ -779,7 +823,7 @@ export const App = () => {
 					</ul>
 				</section>
 
-				<main className="cv-shell cv-main">
+				<main id="main" className="cv-shell cv-main">
 					<div className="cv-col cv-col--main">
 						<section className="cv-section" data-reveal style={reveal(2)}>
 							<div className="cv-section-head">
@@ -973,6 +1017,11 @@ export const App = () => {
 						],
 					},
 				]}
+			/>
+			<CommandPalette
+				opened={palette.opened}
+				onClose={palette.close}
+				commands={commands}
 			/>
 		</MantineProvider>
 	);
