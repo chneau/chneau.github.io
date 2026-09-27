@@ -2,13 +2,11 @@ import {
 	Badge,
 	Box,
 	Card,
-	Group,
 	type MantineColorsTuple,
 	MantineProvider,
 	Stack,
 	Text,
 	Title,
-	Tooltip,
 } from "@mantine/core";
 import {
 	ArrowRight,
@@ -20,7 +18,13 @@ import {
 	TrainFront,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { createAppTheme, SchemeToggle } from "../shared";
+import {
+	AppHeader,
+	Brand,
+	createAppTheme,
+	HeaderAction,
+	SchemeToggle,
+} from "../shared";
 
 declare const BUILD_DATE: string;
 
@@ -316,43 +320,29 @@ export const App = () => {
 					background: "var(--app-bg)",
 				}}
 			>
-				<Box
-					component="header"
-					style={{
-						height: 64,
-						background: "var(--app-surface)",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "space-between",
-						borderBottom: "1px solid var(--app-border)",
-						padding: "0 24px",
-					}}
-				>
-					<Text fw={600} style={{ fontSize: "1.2rem" }}>
-						chneau.github.io
-					</Text>
-					<Group gap="md">
-						<SchemeToggle
-							dark={darkMode}
-							onToggle={() => setDarkMode((value) => !value)}
+				<AppHeader
+					brand={
+						<Brand
+							title="chneau.github.io"
+							subtitle="Personal hub and web apps"
 						/>
-						<Tooltip label="GitHub Profile">
-							<a
+					}
+					actions={
+						<>
+							<SchemeToggle
+								dark={darkMode}
+								onToggle={() => setDarkMode((value) => !value)}
+							/>
+							<HeaderAction
 								href="https://github.com/chneau"
 								target="_blank"
-								rel="noreferrer"
-								aria-label="GitHub Profile"
-								style={{
-									color: "var(--app-text)",
-									display: "flex",
-									alignItems: "center",
-								}}
-							>
-								<GithubIcon size={20} />
-							</a>
-						</Tooltip>
-					</Group>
-				</Box>
+								iconOnly
+								label="GitHub profile"
+								icon={<GithubIcon size={18} />}
+							/>
+						</>
+					}
+				/>
 
 				<Box
 					component="main"

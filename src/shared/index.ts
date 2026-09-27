@@ -1,5 +1,8 @@
+export { AppHeader } from "./components/AppHeader";
+export { Brand } from "./components/Brand";
 export { EmptyState } from "./components/EmptyState";
 export { Grain } from "./components/Grain";
+export { HeaderAction } from "./components/HeaderAction";
 export { SchemeToggle } from "./components/SchemeToggle";
 export { Section } from "./components/Section";
 export { Skeleton } from "./components/Skeleton";

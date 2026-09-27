@@ -1,17 +1,12 @@
-import {
-	ActionIcon,
-	Badge,
-	Box,
-	Button,
-	Group,
-	Text,
-	Title,
-	Tooltip,
-	useMantineColorScheme,
-} from "@mantine/core";
+import { Badge, Box, useMantineColorScheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { Beer, Copy, Settings, Trophy } from "lucide-react";
-import { SchemeToggle } from "../../shared";
+import {
+	Brand,
+	AppHeader as Header,
+	HeaderAction,
+	SchemeToggle,
+} from "../../shared";
 import type { CacheStats, VenueInfo } from "../types";
 import { PubSearch } from "./PubSearch";
 
@@ -46,93 +41,56 @@ export const AppHeader = ({
 	const dark = colorScheme === "dark";
 
 	return (
-		<Group
-			justify="space-between"
-			align="center"
-			px="md"
-			py="xs"
-			wrap="nowrap"
-			style={{
-				borderBottom: "1px solid var(--mantine-color-default-border)",
-			}}
-		>
-			<Group gap="xs" align="center" wrap="nowrap">
-				<Beer size={26} />
-				<Box>
-					<Title order={3} lh={1}>
-						Spooners
-					</Title>
-					<Text size="xs" c="dimmed" lineClamp={1}>
-						Pub prices on a map — build a round, see what every pub charges
-					</Text>
-				</Box>
-			</Group>
-			<Group gap="xs" wrap="nowrap">
-				{converting ? (
-					<Badge variant="light" color="blue" size="lg">
-						{isNarrow ? displayCurrency : `converted → ${displayCurrency}`}
-					</Badge>
-				) : null}
-				<Badge variant="light" size="lg" visibleFrom="md">
-					{stats.venuesWithData} pubs · {itemCount} items
-				</Badge>
-				<Box visibleFrom="md" w={220}>
-					<PubSearch venues={venues} onSelect={onSelectVenue} />
-				</Box>
-				<Tooltip label="Cheapest alcohol per unit, calories per £…">
-					{isNarrow ? (
-						<ActionIcon
-							variant="default"
-							size="lg"
-							aria-label="Value charts"
-							onClick={onValueOpen}
-						>
-							<Trophy size={16} />
-						</ActionIcon>
-					) : (
-						<Button size="xs" variant="default" onClick={onValueOpen}>
-							Value charts
-						</Button>
-					)}
-				</Tooltip>
-				<Tooltip label={copied ? "Link copied" : "Copy a link to this view"}>
-					{isNarrow ? (
-						<ActionIcon
-							variant={copied ? "filled" : "default"}
-							color={copied ? "teal" : undefined}
-							size="lg"
-							aria-label="Share"
-							onClick={onShare}
-						>
-							<Copy size={16} />
-						</ActionIcon>
-					) : (
-						<Button
-							size="xs"
-							variant={copied ? "filled" : "default"}
-							color={copied ? "teal" : undefined}
-							leftSection={<Copy size={14} />}
-							onClick={onShare}
-						>
-							{copied ? "Copied" : "Share"}
-						</Button>
-					)}
-				</Tooltip>
-				<Tooltip label="Settings">
-					<ActionIcon
-						variant="default"
-						size="lg"
-						aria-label="Settings"
-						onClick={onSettingsOpen}
-					>
-						<Settings size={16} />
-					</ActionIcon>
-				</Tooltip>
-				<SchemeToggle
-					dark={dark}
-					onToggle={() => setColorScheme(dark ? "light" : "dark")}
+		<Header
+			brand={
+				<Brand
+					icon={<Beer size={22} />}
+					title="Spooners"
+					subtitle="Pub prices on a map — build a round, see what every pub charges"
 				/>
-			</Group>
-		</Group>
+			}
+			center={
+				<>
+					{converting ? (
+						<Badge variant="light" color="blue" size="lg">
+							{isNarrow ? displayCurrency : `converted → ${displayCurrency}`}
+						</Badge>
+					) : null}
+					<Badge variant="light" size="lg" visibleFrom="md">
+						{stats.venuesWithData} pubs · {itemCount} items
+					</Badge>
+					<Box visibleFrom="md" w={220}>
+						<PubSearch venues={venues} onSelect={onSelectVenue} />
+					</Box>
+				</>
+			}
+			actions={
+				<>
+					<HeaderAction
+						iconOnly
+						label="Value charts"
+						icon={<Trophy size={16} />}
+						onClick={onValueOpen}
+					/>
+					<HeaderAction
+						iconOnly
+						label={copied ? "Link copied" : "Copy a link to this view"}
+						icon={<Copy size={16} />}
+						active={copied}
+						onClick={onShare}
+					/>
+					<HeaderAction
+						iconOnly
+						label="Settings"
+						icon={<Settings size={16} />}
+						onClick={onSettingsOpen}
+					/>
+					<SchemeToggle
+						dark={dark}
+						onToggle={() => setColorScheme(dark ? "light" : "dark")}
+					/>
+				</>
+			}
+		/>
 	);
 };

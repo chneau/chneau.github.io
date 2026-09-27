@@ -2,7 +2,6 @@ import {
 	Anchor,
 	Badge,
 	Box,
-	Center,
 	Divider,
 	Flex,
 	Group,
@@ -34,6 +33,7 @@ import {
 	type SaveView,
 	storageName,
 } from "@/lib/inventory";
+import { Brand } from "../../shared";
 
 const formatBytes = (bytes: number): string => {
 	if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
@@ -99,33 +99,11 @@ export const AppSidebar = ({
 			wrap="nowrap"
 			style={{ borderBottom: "1px solid var(--app-border)" }}
 		>
-			<Center
-				w={36}
-				h={36}
-				style={{
-					borderRadius: "var(--mantine-radius-md)",
-					border: "1px solid var(--mantine-primary-color-filled)",
-					background: "var(--mantine-primary-color-light)",
-					color: "var(--mantine-primary-color-filled)",
-					flexShrink: 0,
-				}}
-			>
-				<Database size={16} strokeWidth={2} />
-			</Center>
-			<Box style={{ minWidth: 0 }}>
-				<Text fw={600} size="md" lh={1}>
-					Save Workshop
-				</Text>
-				<Text
-					mt={4}
-					size="10px"
-					c="dimmed"
-					tt="uppercase"
-					style={{ letterSpacing: "0.16em" }}
-				>
-					Crimson Desert
-				</Text>
-			</Box>
+			<Brand
+				icon={<Database size={16} strokeWidth={2} />}
+				title="Save Workshop"
+				subtitle="Crimson Desert"
+			/>
 		</Group>
 
 		<ScrollArea style={{ flex: 1, minHeight: 0 }} p="sm">

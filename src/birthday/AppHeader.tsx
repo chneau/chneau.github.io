@@ -7,14 +7,18 @@ import {
 	Download,
 	FlaskConical,
 	Languages,
-	Moon,
 	Settings,
-	Sun,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
-import { StatusDot } from "../shared";
+import {
+	AppHeader as AppHeaderShell,
+	Brand,
+	HeaderAction,
+	SchemeToggle,
+	StatusDot,
+} from "../shared";
 import type { Birthday } from "./birthdays";
 import { triggerConfetti } from "./celebration";
 import {
@@ -140,34 +144,27 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 	const notificationsBlocked = notificationState === "denied";
 
 	return (
-		<header className="tk-topbar">
-			<div className="tk-container tk-topbar__inner">
-				<div className="tk-brand">
-					<span className="tk-brand__mark">
-						<Cake size={19} strokeWidth={1.9} />
-					</span>
-					<span className="tk-brand__text">
-						<span className="tk-brand__title">{t("app.title")}</span>
-						<span className="tk-brand__meta">build {BUILD_DATE}</span>
-					</span>
-				</div>
-
-				<nav className="tk-nav">
+		<AppHeaderShell
+			brand={
+				<Brand
+					icon={<Cake size={18} strokeWidth={1.9} />}
+					title={t("app.title")}
+					subtitle={`build ${BUILD_DATE}`}
+				/>
+			}
+			actions={
+				<>
 					{installPrompt && (
-						<button
-							type="button"
-							className="tk-iconbtn"
+						<HeaderAction
+							icon={<Download size={15} />}
 							onClick={async () => {
 								installPrompt.prompt();
 								const { outcome } = await installPrompt.userChoice;
 								if (outcome === "accepted") setInstallPrompt(undefined);
 							}}
 						>
-							<Download size={15} strokeWidth={1.9} />
-							<span className="tk-iconbtn__label">
-								{t("app.header.install")}
-							</span>
-						</button>
+							{t("app.header.install")}
+						</HeaderAction>
 					)}
 
 					<Tooltip
@@ -179,34 +176,34 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 									: "Enable birthday alerts"
 						}
 					>
-						<button
-							type="button"
-							className="tk-iconbtn"
+						<HeaderAction
+							label={t("app.header.enable_notifications")}
+							active={notificationsOn}
 							onClick={handleToggleNotifications}
-							aria-label={t("app.header.enable_notifications")}
+							icon={
+								<>
+									{notificationState === "default" ? (
+										<span className="app-statusdot" aria-hidden="true" />
+									) : (
+										<StatusDot on={notificationsOn} />
+									)}
+									<Bell size={15} />
+								</>
+							}
 						>
-							{notificationState === "default" ? (
-								<span className="app-statusdot" aria-hidden="true" />
-							) : (
-								<StatusDot on={notificationsOn} />
-							)}
-							<Bell size={15} strokeWidth={1.9} />
-							<span className="tk-iconbtn__label">
-								{notificationsOn
-									? "Alerts on"
-									: notificationsBlocked
-										? "Alerts blocked"
-										: "Enable alerts"}
-							</span>
-						</button>
+							{notificationsOn
+								? "Alerts on"
+								: notificationsBlocked
+									? "Alerts blocked"
+									: "Enable alerts"}
+						</HeaderAction>
 					</Tooltip>
 
 					<Menu position="bottom-end" shadow="md" withinPortal>
 						<Menu.Target>
-							<button type="button" className="tk-iconbtn tk-iconbtn--ghost">
-								<FlaskConical size={15} strokeWidth={1.9} />
-								<span className="tk-iconbtn__label">Demo</span>
-							</button>
+							<HeaderAction icon={<FlaskConical size={15} />}>
+								Demo
+							</HeaderAction>
 						</Menu.Target>
 						<Menu.Dropdown>
 							{demoToolsMenu.map((item) => (
@@ -223,14 +220,12 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 
 					<Menu position="bottom-end" shadow="md" withinPortal>
 						<Menu.Target>
-							<button
-								type="button"
-								className="tk-iconbtn tk-iconbtn--ghost"
-								aria-label="Change language"
+							<HeaderAction
+								label="Change language"
+								icon={<Languages size={15} />}
 							>
-								<Languages size={15} strokeWidth={1.9} />
-								<span className="tk-iconbtn__label">{current.short}</span>
-							</button>
+								{current.short}
+							</HeaderAction>
 						</Menu.Target>
 						<Menu.Dropdown>
 							{LANGUAGES.map((x) => {
@@ -253,55 +248,33 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 						</Menu.Dropdown>
 					</Menu>
 
-					<Tooltip
-						label={
-							storeSnap.darkMode ? t("app.header.light") : t("app.header.dark")
-						}
-					>
-						<button
-							type="button"
-							className="tk-iconbtn tk-iconbtn--square tk-iconbtn--ghost"
-							onClick={() => {
-								store.darkMode = !store.darkMode;
-							}}
-							aria-label={
-								storeSnap.darkMode
-									? t("app.header.light")
-									: t("app.header.dark")
-							}
-						>
-							{storeSnap.darkMode ? (
-								<Sun size={15} strokeWidth={1.9} />
-							) : (
-								<Moon size={15} strokeWidth={1.9} />
-							)}
-						</button>
-					</Tooltip>
+					<SchemeToggle
+						dark={storeSnap.darkMode}
+						onToggle={() => {
+							store.darkMode = !store.darkMode;
+						}}
+					/>
 
-					<Tooltip label={t("app.header.github")}>
-						<a
-							className="tk-iconbtn tk-iconbtn--square tk-iconbtn--ghost"
-							href="https://github.com/chneau/chneau.github.io"
-							target="_blank"
-							rel="noreferrer"
-							aria-label={t("app.header.github")}
-						>
-							<GitHubMark />
-						</a>
-					</Tooltip>
+					<HeaderAction
+						href="https://github.com/chneau/chneau.github.io"
+						target="_blank"
+						iconOnly
+						label={t("app.header.github")}
+						icon={<GitHubMark size={16} />}
+					/>
 
 					{onOpenManage && (
-						<button
-							type="button"
-							className="tk-iconbtn tk-iconbtn--accent"
+						<HeaderAction
+							accent
+							label={t("app.hero.manage")}
 							onClick={onOpenManage}
+							icon={<Settings size={15} />}
 						>
-							<Settings size={15} strokeWidth={1.9} />
-							<span className="tk-iconbtn__label">{t("app.hero.manage")}</span>
-						</button>
+							{t("app.hero.manage")}
+						</HeaderAction>
 					)}
-				</nav>
-			</div>
-		</header>
+				</>
+			}
+		/>
 	);
 };

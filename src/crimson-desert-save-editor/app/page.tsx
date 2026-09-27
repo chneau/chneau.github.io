@@ -16,6 +16,7 @@ import {
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import {
 	CheckCircle2,
+	Download,
 	FileUp,
 	HardDrive,
 	LockKeyhole,
@@ -79,7 +80,7 @@ import {
 	projectRecords,
 	storageSummaries,
 } from "@/lib/staged-projection";
-import { SchemeToggle } from "../../shared";
+import { AppHeader, Brand, HeaderAction, SchemeToggle } from "../../shared";
 
 /**
  * The editor shell.
@@ -441,6 +442,24 @@ export const Home = () => {
 		return { stagedStorageCounts: storageCounts, stagedViewCounts: viewCounts };
 	}, [edits]);
 
+	const pageTitle =
+		view === "inventory"
+			? result && activeStorage !== null
+				? storageName(activeStorage)
+				: "Save Editor"
+			: isEditorView(view)
+				? editorViewInfo[view].label
+				: companionLabels[view];
+
+	const pageSubtitle =
+		view === "inventory"
+			? result
+				? `${itemTypes} item types in this location`
+				: "Load a save, make changes and download the edited file"
+			: isEditorView(view)
+				? editorViewInfo[view].blurb
+				: "Pets, horses, special mounts and camp mercenaries";
+
 	const sidebar = (
 		<AppSidebar
 			result={result}
@@ -488,168 +507,147 @@ export const Home = () => {
 			</Drawer>
 
 			<Flex direction="column" style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
-				<Group
-					h={64}
-					px="md"
-					justify="space-between"
-					wrap="nowrap"
-					style={{
-						flexShrink: 0,
-						borderBottom: "1px solid var(--app-border)",
-					}}
-				>
-					<Group gap="md" wrap="nowrap" style={{ minWidth: 0 }}>
-						{!isDesktop && (
-							<Burger
-								opened={navOpened}
-								onClick={navHandlers.toggle}
-								size="sm"
-								aria-label="Toggle navigation"
-							/>
-						)}
-						<Box style={{ minWidth: 0 }}>
-							<Text component="h1" size="lg" fw={600} truncate>
-								{view === "inventory"
-									? result && activeStorage !== null
-										? storageName(activeStorage)
-										: "Save Editor"
-									: isEditorView(view)
-										? editorViewInfo[view].label
-										: companionLabels[view]}
-							</Text>
-							<Text size="xs" c="dimmed" truncate>
-								{view === "inventory"
-									? result
-										? `${itemTypes} item types in this location`
-										: "Load a save, make changes and download the edited file"
-									: isEditorView(view)
-										? editorViewInfo[view].blurb
-										: "Pets, horses, special mounts and camp mercenaries"}
-							</Text>
-						</Box>
-					</Group>
-					<Group gap="xs" wrap="nowrap">
-						<SchemeToggle
-							dark={dark}
-							onToggle={() => setColorScheme(dark ? "light" : "dark")}
-						/>
-						{result && (
-							<>
-								{fileName && (
-									<Badge
-										variant="default"
-										visibleFrom="md"
-										h={28}
-										color="gray"
-										leftSection={<HardDrive size={13} strokeWidth={2} />}
-										title={`${fileName} (${(fileSize / 1024).toFixed(1)} KB)`}
-									>
-										{fileName}
-									</Badge>
-								)}
-								<Badge variant="outline" color="brand" visibleFrom="lg" h={28}>
-									Build {catalog?.game.steam_build_id ?? "catalog loading"}
-								</Badge>
-							</>
-						)}
-						<Button
-							variant="default"
-							size="sm"
-							leftSection={<FileUp size={16} />}
-							onClick={() => inputRef.current?.click()}
-						>
-							{result ? "Open another" : "Open save"}
-						</Button>
-						{result && (
-							<>
-								{edits.length > 0 && (
-									<>
-										<Button
-											variant="light"
-											color="brand"
-											size="sm"
-											leftSection={<CheckCircle2 size={16} />}
-											onClick={() => setReviewOpen(true)}
-										>
-											Review ({edits.length})
-										</Button>
-										<Button
-											variant="subtle"
-											color="gray"
-											size="sm"
-											leftSection={<Undo2 size={16} />}
-											onClick={() =>
-												setEdits((current) => current.slice(0, -1))
-											}
-											title="Undo last staged change (Ctrl+Z / ⌘Z)"
-										>
-											Undo
-										</Button>
-										<Button
-											variant="subtle"
-											color="red"
-											size="sm"
-											leftSection={<Trash2 size={16} />}
-											onClick={() => setDiscardModalOpen(true)}
-										>
-											Discard all
-										</Button>
-									</>
-								)}
-								{view === "inventory" && (
-									<>
-										<EquipmentCatalogPanel
-											catalog={equipmentCatalog}
-											itemCatalog={catalog}
-											storages={storages.map((entry) => ({
-												key: entry.key,
-												name: storageName(entry.key),
-											}))}
-											defaultStorage={activeStorage}
-											records={result.records}
-											edits={edits}
-											busy={loading}
-											onStage={stageEquipment}
-										/>
-										<Button
-											variant="default"
-											size="sm"
-											leftSection={<Plus size={16} />}
-											onClick={() => setAddOpen(true)}
-										>
-											Add item
-										</Button>
-									</>
-								)}
-								<Button
+				<AppHeader
+					staticPosition
+					brand={
+						<>
+							{!isDesktop && (
+								<Burger
+									opened={navOpened}
+									onClick={navHandlers.toggle}
 									size="sm"
-									disabled={edits.length === 0 || loading}
-									leftSection={loading ? <Loader size={16} /> : undefined}
-									onClick={downloadEditedSave}
-								>
-									Download edited
-									{edits.length > 0 ? ` (${edits.length})` : ""}
-								</Button>
-							</>
-						)}
-					</Group>
-					<input
-						ref={inputRef}
-						type="file"
-						accept=".save"
-						style={{
-							position: "absolute",
-							width: 1,
-							height: 1,
-							overflow: "hidden",
-							clip: "rect(0 0 0 0)",
-							whiteSpace: "nowrap",
-						}}
-						onChange={(event) =>
-							event.target.files?.[0] && parseFile(event.target.files[0])
-						}
-					/>
-				</Group>
+									aria-label="Toggle navigation"
+								/>
+							)}
+							<Brand title={pageTitle} subtitle={pageSubtitle} />
+						</>
+					}
+					actions={
+						<>
+							<SchemeToggle
+								dark={dark}
+								onToggle={() => setColorScheme(dark ? "light" : "dark")}
+							/>
+							{result && (
+								<>
+									{fileName && (
+										<Badge
+											variant="default"
+											visibleFrom="md"
+											h={28}
+											color="gray"
+											leftSection={<HardDrive size={13} strokeWidth={2} />}
+											title={`${fileName} (${(fileSize / 1024).toFixed(1)} KB)`}
+										>
+											{fileName}
+										</Badge>
+									)}
+									<Badge
+										variant="outline"
+										color="brand"
+										visibleFrom="lg"
+										h={28}
+									>
+										Build {catalog?.game.steam_build_id ?? "catalog loading"}
+									</Badge>
+								</>
+							)}
+							<HeaderAction
+								label={result ? "Open another save" : "Open save"}
+								icon={<FileUp size={16} />}
+								onClick={() => inputRef.current?.click()}
+							>
+								{result ? "Open another" : "Open save"}
+							</HeaderAction>
+							{result && (
+								<>
+									{edits.length > 0 && (
+										<>
+											<HeaderAction
+												label={`Review ${edits.length} staged change${
+													edits.length === 1 ? "" : "s"
+												}`}
+												icon={<CheckCircle2 size={16} />}
+												onClick={() => setReviewOpen(true)}
+											>
+												Review ({edits.length})
+											</HeaderAction>
+											<HeaderAction
+												label="Undo last staged change (Ctrl+Z / ⌘Z)"
+												icon={<Undo2 size={16} />}
+												onClick={() =>
+													setEdits((current) => current.slice(0, -1))
+												}
+											>
+												Undo
+											</HeaderAction>
+											<HeaderAction
+												label="Discard all staged changes"
+												icon={<Trash2 size={16} />}
+												onClick={() => setDiscardModalOpen(true)}
+											>
+												Discard all
+											</HeaderAction>
+										</>
+									)}
+									{view === "inventory" && (
+										<>
+											<EquipmentCatalogPanel
+												catalog={equipmentCatalog}
+												itemCatalog={catalog}
+												storages={storages.map((entry) => ({
+													key: entry.key,
+													name: storageName(entry.key),
+												}))}
+												defaultStorage={activeStorage}
+												records={result.records}
+												edits={edits}
+												busy={loading}
+												onStage={stageEquipment}
+											/>
+											<HeaderAction
+												label="Add item"
+												icon={<Plus size={16} />}
+												onClick={() => setAddOpen(true)}
+											>
+												Add item
+											</HeaderAction>
+										</>
+									)}
+									<HeaderAction
+										accent
+										disabled={edits.length === 0}
+										loading={loading}
+										label="Download edited save"
+										icon={
+											loading ? <Loader size={16} /> : <Download size={16} />
+										}
+										onClick={downloadEditedSave}
+									>
+										Download edited
+										{edits.length > 0 ? ` (${edits.length})` : ""}
+									</HeaderAction>
+								</>
+							)}
+						</>
+					}
+				/>
+				<input
+					ref={inputRef}
+					type="file"
+					accept=".save"
+					style={{
+						position: "absolute",
+						width: 1,
+						height: 1,
+						overflow: "hidden",
+						clip: "rect(0 0 0 0)",
+						whiteSpace: "nowrap",
+					}}
+					onChange={(event) =>
+						event.target.files?.[0] && parseFile(event.target.files[0])
+					}
+				/>
 
 				{downloadProgress && (
 					<Box

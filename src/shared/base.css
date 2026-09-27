@@ -209,6 +209,176 @@ button {
 	line-height: 1.55;
 }
 
+/* ── Top bar ───────────────────────────────────────────────────
+   One navbar for every site: 56px tall, solid surface, hairline border,
+   brand on the left and 36px action controls on the right. */
+
+.app-header {
+	position: sticky;
+	top: 0;
+	z-index: 40;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-shrink: 0;
+	height: 56px;
+	padding: 0 clamp(12px, 2.5vw, 20px);
+	background: var(--app-surface);
+	border-bottom: 1px solid var(--app-border);
+}
+.app-header--static {
+	position: relative;
+}
+.app-brand {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+	color: inherit;
+	text-decoration: none;
+}
+.app-brand__mark {
+	width: 36px;
+	height: 36px;
+	flex: none;
+	display: grid;
+	place-items: center;
+	border-radius: 10px;
+	background: var(
+		--mantine-primary-color-light,
+		var(--app-accent-soft, var(--app-surface-2))
+	);
+	color: var(
+		--mantine-primary-color-filled,
+		var(--app-accent, var(--app-text))
+	);
+}
+.app-brand__text {
+	display: flex;
+	flex-direction: column;
+	line-height: 1.1;
+	min-width: 0;
+}
+.app-brand__title {
+	font-size: 15px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.app-brand__subtitle {
+	font-size: 11.5px;
+	color: var(--app-text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.app-header__center {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+}
+.app-header__actions {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex: none;
+}
+.app-header-action {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	height: 36px;
+	min-width: 36px;
+	padding: 0 10px;
+	border-radius: var(--app-radius-sm);
+	border: 1px solid var(--app-border);
+	background: var(--app-surface-2);
+	color: var(--app-text-muted);
+	font: inherit;
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	white-space: nowrap;
+	text-decoration: none;
+	transition:
+		background-color var(--app-speed) var(--app-ease),
+		border-color var(--app-speed) var(--app-ease),
+		color var(--app-speed) var(--app-ease),
+		transform 0.18s var(--app-ease);
+}
+.app-header-action--icon {
+	padding: 0;
+}
+.app-header-action--accent {
+	background: var(
+		--mantine-primary-color-filled,
+		var(--app-accent, var(--app-text))
+	);
+	border-color: transparent;
+	color: var(--mantine-primary-color-contrast, #ffffff);
+}
+.app-header-action--active {
+	background: var(
+		--mantine-primary-color-light,
+		var(--app-accent-soft, var(--app-surface-2))
+	);
+	border-color: var(
+		--mantine-primary-color-filled,
+		var(--app-accent-line, var(--app-border-strong))
+	);
+	color: var(
+		--mantine-primary-color-light-color,
+		var(--app-accent-ink, var(--app-text))
+	);
+}
+.app-header-action__label {
+	display: inline;
+}
+.app-header-action:hover {
+	background: var(--app-surface-3);
+	border-color: var(--app-border-strong);
+	color: var(--app-text);
+}
+.app-header-action--accent:hover {
+	background: var(
+		--mantine-primary-color-filled-hover,
+		var(--app-accent-hover, var(--app-accent))
+	);
+	border-color: transparent;
+	color: var(--mantine-primary-color-contrast, #ffffff);
+}
+.app-header-action--active:hover {
+	color: var(
+		--mantine-primary-color-light-color,
+		var(--app-accent-ink, var(--app-text))
+	);
+}
+.app-header-action:active {
+	transform: translateY(1px) scale(0.985);
+}
+.app-header-action:disabled,
+.app-header-action[aria-disabled="true"] {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+@media (max-width: 640px) {
+	.app-header-action__label {
+		display: none;
+	}
+	.app-header-action {
+		padding: 0;
+	}
+}
+
 /* Fixed, non-interactive film grain. */
 .app-grain {
 	position: fixed;

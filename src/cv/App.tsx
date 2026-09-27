@@ -10,14 +10,13 @@ import {
 	Home,
 	Link2,
 	Mail,
-	Moon,
 	Phone,
 	Printer,
-	Sun,
 	TriangleAlert,
 } from "lucide-react";
 import type { CSSProperties, ReactNode, RefObject } from "react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { AppHeader, Brand, HeaderAction, SchemeToggle } from "../shared";
 
 declare const BUILD_DATE: string;
 
@@ -327,58 +326,6 @@ const LocalClock = memo(function LocalClock() {
 	);
 });
 
-const useMagnetic = (strength = 0.24, max = 6) => {
-	const ref = useRef<HTMLSpanElement>(null);
-
-	useEffect(() => {
-		const el = ref.current;
-		if (!el) return;
-		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-		if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-			return;
-		}
-
-		let frame = 0;
-		const onMove = (event: PointerEvent) => {
-			const rect = el.getBoundingClientRect();
-			const dx = event.clientX - (rect.left + rect.width / 2);
-			const dy = event.clientY - (rect.top + rect.height / 2);
-			window.cancelAnimationFrame(frame);
-			frame = window.requestAnimationFrame(() => {
-				const x = Math.max(-max, Math.min(max, dx * strength));
-				const y = Math.max(-max, Math.min(max, dy * strength));
-				el.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(
-					2,
-				)}px, 0)`;
-			});
-		};
-		const onLeave = () => {
-			window.cancelAnimationFrame(frame);
-			el.style.transform = "";
-		};
-
-		el.addEventListener("pointermove", onMove);
-		el.addEventListener("pointerleave", onLeave);
-		return () => {
-			window.cancelAnimationFrame(frame);
-			el.removeEventListener("pointermove", onMove);
-			el.removeEventListener("pointerleave", onLeave);
-			el.style.transform = "";
-		};
-	}, [strength, max]);
-
-	return ref;
-};
-
-const Magnetic = ({ children }: { children: ReactNode }) => {
-	const ref = useMagnetic();
-	return (
-		<span ref={ref} className="magnetic">
-			{children}
-		</span>
-	);
-};
-
 const useInView = (ref: RefObject<Element | null>) => {
 	const [inView, setInView] = useState(true);
 
@@ -653,99 +600,69 @@ export const App = () => {
 		<div className="cv-root">
 			<div className="cv-grain no-print" aria-hidden />
 
-			<header className="cv-header no-print">
-				<div className="cv-header-inner">
-					<a className="cv-brand" href="/" title="Return to dashboard (Esc)">
-						<span className="cv-brand-mark">CN</span>
-						<span className="cv-brand-text">
-							<span className="cv-brand-name">Charles Neau</span>
-							<span className="cv-brand-role">Curriculum Vitae</span>
-						</span>
-					</a>
-
-					<nav className="cv-actions" aria-label="CV actions">
-						<Magnetic>
-							<a
-								className="cv-action cv-action--icon"
-								href="/"
-								title="Dashboard (Esc)"
-								aria-label="Return to dashboard"
-							>
-								<Home aria-hidden />
-							</a>
-						</Magnetic>
-						<Magnetic>
-							<button
-								type="button"
-								className="cv-action cv-action--icon"
-								data-state={linkCopy.state}
-								onClick={linkCopy.copy}
-								title={linkCopy.title}
-								aria-label={linkCopy.title}
-							>
-								{linkCopy.state === "ok" ? (
-									<Check aria-hidden />
+			<AppHeader
+				className="no-print"
+				brand={
+					<Brand
+						href="/"
+						icon={<span style={{ fontSize: 13, fontWeight: 700 }}>CN</span>}
+						title="Charles Neau"
+						subtitle="Curriculum Vitae"
+					/>
+				}
+				actions={
+					<>
+						<HeaderAction
+							iconOnly
+							href="/"
+							label="Return to dashboard (Esc)"
+							icon={<Home size={16} />}
+						/>
+						<HeaderAction
+							iconOnly
+							active={linkCopy.state === "ok"}
+							label={linkCopy.title}
+							onClick={linkCopy.copy}
+							icon={
+								linkCopy.state === "ok" ? (
+									<Check size={16} />
 								) : linkCopy.state === "error" ? (
-									<TriangleAlert aria-hidden />
+									<TriangleAlert size={16} />
 								) : (
-									<Link2 aria-hidden />
-								)}
-							</button>
-						</Magnetic>
-						<Magnetic>
-							<a
-								className="cv-action"
-								data-variant="primary"
-								href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
-								target="_blank"
-								rel="noreferrer"
-								title="View or download the raw PDF from GitHub"
-							>
-								<FileText aria-hidden />
-								<span className="cv-action-label">PDF</span>
-							</a>
-						</Magnetic>
-						<Magnetic>
-							<a
-								className="cv-action"
-								href="https://raw.githubusercontent.com/chneau/cv/master/cv.docx"
-								target="_blank"
-								rel="noreferrer"
-								title="View or download the raw DOCX from GitHub"
-							>
-								<FileType aria-hidden />
-								<span className="cv-action-label">DOCX</span>
-							</a>
-						</Magnetic>
-						<Magnetic>
-							<button
-								type="button"
-								className="cv-action cv-action--icon"
-								onClick={() => window.print()}
-								title="Print or save as PDF (Ctrl+P)"
-								aria-label="Print or save as PDF"
-							>
-								<Printer aria-hidden />
-							</button>
-						</Magnetic>
-						<Magnetic>
-							<button
-								type="button"
-								className="cv-action cv-action--icon"
-								onClick={() => setDarkMode((value) => !value)}
-								title={
-									darkMode ? "Switch to light mode" : "Switch to dark mode"
-								}
-								aria-label={
-									darkMode ? "Switch to light mode" : "Switch to dark mode"
-								}
-							>
-								{darkMode ? <Sun aria-hidden /> : <Moon aria-hidden />}
-							</button>
-						</Magnetic>
-					</nav>
-				</div>
-			</header>
+									<Link2 size={16} />
+								)
+							}
+						/>
+						<HeaderAction
+							accent
+							href="https://raw.githubusercontent.com/chneau/cv/master/cv.pdf"
+							target="_blank"
+							label="View or download the raw PDF from GitHub"
+							icon={<FileText size={15} />}
+						>
+							PDF
+						</HeaderAction>
+						<HeaderAction
+							href="https://raw.githubusercontent.com/chneau/cv/master/cv.docx"
+							target="_blank"
+							label="View or download the raw DOCX from GitHub"
+							icon={<FileType size={15} />}
+						>
+							DOCX
+						</HeaderAction>
+						<HeaderAction
+							iconOnly
+							label="Print or save as PDF (Ctrl+P)"
+							onClick={() => window.print()}
+							icon={<Printer size={16} />}
+						/>
+						<SchemeToggle
+							dark={darkMode}
+							onToggle={() => setDarkMode((value) => !value)}
+						/>
+					</>
+				}
+			/>
 
 			<section className="cv-shell cv-hero" ref={heroRef}>
 				<div data-reveal style={reveal(0)}>

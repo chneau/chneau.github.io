@@ -138,77 +138,6 @@ body {
 	padding-block: clamp(20px, 3.5vw, 44px) 72px;
 }
 
-/* ── Top bar ───────────────────────────────────────────────── */
-
-.tk-topbar {
-	position: sticky;
-	top: 0;
-	z-index: 40;
-	border-bottom: 1px solid var(--tk-border);
-	background: color-mix(in srgb, var(--tk-bg) 78%, transparent);
-	backdrop-filter: blur(18px) saturate(140%);
-	-webkit-backdrop-filter: blur(18px) saturate(140%);
-}
-
-.tk-topbar__inner {
-	display: flex;
-	align-items: center;
-	gap: 16px;
-	min-height: 64px;
-	padding-block: 10px;
-	flex-wrap: wrap;
-	justify-content: space-between;
-}
-
-.tk-brand {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	min-width: 0;
-}
-
-.tk-brand__mark {
-	position: relative;
-	width: 38px;
-	height: 38px;
-	flex: none;
-	display: grid;
-	place-items: center;
-	border-radius: 12px;
-	background: var(--tk-accent);
-	color: #04150f;
-	box-shadow:
-		inset 0 1px 0 rgba(255, 255, 255, 0.4),
-		0 6px 16px -8px var(--tk-accent);
-}
-
-.tk-brand__text {
-	display: flex;
-	flex-direction: column;
-	line-height: 1.05;
-	min-width: 0;
-}
-.tk-brand__title {
-	font-size: 15px;
-	font-weight: 600;
-	letter-spacing: -0.02em;
-	white-space: nowrap;
-}
-.tk-brand__meta {
-	font-family: var(--tk-font-mono);
-	font-size: 10.5px;
-	color: var(--tk-text-faint);
-	letter-spacing: 0.02em;
-	white-space: nowrap;
-}
-
-.tk-nav {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	flex-wrap: wrap;
-}
-
 /* ── Controls ──────────────────────────────────────────────── */
 
 .tk-iconbtn {
@@ -920,22 +849,8 @@ body {
 }
 
 @media (max-width: 640px) {
-	.tk-topbar__inner {
-		min-height: 0;
-	}
-	.tk-brand__meta {
-		display: none;
-	}
 	.tk-count {
 		flex-wrap: wrap;
-	}
-	.tk-nav .tk-iconbtn__label {
-		display: none;
-	}
-	.tk-nav .tk-iconbtn {
-		padding: 0;
-		width: 34px;
-		justify-content: center;
 	}
 }
 
