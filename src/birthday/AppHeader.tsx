@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import {
 	AppHeader as AppHeaderShell,
+	AppSwitcher,
 	BackHome,
 	Brand,
 	HeaderAction,
@@ -157,6 +158,7 @@ export const AppHeader = ({ data, onOpenManage }: AppHeaderProps) => {
 			actions={
 				<>
 					<BackHome />
+					<AppSwitcher />
 					{installPrompt && (
 						<HeaderAction
 							icon={<Download size={15} />}

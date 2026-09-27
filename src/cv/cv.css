@@ -785,55 +785,6 @@ a:hover .cv-ext {
 	font-variant-numeric: tabular-nums;
 }
 
-/* ---------------------------------------------------------------- footer -- */
-
-.cv-footer {
-	border-top: 1px solid var(--border);
-}
-
-.cv-footer-inner {
-	max-width: var(--shell);
-	margin: 0 auto;
-	padding: 28px 24px 42px;
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: 16px 24px;
-}
-
-.cv-footer-links {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px 18px;
-	font-family: var(--font-mono);
-	font-size: 12px;
-}
-
-.cv-footer-links a {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	color: var(--text-muted);
-	text-decoration: none;
-	transition: color var(--speed) var(--ease);
-}
-
-.cv-footer-links a:hover {
-	color: var(--accent);
-}
-
-.cv-footer-links svg {
-	width: 13px;
-	height: 13px;
-}
-
-.cv-footer-meta {
-	font-family: var(--font-mono);
-	font-size: 11px;
-	color: var(--text-faint);
-}
-
 /* --------------------------------------------------------------- back top -- */
 
 .cv-top {
@@ -921,8 +872,7 @@ a:hover .cv-ext {
 }
 
 @media (max-width: 640px) {
-	.cv-shell,
-	.cv-footer-inner {
+	.cv-shell {
 		padding-left: 16px;
 		padding-right: 16px;
 	}
@@ -979,7 +929,6 @@ a:hover .cv-ext {
 
 	.cv-grain,
 	.cv-top,
-	.cv-footer,
 	.no-print,
 	.cv-copy,
 	.cv-hero::before {

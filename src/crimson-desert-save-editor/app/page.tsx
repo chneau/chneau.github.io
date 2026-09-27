@@ -82,6 +82,7 @@ import {
 } from "@/lib/staged-projection";
 import {
 	AppHeader,
+	AppSwitcher,
 	BackHome,
 	Brand,
 	HeaderAction,
@@ -531,6 +532,7 @@ export const Home = () => {
 					actions={
 						<>
 							<BackHome />
+							<AppSwitcher />
 							{result && (
 								<>
 									{fileName && (

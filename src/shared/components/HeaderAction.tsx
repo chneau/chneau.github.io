@@ -19,6 +19,9 @@ type HeaderActionProps = {
 	disabled?: boolean;
 	/** Marks the control as busy; also disables it. */
 	loading?: boolean;
+	/** For controls that open a menu. */
+	ariaExpanded?: boolean;
+	ariaHaspopup?: "menu" | "dialog" | "listbox" | "tree" | "grid";
 	className?: string;
 };
 
@@ -40,6 +43,8 @@ export const HeaderAction = forwardRef<
 			active,
 			disabled,
 			loading,
+			ariaExpanded,
+			ariaHaspopup,
 			className,
 		},
 		ref,
@@ -89,6 +94,8 @@ export const HeaderAction = forwardRef<
 				className={classes}
 				aria-label={label}
 				title={label}
+				aria-expanded={ariaExpanded}
+				aria-haspopup={ariaHaspopup}
 				disabled={inert}
 				onClick={onClick}
 			>

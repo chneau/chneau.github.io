@@ -13,6 +13,7 @@ import { useEffect, useRef } from "react";
 import { useSnapshot } from "valtio";
 import {
 	AppHeader,
+	AppSwitcher,
 	BackHome,
 	Brand,
 	HeaderAction,
@@ -187,6 +188,7 @@ export const App = () => {
 				actions={
 					<>
 						<BackHome />
+						<AppSwitcher />
 						<HeaderAction
 							iconOnly
 							active={settings.soundEffects}

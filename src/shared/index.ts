@@ -1,11 +1,15 @@
+export { APPS, type AppEntry } from "./apps";
 export { AppHeader } from "./components/AppHeader";
+export { AppSwitcher } from "./components/AppSwitcher";
 export { BackHome } from "./components/BackHome";
 export { Brand } from "./components/Brand";
 export { EmptyState } from "./components/EmptyState";
+export { Footer } from "./components/Footer";
 export { Grain } from "./components/Grain";
 export { HeaderAction } from "./components/HeaderAction";
 export { SchemeToggle } from "./components/SchemeToggle";
 export { Section } from "./components/Section";
 export { Skeleton } from "./components/Skeleton";
+export { Stat } from "./components/Stat";
 export { StatusDot } from "./components/StatusDot";
 export { createAppTheme } from "./theme";
