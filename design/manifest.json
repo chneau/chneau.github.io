@@ -1,0 +1,16 @@
+{
+	"name": "Design System",
+	"short_name": "Design",
+	"description": "The shared design tokens and components behind chneau.github.io.",
+	"start_url": ".",
+	"display": "standalone",
+	"background_color": "#09090b",
+	"theme_color": "#6366f1",
+	"icons": [
+		{
+			"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>",
+			"sizes": "192x192",
+			"type": "image/svg+xml"
+		}
+	]
+}
