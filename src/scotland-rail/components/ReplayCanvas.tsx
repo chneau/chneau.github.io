@@ -1,6 +1,7 @@
 import { Crosshair, MapPin, MoveRight, ZoomIn, ZoomOut } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
+import { prefersReducedMotion } from "../../shared";
 import {
 	COASTLINES,
 	LANDMARKS,
@@ -107,6 +108,27 @@ export const ReplayCanvas = () => {
 	} = snap;
 	const { filteredServices, activeTrains } = derivedSnap;
 	const selectedServiceId = selectedService?.id ?? null;
+	const reducedMotion = prefersReducedMotion();
+
+	// Screen-reader summary so the map is not a pointer-only surface.
+	const activeTrainsSummary = useMemo(() => {
+		if (activeTrains.length === 0) {
+			return "No trains are currently running.";
+		}
+		const names = activeTrains
+			.slice(0, 8)
+			.map(
+				(t) =>
+					`${t.service.serviceNumber} ${t.service.name}${
+						t.isDwelling ? ` at ${t.currentStopName}` : ""
+					}`,
+			);
+		const more =
+			activeTrains.length > names.length
+				? `, plus ${activeTrains.length - names.length} more`
+				: "";
+		return `${activeTrains.length} trains running: ${names.join("; ")}${more}.`;
+	}, [activeTrains]);
 
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const staticCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -411,7 +433,7 @@ export const ReplayCanvas = () => {
 		const proj = createProjection(bounds, width, height, 32, zoom, pan);
 
 		// 1. Highland Weather / Rain Effect
-		if (settings.weatherEffects) {
+		if (settings.weatherEffects && !reducedMotion) {
 			ctx.save();
 			ctx.strokeStyle = "rgba(180, 215, 240, 0.18)";
 			ctx.lineWidth = 1;
@@ -485,7 +507,12 @@ export const ReplayCanvas = () => {
 
 			// Headlight beam
 			const atmo = getDayNightAtmosphere(timeOffset, settings.dayNightCycle);
-			if (settings.trainHeadlights && atmo.isNight && !train.isDwelling) {
+			if (
+				settings.trainHeadlights &&
+				atmo.isNight &&
+				!train.isDwelling &&
+				!reducedMotion
+			) {
 				ctx.save();
 				ctx.translate(x, y);
 				ctx.rotate(train.headingAngle);
@@ -510,8 +537,8 @@ export const ReplayCanvas = () => {
 			// Draw Station Dwelling / Stopped Train Visual Effect
 			if (train.isDwelling) {
 				const nowMs = performance.now();
-				const pulse1 = (nowMs % 1600) / 1600;
-				const pulse2 = ((nowMs + 800) % 1600) / 1600;
+				const pulse1 = reducedMotion ? 0 : (nowMs % 1600) / 1600;
+				const pulse2 = reducedMotion ? 0.5 : ((nowMs + 800) % 1600) / 1600;
 
 				ctx.save();
 				ctx.fillStyle = `${catConfig.color}22`;
@@ -593,16 +620,23 @@ export const ReplayCanvas = () => {
 		pan,
 		timeOffset,
 		settings,
+		reducedMotion,
 	]);
 
-	// Mouse Wheel Zoom
-	const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
-		e.preventDefault();
-		const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
-		setZoom((prev) => {
-			return Math.min(8, Math.max(0.6, prev * zoomFactor));
-		});
-	};
+	// Native wheel listener so preventDefault() is honoured (React's onWheel is passive).
+	useEffect(() => {
+		const canvas = canvasRef.current;
+		if (!canvas) return;
+
+		const onWheel = (e: WheelEvent) => {
+			e.preventDefault();
+			const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
+			setZoom((prev) => Math.min(8, Math.max(0.6, prev * zoomFactor)));
+		};
+
+		canvas.addEventListener("wheel", onWheel, { passive: false });
+		return () => canvas.removeEventListener("wheel", onWheel);
+	}, []);
 
 	// Mouse Drag to Pan
 	const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -779,7 +813,8 @@ export const ReplayCanvas = () => {
 		>
 			<canvas
 				ref={canvasRef}
-				onWheel={handleWheel}
+				role="img"
+				aria-label="Map of Scotland showing live train positions and rail network"
 				onMouseDown={handleMouseDown}
 				onMouseMove={handleMouseMove}
 				onMouseUp={handleMouseUp}
@@ -800,6 +835,11 @@ export const ReplayCanvas = () => {
 					cursor: hoveredServiceId ? "pointer" : "grab",
 				}}
 			/>
+
+			{/* Non-visual equivalent of the map, kept in sync with the active trains. */}
+			<p className="sr-only" aria-live="polite">
+				{activeTrainsSummary}
+			</p>
 
 			{/* Boot overlay: covers the canvas until the first frame is painted. */}
 			<div

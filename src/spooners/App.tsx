@@ -1,16 +1,7 @@
-import {
-	Alert,
-	Box,
-	Button,
-	Card,
-	Group,
-	Loader,
-	Stack,
-	Text,
-} from "@mantine/core";
+import { Box, Button, Group, Loader, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useEffect, useMemo, useState } from "react";
-import { Section } from "../shared";
+import { EmptyState, Section } from "../shared";
 import { type BasketItem, parseBasket, serializeBasket } from "./basket";
 import { AppHeader } from "./components/AppHeader";
 import { DiscoverPanel } from "./components/DiscoverPanel";
@@ -43,7 +34,7 @@ const RATE_SOURCE = "European Central Bank, via frankfurter.dev";
 
 export const App = () => {
 	const url = useMemo(() => readUrl(), []);
-	const { data, error, loading } = useDataset();
+	const { data, error, loading, reload } = useDataset();
 	const isMobile = useMediaQuery("(max-width: 62em)");
 	const [settings, setSettings] = useSettings();
 	const [settingsOpen, setSettingsOpen] = useState(false);
@@ -353,9 +344,16 @@ export const App = () => {
 
 	if (error || !data) {
 		return (
-			<Alert color="red" title="Could not load the data" m="md">
-				{error ?? "Unknown error"}
-			</Alert>
+			<Stack align="center" justify="center" h="100vh" m="md">
+				<EmptyState
+					title="We couldn't load the pub prices"
+					body={
+						error ??
+						"Something went wrong while loading the data. Please try again."
+					}
+					action={<Button onClick={reload}>Try again</Button>}
+				/>
+			</Stack>
 		);
 	}
 
@@ -374,6 +372,7 @@ export const App = () => {
 				onSelectVenue={setVenueRef}
 				converting={converting}
 				displayCurrency={displayCurrency}
+				rateIssue={settings.currency !== "native" && !converting}
 				copied={copied}
 				onShare={copyShare}
 				onValueOpen={() => setValueOpen(true)}
@@ -446,6 +445,7 @@ export const App = () => {
 							filters={filters}
 							activeFilters={activeFilters}
 							onFilters={setActiveFilters}
+							onResetFilters={resetFilters}
 							dietaryRelevant={dietaryRelevant}
 							facilities={facilityOptions}
 							activeFacilities={activeFacilities}
@@ -489,13 +489,11 @@ export const App = () => {
 							/>
 						</Section>
 						{withDistance.length === 0 ? (
-							<Card withBorder padding="md" radius="md">
-								<Stack gap="xs">
-									<Text fw={600}>No pubs match</Text>
-									<Text size="sm" c="dimmed">
-										Nothing serves this round with the current filters.
-									</Text>
-									<Group gap="xs">
+							<EmptyState
+								title="No pubs match"
+								body="Nothing serves this round with the current filters."
+								action={
+									<Group gap="xs" justify="center">
 										{partialCount > 0 && onlyComplete ? (
 											<Button size="xs" onClick={() => setOnlyComplete(false)}>
 												Include partial pubs ({partialCount})
@@ -521,8 +519,8 @@ export const App = () => {
 											</Button>
 										) : null}
 									</Group>
-								</Stack>
-							</Card>
+								}
+							/>
 						) : null}
 						<Section title="Price distribution">
 							<Distribution

@@ -12,4 +12,5 @@ export { Section } from "./components/Section";
 export { Skeleton } from "./components/Skeleton";
 export { Stat } from "./components/Stat";
 export { StatusDot } from "./components/StatusDot";
+export { prefersReducedMotion } from "./motion";
 export { createAppTheme } from "./theme";

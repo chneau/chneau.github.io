@@ -1,10 +1,10 @@
 import {
+	ActionIcon,
 	Alert,
 	Badge,
 	Box,
 	Button,
 	Checkbox,
-	CloseButton,
 	Group,
 	Loader,
 	Modal,
@@ -17,7 +17,7 @@ import {
 	Text,
 	TextInput,
 } from "@mantine/core";
-import { CheckCheck, RotateCcw, Search } from "lucide-react";
+import { CheckCheck, RotateCcw, Search, TriangleAlert, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	type QuestDescription,
@@ -210,7 +210,11 @@ export const QuestsPanel = ({
 			style={{ flex: 1, minHeight: 0, overflow: "auto" }}
 		>
 			{error && (
-				<Alert color="red" title="Could not apply changes">
+				<Alert
+					color="red"
+					icon={<TriangleAlert size={16} />}
+					title="Could not apply quest changes"
+				>
 					{error}
 				</Alert>
 			)}
@@ -307,7 +311,7 @@ export const QuestsPanel = ({
 										0,
 									)
 									.toLocaleString()}{" "}
-								rows queued
+								rows staged
 							</Text>
 							<Text size="xs" c="dimmed">
 								{presets.length > 0
@@ -322,7 +326,7 @@ export const QuestsPanel = ({
 							disabled={busy}
 							onClick={() => onStage([])}
 						>
-							Discard
+							Discard all
 						</Button>
 					</Group>
 				</Paper>
@@ -338,14 +342,19 @@ export const QuestsPanel = ({
 						leftSection={<Search size={16} />}
 						rightSection={
 							query ? (
-								<CloseButton
+								<ActionIcon
 									size="xs"
+									variant="subtle"
+									color="gray"
 									onClick={() => {
 										setQuery("");
 										setPage(0);
 									}}
+									title="Clear search"
 									aria-label="Clear search"
-								/>
+								>
+									<X size={14} />
+								</ActionIcon>
 							) : undefined
 						}
 						value={query}
@@ -492,12 +501,14 @@ export const QuestsPanel = ({
 					<Text size="xs" c="dimmed">
 						{matches.length.toLocaleString()} rows
 					</Text>
-					<Pagination
-						size="sm"
-						total={pages}
-						value={current + 1}
-						onChange={(next) => setPage(next - 1)}
-					/>
+					{pages > 1 && (
+						<Pagination
+							size="sm"
+							total={pages}
+							value={current + 1}
+							onChange={(next) => setPage(next - 1)}
+						/>
+					)}
 				</Group>
 			</Box>
 

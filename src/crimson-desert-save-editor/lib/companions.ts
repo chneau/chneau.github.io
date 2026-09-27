@@ -97,7 +97,7 @@ export const companionStatus = (
 				ownershipGroup(catalog, e.characterKey) === group,
 		)
 	) {
-		return "Queued";
+		return "Staged";
 	}
 	if (
 		!catalog.entries[String(key)]?.addable ||

@@ -1,4 +1,5 @@
 import {
+	ActionIcon,
 	Box,
 	NavLink,
 	Select,
@@ -7,7 +8,7 @@ import {
 	Text,
 	TextInput,
 } from "@mantine/core";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Picture } from "@/components/picture";
 import { VirtualList } from "@/components/virtual-list";
@@ -139,6 +140,23 @@ export const CatalogBrowser = ({
 					placeholder={labels.search}
 					value={query}
 					leftSection={<Search size={16} />}
+					rightSection={
+						query ? (
+							<ActionIcon
+								size="xs"
+								variant="subtle"
+								color="gray"
+								onClick={() => {
+									setQuery("");
+									onFilterChange?.();
+								}}
+								title="Clear search"
+								aria-label="Clear search"
+							>
+								<X size={14} />
+							</ActionIcon>
+						) : null
+					}
 					onChange={(event) => {
 						setQuery(event.currentTarget.value);
 						onFilterChange?.();

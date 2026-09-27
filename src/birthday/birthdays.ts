@@ -163,7 +163,7 @@ const getSign = (
 
 // --- Birthday Logic ---
 
-const birthdaySchema = z.object({
+export const birthdaySchema = z.object({
 	name: z.string().min(1),
 	date: z.string().refine((val) => dayjs(val).isValid(), {
 		message: "Invalid date format",

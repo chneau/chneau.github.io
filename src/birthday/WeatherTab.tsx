@@ -133,7 +133,8 @@ const HourlyForecast = ({ weather }: { weather: WttrResponse }) => {
 						minWidth: 60,
 						textAlign: "center",
 						padding: "0 8px",
-						borderRight: i < hourly.length - 1 ? "1px solid #f0f0f0" : "none",
+						borderRight:
+							i < hourly.length - 1 ? "1px solid var(--tk-border)" : "none",
 					}}
 				>
 					<Text c="dimmed" style={{ fontSize: 12 }}>
@@ -220,14 +221,14 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 		return (
 			<Card withBorder padding="sm" style={{ marginBottom: 12 }}>
 				<Group gap="sm" align="center">
-					<Text c="red">Error loading weather for {location}</Text>
+					<Text c="red">{t("app.weather.error", { location })}</Text>
 					<Button size="xs" variant="default" onClick={() => refetch()}>
-						Retry
+						{t("app.weather.retry")}
 					</Button>
 					<ConfirmPopover
-						title={`Remove ${location} from weather list?`}
-						confirmLabel="Remove"
-						cancelLabel="Cancel"
+						title={t("app.weather.remove_title", { location })}
+						confirmLabel={t("app.weather.remove_confirm")}
+						cancelLabel={t("common.cancel")}
 						danger
 						onConfirm={() => {
 							store.weatherLocations = store.weatherLocations.filter(
@@ -254,7 +255,7 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 			variant="contained"
 			styles={{
 				item: {
-					backgroundColor: storeSnap.darkMode ? "#1f1f1f" : "#fafafa",
+					backgroundColor: "var(--tk-surface-2)",
 					border: "none",
 				},
 				control: { backgroundColor: "transparent" },
@@ -265,10 +266,10 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 				<Accordion.Control>
 					<Group justify="space-between" align="center" wrap="nowrap">
 						<Group gap="xs" wrap="nowrap">
-							<Tooltip label="Drag to reorder">
+							<Tooltip label={t("app.weather.drag_reorder")}>
 								<GripVertical
 									size={16}
-									style={{ cursor: "grab", color: "#bfbfbf" }}
+									style={{ cursor: "grab", color: "var(--tk-text-faint)" }}
 								/>
 							</Tooltip>
 							<Group gap={2} wrap="nowrap">
@@ -280,8 +281,8 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 										e.stopPropagation();
 										onMove(index, index - 1);
 									}}
-									title="Move up"
-									aria-label="Move up"
+									title={t("app.weather.move_up")}
+									aria-label={t("app.weather.move_up")}
 								>
 									<ArrowUp size={14} />
 								</Button>
@@ -293,8 +294,8 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 										e.stopPropagation();
 										onMove(index, index + 1);
 									}}
-									title="Move down"
-									aria-label="Move down"
+									title={t("app.weather.move_down")}
+									aria-label={t("app.weather.move_down")}
 								>
 									<ArrowDown size={14} />
 								</Button>
@@ -327,9 +328,9 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 								)}
 							</div>
 							<ConfirmPopover
-								title={`Remove ${location} from weather locations?`}
-								confirmLabel="Remove"
-								cancelLabel="Cancel"
+								title={t("app.weather.remove_location_title", { location })}
+								confirmLabel={t("app.weather.remove_confirm")}
+								cancelLabel={t("common.cancel")}
 								danger
 								onConfirm={() => {
 									store.weatherLocations = store.weatherLocations.filter(
@@ -341,8 +342,8 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 								<Button
 									variant="subtle"
 									color="red"
-									title={`Remove ${location}`}
-									aria-label={`Remove ${location}`}
+									title={t("app.weather.remove_aria", { location })}
+									aria-label={t("app.weather.remove_aria", { location })}
 									onClick={(e) => e.stopPropagation()}
 								>
 									<Trash2 size={16} />
@@ -412,7 +413,7 @@ export const WeatherTab = () => {
 	const handleAddLocation = () => {
 		const trimmed = newLocation.trim();
 		if (!trimmed) {
-			notify.warning("Please enter a city or location name");
+			notify.warning(t("app.weather.enter_location"));
 			return;
 		}
 		if (
@@ -420,12 +421,12 @@ export const WeatherTab = () => {
 				.map((l) => l.toLowerCase())
 				.includes(trimmed.toLowerCase())
 		) {
-			notify.info(`${trimmed} is already in your weather list`);
+			notify.info(t("app.weather.already_added", { location: trimmed }));
 			return;
 		}
 
 		store.weatherLocations.push(trimmed);
-		notify.success(`Added ${trimmed}`);
+		notify.success(t("app.weather.added", { location: trimmed }));
 		setNewLocation("");
 	};
 
@@ -435,7 +436,7 @@ export const WeatherTab = () => {
 			delete store.weatherCache[loc];
 		}
 		queryClient.invalidateQueries({ queryKey: ["weather"] });
-		notify.success("Weather refreshed");
+		notify.success(t("app.weather.refreshed"));
 	};
 
 	const handleMove = (fromIndex: number, toIndex: number) => {
@@ -496,7 +497,8 @@ export const WeatherTab = () => {
 								onDragStart={() => setDraggedIndex(index)}
 								onDragOver={(e) => {
 									e.preventDefault();
-									e.currentTarget.style.borderTop = "2px solid #1890ff";
+									e.currentTarget.style.borderTop =
+										"2px solid var(--tk-accent)";
 								}}
 								onDragLeave={(e) => {
 									e.currentTarget.style.borderTop = "none";

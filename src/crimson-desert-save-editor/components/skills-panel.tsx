@@ -18,7 +18,15 @@ import {
 	TextInput,
 	UnstyledButton,
 } from "@mantine/core";
-import { Check, Eraser, RotateCcw, Search, Sparkles, X } from "lucide-react";
+import {
+	Check,
+	Eraser,
+	RotateCcw,
+	Search,
+	Sparkles,
+	TriangleAlert,
+	X,
+} from "lucide-react";
 import { useState } from "react";
 import type {
 	SkillDescription,
@@ -256,7 +264,11 @@ export const SkillsPanel = ({
 			style={{ flex: 1, minHeight: 0, overflow: "auto" }}
 		>
 			{(error || description?.error) && (
-				<Alert color="red" title="Could not apply changes">
+				<Alert
+					color="red"
+					icon={<TriangleAlert size={16} />}
+					title="Could not apply skill changes"
+				>
 					{error || description?.error}
 				</Alert>
 			)}
@@ -314,7 +326,7 @@ export const SkillsPanel = ({
 					<Group justify="space-between" gap="md" wrap="nowrap">
 						<Box>
 							<Text size="sm" fw={500}>
-								Queued for your next download: {edit.label}
+								Staged for your next download: {edit.label}
 							</Text>
 							<Text size="xs" c="dimmed">
 								{skillEditSummary(edit)}
@@ -326,7 +338,7 @@ export const SkillsPanel = ({
 							disabled={busy}
 							onClick={onDiscard}
 						>
-							Discard
+							Remove
 						</Button>
 					</Group>
 				</Paper>

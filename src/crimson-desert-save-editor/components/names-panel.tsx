@@ -12,7 +12,7 @@ import {
 	Text,
 	TextInput,
 } from "@mantine/core";
-import { Search, Signature, Undo2, X } from "lucide-react";
+import { Search, Signature, TriangleAlert, Undo2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
 	type CompanionNameDescription,
@@ -114,7 +114,11 @@ export const NamesPanel = ({
 			style={{ flex: 1, minHeight: 0, overflow: "auto" }}
 		>
 			{error && (
-				<Alert color="red" title="Could not apply changes">
+				<Alert
+					color="red"
+					icon={<TriangleAlert size={16} />}
+					title="Could not apply rename changes"
+				>
 					{error}
 				</Alert>
 			)}
@@ -148,7 +152,7 @@ export const NamesPanel = ({
 			{edits.length > 0 && (
 				<Group gap="sm">
 					<Badge variant="light" color="brand">
-						{edits.length} name{edits.length === 1 ? "" : "s"} queued
+						{edits.length} name{edits.length === 1 ? "" : "s"} staged
 					</Badge>
 					<Button
 						size="compact-xs"
@@ -157,7 +161,7 @@ export const NamesPanel = ({
 						disabled={busy}
 						onClick={() => onStage([])}
 					>
-						Discard
+						Discard all
 					</Button>
 				</Group>
 			)}
@@ -255,8 +259,8 @@ export const NamesPanel = ({
 															variant="subtle"
 															color="gray"
 															onClick={() => stageName(row, "")}
-															title="Revert custom name"
-															aria-label="Revert custom name"
+															title="Remove custom name"
+															aria-label="Remove custom name"
 														>
 															<X size={12} />
 														</ActionIcon>
@@ -287,12 +291,14 @@ export const NamesPanel = ({
 					<Text size="xs" c="dimmed">
 						{matches.length.toLocaleString()} entries
 					</Text>
-					<Pagination
-						size="sm"
-						total={pages}
-						value={current + 1}
-						onChange={(next) => setPage(next - 1)}
-					/>
+					{pages > 1 && (
+						<Pagination
+							size="sm"
+							total={pages}
+							value={current + 1}
+							onChange={(next) => setPage(next - 1)}
+						/>
+					)}
 				</Group>
 			</Box>
 		</Stack>

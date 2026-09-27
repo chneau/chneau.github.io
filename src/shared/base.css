@@ -466,9 +466,24 @@ button {
 	font-size: 12.5px;
 	color: var(--app-text-muted);
 }
+.app-footer__left,
+.app-footer__right {
+	display: inline-flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 14px;
+}
 .app-footer a {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 	color: var(--app-text-muted);
 	text-decoration: none;
+}
+.app-footer svg {
+	width: 14px;
+	height: 14px;
+	flex: none;
 }
 .app-footer a:hover {
 	color: var(--app-text);
@@ -507,13 +522,45 @@ button {
 	font-size: 11.5px;
 	color: var(--app-text-faint);
 }
-
-@media (max-width: 640px) {
-	.app-header-action__label {
+.app-stat--action:hover .app-stat__value,
+.app-stat--action:focus-visible .app-stat__value {
+	text-decoration: underline;
+}
+.app-stat--action:hover .app-stat__label,
+.app-stat--action:focus-visible .app-stat__label {
+	color: var(--app-text);
+}
+.app-kbd {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 18px;
+	padding: 2px 6px;
+	font-family: var(--app-font-mono);
+	font-size: 0.7rem;
+	line-height: 1;
+	border: 1px solid var(--app-border);
+	border-bottom-width: 2px;
+	border-radius: 6px;
+	background: var(--app-surface-2);
+	color: var(--app-text-muted);
+}
+@media (pointer: coarse) {
+	.app-kbd {
 		display: none;
 	}
-	.app-header-action {
+}
+
+@media (max-width: 640px) {
+	.app-header__actions .app-header-action__label {
+		display: none;
+	}
+	.app-header__actions .app-header-action {
 		padding: 0;
+	}
+	.app-switcher__menu {
+		left: auto;
+		right: 0;
 	}
 }
 

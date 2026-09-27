@@ -17,7 +17,7 @@ import {
 	Text,
 	TextInput,
 } from "@mantine/core";
-import { Plus, Search, Users, X } from "lucide-react";
+import { Plus, Search, TriangleAlert, Users, X } from "lucide-react";
 import { useState } from "react";
 import { Picture } from "@/components/picture";
 import {
@@ -295,7 +295,11 @@ export const CompanionPanel = (props: PanelProps) => {
 	return (
 		<Stack component="main" gap="lg" p="md" style={{ flex: 1 }}>
 			{(error || summary?.error) && (
-				<Alert color="red" title="Could not apply changes">
+				<Alert
+					color="red"
+					icon={<TriangleAlert size={16} />}
+					title="Could not apply companion changes"
+				>
 					{error || summary?.error}
 				</Alert>
 			)}
@@ -309,7 +313,7 @@ export const CompanionPanel = (props: PanelProps) => {
 						? ` · ${pending.reduce(
 								(n, e) => n + (e.type === "addRoboWorkers" ? e.quantity : 1),
 								0,
-							)} queued`
+							)} staged`
 						: ""}
 				</Text>
 			</Group>
@@ -323,7 +327,7 @@ export const CompanionPanel = (props: PanelProps) => {
 					</Group>
 					<Text mt="xs" size="sm" c="dimmed">
 						{summary?.roboWorkers ?? 0} robots owned
-						{queued ? ` + ${queued} queued` : ""} · {remaining} spaces remaining
+						{queued ? ` + ${queued} staged` : ""} · {remaining} spaces remaining
 						of 500
 					</Text>
 					<Group mt="md" gap="md" w="100%" maw={384}>
@@ -407,17 +411,17 @@ export const CompanionPanel = (props: PanelProps) => {
 					withBorder
 					p="md"
 					style={{ borderColor: "var(--mantine-primary-color-light)" }}
-					aria-label="Queued companion additions"
+					aria-label="Staged companion additions"
 				>
 					<Stack gap="xs">
 						<Text size="sm" fw={500}>
-							Queued for your next download
+							Staged for your next download
 						</Text>
 						<ScrollArea.Autosize mah={192} type="auto">
 							{pending.map((edit, i) => {
-								// Queued companion edits carry no identifier of their own, and the
+								// Staged companion edits carry no identifier of their own, and the
 								// list only ever appends, so the position is the only key available.
-								const key = `queued-companion-${i}`;
+								const key = `staged-companion-${i}`;
 								return (
 									<Group
 										key={key}
@@ -436,7 +440,7 @@ export const CompanionPanel = (props: PanelProps) => {
 											disabled={busy}
 											onClick={() => onDiscard(edit)}
 										>
-											Discard
+											Remove
 										</Button>
 									</Group>
 								);

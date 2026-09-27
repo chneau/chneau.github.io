@@ -1,5 +1,5 @@
 import { LayoutGrid } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ALL_APPS } from "../apps";
 import { HeaderAction } from "./HeaderAction";
 
@@ -12,6 +12,14 @@ type AppSwitcherProps = {
 export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 	const [open, setOpen] = useState(false);
 	const container = useRef<HTMLDivElement>(null);
+	const trigger = useRef<HTMLButtonElement | HTMLAnchorElement>(null);
+	const menu = useRef<HTMLDivElement>(null);
+	const menuId = useId();
+
+	const close = (restoreFocus = false) => {
+		setOpen(false);
+		if (restoreFocus) trigger.current?.focus();
+	};
 
 	useEffect(() => {
 		if (!open) return;
@@ -20,23 +28,49 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 				setOpen(false);
 			}
 		};
-		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") setOpen(false);
-		};
 		document.addEventListener("pointerdown", onPointerDown);
-		document.addEventListener("keydown", onKeyDown);
-		return () => {
-			document.removeEventListener("pointerdown", onPointerDown);
-			document.removeEventListener("keydown", onKeyDown);
-		};
+		return () => document.removeEventListener("pointerdown", onPointerDown);
+	}, [open]);
+
+	useEffect(() => {
+		if (open) {
+			menu.current?.querySelector<HTMLAnchorElement>("a")?.focus();
+		}
 	}, [open]);
 
 	const path =
 		current ?? (typeof window === "undefined" ? "/" : window.location.pathname);
 
+	const onMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+		const items = Array.from(
+			menu.current?.querySelectorAll<HTMLAnchorElement>("a") ?? [],
+		);
+		if (items.length === 0) return;
+		const index = items.indexOf(document.activeElement as HTMLAnchorElement);
+		if (event.key === "Escape") {
+			event.preventDefault();
+			close(true);
+		} else if (event.key === "ArrowDown") {
+			event.preventDefault();
+			items[(index + 1) % items.length]?.focus();
+		} else if (event.key === "ArrowUp") {
+			event.preventDefault();
+			items[(index - 1 + items.length) % items.length]?.focus();
+		} else if (event.key === "Home") {
+			event.preventDefault();
+			items[0]?.focus();
+		} else if (event.key === "End") {
+			event.preventDefault();
+			items[items.length - 1]?.focus();
+		} else if (event.key === "Tab") {
+			close();
+		}
+	};
+
 	return (
 		<div className="app-switcher" ref={container}>
 			<HeaderAction
+				ref={trigger}
 				iconOnly
 				active={open}
 				label="Switch app"
@@ -46,7 +80,14 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 				onClick={() => setOpen((value) => !value)}
 			/>
 			{open && (
-				<div className="app-switcher__menu" role="menu">
+				<div
+					ref={menu}
+					id={menuId}
+					className="app-switcher__menu"
+					role="menu"
+					aria-label="Switch app"
+					onKeyDown={onMenuKeyDown}
+				>
 					{ALL_APPS.map((app) => {
 						const isCurrent =
 							app.href === "/" ? path === "/" : path.startsWith(app.href);

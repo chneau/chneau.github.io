@@ -10,7 +10,7 @@ import {
 	Text,
 	TextInput,
 } from "@mantine/core";
-import { Plus } from "lucide-react";
+import { Plus, TriangleAlert } from "lucide-react";
 import {
 	type Dispatch,
 	type SetStateAction,
@@ -118,6 +118,11 @@ export const AddItemDrawer = ({
 	const [itemKey, setItemKey] = useState("");
 	const [existingSlot, setExistingSlot] = useState<number | null>(null);
 	const [quantity, setQuantity] = useState("1");
+	/**
+	 * Errors the drawer itself produced. They are shown inline rather than
+	 * pushed to the page, where the open drawer would hide them.
+	 */
+	const [localError, setLocalError] = useState("");
 
 	// Each opening starts over at the suggested storage. The guard is on the
 	// open transition, so staging a change (which reshapes `storages`) does not
@@ -131,6 +136,7 @@ export const AddItemDrawer = ({
 		setItemKey("");
 		setExistingSlot(null);
 		setQuantity("1");
+		setLocalError("");
 		setError("");
 	}, [opened, defaultStorage, storages, setError]);
 
@@ -267,7 +273,7 @@ export const AddItemDrawer = ({
 	const stage = () => {
 		if (busy) return;
 		if (!target || !itemKey) {
-			setError("Choose an item to add.");
+			setLocalError("Choose an item to add.");
 			return;
 		}
 		const parsed = Number(quantity);
@@ -275,7 +281,7 @@ export const AddItemDrawer = ({
 			!target.addsAsSingleRecord &&
 			(!Number.isInteger(parsed) || parsed < 1 || parsed > 999_999_999)
 		) {
-			setError("Quantity must be a whole number from 1 to 999,999,999.");
+			setLocalError("Quantity must be a whole number from 1 to 999,999,999.");
 			return;
 		}
 		const plan = planAddition({
@@ -288,10 +294,10 @@ export const AddItemDrawer = ({
 			preferredSlot: existingSlot,
 		});
 		if ("error" in plan) {
-			setError(plan.error);
+			setLocalError(plan.error);
 			return;
 		}
-		setError("");
+		setLocalError("");
 		stagePlanned([plan.edit]);
 		onReveal(revealFor(plan.edit));
 		onClose();
@@ -315,7 +321,7 @@ export const AddItemDrawer = ({
 			staged: edits,
 		});
 		if (planned.length === 0) {
-			setError(
+			setLocalError(
 				skipped.length > 0
 					? `Nothing to add: ${skipped
 							.map((skip) => `${skip.label} (${skip.reason})`)
@@ -324,7 +330,7 @@ export const AddItemDrawer = ({
 			);
 			return;
 		}
-		setError("");
+		setLocalError("");
 		setEdits((current) => [...current, ...planned]);
 		const last = planned.at(-1);
 		if (last && "itemKey" in last) {
@@ -376,6 +382,15 @@ export const AddItemDrawer = ({
 			}
 		>
 			<Stack gap="lg">
+				{localError && (
+					<Alert
+						color="red"
+						icon={<TriangleAlert size={16} />}
+						title="Could not add item"
+					>
+						{localError}
+					</Alert>
+				)}
 				<Select
 					label="Storage location"
 					placeholder="Choose storage"

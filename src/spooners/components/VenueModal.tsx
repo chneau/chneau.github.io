@@ -106,7 +106,8 @@ export const VenueModal = ({
 	const [menuFilter, setMenuFilter] = useState<string | null>(null);
 	const entry = venueRef != null ? cache.venues[String(venueRef)] : undefined;
 
-	// each pub starts fresh: no leaked search, sort, expanded row or hero image
+	// each pub starts fresh: no leaked query, sort, expanded row or hero image
+	// (also resets when the same pub is re-opened from a shared link)
 	useEffect(() => {
 		setQuery("");
 		setSort("menu");

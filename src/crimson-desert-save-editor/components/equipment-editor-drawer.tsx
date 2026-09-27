@@ -10,6 +10,7 @@ import {
 	Text,
 	TextInput,
 } from "@mantine/core";
+import { TriangleAlert } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import {
 	type EquipmentCatalog,
@@ -43,6 +44,7 @@ export const EquipmentEditorDrawer = ({
 	activeStorage,
 	catalog,
 	busy,
+	error,
 	savedRecord,
 	stagedEquipment,
 	addition,
@@ -62,6 +64,8 @@ export const EquipmentEditorDrawer = ({
 	activeStorage: number | null;
 	catalog: Catalog | null;
 	busy: boolean;
+	/** The page's current error, surfaced inside the open drawer. */
+	error: string;
 	/** The save's own record, so the editor edits what is in the file. */
 	savedRecord: InventoryRecord | undefined;
 	stagedEquipment: EquipmentEdit | undefined;
@@ -113,6 +117,15 @@ export const EquipmentEditorDrawer = ({
 	>
 		{item && record ? (
 			<Stack gap="lg">
+				{error && (
+					<Alert
+						color="red"
+						icon={<TriangleAlert size={16} />}
+						title="Could not apply change"
+					>
+						{error}
+					</Alert>
+				)}
 				{item.recordList.length > 1 && (
 					<Box>
 						<Select
@@ -224,7 +237,7 @@ export const EquipmentEditorDrawer = ({
 									Staged: {stagedEdit.expectedQuantity.toLocaleString()} →{" "}
 									{stagedEdit.newQuantity.toLocaleString()}. Use{" "}
 									<Text span fw={500}>
-										Download edited
+										Download save
 									</Text>{" "}
 									at the top to create the new save.
 								</Text>
@@ -232,7 +245,7 @@ export const EquipmentEditorDrawer = ({
 						) : (
 							<Text size="xs" c="dimmed">
 								Staging does not touch your original file. The new save is only
-								created when you choose Download edited.
+								created when you choose Download save.
 							</Text>
 						)}
 					</>

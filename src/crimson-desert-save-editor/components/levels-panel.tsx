@@ -1,10 +1,10 @@
 import {
+	ActionIcon,
 	Alert,
 	Badge,
 	Box,
 	Button,
 	Checkbox,
-	CloseButton,
 	Group,
 	NumberInput,
 	Pagination,
@@ -16,7 +16,7 @@ import {
 	Text,
 	TextInput,
 } from "@mantine/core";
-import { Search, TrendingUp, Undo2 } from "lucide-react";
+import { Search, TrendingUp, TriangleAlert, Undo2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import type {
 	CharacterChange,
@@ -228,7 +228,11 @@ export const LevelsPanel = ({
 			style={{ flex: 1, minHeight: 0, overflow: "auto" }}
 		>
 			{error && (
-				<Alert color="red" title="Could not apply changes">
+				<Alert
+					color="red"
+					icon={<TriangleAlert size={16} />}
+					title="Could not apply level changes"
+				>
 					{error}
 				</Alert>
 			)}
@@ -303,7 +307,7 @@ export const LevelsPanel = ({
 								{edits.filter((edit) => edit.type === "character").length === 1
 									? ""
 									: "s"}{" "}
-								queued
+								staged
 								{presets.length > 0
 									? ` · ${presets.map((edit) => edit.label).join(" · ")}`
 									: ""}
@@ -319,7 +323,7 @@ export const LevelsPanel = ({
 							disabled={busy}
 							onClick={() => onStage([])}
 						>
-							Discard
+							Discard all
 						</Button>
 					</Group>
 				</Paper>
@@ -335,14 +339,19 @@ export const LevelsPanel = ({
 						leftSection={<Search size={16} />}
 						rightSection={
 							query ? (
-								<CloseButton
+								<ActionIcon
 									size="xs"
+									variant="subtle"
+									color="gray"
 									onClick={() => {
 										setQuery("");
 										setPage(0);
 									}}
+									title="Clear search"
 									aria-label="Clear search"
-								/>
+								>
+									<X size={14} />
+								</ActionIcon>
 							) : undefined
 						}
 						value={query}
@@ -457,12 +466,14 @@ export const LevelsPanel = ({
 					<Text size="xs" c="dimmed">
 						{matches.length.toLocaleString()} rows
 					</Text>
-					<Pagination
-						size="sm"
-						total={pages}
-						value={current + 1}
-						onChange={(next) => setPage(next - 1)}
-					/>
+					{pages > 1 && (
+						<Pagination
+							size="sm"
+							total={pages}
+							value={current + 1}
+							onChange={(next) => setPage(next - 1)}
+						/>
+					)}
 				</Group>
 			</Box>
 		</Stack>

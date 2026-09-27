@@ -1,4 +1,5 @@
 import {
+	ActionIcon,
 	Alert,
 	Badge,
 	Box,
@@ -13,7 +14,7 @@ import {
 	Text,
 	TextInput,
 } from "@mantine/core";
-import { Search, ShieldCheck, Undo2 } from "lucide-react";
+import { Search, ShieldCheck, TriangleAlert, Undo2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { storageName } from "@/lib/inventory";
 import type {
@@ -170,7 +171,11 @@ export const ConditionPanel = ({
 			style={{ flex: 1, minHeight: 0, overflow: "auto" }}
 		>
 			{error && (
-				<Alert color="red" title="Could not apply changes">
+				<Alert
+					color="red"
+					icon={<TriangleAlert size={16} />}
+					title="Could not apply item wear changes"
+				>
 					{error}
 				</Alert>
 			)}
@@ -201,7 +206,7 @@ export const ConditionPanel = ({
 			{edits.length > 0 && (
 				<Group gap="sm">
 					<Badge variant="light" color="brand">
-						{edits.length} item{edits.length === 1 ? "" : "s"} queued
+						{edits.length} item{edits.length === 1 ? "" : "s"} staged
 					</Badge>
 					<Button
 						size="compact-xs"
@@ -210,7 +215,7 @@ export const ConditionPanel = ({
 						disabled={busy}
 						onClick={() => onStage([])}
 					>
-						Discard
+						Discard all
 					</Button>
 				</Group>
 			)}
@@ -223,6 +228,23 @@ export const ConditionPanel = ({
 						label="Search items"
 						placeholder="Search names or item keys"
 						leftSection={<Search size={16} />}
+						rightSection={
+							query ? (
+								<ActionIcon
+									size="xs"
+									variant="subtle"
+									color="gray"
+									onClick={() => {
+										setQuery("");
+										setPage(0);
+									}}
+									title="Clear search"
+									aria-label="Clear search"
+								>
+									<X size={14} />
+								</ActionIcon>
+							) : null
+						}
 						value={query}
 						onChange={(event) => {
 							setQuery(event.currentTarget.value);
@@ -282,7 +304,7 @@ export const ConditionPanel = ({
 											</Box>
 											{editFor(entry) && (
 												<Badge size="xs" color="brand" variant="light">
-													queued
+													staged
 												</Badge>
 											)}
 										</Group>
@@ -323,12 +345,14 @@ export const ConditionPanel = ({
 					<Text size="xs" c="dimmed">
 						{matches.length.toLocaleString()} items
 					</Text>
-					<Pagination
-						size="sm"
-						total={pages}
-						value={current + 1}
-						onChange={(next) => setPage(next - 1)}
-					/>
+					{pages > 1 && (
+						<Pagination
+							size="sm"
+							total={pages}
+							value={current + 1}
+							onChange={(next) => setPage(next - 1)}
+						/>
+					)}
 				</Group>
 			</Box>
 		</Stack>

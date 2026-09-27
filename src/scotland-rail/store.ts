@@ -25,6 +25,7 @@ type RailStore = {
 	selectedCategory: Category | "all";
 	isInfoOpen: boolean;
 	isSettingsOpen: boolean;
+	isShortcutsOpen: boolean;
 	settings: AppSettings;
 };
 
@@ -40,6 +41,7 @@ const getInitialState = (): RailStore => {
 		selectedCategory: "all",
 		isInfoOpen: false,
 		isSettingsOpen: false,
+		isShortcutsOpen: false,
 		settings: DEFAULT_SETTINGS,
 	};
 
@@ -188,6 +190,9 @@ export const railActions = {
 	},
 	setIsSettingsOpen: (open: boolean) => {
 		railStore.isSettingsOpen = open;
+	},
+	setIsShortcutsOpen: (open: boolean) => {
+		railStore.isShortcutsOpen = open;
 	},
 	updateSetting: <K extends keyof AppSettings>(
 		key: K,

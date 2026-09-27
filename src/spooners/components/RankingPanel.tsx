@@ -11,7 +11,7 @@ import {
 } from "@mantine/core";
 import { Ban, Info } from "lucide-react";
 import { useState } from "react";
-import { StatusDot } from "../../shared";
+import { EmptyState, StatusDot } from "../../shared";
 import { isTemporarilyClosed } from "../derive";
 import { metricText, valueDirection } from "../portions";
 import {
@@ -63,7 +63,6 @@ const Row = ({
 	active,
 	onFocus,
 	onDetails,
-	metricKind,
 	value,
 }: {
 	venue: PricedVenue;
@@ -73,7 +72,6 @@ const Row = ({
 	active: boolean;
 	onFocus: (venue: PricedVenue) => void;
 	onDetails: (venue: PricedVenue) => void;
-	metricKind: ValueKind | null;
 	value: boolean;
 }) => {
 	const change = changeText(venue);
@@ -111,8 +109,14 @@ const Row = ({
 					/>
 					<Box style={{ minWidth: 0 }}>
 						<Group gap={6} wrap="nowrap" align="center" style={{ minWidth: 0 }}>
+							<StatusDot
+								on={venue.isOpenNow}
+								label={venue.isOpenNow ? "Open now" : "Closed now"}
+							/>
+							<Text size="xs" fw={600} c={venue.isOpenNow ? "teal" : "red"}>
+								{venue.isOpenNow ? "Open" : "Closed"}
+							</Text>
 							<Text size="sm" lineClamp={1}>
-								<StatusDot on={venue.isOpenNow} />
 								{venue.name}
 							</Text>
 							{venue.spot !== "high-street" ? (
@@ -143,9 +147,9 @@ const Row = ({
 							{venue.missing.length
 								? ` · missing ${venue.missing.join(", ")}`
 								: ""}
-							{venue.metricValue != null && metricKind && !value
+							{venue.metricValue != null && venue.metricKind && !value
 								? ` · ${metricText(
-										{ kind: metricKind, value: venue.metricValue },
+										{ kind: venue.metricKind, value: venue.metricValue },
 										currency,
 									)}`
 								: ""}
@@ -159,10 +163,10 @@ const Row = ({
 					</Box>
 				</Group>
 				<Group gap={4} wrap="nowrap" align="baseline">
-					{value && metricKind && venue.metricValue != null ? (
+					{value && venue.metricKind && venue.metricValue != null ? (
 						<Text size="sm" fw={700}>
 							{metricText(
-								{ kind: metricKind, value: venue.metricValue },
+								{ kind: venue.metricKind, value: venue.metricValue },
 								currency,
 							)}
 						</Text>
@@ -220,16 +224,15 @@ export const RankingPanel = ({
 }: Props) => {
 	const [mode, setMode] = useState<Mode>("cheapest");
 
-	const metricKind =
-		venues.find((venue) => venue.metricKind)?.metricKind ?? null;
 	const byPrice = [...venues].sort((a, b) => a.price - b.price);
 	const byValue = [...venues]
 		.filter((venue) => venue.metricValue != null)
-		.sort(
-			(a, b) =>
-				(valueDirection(metricKind ?? "unit") *
-					((a.metricValue ?? 0) - (b.metricValue ?? 0))) as number,
-		);
+		.sort((a, b) => {
+			// each row's own metric decides whether lower or higher is better
+			const aDir = valueDirection(a.metricKind ?? "unit");
+			const bDir = valueDirection(b.metricKind ?? "unit");
+			return aDir * (a.metricValue ?? 0) - bDir * (b.metricValue ?? 0);
+		});
 	const lists: Record<Mode, PricedVenue[]> = {
 		cheapest: byPrice.slice(0, count),
 		dearest: byPrice.slice(-count).reverse(),
@@ -245,6 +248,24 @@ export const RankingPanel = ({
 		...(byValue.length ? [{ label: "Value", value: "value" }] : []),
 	];
 
+	// the "Value" list can mix £/unit, £/100 ml and kcal/£, which rank in
+	// opposite directions, so describe the direction from the kinds present
+	const valueKinds = [
+		...new Set(
+			byValue
+				.map((venue) => venue.metricKind)
+				.filter((kind): kind is ValueKind => kind != null),
+		),
+	];
+	const valueHint =
+		valueKinds.length === 0
+			? null
+			: new Set(valueKinds.map(valueDirection)).size > 1
+				? "Value = best ratio (lower per unit/100 ml, more kcal per £)"
+				: valueDirection(valueKinds[0] ?? "unit") === 1
+					? "Value = best ratio (lower is better)"
+					: "Value = best ratio (higher is better)";
+
 	return (
 		<>
 			<SegmentedControl
@@ -256,7 +277,7 @@ export const RankingPanel = ({
 			/>
 			<Text size="xs" c="dimmed" mt={6}>
 				prices in {currencySymbol(currency)} {currency}
-				{metricKind ? " · Value = best ratio (lower is better)" : ""}
+				{valueHint ? ` · ${valueHint}` : ""}
 			</Text>
 			<Stack gap={2} mt="xs">
 				{rows.map((venue, index) => (
@@ -269,14 +290,14 @@ export const RankingPanel = ({
 						active={focused?.ref === venue.ref}
 						onFocus={onFocus}
 						onDetails={onDetails}
-						metricKind={metricKind}
 						value={mode === "value"}
 					/>
 				))}
 				{rows.length ? null : (
-					<Text size="sm" c="dimmed">
-						No venues with this metric.
-					</Text>
+					<EmptyState
+						title="No venues with this metric"
+						body="None of the pubs matching the filters publish the data this ranking needs."
+					/>
 				)}
 			</Stack>
 		</>

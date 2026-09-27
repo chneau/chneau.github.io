@@ -268,14 +268,30 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 							<Table.Th
 								key={column.key}
 								visibleFrom={column.visibleFrom}
-								onClick={() => toggleSort(column.key)}
-								style={{ cursor: "pointer", userSelect: "none" }}
+								aria-sort={
+									sortKey === column.key
+										? sortDir === "asc"
+											? "ascending"
+											: "descending"
+										: "none"
+								}
 							>
-								<span
+								<button
+									type="button"
+									onClick={() => toggleSort(column.key)}
 									style={{
 										display: "inline-flex",
 										alignItems: "center",
 										gap: 4,
+										background: "none",
+										border: "none",
+										padding: 0,
+										margin: 0,
+										font: "inherit",
+										color: "inherit",
+										cursor: "pointer",
+										userSelect: "none",
+										textAlign: "left",
 									}}
 								>
 									{column.title}
@@ -285,7 +301,7 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 										) : (
 											<ArrowDown size={12} />
 										))}
-								</span>
+								</button>
 							</Table.Th>
 						))}
 					</Table.Tr>
@@ -344,7 +360,7 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 						size="xs"
 						w={80}
 						allowDeselect={false}
-						aria-label={t("table.progress")}
+						aria-label={t("table.rows_per_page")}
 						value={String(pageSize)}
 						data={PAGE_SIZE_OPTIONS.map((size) => ({
 							value: String(size),
