@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+	<rect width="512" height="512" rx="112" fill="#de8a2f" />
+	<g>
+		<!-- A car in profile facing right: one body silhouette, two knocked-out
+		     windows, wheels sitting on a ground line. -->
+		<path
+			d="M92 340 v-48 q0 -14 16 -16 l54 -8 42 -70 q10 -16 28 -16 h88 q18 0 26 16
+			l42 70 20 6 q14 4 14 18 v48 Z"
+			fill="#2e1a06" />
+		<path d="M210 256 L238 196 h36 v60 Z" fill="#de8a2f" />
+		<path d="M300 196 h32 l40 60 h-72 Z" fill="#de8a2f" />
+		<circle cx="172" cy="336" r="46" fill="#2e1a06" />
+		<circle cx="348" cy="336" r="46" fill="#2e1a06" />
+		<circle cx="172" cy="336" r="19" fill="#de8a2f" />
+		<circle cx="348" cy="336" r="19" fill="#de8a2f" />
+		<path d="M108 396 H404" stroke="#2e1a06" stroke-width="26"
+			stroke-linecap="round" />
+	</g>
+</svg>

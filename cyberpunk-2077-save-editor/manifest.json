@@ -1,0 +1,39 @@
+{
+	"id": "/cyberpunk-2077-save-editor/",
+	"name": "Cyberpunk 2077 Save Editor",
+	"short_name": "Cyberpunk",
+	"description": "Decode Cyberpunk 2077's VASC container and REDengine node tree \u2014 attributes, skills and Street Cred, without WolvenKit or a command line.",
+	"start_url": "/cyberpunk-2077-save-editor/",
+	"scope": "/cyberpunk-2077-save-editor/",
+	"display": "standalone",
+	"display_override": ["standalone", "minimal-ui"],
+	"background_color": "#0e0e11",
+	"theme_color": "#e3ad00",
+	"lang": "en",
+	"icons": [
+		{
+			"src": "/icons/cyberpunk-2077-save-editor-32.png",
+			"sizes": "32x32",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/cyberpunk-2077-save-editor-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/cyberpunk-2077-save-editor-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/cyberpunk-2077-save-editor-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	]
+}
