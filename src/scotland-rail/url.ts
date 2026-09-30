@@ -1,4 +1,5 @@
 import type { Category } from "./data/types";
+import { clampReplayTime } from "./utils";
 
 /** Playback speeds offered by the UI (and accepted from deep links). */
 const SPEEDS = [0.5, 1, 2, 5, 15] as const;
@@ -26,9 +27,6 @@ type RailUrlState = {
 	query?: string;
 };
 
-const clampTime = (value: number): number =>
-	Math.min(1440, Math.max(300, Math.round(value)));
-
 /** Parse the shareable subset of the store from the current query string. */
 export const readUrlState = (): RailUrlState => {
 	if (typeof window === "undefined") return {};
@@ -38,7 +36,7 @@ export const readUrlState = (): RailUrlState => {
 	const t = params.get("t");
 	if (t !== null) {
 		const parsed = Number(t);
-		if (Number.isFinite(parsed)) state.timeOffset = clampTime(parsed);
+		if (Number.isFinite(parsed)) state.timeOffset = clampReplayTime(parsed);
 	}
 
 	const sp = params.get("sp");
@@ -84,7 +82,9 @@ export const writeUrlState = (values: RailUrlValues): void => {
 		else params.set(key, value);
 	};
 
-	const time = clampTime(values.timeOffset);
+	// `clampReplayTime` is the same clamp the store applies, so the value
+	// written here always reads back as the clock the user was looking at.
+	const time = clampReplayTime(values.timeOffset);
 	setOrDelete("t", time === DEFAULT_TIME ? null : String(time));
 	setOrDelete(
 		"sp",

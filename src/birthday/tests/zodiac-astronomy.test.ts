@@ -56,7 +56,11 @@ const { recomputeBirthdays } = await import("../birthdays");
 /** Both sides of all 12 cusps, in calendar order. */
 const CUSPS: { date: string; name: string; symbol: string; element: string }[] =
 	[
-		{ date: "2000-01-19", name: "capricorn", symbol: "♑", element: "earth" },
+		// 1-19 January belongs to Sagittarius, which the table reaches from
+		// 22 November and must wrap back around into. The wrap entry used to
+		// name Capricorn, reporting 19 days a year with the wrong sign AND the
+		// wrong element.
+		{ date: "2000-01-19", name: "sagittarius", symbol: "♐", element: "fire" },
 		{ date: "2000-01-20", name: "aquarius", symbol: "♒", element: "air" },
 		{ date: "2000-02-18", name: "aquarius", symbol: "♒", element: "air" },
 		{ date: "2000-02-19", name: "pisces", symbol: "♓", element: "water" },
@@ -66,7 +70,7 @@ const CUSPS: { date: string; name: string; symbol: string; element: string }[] =
 		{ date: "2000-04-20", name: "taurus", symbol: "♉", element: "earth" },
 		{ date: "2000-05-20", name: "taurus", symbol: "♉", element: "earth" },
 		{ date: "2000-05-21", name: "gemini", symbol: "♊", element: "air" },
-		{ date: "2000-06-21", name: "gemini", symbol: "♊", element: "air" },
+		{ date: "2000-06-21", name: "cancer", symbol: "♋", element: "water" },
 		{ date: "2000-06-22", name: "cancer", symbol: "♋", element: "water" },
 		{ date: "2000-07-22", name: "cancer", symbol: "♋", element: "water" },
 		{ date: "2000-07-23", name: "leo", symbol: "♌", element: "fire" },
@@ -215,7 +219,7 @@ describe("getSign zodiac cusps", () => {
 });
 
 describe("getSign year wrap", () => {
-	test("1 January and 31 December are both capricorn", () => {
+	test("the year wraps from Capricorn back to Sagittarius", () => {
 		const rows = derive([
 			"2000-01-01",
 			"2000-12-31",
@@ -227,15 +231,15 @@ describe("getSign year wrap", () => {
 			rows.get("2000-12-31")?.sign,
 			rows.get("2000-12-22")?.sign,
 			rows.get("2000-01-19")?.sign,
-		]).toEqual(["capricorn", "capricorn", "capricorn", "capricorn"]);
+		]).toEqual(["sagittarius", "capricorn", "capricorn", "sagittarius"]);
 	});
 
-	test("the duplicated capricorn entries agree on symbol and element", () => {
+	test("the wrap entry carries Sagittarius' symbol and element, not Capricorn's", () => {
 		const rows = derive(["2000-01-19", "2000-12-22"]);
 		const january = rows.get("2000-01-19");
 		const december = rows.get("2000-12-22");
-		expect([january?.signSymbol, december?.signSymbol]).toEqual(["♑", "♑"]);
-		expect([january?.element, december?.element]).toEqual(["earth", "earth"]);
+		expect([january?.signSymbol, december?.signSymbol]).toEqual(["♐", "♑"]);
+		expect([january?.element, december?.element]).toEqual(["fire", "earth"]);
 	});
 
 	test("19/20 December is interior to Sagittarius, not the wrap", () => {
@@ -255,7 +259,7 @@ describe("getSign year wrap", () => {
 		expect(rows.get("2000-12-31")?.sign).toBe("capricorn");
 	});
 
-	test("the whole of 1-19 January is Capricorn, never Sagittarius", () => {
+	test("the whole of 1-19 January is Sagittarius, never Capricorn", () => {
 		const rows = derive([
 			"2000-01-01",
 			"2000-01-05",
@@ -268,7 +272,7 @@ describe("getSign year wrap", () => {
 			rows.get("2000-01-05")?.sign,
 			rows.get("2000-01-15")?.sign,
 			rows.get("2000-01-19")?.sign,
-		]).toEqual(["capricorn", "capricorn", "capricorn", "capricorn"]);
+		]).toEqual(["sagittarius", "sagittarius", "sagittarius", "sagittarius"]);
 		expect(rows.get("2000-01-20")?.sign).toBe("aquarius");
 	});
 

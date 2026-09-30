@@ -24,18 +24,50 @@ import {
 	RefreshCw,
 	Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { ConfirmPopover } from "./ConfirmPopover";
 import type en from "./locales/en.json";
 import { notify } from "./notify";
-import { store } from "./store";
-import { getWeather, type WttrResponse } from "./wttr";
+import { getPersistenceError, onPersistenceError, store } from "./store";
+import {
+	getWeather,
+	readCachedWeather,
+	WEATHER_CACHE_MAX_ENTRIES,
+	type WttrResponse,
+	writeCachedWeather,
+} from "./wttr";
 
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
 type WeatherKey = `app.weather.codes.${keyof typeof en.app.weather.codes}`;
+
+/**
+ * English text for the keys the bounded cache adds. `locales/*.json` is owned
+ * elsewhere, so each new key is looked up as a candidate list with this default
+ * attached (the pattern `BirthdayDetails` and `ManageBirthdaysModal` use): a
+ * key that is not translated yet degrades to English instead of leaking
+ * `"app.weather.persistence_failed"` into the UI. Once the keys land in
+ * `en.json` the defaults are simply unused.
+ */
+const NEW_MESSAGES = {
+	"app.weather.persistence_failed":
+		"Your settings could not be saved — this browser's storage is full or unavailable. Everything still works, but changes will be lost on reload.",
+	"app.weather.cache_capped":
+		"Weather is cached for the {{count}} most recently viewed locations, so the rest are re-fetched on demand.",
+	"app.weather.removed": "Removed {{location}}",
+} as const;
+
+/** `t` bound to the new keys and their English defaults. */
+const useNewMessage = () => {
+	const { t } = useTranslation();
+	/** See `NEW_MESSAGES`: candidate-list lookup with an English default. */
+	return (
+		key: keyof typeof NEW_MESSAGES,
+		params?: Record<string, string | number>,
+	) => t([key], { ...params, defaultValue: NEW_MESSAGES[key] });
+};
 
 const weatherMapping: Record<number, string> = {
 	113: "☀️", // Sunny
@@ -90,21 +122,37 @@ const weatherMapping: Record<number, string> = {
 const getWeatherEmoji = (code: number | undefined) =>
 	(code && weatherMapping[code]) || "🌡️";
 
+/**
+ * Read-through fetch against the persisted store cache.
+ *
+ * `readCachedWeather` validates the entry with `WttrResponseSchema` and only
+ * ever returns something renderable, so an entry that is absent, malformed,
+ * from an older persisted shape or simply stale degrades to a plain refetch
+ * instead of crashing the render. The old code cast `cached.data` straight to
+ * `WttrResponse` off an unvalidated `localStorage` read.
+ *
+ * A miss assigns the whole cache back in one mutation, because
+ * `writeCachedWeather` enforces the LRU cap and the TTL as it writes: this is
+ * the only place the cache grows, so it is also the only place it has to shrink.
+ */
 const fetchWeatherWithCache = async (
 	location: string,
 ): Promise<WttrResponse> => {
-	const cached = store.weatherCache[location];
-	const now = Date.now();
-
-	if (cached && now - cached.timestamp < CACHE_DURATION) {
-		return cached.data as WttrResponse;
-	}
+	const cached = readCachedWeather(
+		store.weatherCache,
+		location,
+		Date.now(),
+		CACHE_DURATION,
+	);
+	if (cached !== null) return cached;
 
 	const data = await getWeather(location);
-	store.weatherCache[location] = {
+	store.weatherCache = writeCachedWeather(
+		store.weatherCache,
+		location,
 		data,
-		timestamp: now,
-	};
+		Date.now(),
+	);
 	return data;
 };
 
@@ -199,6 +247,7 @@ type WeatherItemProps = {
 
 const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 	const { t } = useTranslation();
+	const tn = useNewMessage();
 	const storeSnap = useSnapshot(store);
 	const { data, isLoading, error, refetch } = useQuery({
 		queryKey: ["weather", location],
@@ -234,7 +283,7 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 							store.weatherLocations = store.weatherLocations.filter(
 								(l) => l !== location,
 							);
-							notify.info(`Removed ${location}`);
+							notify.info(tn("app.weather.removed", { location }));
 						}}
 					>
 						<Button size="xs" variant="default" color="red">
@@ -247,7 +296,13 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 	}
 
 	const current = data.current_condition[0];
-	const lastFetched = storeSnap.weatherCache[location]?.timestamp;
+	// The cache entry is only ever *displayed* here, never trusted for content
+	// (`data` already came back through `WttrResponseSchema`). Guarding the
+	// timestamp keeps a corrupt or hand-edited entry from rendering
+	// "Last fetched: Invalid Date" instead of being left out.
+	const cachedAt = storeSnap.weatherCache[location]?.timestamp;
+	const lastFetched =
+		cachedAt !== undefined && Number.isFinite(cachedAt) ? cachedAt : undefined;
 	const today = data.weather[0];
 
 	return (
@@ -336,7 +391,7 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 									store.weatherLocations = store.weatherLocations.filter(
 										(l) => l !== location,
 									);
-									notify.info(`Removed ${location}`);
+									notify.info(tn("app.weather.removed", { location }));
 								}}
 							>
 								<Button
@@ -406,9 +461,33 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 
 export const WeatherTab = () => {
 	const { t } = useTranslation();
+	const tn = useNewMessage();
 	const storeSnap = useSnapshot(store);
 	const [newLocation, setNewLocation] = useState("");
 	const queryClient = useQueryClient();
+
+	/**
+	 * A persistence failure is quiet and non-blocking by design: the app keeps
+	 * working, it just cannot remember. Warning once rather than on every store
+	 * mutation (which fires on every keystroke in the search box) is what keeps
+	 * this from becoming noise the user learns to dismiss.
+	 *
+	 * The translate function is a fresh closure each render, so the ref lets the
+	 * subscription be registered once and still speak the current language.
+	 */
+	const warnedRef = useRef(false);
+	const tnRef = useRef(tn);
+	tnRef.current = tn;
+	useEffect(() => {
+		const warn = () => {
+			if (warnedRef.current) return;
+			warnedRef.current = true;
+			notify.warning(tnRef.current("app.weather.persistence_failed"));
+		};
+		// A failure that happened before this tab mounted still has to be shown.
+		if (getPersistenceError() !== null) warn();
+		return onPersistenceError(warn);
+	}, []);
 
 	const handleAddLocation = () => {
 		const trimmed = newLocation.trim();
@@ -428,13 +507,24 @@ export const WeatherTab = () => {
 		store.weatherLocations.push(trimmed);
 		notify.success(t("app.weather.added", { location: trimmed }));
 		setNewLocation("");
+
+		// The cache is LRU-bounded, so past the cap the least recently used
+		// location is evicted rather than the new one being rejected. Nothing
+		// breaks — it is just refetched on the next visit — so this is a quiet
+		// note rather than a warning the user has to act on.
+		if (store.weatherLocations.length > WEATHER_CACHE_MAX_ENTRIES) {
+			notify.info(
+				tn("app.weather.cache_capped", {
+					count: WEATHER_CACHE_MAX_ENTRIES,
+				}),
+			);
+		}
 	};
 
 	const handleRefreshAll = () => {
-		// Clear cache in store to force refetch even if QueryClient thinks it is fresh
-		for (const loc of store.weatherLocations) {
-			delete store.weatherCache[loc];
-		}
+		// Drop every cached location, not just the listed ones, so a "refresh
+		// all" cannot leave an entry for an already-removed city behind.
+		store.weatherCache = {};
 		queryClient.invalidateQueries({ queryKey: ["weather"] });
 		notify.success(t("app.weather.refreshed"));
 	};

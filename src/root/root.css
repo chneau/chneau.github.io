@@ -1,0 +1,17 @@
+/*
+ * Site-hub tokens.
+ *
+ * The hub is neutral by design: its accent is not a brand colour of its own but
+ * whatever the active app's card is tinted with, so the shared utilities (focus
+ * rings, status lights, the current-app switcher entry) follow the Mantine
+ * primary colour set in `App.tsx`.
+ */
+
+/*
+ * Expose the accent to the shared utilities (focus rings, status dots). Without
+ * it every `var(--app-accent, var(--app-text))` read degrades to the body text
+ * colour, so keyboard focus is no longer distinguishable from the label.
+ */
+:root {
+	--app-accent: var(--mantine-primary-color-filled);
+}

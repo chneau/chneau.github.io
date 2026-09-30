@@ -106,8 +106,11 @@ export const VenueModal = ({
 	const [menuFilter, setMenuFilter] = useState<string | null>(null);
 	const entry = venueRef != null ? cache.venues[String(venueRef)] : undefined;
 
-	// each pub starts fresh: no leaked query, sort, expanded row or hero image
-	// (also resets when the same pub is re-opened from a shared link)
+	// Each pub starts fresh: no leaked query, sort, expanded row or hero image.
+	// App.tsx renders this component unconditionally (only `opened` flips), so
+	// the instance - and every useState above - survives a switch from one pub
+	// to the next. Keying the reset on `opened`/`venueRef` is what actually runs
+	// it per pub, including when the same pub is re-opened from a shared link.
 	useEffect(() => {
 		setQuery("");
 		setSort("menu");
@@ -116,7 +119,7 @@ export const VenueModal = ({
 		setHero(0);
 		setExpanded(null);
 		setMenuFilter(null);
-	}, []);
+	}, [opened, venueRef]);
 
 	const valueRows = useMemo(
 		() => venueValues(cache, venueRef),
@@ -220,6 +223,9 @@ export const VenueModal = ({
 		.filter(Boolean);
 	const address = venue.address;
 	const images = venueImages(detail);
+	// A photo picked in another pub can point past this pub's gallery; never
+	// fall through to the placeholder when a photo exists.
+	const heroImage = images[hero] ?? images[0];
 	const temporarilyClosed = isTemporarilyClosed(venue.status);
 
 	const add = (name: string) => {
@@ -266,7 +272,7 @@ export const VenueModal = ({
 				{images.length ? (
 					<Box>
 						<VenueImage
-							src={images[hero]}
+							src={heroImage}
 							alt={venue.name}
 							width="100%"
 							height={200}

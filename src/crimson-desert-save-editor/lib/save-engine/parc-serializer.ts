@@ -76,8 +76,9 @@ const fieldPresent = (maskBytes: Uint8Array, fieldIndex: number): boolean => {
 };
 
 export const parseParcBlob = (data: Uint8Array): ParcBlob => {
-	if (data.length < 14)
+	if (data.length < 14) {
 		throw new Error("Invalid PARC blob: shorter than header");
+	}
 	const magic = readU16(data, 0);
 	if (magic !== 0xffff) {
 		throw new Error(
@@ -181,7 +182,9 @@ export const parseParcBlob = (data: Uint8Array): ParcBlob => {
 	pos += 12;
 	if (entryCount > (data.length - pos) / 20) {
 		fail(
-			`TOC entry count ${entryCount} overruns the ${data.length - pos} remaining bytes`,
+			`TOC entry count ${entryCount} overruns the ${
+				data.length - pos
+			} remaining bytes`,
 		);
 	}
 

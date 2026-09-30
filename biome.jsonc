@@ -1,0 +1,64 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+	"files": {
+		"maxSize": 10485760,
+		"includes": [
+			"**",
+			"!**/src/crimson-desert-save-editor/lib/generated/*.json",
+			"!**/src/spooners/data/*.json"
+		]
+	},
+	"linter": {
+		"rules": {
+			"complexity": {
+				/**
+				 * `!important` is load-bearing in this codebase, not laziness, and
+				 * turning this rule off is what stops `check:biome` silently
+				 * deleting accessibility fixes.
+				 *
+				 * The global reduced-motion guard in `base.css` and the matching
+				 * overrides in `cv/cv.css` and `shared/components/Section.css` all
+				 * reset durations via the universal selector, which has specificity
+				 * (0,0,0) and gains none from a media query. Every class rule that
+				 * declares its own duration therefore wins, and the guard protects
+				 * nothing at all. `!important` inverts that.
+				 *
+				 * Measured in Chromium against the design gallery: 14 elements still
+				 * animating under `prefers-reduced-motion: reduce` without it, 0 with
+				 * it. The print path in `cv.css` is the same story - `[data-reveal]`
+				 * (0,1,0) beats `*`, so printing within the first ~1.2s produced a
+				 * page with a name and nothing else.
+				 *
+				 * This has already bitten us once: a `biome check --write --unsafe`
+				 * pass stripped all of it, the blank-print and reduced-motion
+				 * regressions came back silently, and no test noticed for a while.
+				 * The three affected files are now guarded by tests that assert the
+				 * `!important` is still present:
+				 *   - src/shared/tests/tokens-theme.test.ts
+				 *   - src/cv/cv-media.test.ts
+				 *   - src/shared/tests/motion.test.ts
+				 */
+				"noImportantStyles": "off"
+			}
+		}
+	},
+	"overrides": [
+		{
+			/**
+			 * PWA icon assets. `noSvgWithoutTitle` is about inline `<svg>` in a
+			 * page, where a screen reader cannot otherwise name the graphic. These
+			 * files are referenced as favicons and maskable icons and are never
+			 * inlined into the DOM, so a `<title>` element would never be exposed
+			 * to anyone. Adding one to satisfy the rule would be decorative.
+			 */
+			"includes": ["public/icons/**"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"noSvgWithoutTitle": "off"
+					}
+				}
+			}
+		}
+	]
+}

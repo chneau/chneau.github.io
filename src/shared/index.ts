@@ -1,9 +1,3 @@
-export {
-	getAnalyticsConsent,
-	initAnalytics,
-	setAnalyticsConsent,
-	track,
-} from "./analytics";
 export { APP_CATEGORIES, APPS, type AppEntry } from "./apps";
 export { AppCard } from "./components/AppCard";
 export { AppHeader } from "./components/AppHeader";

@@ -4,11 +4,14 @@ import "../shared/base.css";
 import "./scotland-rail.css";
 import { MantineProvider } from "@mantine/core";
 import { createRoot } from "react-dom/client";
-import { initAnalytics, registerServiceWorker } from "../shared";
+import { registerServiceWorker } from "../shared";
+// By path, not via the barrel: analytics is a side-effectful module and must
+// not be dragged onto every app that imports a single shared component.
+import { initAnalytics } from "../shared/analytics";
 import { App } from "./App";
 import { railTheme } from "./theme";
 
-initAnalytics();
+initAnalytics("scotland-rail");
 registerServiceWorker();
 
 const container = document.getElementById("root");

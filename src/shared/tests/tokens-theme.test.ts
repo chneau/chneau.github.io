@@ -421,6 +421,35 @@ describe("reduced motion", () => {
 		}
 	});
 
+	test("each reset carries !important, or the override is inert", () => {
+		// This is the assertion whose absence let a real regression through.
+		//
+		// `*` has specificity (0,0,0) and a media query contributes none, so a
+		// reset written without `!important` loses to every class rule that
+		// declares its own duration - which is most of the shared layer. The
+		// block above can list all three properties and still protect nothing.
+		//
+		// Measured in Chromium against the design gallery, which is dense with
+		// animated class rules: 14 elements still animating under
+		// `prefers-reduced-motion: reduce` without `!important`, 0 with it.
+		//
+		// Both states of this file have existed in the tree at different times,
+		// which is why it is asserted rather than assumed.
+		const block = override ?? "";
+		// Each property has its own reset value: durations go to 0.001ms, the
+		// iteration count to 1 (an infinite animation is exactly what an
+		// iteration count of 1 stops).
+		for (const [property, value] of [
+			["animation-duration", "0\\.001ms"],
+			["animation-iteration-count", "1"],
+			["transition-duration", "0\\.001ms"],
+		]) {
+			expect(block).toMatch(
+				new RegExp(`${property}\\s*:\\s*${value}\\s*!important`),
+			);
+		}
+	});
+
 	test("the shared layer really does animate, so the override is load-bearing", () => {
 		expect(cleanBase).toContain("animation: app-shimmer");
 		expect(cleanBase).toContain("animation: app-breathe");

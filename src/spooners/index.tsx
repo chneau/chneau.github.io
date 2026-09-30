@@ -7,11 +7,14 @@ import "./spooners.css";
 import { MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { createRoot } from "react-dom/client";
-import { initAnalytics, registerServiceWorker } from "../shared";
+import { registerServiceWorker } from "../shared";
+// By path, not via the barrel: analytics is a side-effectful module and must
+// not be dragged onto every app that imports a single shared component.
+import { initAnalytics } from "../shared/analytics";
 import { App } from "./App";
 import { spoonersTheme } from "./theme";
 
-initAnalytics();
+initAnalytics("spooners");
 registerServiceWorker();
 
 const container = document.getElementById("root");

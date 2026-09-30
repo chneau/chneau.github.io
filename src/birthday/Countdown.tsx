@@ -1,8 +1,16 @@
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import { ArrowUpRight, CalendarDays, Moon, PartyPopper } from "lucide-react";
-import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
+import {
+	type CSSProperties,
+	memo,
+	type ReactNode,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 import { useTranslation } from "react-i18next";
+import { withRowKeys } from "./BirthdayTable";
 import { type Birthday, birthdays as tracked } from "./birthdays";
 import { KindIcon, kindLabelKey } from "./KindIcon";
 import { dataStore } from "./store";
@@ -10,14 +18,139 @@ import { useMagnetic } from "./useMagnetic";
 
 dayjs.extend(duration);
 
-const useTicker = () => {
+const SECOND_MS = 1_000;
+const HOUR_MS = 60 * 60 * SECOND_MS;
+
+type TFunction = ReturnType<typeof useTranslation>["t"];
+
+/**
+ * A clock that neither drifts nor lies.
+ *
+ * `setInterval(fn, 1000)` reschedules 1000ms after the *previous callback
+ * returned*, so any work inside it is added to every period and the displayed
+ * value creeps later. Worse, browsers throttle timers in a background tab to
+ * roughly one a minute: the digits would sit frozen showing a time up to a
+ * minute out of date, and nothing would fix it until the next lucky tick.
+ *
+ * So the timeout is rescheduled from the wall clock — aligned to the next
+ * whole boundary of `periodMs`, so a slow frame costs a fraction of a tick
+ * instead of a whole one — and a `visibilitychange` resync corrects the value
+ * the instant the tab comes back to the foreground.
+ */
+const useNow = (periodMs: number): number => {
 	const [now, setNow] = useState(() => Date.now());
+
 	useEffect(() => {
-		const id = setInterval(() => setNow(Date.now()), 1000);
-		return () => clearInterval(id);
-	}, []);
+		let timeout: ReturnType<typeof setTimeout> | undefined;
+
+		const run = () => {
+			setNow(Date.now());
+			schedule();
+		};
+		const schedule = () => {
+			const drift = Date.now() % periodMs;
+			timeout = setTimeout(run, drift === 0 ? periodMs : periodMs - drift);
+		};
+		const resync = () => {
+			if (!document.hidden) setNow(Date.now());
+		};
+
+		schedule();
+		document.addEventListener("visibilitychange", resync);
+		return () => {
+			if (timeout !== undefined) clearTimeout(timeout);
+			document.removeEventListener("visibilitychange", resync);
+		};
+	}, [periodMs]);
+
 	return now;
 };
+
+type CountUnit = { id: string; label: string; value: number };
+
+const unitsFor = (diff: number, t: TFunction): CountUnit[] => {
+	if (diff <= 0) {
+		return [{ id: "s", label: t("app.countdown.secs"), value: 0 }];
+	}
+	const dur = dayjs.duration(diff);
+	const units: CountUnit[] = [
+		{
+			id: "d",
+			label: t("app.countdown.days"),
+			value: Math.floor(dur.asDays()),
+		},
+		{ id: "h", label: t("app.countdown.hours"), value: dur.hours() },
+		{ id: "m", label: t("app.countdown.mins"), value: dur.minutes() },
+		{ id: "s", label: t("app.countdown.secs"), value: dur.seconds() },
+	];
+	// A leading "00 Days" is noise; every unit below the first non-zero one is
+	// worth keeping, because that is the part actually counting down.
+	return units.filter((unit, index) => index !== 0 || unit.value > 0);
+};
+
+/**
+ * What a screen reader is told, as opposed to what is shown.
+ *
+ * The original put `aria-live="polite"` on the digits, which asks an assistive
+ * technology to interrupt the user once a second, for as long as the page is
+ * open — the most hostile possible use of a live region. The digits are now
+ * ordinary readable text with no live semantics, and this coarse summary is
+ * the only thing announced.
+ *
+ * It carries the largest non-zero unit and nothing finer, so it changes at
+ * most once an hour. Inside the final hour it is empty: the remaining time is
+ * a number of seconds, there is no coarse way to say that, and repeating
+ * "0 hours" every minute is exactly the noise this is avoiding.
+ */
+const announcementFor = (diff: number, t: TFunction): string => {
+	if (diff < HOUR_MS) return "";
+	const hours = Math.floor(diff / HOUR_MS);
+	if (hours < 24) return `${hours} ${t("app.countdown.hours")}`;
+	return `${Math.floor(hours / 24)} ${t("app.countdown.days")}`;
+};
+
+/**
+ * The only part of the hero that re-renders on a clock.
+ *
+ * Isolated and memoised so that ticking the seconds does not re-run the
+ * dataset-wide `tracked.find` / `tracked.filter` in the parent, nor re-diff
+ * the pills, the stat lines and the magnetic button fifty times a minute.
+ * `deadline` is a number, so the prop comparison is exact.
+ */
+const CountdownDigits = memo(({ deadline }: { deadline: number }) => {
+	const { t } = useTranslation();
+	const now = useNow(SECOND_MS);
+	const diff = deadline - now;
+	const units = unitsFor(diff, t);
+
+	return (
+		<>
+			{/* `role="status"` is `aria-live="polite"` with `aria-atomic`, and is
+			    the only live region here. Its text changes at most hourly. */}
+			<p className="sr-only" role="status">
+				{announcementFor(diff, t)}
+			</p>
+			<div className="tk-count">
+				{units.map((unit) => (
+					<div className="tk-count__unit" key={unit.id}>
+						<span
+							className={
+								unit.id === "s"
+									? "tk-count__value tk-count__value--accent"
+									: "tk-count__value"
+							}
+						>
+							{String(unit.value).padStart(2, "0")}
+						</span>
+						<span className="tk-count__label">{unit.label}</span>
+					</div>
+				))}
+			</div>
+		</>
+	);
+});
+
+CountdownDigits.displayName = "CountdownDigits";
 
 type CountdownProps = {
 	birthdays: Birthday[];
@@ -26,9 +159,28 @@ type CountdownProps = {
 
 export const Countdown = ({ birthdays, onManage }: CountdownProps) => {
 	const { t } = useTranslation();
-	const now = useTicker();
 	const magneticRef = useMagnetic<HTMLDivElement>(0.14);
-	const primary = birthdays[0];
+	// `withRowKeys` comes from `BirthdayTable`: `Birthday` carries no id, so a
+	// record's React key is a fingerprint of what it shows plus an occurrence
+	// index, which is collision-free even for two records sharing a name and a
+	// date. Memoised before the early return below.
+	const keyed = useMemo(() => withRowKeys(birthdays), [birthdays]);
+	const primary = keyed[0]?.record;
+
+	// `tracked` is a module-level array rebuilt on every date roll and on every
+	// edit, so these four dataset-wide scans are keyed on its identity rather
+	// than recomputed on each render of the hero.
+	const { nextMilestone, thisMonth, weddings, people } = useMemo(() => {
+		const milestone = tracked.find(
+			(b) => b.milestone && b.daysBeforeBirthday >= 0,
+		);
+		return {
+			nextMilestone: milestone?.name,
+			thisMonth: tracked.filter((b) => b.month === dayjs().month() + 1).length,
+			weddings: tracked.filter((b) => b.kind === "💒").length,
+			people: tracked.length,
+		};
+	}, []);
 
 	if (!primary) {
 		return (
@@ -56,46 +208,25 @@ export const Countdown = ({ birthdays, onManage }: CountdownProps) => {
 	}
 
 	const isToday = primary.daysBeforeBirthday === 0;
-	const target = isToday
-		? dayjs(primary.nextBirthday).endOf("day")
-		: dayjs(primary.nextBirthday);
-	const diff = target.valueOf() - now;
-	const dur = dayjs.duration(Math.max(0, diff));
-
-	const rawUnits = [
-		{
-			id: "d",
-			label: t("app.countdown.days"),
-			value: Math.floor(dur.asDays()),
-		},
-		{ id: "h", label: t("app.countdown.hours"), value: dur.hours() },
-		{ id: "m", label: t("app.countdown.mins"), value: dur.minutes() },
-		{ id: "s", label: t("app.countdown.secs"), value: dur.seconds() },
-	];
-	const units =
-		diff <= 0
-			? [{ id: "s", label: t("app.countdown.secs"), value: 0 }]
-			: rawUnits.filter((unit, index) => index !== 0 || unit.value > 0);
+	// A plain number, so `CountdownDigits`' memo is exact, and derived without
+	// a hook because it cannot be: this line sits after the early return above.
+	const deadline = (
+		isToday
+			? dayjs(primary.nextBirthday).endOf("day")
+			: dayjs(primary.nextBirthday)
+	).valueOf();
 
 	const progress = Math.min(100, Math.max(0, primary.progress));
 	const nextAge = isToday ? primary.age : primary.age + 1;
-	const rest = birthdays.slice(1, 4);
-
-	const nextMilestone = tracked.find(
-		(b) => b.milestone && b.daysBeforeBirthday >= 0,
-	);
-	const thisMonth = tracked.filter(
-		(b) => b.month === dayjs().month() + 1,
-	).length;
-	const weddings = tracked.filter((b) => b.kind === "💒").length;
+	const rest = keyed.slice(1, 4);
 
 	const stats: { label: string; value: ReactNode }[] = [
-		{ label: t("app.hero.people"), value: tracked.length.toLocaleString() },
+		{ label: t("app.hero.people"), value: people.toLocaleString() },
 		{ label: t("app.hero.this_month"), value: thisMonth.toLocaleString() },
 		{ label: t("app.hero.weddings"), value: weddings.toLocaleString() },
 		{
 			label: t("app.hero.milestone"),
-			value: nextMilestone ? nextMilestone.name : t("app.hero.none"),
+			value: nextMilestone ?? t("app.hero.none"),
 		},
 	];
 
@@ -136,22 +267,7 @@ export const Countdown = ({ birthdays, onManage }: CountdownProps) => {
 				</div>
 
 				<div>
-					<div className="tk-count" aria-live="polite">
-						{units.map((unit) => (
-							<div className="tk-count__unit" key={unit.id}>
-								<span
-									className={
-										unit.id === "s"
-											? "tk-count__value tk-count__value--accent"
-											: "tk-count__value"
-									}
-								>
-									{String(unit.value).padStart(2, "0")}
-								</span>
-								<span className="tk-count__label">{unit.label}</span>
-							</div>
-						))}
-					</div>
+					<CountdownDigits deadline={deadline} />
 
 					<div className="tk-progress">
 						<div className="tk-progress__track">
@@ -203,11 +319,11 @@ export const Countdown = ({ birthdays, onManage }: CountdownProps) => {
 				<div className="tk-upcoming">
 					<span className="tk-eyebrow">{t("app.hero.closest")}</span>
 					{rest.length > 0 ? (
-						rest.map((b) => (
+						rest.map(({ record: b, key }) => (
 							<button
 								type="button"
 								className="tk-upcoming__row"
-								key={`${b.name}-${b.birthdayString}`}
+								key={key}
 								onClick={() => {
 									dataStore.selectedBirthday = b;
 								}}

@@ -20,19 +20,17 @@ import {
 	Trash2,
 	Upload,
 } from "lucide-react";
-import { type ChangeEvent, useRef, useState } from "react";
+import { type ChangeEvent, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import {
 	addRawBirthday,
 	birthdaySchema,
-	deleteRawBirthday,
 	getKindColor,
 	getRawBirthdays,
 	type RawBirthday,
 	resetRawBirthdays,
 	saveRawBirthdays,
-	updateRawBirthday,
 } from "./birthdays";
 import { ConfirmPopover } from "./ConfirmPopover";
 import { notify } from "./notify";
@@ -44,6 +42,92 @@ type ManageBirthdaysModalProps = {
 
 const PAGE_SIZE = 8;
 
+/**
+ * Structural identity of a stored record: the `(name, date)` pair the CRUD
+ * helpers in `birthdays.ts` key on, so it is what "the same birthday" means
+ * here too. The unit separator cannot occur in a `date` (Zod validates it as a
+ * dayjs-parsable date), so the concatenation stays unambiguous even when a
+ * `name` contains the separator itself.
+ */
+const identityOf = (record: RawBirthday) =>
+	`${record.name}\u001F${record.date}`;
+
+type RawBirthdayRow = {
+	record: RawBirthday;
+	/**
+	 * 0-based position of this record among the records sharing its identity.
+	 * Data stored before uniqueness was enforced can still hold duplicates, and
+	 * a duplicate row can only be told apart from its twin by this number.
+	 */
+	occurrence: number;
+	/** Collision-free React key: the identity plus that occurrence. */
+	key: string;
+};
+
+/** Pairs every record with a collision-free key and its occurrence index. */
+export const withRawKeys = (list: readonly RawBirthday[]): RawBirthdayRow[] => {
+	const seen = new Map<string, number>();
+	return list.map((record) => {
+		const identity = identityOf(record);
+		const occurrence = seen.get(identity) ?? 0;
+		seen.set(identity, occurrence + 1);
+		return { record, occurrence, key: `${identity}#${occurrence}` };
+	});
+};
+
+/** Index of the `occurrence`-th record sharing `record`'s identity, or -1. */
+export const indexOfOccurrence = (
+	list: readonly RawBirthday[],
+	record: RawBirthday,
+	occurrence: number,
+): number => {
+	const identity = identityOf(record);
+	let seen = 0;
+	for (let index = 0; index < list.length; index++) {
+		const candidate = list[index];
+		if (!candidate || identityOf(candidate) !== identity) continue;
+		if (seen === occurrence) return index;
+		seen++;
+	}
+	return -1;
+};
+
+/**
+ * Whether `(name, date)` is already taken. `excludeIndex` is the index of the
+ * record being edited, which must not collide with itself when it is saved
+ * unchanged.
+ */
+export const hasDuplicate = (
+	list: readonly RawBirthday[],
+	candidate: RawBirthday,
+	excludeIndex = -1,
+): boolean => {
+	const identity = identityOf(candidate);
+	return list.some(
+		(x, index) => index !== excludeIndex && identityOf(x) === identity,
+	);
+};
+
+/**
+ * Keeps the first record of each identity and reports the rest, so a bulk
+ * import cannot introduce duplicates in one step.
+ */
+export const dedupeRecords = (list: readonly RawBirthday[]) => {
+	const seen = new Set<string>();
+	const records: RawBirthday[] = [];
+	let duplicateCount = 0;
+	for (const record of list) {
+		const identity = identityOf(record);
+		if (seen.has(identity)) {
+			duplicateCount++;
+			continue;
+		}
+		seen.add(identity);
+		records.push(record);
+	}
+	return { records, duplicateCount };
+};
+
 export const ManageBirthdaysModal = ({
 	open,
 	onClose,
@@ -52,13 +136,15 @@ export const ManageBirthdaysModal = ({
 	const [list, setList] = useState<RawBirthday[]>(() => getRawBirthdays());
 	const [editingItem, setEditingItem] = useState<{
 		original: RawBirthday;
+		occurrence: number;
 		isNew: boolean;
 	} | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [page, setPage] = useState(0);
-	const [pendingImport, setPendingImport] = useState<RawBirthday[] | null>(
-		null,
-	);
+	const [pendingImport, setPendingImport] = useState<{
+		records: RawBirthday[];
+		duplicateCount: number;
+	} | null>(null);
 	const [discardOpen, setDiscardOpen] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -83,18 +169,20 @@ export const ManageBirthdaysModal = ({
 		setDiscardOpen(false);
 		setEditingItem({
 			original: { name: "", date: "1995-01-01", kind: "♂️" },
+			occurrence: 0,
 			isNew: true,
 		});
 	};
 
-	const handleOpenEdit = (record: RawBirthday) => {
+	const handleOpenEdit = (row: RawBirthdayRow) => {
 		setErrors({});
-		setFormName(record.name);
-		setFormDate(record.date);
-		setFormKind(record.kind);
+		setFormName(row.record.name);
+		setFormDate(row.record.date);
+		setFormKind(row.record.kind);
 		setDiscardOpen(false);
 		setEditingItem({
-			original: record,
+			original: row.record,
+			occurrence: row.occurrence,
 			isNew: false,
 		});
 	};
@@ -119,7 +207,8 @@ export const ManageBirthdaysModal = ({
 	};
 
 	const handleSaveForm = () => {
-		if (!formName.trim()) {
+		const name = formName.trim();
+		if (!name) {
 			setErrors({ name: t("manage.name_required") });
 			return;
 		}
@@ -133,22 +222,41 @@ export const ManageBirthdaysModal = ({
 		}
 
 		const newItem: RawBirthday = {
-			name: formName.trim(),
+			name,
 			date: formDate,
 			kind: formKind,
 		};
 
-		if (editingItem?.isNew) {
+		const editing = editingItem;
+		// Resolve the edited record against the list as it stands right now, so
+		// an edit never falls through to a twin sharing the same identity.
+		const current = getRawBirthdays();
+		const selfIndex =
+			editing && !editing.isNew
+				? indexOfOccurrence(current, editing.original, editing.occurrence)
+				: -1;
+
+		if (hasDuplicate(current, newItem, selfIndex)) {
+			setErrors({
+				name: t("manage.duplicate_entry", { name, date: formDate }),
+			});
+			return;
+		}
+
+		if (editing?.isNew) {
 			addRawBirthday(newItem);
 			notify.success(t("manage.added", { name: newItem.name }));
-		} else if (editingItem) {
-			updateRawBirthday(
-				{
-					name: editingItem.original.name,
-					date: editingItem.original.date,
-				},
-				newItem,
-			);
+		} else if (editing) {
+			if (selfIndex < 0) {
+				notify.error(t("manage.record_missing"));
+				return;
+			}
+			// Patch that one slot: `updateRawBirthday` in `birthdays.ts` uses
+			// `findIndex`, so on legacy duplicates it would rewrite the first
+			// match instead of the row the user actually opened.
+			const next = [...current];
+			next[selfIndex] = newItem;
+			saveRawBirthdays(next);
 			notify.success(t("manage.updated", { name: newItem.name }));
 		}
 
@@ -156,9 +264,20 @@ export const ManageBirthdaysModal = ({
 		refreshList();
 	};
 
-	const handleDelete = (record: RawBirthday) => {
-		deleteRawBirthday({ name: record.name, date: record.date });
-		notify.success(t("manage.deleted", { name: record.name }));
+	const handleDelete = (row: RawBirthdayRow) => {
+		const current = getRawBirthdays();
+		const index = indexOfOccurrence(current, row.record, row.occurrence);
+		if (index < 0) {
+			notify.error(t("manage.record_missing"));
+			refreshList();
+			return;
+		}
+		// Drop exactly one record: `deleteRawBirthday` in `birthdays.ts` filters
+		// out every record matching the identity, which on legacy duplicates
+		// would take out the whole group at once.
+		const next = current.filter((_, at) => at !== index);
+		saveRawBirthdays(next);
+		notify.success(t("manage.deleted", { name: row.record.name }));
 		refreshList();
 	};
 
@@ -197,7 +316,9 @@ export const ManageBirthdaysModal = ({
 					notify.error(t("manage.import_invalid"));
 					return;
 				}
-				setPendingImport(result.data);
+				// Duplicates inside the file are dropped here rather than on
+				// confirm, and counted so the user is told what was left out.
+				setPendingImport(dedupeRecords(result.data));
 			} catch {
 				notify.error(t("manage.import_parse_error"));
 			}
@@ -206,19 +327,33 @@ export const ManageBirthdaysModal = ({
 
 	const confirmImport = () => {
 		if (!pendingImport) return;
-		saveRawBirthdays(pendingImport);
-		notify.success(t("manage.imported", { count: pendingImport.length }));
+		const { records, duplicateCount } = pendingImport;
+		if (records.length === 0) {
+			// Only an empty file gets here (dedupe always keeps the first record
+			// of an identity). Importing it would silently wipe the list.
+			notify.error(t("manage.import_invalid"));
+			setPendingImport(null);
+			return;
+		}
+		saveRawBirthdays(records);
+		notify.success(t("manage.imported", { count: records.length }));
+		if (duplicateCount > 0) {
+			notify.warning(
+				t("manage.import_duplicates_skipped", { count: duplicateCount }),
+			);
+		}
 		setPendingImport(null);
 		refreshList();
 	};
 
-	const filteredList = list.filter((b) =>
-		b.name.toLowerCase().includes(searchQuery.toLowerCase()),
+	const rows = useMemo(() => withRawKeys(list), [list]);
+	const filteredRows = rows.filter((row) =>
+		row.record.name.toLowerCase().includes(searchQuery.toLowerCase()),
 	);
 
-	const pageCount = Math.max(1, Math.ceil(filteredList.length / PAGE_SIZE));
+	const pageCount = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
 	const currentPage = Math.min(page, pageCount - 1);
-	const visibleList = filteredList.slice(
+	const visibleRows = filteredRows.slice(
 		currentPage * PAGE_SIZE,
 		(currentPage + 1) * PAGE_SIZE,
 	);
@@ -247,7 +382,7 @@ export const ManageBirthdaysModal = ({
 						/>
 						<ConfirmPopover
 							title={t("manage.import_title", {
-								count: pendingImport?.length ?? 0,
+								count: pendingImport?.records.length ?? 0,
 							})}
 							confirmLabel={t("manage.import_confirm")}
 							cancelLabel={t("common.cancel")}
@@ -307,49 +442,52 @@ export const ManageBirthdaysModal = ({
 						</Table.Tr>
 					</Table.Thead>
 					<Table.Tbody>
-						{visibleList.map((r) => (
-							<Table.Tr key={`${r.name}-${r.date}`}>
-								<Table.Td>
-									<Badge color={getKindColor(r.kind)} variant="light">
-										{r.name} {r.kind}
-									</Badge>
-								</Table.Td>
-								<Table.Td>
-									<span>📅 {r.date}</span>
-								</Table.Td>
-								<Table.Td ta="right">
-									<Group gap="xs" justify="flex-end" wrap="nowrap">
-										<Button
-											size="xs"
-											variant="default"
-											onClick={() => handleOpenEdit(r)}
-											aria-label={t("manage.edit_aria", { name: r.name })}
-										>
-											<Pencil size={14} />
-										</Button>
-										<ConfirmPopover
-											title={t("manage.delete_title", { name: r.name })}
-											confirmLabel={t("manage.delete_confirm")}
-											cancelLabel={t("common.cancel")}
-											danger
-											onConfirm={() => handleDelete(r)}
-										>
+						{visibleRows.map((row) => {
+							const r = row.record;
+							return (
+								<Table.Tr key={row.key}>
+									<Table.Td>
+										<Badge color={getKindColor(r.kind)} variant="light">
+											{r.name} {r.kind}
+										</Badge>
+									</Table.Td>
+									<Table.Td>
+										<span>📅 {r.date}</span>
+									</Table.Td>
+									<Table.Td ta="right">
+										<Group gap="xs" justify="flex-end" wrap="nowrap">
 											<Button
 												size="xs"
 												variant="default"
-												color="red"
-												aria-label={t("manage.delete_aria", {
-													name: r.name,
-												})}
+												onClick={() => handleOpenEdit(row)}
+												aria-label={t("manage.edit_aria", { name: r.name })}
 											>
-												<Trash2 size={14} />
+												<Pencil size={14} />
 											</Button>
-										</ConfirmPopover>
-									</Group>
-								</Table.Td>
-							</Table.Tr>
-						))}
-						{visibleList.length === 0 && (
+											<ConfirmPopover
+												title={t("manage.delete_title", { name: r.name })}
+												confirmLabel={t("manage.delete_confirm")}
+												cancelLabel={t("common.cancel")}
+												danger
+												onConfirm={() => handleDelete(row)}
+											>
+												<Button
+													size="xs"
+													variant="default"
+													color="red"
+													aria-label={t("manage.delete_aria", {
+														name: r.name,
+													})}
+												>
+													<Trash2 size={14} />
+												</Button>
+											</ConfirmPopover>
+										</Group>
+									</Table.Td>
+								</Table.Tr>
+							);
+						})}
+						{visibleRows.length === 0 && (
 							<Table.Tr>
 								<Table.Td colSpan={3}>
 									<Text size="sm" c="dimmed" ta="center" py="md">
@@ -361,7 +499,7 @@ export const ManageBirthdaysModal = ({
 					</Table.Tbody>
 				</Table>
 
-				{filteredList.length > PAGE_SIZE && (
+				{filteredRows.length > PAGE_SIZE && (
 					<Group justify="center">
 						<Pagination
 							size="sm"

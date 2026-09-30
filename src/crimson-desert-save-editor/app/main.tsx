@@ -3,13 +3,13 @@ import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "../../shared/tokens.css";
 import "../../shared/base.css";
+import "../crimson-desert-save-editor.css";
 import { Notifications } from "@mantine/notifications";
 import { createRoot } from "react-dom/client";
-import {
-	createAppTheme,
-	initAnalytics,
-	registerServiceWorker,
-} from "../../shared";
+import { createAppTheme, registerServiceWorker } from "../../shared";
+// By path, not via the barrel: analytics is a side-effectful module and must
+// not be dragged onto every app that imports a single shared component.
+import { initAnalytics } from "../../shared/analytics";
 import { Home } from "./page";
 
 /**
@@ -47,7 +47,7 @@ if (!container) {
 }
 
 // Site-wide analytics and offline support. Neither touches save data.
-initAnalytics();
+initAnalytics("crimson-desert-save-editor");
 registerServiceWorker();
 
 // Deliberately not wrapped in StrictMode: it double-invokes every render in

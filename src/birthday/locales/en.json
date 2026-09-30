@@ -15,7 +15,8 @@
 				"week": "This week",
 				"month": "This month",
 				"later": "Later"
-			}
+			},
+			"today": "Today"
 		},
 		"compatibility": {
 			"title": "Compatibility",
@@ -23,7 +24,10 @@
 			"excellent": "Excellent (100%)",
 			"great": "Great (80%)",
 			"neutral": "Neutral (50%)",
-			"challenging": "Challenging (40%)"
+			"challenging": "Challenging (40%)",
+			"shared_birthday": "Shared: {{names}}",
+			"duplicate_row": "This name and date is also saved {{count}} more times — the records cannot be told apart, so no match is claimed here.",
+			"same_name_note": "{{count}} other entries named {{name}} are listed here; they are separate people, scored on their own zodiac element."
 		},
 		"statistics": {
 			"title": "Statistics",
@@ -66,7 +70,12 @@
 			"rookie_tooltip": "{{name}} is the youngest member.",
 			"socialite_tooltip": "{{name}} has {{count}} perfect matches!",
 			"twins_tooltip": "Shared birthdays: {{pairs}}",
-			"no_twins": "No exact twins found yet!"
+			"no_twins": "No exact twins found yet!",
+			"years": "years",
+			"perfect_matches": "{{count}} perfect matches",
+			"no_socialite": "No perfect match yet",
+			"same_sign_line": "{{names}} share the {{sign}} sign",
+			"same_generation_line": "{{names}} are all {{generation}}"
 		},
 		"search": "Search...",
 		"filters": {
@@ -85,7 +94,13 @@
 			"export": "Export Calendar",
 			"subscribe": "Subscribe",
 			"copy": "Copy Link",
-			"copied": "Copied!"
+			"copied": "Copied!",
+			"exported": "Downloaded birthdays.ics",
+			"calendar_name": "Birthdays",
+			"ics_birthday": "{{name}}'s Birthday",
+			"ics_wedding": "{{name}} Wedding Anniversary",
+			"export_one": "Export One Person",
+			"hosted_hint": "Downloads include your own additions and edits. Subscribing uses the hosted file, which only updates when the site is rebuilt."
 		},
 		"header": {
 			"install": "Install",
@@ -180,7 +195,10 @@
 				"389": "Moderate or heavy rain with thunder",
 				"392": "Patchy light snow with thunder",
 				"395": "Moderate or heavy snow with thunder"
-			}
+			},
+			"persistence_failed": "Your settings could not be saved — this browser's storage is full or unavailable. Everything still works, but changes will be lost on reload.",
+			"cache_capped": "Weather is cached for the {{count}} most recently viewed locations, so the rest are re-fetched on demand.",
+			"removed": "Removed {{location}}"
 		},
 		"notifications": {
 			"today_title": "🎂 Happy Birthday!",
@@ -191,7 +209,10 @@
 			"test_title": "🎉 Test Notification",
 			"test_body": "This is a test notification from Birthday Tracker!",
 			"no_support": "This browser does not support desktop notification",
-			"no_permission": "Notification permission not granted. Please click the bell icon."
+			"no_permission": "Notification permission not granted. Please click the bell icon.",
+			"today_body_many": "Today is the birthday of {{names}}!",
+			"upcoming_body_many": "{{names}} have birthdays tomorrow!",
+			"both_body_many": "And {{names}} have birthdays tomorrow!"
 		},
 		"card": "Card",
 		"events": "Events",
@@ -220,7 +241,13 @@
 			"empty_body": "No records match the current search and filters."
 		},
 		"on_this_day_error": "Couldn't load events",
-		"loading": "Loading insights"
+		"loading": "Loading insights",
+		"on_this_day_source": "Source",
+		"on_this_day_attribution": "Events from",
+		"on_this_day_attribution_wikipedia": "Wikipedia",
+		"on_this_day_attribution_license": "CC BY-SA 4.0",
+		"on_this_day_empty": "No notable events for this day.",
+		"card_error": "Couldn't generate the birthday card. Please try again."
 	},
 	"common": {
 		"confirm": "Confirm",
@@ -263,11 +290,17 @@
 		"deleted": "Deleted {{name}}",
 		"reset_notify": "Reset to default birthdays",
 		"exported": "Exported birthdays.json",
-		"imported": "Imported {{count}} birthdays!",
+		"imported_one": "Imported {{count}} birthday!",
+		"imported_other": "Imported {{count}} birthdays!",
 		"import_invalid": "Invalid JSON: expected an array of valid birthday records",
 		"import_parse_error": "Failed to parse JSON file",
-		"import_title": "Replace all birthdays with {{count}} imported entries?",
-		"import_confirm": "Replace"
+		"import_title_one": "Replace all birthdays with {{count}} imported entry?",
+		"import_title_other": "Replace all birthdays with {{count}} imported entries?",
+		"import_confirm": "Replace",
+		"duplicate_entry": "{{name}} already has a birthday on {{date}}.",
+		"record_missing": "That entry is no longer in the list.",
+		"import_duplicates_skipped_one": "Skipped {{count}} duplicate entry (same name and date).",
+		"import_duplicates_skipped_other": "Skipped {{count}} duplicate entries (same name and date)."
 	},
 	"table": {
 		"name": "Name",
@@ -308,10 +341,17 @@
 	},
 	"on_this_day": "On This Day in History",
 	"biorhythms": {
-		"title": "Biorhythms (Next 30 Days)",
+		"title": "Biorhythms (not a measurement)",
 		"physical": "Physical",
 		"emotional": "Emotional",
-		"intellectual": "Intellectual"
+		"intellectual": "Intellectual",
+		"disclaimer": "Biorhythms are a popular belief, not a scientifically supported measure. The three curves below are generated from the birth date by a fixed sine formula — no measurement of you, your health or your mood is involved, and a point on a curve does not mean anything.",
+		"axis_label": "generated curve",
+		"cycle_belief": "{{days}}-day belief",
+		"range": "Range",
+		"range_days": "{{days}}d",
+		"formula_note": "How it is drawn: value = sin(2*PI * days since birth / period) * 100, with periods of 23, 28 and 33 days. The axes are the curve's own output, not measurements of anyone.",
+		"unknown_birth": "This birthday has no usable birth date yet, so there is no day zero to anchor the curves to. Nothing is plotted."
 	},
 	"data": {
 		"planets": {
@@ -509,5 +549,11 @@
 			"Vaimoana": "Tahitian: 'Ocean water'",
 			"Victor": "Latin: 'Conqueror' or 'Winner'"
 		}
+	},
+	"consent": {
+		"title": "Anonymous usage stats?",
+		"body": "Count which apps are opened. No session replay, no autocapture, no cookies, no personal data. Decline and nothing is ever sent.",
+		"accept": "Allow",
+		"decline": "No thanks"
 	}
 }

@@ -2,6 +2,11 @@ import { defineConfig } from "@rsbuild/core";
 import { pluginReact } from "@rsbuild/plugin-react";
 import dayjs from "dayjs";
 
+/**
+ * Injected into the four environments whose UI surfaces a build stamp:
+ * root, cv, birthday and scotland-rail. Environments without a consumer
+ * must NOT declare it — an unused define is dead config.
+ */
 const nowStr = dayjs().format("MMM D, HH:mm");
 
 const SITE_URL = "https://chneau.github.io";
@@ -287,7 +292,6 @@ export default defineConfig({
 				entry: {
 					index: "./src/crimson-desert-save-editor/app/main.tsx",
 				},
-				define: { BUILD_DATE: JSON.stringify(nowStr) },
 			},
 			html: {
 				title: "Crimson Desert Save Editor",
@@ -324,7 +328,6 @@ export default defineConfig({
 		spooners: {
 			source: {
 				entry: { index: "./src/spooners/index.tsx" },
-				define: { BUILD_DATE: JSON.stringify(nowStr) },
 			},
 			html: {
 				title: "Spooners | Pub prices on a map",
@@ -361,7 +364,6 @@ export default defineConfig({
 		design: {
 			source: {
 				entry: { index: "./src/design/index.tsx" },
-				define: { BUILD_DATE: JSON.stringify(nowStr) },
 			},
 			html: {
 				title: "Design System | chneau.github.io",

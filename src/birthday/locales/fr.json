@@ -9,15 +9,25 @@
 			"title": "Chronologie",
 			"anniversary": "Anniversaire",
 			"turns": "Fêtera ses {{age}} ans",
-			"in_days": "dans {{days}} jours ({{day}})"
+			"in_days": "dans {{days}} jours ({{day}})",
+			"legend": {
+				"today": "Aujourd'hui",
+				"week": "Cette semaine",
+				"month": "Ce mois-ci",
+				"later": "Plus tard"
+			},
+			"today": "Aujourd’hui"
 		},
 		"compatibility": {
 			"title": "Compatibilité",
 			"matrix_title": "Matrice de Compatibilité",
-			"excellent": "Excellent (100%)",
+			"excellent": "Excellent (100 %)",
 			"great": "Super (80%)",
 			"neutral": "Neutre (50%)",
-			"challenging": "Difficile (40%)"
+			"challenging": "Difficile (40%)",
+			"shared_birthday": "Partagés : {{names}}",
+			"duplicate_row": "Ce nom et cette date sont aussi enregistrés {{count}} fois de plus : les enregistrements ne peuvent être distingués, donc aucune correspondance n’est annoncée ici.",
+			"same_name_note": "{{count}} autres entrées nommées {{name}} figurent dans la liste ; ce sont des personnes distinctes, notées selon leur propre élément zodiacal."
 		},
 		"statistics": {
 			"title": "Statistiques",
@@ -36,7 +46,9 @@
 			"day_of_week": "Jour de la Semaine",
 			"decades": "Décennies",
 			"pyramid": "Pyramide des Âges",
-			"count": "Nombre"
+			"count": "Nombre",
+			"heatmap_less": "Moins",
+			"heatmap_more": "Plus"
 		},
 		"milestones": {
 			"title": "Jalons",
@@ -47,7 +59,7 @@
 			"no_upcoming": "Aucun jalon à venir"
 		},
 		"records": {
-			"title": "Records",
+			"title": "Palmarès",
 			"widget_title": "Records 🏆",
 			"elder": "L'Ancien",
 			"rookie": "Le Petit Nouveau",
@@ -58,7 +70,12 @@
 			"rookie_tooltip": "{{name}} est le plus jeune membre.",
 			"socialite_tooltip": "{{name}} a {{count}} correspondances parfaites !",
 			"twins_tooltip": "Anniversaires partagés : {{pairs}}",
-			"no_twins": "Pas encore de jumeaux exacts !"
+			"no_twins": "Pas encore de jumeaux exacts !",
+			"years": "ans",
+			"perfect_matches": "{{count}} correspondances parfaites",
+			"no_socialite": "Aucune correspondance parfaite pour l’instant",
+			"same_sign_line": "{{names}} partagent le signe {{sign}}",
+			"same_generation_line": "{{names}} sont tous {{generation}}"
 		},
 		"search": "Rechercher...",
 		"filters": {
@@ -70,18 +87,24 @@
 				"next_month": "Mois prochain",
 				"gen_z": "Gen Z",
 				"teens": "Ados",
-				"seniors": "Seniors"
+				"seniors": "Aînés"
 			}
 		},
 		"calendar": {
 			"export": "Exporter Calendrier",
 			"subscribe": "S'abonner",
 			"copy": "Copier Lien",
-			"copied": "Copié !"
+			"copied": "Copié !",
+			"exported": "birthdays.ics téléchargé",
+			"calendar_name": "Anniversaires",
+			"ics_birthday": "Anniversaire de {{name}}",
+			"ics_wedding": "{{name}} — anniversaire de mariage",
+			"export_one": "Exporter une seule personne",
+			"hosted_hint": "Les téléchargements incluent vos propres ajouts et modifications. L’abonnement utilise le fichier hébergé, qui n’est mis à jour qu’au moment de la reconstruction du site."
 		},
 		"header": {
 			"install": "Installer",
-			"test_notification": "Test Notification",
+			"test_notification": "Notification de test",
 			"simulate": "Simuler Anniv",
 			"enable_notifications": "Activer Notifications",
 			"light": "Clair",
@@ -92,8 +115,8 @@
 			"next_celebration": "Prochaine célébration : {{name}} ({{kind}})",
 			"days": "Jours",
 			"hours": "Heures",
-			"mins": "Mins",
-			"secs": "Secs"
+			"mins": "Min",
+			"secs": "Sec"
 		},
 		"weather": {
 			"title": "Météo",
@@ -110,6 +133,19 @@
 			"hourly": "Par heure",
 			"daily": "Par jour",
 			"no_locations": "Aucun lieu ajouté.",
+			"drag_reorder": "Glisser pour réorganiser",
+			"move_up": "Monter",
+			"move_down": "Descendre",
+			"error": "Erreur de chargement de la météo pour {{location}}",
+			"retry": "Réessayer",
+			"remove_title": "Retirer {{location}} de la liste météo ?",
+			"remove_location_title": "Retirer {{location}} des lieux météo ?",
+			"remove_confirm": "Retirer",
+			"remove_aria": "Retirer {{location}}",
+			"enter_location": "Veuillez saisir le nom d'une ville ou d'un lieu",
+			"already_added": "{{location}} figure déjà dans votre liste météo",
+			"added": "{{location}} ajouté",
+			"refreshed": "Météo actualisée",
 			"codes": {
 				"113": "Ensoleillé",
 				"116": "Partiellement nuageux",
@@ -136,30 +172,33 @@
 				"305": "Pluie forte par moments",
 				"308": "Pluie forte",
 				"311": "Pluie verglaçante légère",
-				"314": "Moderate or heavy freezing rain",
-				"317": "Light sleet",
-				"320": "Moderate or heavy sleet",
-				"323": "Patchy light snow",
-				"326": "Light snow",
-				"329": "Patchy moderate snow",
-				"332": "Moderate snow",
-				"335": "Patchy heavy snow",
-				"338": "Heavy snow",
-				"350": "Ice pellets",
-				"353": "Light rain shower",
-				"356": "Moderate or heavy rain shower",
-				"359": "Torrential rain shower",
-				"362": "Light sleet showers",
-				"365": "Moderate or heavy sleet showers",
-				"368": "Light snow showers",
-				"371": "Moderate or heavy snow showers",
-				"374": "Light showers of ice pellets",
-				"377": "Moderate or heavy showers of ice pellets",
-				"386": "Patchy light rain with thunder",
-				"389": "Moderate or heavy rain with thunder",
-				"392": "Patchy light snow with thunder",
-				"395": "Moderate or heavy snow with thunder"
-			}
+				"314": "Pluie verglaçante modérée ou forte",
+				"317": "Grésil léger",
+				"320": "Grésil modéré ou fort",
+				"323": "Neige légère éparse",
+				"326": "Neige légère",
+				"329": "Neige modérée éparse",
+				"332": "Neige modérée",
+				"335": "Neige forte éparse",
+				"338": "Neige forte",
+				"350": "Granules de glace",
+				"353": "Averse de pluie légère",
+				"356": "Averse de pluie modérée ou forte",
+				"359": "Averse de pluie torrentielle",
+				"362": "Averses de grésil légères",
+				"365": "Averses de grésil modérées ou fortes",
+				"368": "Averses de neige légères",
+				"371": "Averses de neige modérées ou fortes",
+				"374": "Averses légères de granules de glace",
+				"377": "Averses modérées ou fortes de granules de glace",
+				"386": "Pluie légère éparse avec orage",
+				"389": "Pluie modérée ou forte avec orage",
+				"392": "Neige légère éparse avec orage",
+				"395": "Neige modérée ou forte avec orage"
+			},
+			"persistence_failed": "Vos paramètres n’ont pas pu être enregistrés : le stockage de ce navigateur est plein ou indisponible. Tout fonctionne toujours, mais les modifications seront perdues au rechargement.",
+			"cache_capped": "La météo est mise en cache pour les {{count}} lieux consultés le plus récemment ; les autres sont récupérés à la demande.",
+			"removed": "{{location}} supprimé"
 		},
 		"notifications": {
 			"today_title": "🎂 Joyeux Anniversaire !",
@@ -170,41 +209,105 @@
 			"test_title": "🎉 Notification de Test",
 			"test_body": "Ceci est une notification de test de Birthday Tracker !",
 			"no_support": "Ce navigateur ne supporte pas les notifications de bureau",
-			"no_permission": "Permission de notification non accordée. Veuillez cliquer sur l'icône de la cloche."
+			"no_permission": "Permission de notification non accordée. Veuillez cliquer sur l'icône de la cloche.",
+			"today_body_many": "C'est aujourd'hui l'anniversaire de {{names}} !",
+			"upcoming_body_many": "{{names}} fêtent leur anniversaire demain !",
+			"both_body_many": "Et {{names}} fêtent aussi leur anniversaire demain !"
 		},
 		"card": "Carte",
 		"events": "Événements",
 		"no_data": "N/D",
 		"hero": {
-			"eyebrow": "Next celebration",
-			"today": "Happening today",
-			"turning": "Turning {{age}}",
-			"cycle": "{{percent}}% of the cycle elapsed",
-			"closest": "Closest",
-			"people": "People tracked",
-			"this_month": "Celebrations this month",
-			"weddings": "Anniversaries",
-			"milestone": "Next milestone",
-			"none": "None on record",
-			"no_title": "No dates on the horizon",
-			"no_body": "Add a birthday or widen the filters to bring the calendar back to life.",
-			"manage": "Manage birthdays",
-			"add": "Add birthday",
-			"details": "View details"
+			"eyebrow": "Prochaine célébration",
+			"today": "Aujourd'hui",
+			"turning": "Fête ses {{age}} ans",
+			"cycle": "{{percent}} % du cycle écoulés",
+			"closest": "La plus proche",
+			"people": "Personnes suivies",
+			"this_month": "Célébrations ce mois-ci",
+			"weddings": "Anniversaires de mariage",
+			"milestone": "Prochain jalon",
+			"none": "Aucun enregistrement",
+			"no_title": "Aucune date à l'horizon",
+			"no_body": "Ajoutez un anniversaire ou élargissez les filtres pour raviver le calendrier.",
+			"manage": "Gérer les anniversaires",
+			"add": "Ajouter un anniversaire",
+			"details": "Voir les détails"
 		},
 		"list": {
-			"showing": "{{shown}} of {{total}} shown",
-			"reset": "Reset filters",
-			"empty_title": "Nothing matches",
-			"empty_body": "No records match the current search and filters."
+			"showing": "{{shown}} sur {{total}} affichés",
+			"reset": "Réinitialiser les filtres",
+			"empty_title": "Aucune correspondance",
+			"empty_body": "Aucun enregistrement ne correspond à la recherche et aux filtres actuels."
 		},
-		"loading": "Loading insights"
+		"on_this_day_error": "Impossible de charger les événements",
+		"loading": "Chargement des analyses",
+		"on_this_day_source": "Source",
+		"on_this_day_attribution": "Événements de",
+		"on_this_day_attribution_wikipedia": "Wikipédia",
+		"on_this_day_attribution_license": "CC BY-SA 4.0",
+		"on_this_day_empty": "Aucun événement notable ce jour-là.",
+		"card_error": "Impossible de générer la carte d'anniversaire. Veuillez réessayer."
+	},
+	"common": {
+		"confirm": "Confirmer",
+		"cancel": "Annuler"
+	},
+	"manage": {
+		"title": "🎂 Gérer les anniversaires",
+		"add": "Ajouter un anniversaire",
+		"export_json": "Exporter en JSON",
+		"import_json": "Importer du JSON",
+		"reset_defaults": "Réinitialiser",
+		"reset_title": "Réinitialiser tous les anniversaires aux données d'exemple par défaut ?",
+		"reset_confirm": "Réinitialiser",
+		"search_placeholder": "Rechercher des entrées...",
+		"col_name": "Nom",
+		"col_date": "Date",
+		"col_actions": "Actions",
+		"no_results": "Aucun anniversaire trouvé.",
+		"edit_aria": "Modifier {{name}}",
+		"delete_title": "Supprimer {{name}} ?",
+		"delete_confirm": "Supprimer",
+		"delete_aria": "Supprimer {{name}}",
+		"add_title": "Ajouter un anniversaire",
+		"edit_title": "Modifier l'anniversaire",
+		"name_label": "Nom / Couple",
+		"name_placeholder": "ex. Jean Dupont",
+		"date_label": "Date de naissance / mariage",
+		"category": "Catégorie",
+		"boy": "♂️ Garçon",
+		"girl": "♀️ Fille",
+		"wedding": "💒 Mariage",
+		"save": "Enregistrer",
+		"discard_title": "Abandonner les modifications non enregistrées ?",
+		"discard_confirm": "Abandonner",
+		"name_required": "Veuillez saisir un nom",
+		"date_required": "Veuillez sélectionner une date",
+		"kind_required": "Veuillez sélectionner une catégorie",
+		"added": "{{name}} ajouté",
+		"updated": "{{name}} mis à jour",
+		"deleted": "{{name}} supprimé",
+		"reset_notify": "Réinitialisé aux anniversaires par défaut",
+		"exported": "birthdays.json exporté",
+		"imported_one": "{{count}} anniversaire importé !",
+		"imported_other": "{{count}} anniversaires importés !",
+		"import_invalid": "JSON invalide : un tableau d'enregistrements d'anniversaire valides est attendu",
+		"import_parse_error": "Échec de l'analyse du fichier JSON",
+		"import_title_one": "Remplacer tous les anniversaires par {{count}} entrée importée ?",
+		"import_title_other": "Remplacer tous les anniversaires par {{count}} entrées importées ?",
+		"import_confirm": "Remplacer",
+		"duplicate_entry": "{{name}} a déjà un anniversaire le {{date}}.",
+		"record_missing": "Cette entrée n'est plus dans la liste.",
+		"import_duplicates_skipped_one": "{{count}} entrée en double ignorée (même nom et même date).",
+		"import_duplicates_skipped_other": "{{count}} entrées en double ignorées (même nom et même date)."
 	},
 	"table": {
 		"name": "Nom",
 		"birthday": "Anniversaire",
 		"age": "Âge",
 		"progress": "Progression",
+		"rows_per_page": "Lignes par page",
 		"in": "Dans",
 		"sign": "Signe",
 		"birthgem": "Pierre",
@@ -238,10 +341,17 @@
 	},
 	"on_this_day": "Ce jour dans l'Histoire",
 	"biorhythms": {
-		"title": "Biorythmes (30 prochains jours)",
+		"title": "Biorhythmmes (pas une mesure)",
 		"physical": "Physique",
 		"emotional": "Émotionnel",
-		"intellectual": "Intellectuel"
+		"intellectual": "Intellectuel",
+		"disclaimer": "Les biorhythmmes sont une croyance populaire, pas une mesure scientifiquement validée. Les trois courbes ci-dessous sont générées à partir de la date de naissance par une formule sinusoïdale fixe — aucune mesure de vous, de votre santé ou de votre humeur n’est involvedue, et un point sur une courbe ne signifie rien.",
+		"axis_label": "courbe générée",
+		"cycle_belief": "croyance de {{days}} jours",
+		"range": "Période",
+		"range_days": "{{days}} j",
+		"formula_note": "Comment c’est tracé : valeur = sin(2*PI * jours depuis la naissance / période) * 100, avec des périodes de 23, 28 et 33 jours. Les axes sont la sortie de la courbe elle-même, pas des mesures de qui que ce soit.",
+		"unknown_birth": "Cet anniversaire n’a pas encore de date de naissance exploitable, donc aucun jour zéro auquel ancrer les courbes. Rien n’est tracé."
 	},
 	"data": {
 		"planets": {
@@ -439,5 +549,11 @@
 			"Vaimoana": "Tahitien : 'Eau de l'océan'",
 			"Victor": "Latin : 'Vainqueur'"
 		}
+	},
+	"consent": {
+		"title": "Statistiques d’usage anonymes ?",
+		"body": "Compter les applications ouvertes. Ni rediffusion de session, ni capture automatique, ni cookies, ni données personnelles. En refusant, rien n’est jamais envoyé.",
+		"accept": "Autoriser",
+		"decline": "Non merci"
 	}
 }

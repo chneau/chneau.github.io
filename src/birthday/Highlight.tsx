@@ -12,11 +12,7 @@ export const Highlight = ({ text, search }: HighlightProps) => {
 		<>
 			{parts.map((part, i) =>
 				part.toLowerCase() === term.toLowerCase() ? (
-					<mark
-						// biome-ignore lint/suspicious/noArrayIndexKey: fine for static text parts
-						key={i}
-						className="tk-hl"
-					>
+					<mark key={i} className="tk-hl">
 						{part}
 					</mark>
 				) : (

@@ -9,7 +9,14 @@
 			"title": "Loidhne-tìm",
 			"anniversary": "Ceann-bliadhna",
 			"turns": "A' tionndadh {{age}}",
-			"in_days": "ann an {{days}} latha ({{day}})"
+			"in_days": "ann an {{days}} latha ({{day}})",
+			"legend": {
+				"today": "An-diugh",
+				"week": "An t-seachdain seo",
+				"month": "A' mhìos seo",
+				"later": "Nas fhathast"
+			},
+			"today": "An-diugh"
 		},
 		"compatibility": {
 			"title": "Co-fhreagarrachd",
@@ -17,7 +24,10 @@
 			"excellent": "Sgoinneil (100%)",
 			"great": "Glè mhath (80%)",
 			"neutral": "Neo-phàirteach (50%)",
-			"challenging": "Dùbhlanach (40%)"
+			"challenging": "Dùbhlanach (40%)",
+			"shared_birthday": "Co-cheana: {{names}}",
+			"duplicate_row": "Tha an t-ainm agus an latha seo cuideachd air a shàbhaladh {{count}} turas eile — chan fhaod na co-litean a chur ri chèile, agus mar sin chan eil samhailt samhla air an seo.",
+			"same_name_note": "Tha {{count}} clàr eile ann an seo air a b’ ainm {{name}}; is iad daoine eadar-dhealaichte, air an tomhais a rèir an fheachdan zodiacail aca fhathast."
 		},
 		"statistics": {
 			"title": "Staitistig",
@@ -36,7 +46,9 @@
 			"day_of_week": "Latha na seachdain breith",
 			"decades": "Deicheadan breith",
 			"pyramid": "Sgaoileadh aoise & gnè",
-			"count": "Àireamh"
+			"count": "Àireamh",
+			"heatmap_less": "Nas lugha",
+			"heatmap_more": "Barrachd"
 		},
 		"milestones": {
 			"title": "Clachan-mìle",
@@ -58,7 +70,12 @@
 			"rookie_tooltip": "Is e {{name}} an neach as òige.",
 			"socialite_tooltip": "Tha {{count}} co-fhreagairtean foirfe aig {{name}}!",
 			"twins_tooltip": "Co-làithean-breith co-roinnte: {{pairs}}",
-			"no_twins": "Cha deach càraid foirfe a lorg fhathast!"
+			"no_twins": "Cha deach càraid foirfe a lorg fhathast!",
+			"years": "bliadhna",
+			"perfect_matches": "{{count}} co-dhearbhachdan shàn",
+			"no_socialite": "Chan eil co-dhearbhadh shàn ann fhathast",
+			"same_sign_line": "Tha {{sign}} air {{names}}",
+			"same_generation_line": "Tha {{names}} uile {{generation}}"
 		},
 		"search": "Lorg...",
 		"filters": {
@@ -75,9 +92,15 @@
 		},
 		"calendar": {
 			"export": "Às-phortaich mìosachan",
-			"subscribe": "Subscribe",
+			"subscribe": "Foillsich",
 			"copy": "Dèan lethbhreac den cheangal",
-			"copied": "Air lethbhreacadh!"
+			"copied": "Air lethbhreacadh!",
+			"exported": "Tha birthdays.ics air a luchtachadh",
+			"calendar_name": "Co-latha-breith",
+			"ics_birthday": "Co-latha-breith {{name}}",
+			"ics_wedding": "{{name}} — cuimhneachadh pòsta",
+			"export_one": "Tha aon neach a thig às a-rìgh",
+			"hosted_hint": "Tha na luchtachaidh nam feadh-athais agus ath-dheasachaidhean agaibh. Tha fo-shiùsheachadh a’ cleachdadh an fhaidhle air a stòradh, nach atharraich ach nuair a thogas an làrach a-rìgh."
 		},
 		"header": {
 			"install": "Stàlaich",
@@ -110,6 +133,19 @@
 			"hourly": "Gach uair",
 			"daily": "Gach latha",
 			"no_locations": "Cha deach àite sam bith a chur ris fhathast.",
+			"drag_reorder": "Tar gus atharrachadh",
+			"move_up": "Àrdach",
+			"move_down": "Ìslearach",
+			"error": "Mhearachd fhaighinn na h-athair airson {{location}}",
+			"retry": "Feuch ris",
+			"remove_title": "A bheil thu ri {{location}} a thoirt air falbh bho na liosta-lìatha?",
+			"remove_location_title": "A bheil thu ri {{location}} a thoirt air falbh bho na h-àiteanna-lìatha?",
+			"remove_confirm": "Thoir air falbh",
+			"remove_aria": "Thoir {{location}} air falbh",
+			"enter_location": "Cuir a-steach ainm a' bhaile no àite",
+			"already_added": "Tha {{location}} air an liosta-lìatha agad cheana",
+			"added": "Chuir {{location}} ris",
+			"refreshed": "Chuir an t-athair ùr",
 			"codes": {
 				"113": "Grianach",
 				"116": "Beagan sgòthach",
@@ -159,7 +195,10 @@
 				"389": "Uisge meadhanach no trom le tàirneanach",
 				"392": "Beagan sneachd aotrom le tàirneanach",
 				"395": "Sneachd meadhanach no trom le tàirneanach"
-			}
+			},
+			"persistence_failed": "Cha ghabh an luchtachadh air na do roghainneach — tha stòras an brabhsair air a lìon no chan eil ri fhaot. Bidh gach rud fhathast a’ obair, ach thèar na ath-chuirmean a chailleadh nuair a thèasachadh thu a-rìgh.",
+			"cache_capped": "Tha an t-athair air a chumadh airson na {{count}} àite air an deachd coth le oide ùine mu dheireadh; thèar na cò eile a thairig air a bhith air an iarraidh.",
+			"removed": "Tha {{location}} air a thoirt air falbh"
 		},
 		"notifications": {
 			"today_title": "🎂 Co-là-breith sona!",
@@ -170,41 +209,105 @@
 			"test_title": "🎉 Sanas deuchainn",
 			"test_body": "Is e seo sanas deuchainn bhon Rianadair Co-là-breith!",
 			"no_support": "Chan eil am brabhsair seo a' toirt taic do shanasan deasg",
-			"no_permission": "Cha deach cead sanas a thoirt seachad. Cliog air ìomhaigh a' chluig mas e do thoil e."
+			"no_permission": "Cha deach cead sanas a thoirt seachad. Cliog air ìomhaigh a' chluig mas e do thoil e.",
+			"today_body_many": "Tha an-diugh a’ co-latha-breith aca: {{names}}!",
+			"upcoming_body_many": "Tha an-diugh ath mhàireach co-latha-breith aca: {{names}}!",
+			"both_body_many": "Tha ath mhàireach co-latha-breith aca cuideachd: {{names}}!"
 		},
 		"card": "Cairt",
 		"events": "Tachartasan",
-		"no_data": "N/A",
+		"no_data": "Gun dàta",
 		"hero": {
-			"eyebrow": "Next celebration",
-			"today": "Happening today",
-			"turning": "Turning {{age}}",
-			"cycle": "{{percent}}% of the cycle elapsed",
-			"closest": "Closest",
-			"people": "People tracked",
-			"this_month": "Celebrations this month",
-			"weddings": "Anniversaries",
-			"milestone": "Next milestone",
-			"none": "None on record",
-			"no_title": "No dates on the horizon",
-			"no_body": "Add a birthday or widen the filters to bring the calendar back to life.",
-			"manage": "Manage birthdays",
-			"add": "Add birthday",
-			"details": "View details"
+			"eyebrow": "An ath chomharrachadh",
+			"today": "Tha e a' gabhail place an-diugh",
+			"turning": "A' tionndadh {{age}}",
+			"cycle": "{{percent}}% den chuairt air a chrìochnachadh",
+			"closest": "As dlùithe",
+			"people": "Daoine a tha air an tomhas",
+			"this_month": "Comharrachaidhean am mìos seo",
+			"weddings": "Ceann-bliadhnaichean",
+			"milestone": "An ath chlach-mìle",
+			"none": "Chan eil gin ann",
+			"no_title": "Chan eil ceann-latha sam bith air an t-adhar",
+			"no_body": "Cuir co-là-breith ris, no leathnaich na criathraichean, gus an t-earrachd a thoirt beòthadh.",
+			"manage": "Riùradh na co-làithean-breith",
+			"add": "Cuir co-là-breith ris",
+			"details": "Faic na mion-chiathana"
 		},
 		"list": {
-			"showing": "{{shown}} of {{total}} shown",
-			"reset": "Reset filters",
-			"empty_title": "Nothing matches",
-			"empty_body": "No records match the current search and filters."
+			"showing": "{{shown}} de {{total}} air a thaispeànt",
+			"reset": "Toraich na criathraichean",
+			"empty_title": "Chan eil gin a' freagairt",
+			"empty_body": "Chan eil clàr sam bith a' freagairt an lorg sgrisidh agus na criathraichean an-dràsta."
 		},
-		"loading": "Loading insights"
+		"on_this_day_error": "Cha b' ur dèidnn luchdadh na h-atharran",
+		"loading": "A' luchdadh nan lèireadh",
+		"on_this_day_source": "Stiùrd",
+		"on_this_day_attribution": "Thachdan bho",
+		"on_this_day_attribution_wikipedia": "Uicipeid",
+		"on_this_day_attribution_license": "CC BY-SA 4.0",
+		"on_this_day_empty": "Chan eil na h-digiotach air an latha sin.",
+		"card_error": "Cha b urrainn an ceann-latha-bhreith a chruthachadh. Feuch a-rìth leat."
+	},
+	"common": {
+		"confirm": "Dearbhadh",
+		"cancel": "Cuir à naomhadh"
+	},
+	"manage": {
+		"title": "🎂 Riùradh na co-làithean-breith",
+		"add": "Cuir co-là-breith ris",
+		"export_json": "Às-phortaich JSON",
+		"import_json": "Thoir JSON a-steach",
+		"reset_defaults": "Toraich air na rèidh",
+		"reset_title": "An àrainn na co-làithean-breith uile gu na dàta bun-eisimpleach bunaiteach?",
+		"reset_confirm": "Toraich",
+		"search_placeholder": "Lorg nan còrragan...",
+		"col_name": "Ainm",
+		"col_date": "Ceann-latha",
+		"col_actions": "Gnìomhan",
+		"no_results": "Chan deach co-là-breith sam bith a lorg.",
+		"edit_aria": "Deasairich {{name}}",
+		"delete_title": "A bheil thu ri {{name}} a sguabadh às?",
+		"delete_confirm": "Sguab às",
+		"delete_aria": "Sguab {{name}} às",
+		"add_title": "Cuir co-là-breith ris",
+		"edit_title": "Deasairich a' co-là-breith",
+		"name_label": "Ainm / Pàirc",
+		"name_placeholder": "e.g. Seumas MacDhòmhnaill",
+		"date_label": "Ceann-latha breith / banns",
+		"category": "Seòrsa",
+		"boy": "♂️ Gille",
+		"girl": "♀️ Nighean",
+		"wedding": "💒 Banns",
+		"save": "Sàbhail",
+		"discard_title": "A bheil thu ri atharrachaidhean nach deach a shàbhaladh a chàramh?",
+		"discard_confirm": "Càramh",
+		"name_required": "Maa ainm a chur a-steach",
+		"date_required": "Maa ceann-latha a thaghadh",
+		"kind_required": "Maa seòrsa a thaghadh",
+		"added": "Chuir {{name}} ris",
+		"updated": "Ùraich {{name}}",
+		"deleted": "Sguba {{name}} às",
+		"reset_notify": "Air a thoradh gu na co-làithean-breith bunaiteach",
+		"exported": "Às-phortaichear birthdays.json",
+		"imported_one": "Tha {{count}} co-là-breith air a thoradh a-steach!",
+		"imported_other": "Tha {{count}} co-làithean-breith air a thoradh a-steach!",
+		"import_invalid": "JSON mà-inneach: bha an dùil ri sìr de chòrragan co-là-breith ceòrrach",
+		"import_parse_error": "Cha b' ur dèidnn am failu JSON a leughadh",
+		"import_title_one": "A bheil thu ri na co-làithean-breith uile a chur an àite le {{count}} chòrrag a-steach?",
+		"import_title_other": "A bheil thu ri na co-làithean-breith uile a chur an àite le {{count}} chòrragan a-steach?",
+		"import_confirm": "Cuir an àite",
+		"duplicate_entry": "Tha co-là-breith aig {{name}} mar-thà {{date}}.",
+		"record_missing": "Cha tha an còrrag ann an liosta tuilleadh.",
+		"import_duplicates_skipped_one": "Chaidh {{count}} chòrrag dùblaic a sheigeadh (ainm agus ceann-latha mar an ceanna).",
+		"import_duplicates_skipped_other": "Chaidh {{count}} chòrragan dùblaic a sheigeadh (ainm agus ceann-latha mar an ceanna)."
 	},
 	"table": {
 		"name": "Ainm",
 		"birthday": "Co-là-breith",
 		"age": "Aois",
 		"progress": "Adhartas",
+		"rows_per_page": "Soidhn air an duilleag",
 		"in": "Ann an",
 		"sign": "Soidhne",
 		"birthgem": "Clach-bhreith",
@@ -238,10 +341,17 @@
 	},
 	"on_this_day": "Air an latha seo ann an eachdraidh",
 	"biorhythms": {
-		"title": "Biorhythms (An ath 30 latha)",
+		"title": "Bioraithmean (chan e fuaigh ann)",
 		"physical": "Corporra",
 		"emotional": "Fuasgladh-faire",
-		"intellectual": "Inntleachdail"
+		"intellectual": "Inntleachdail",
+		"disclaimer": "Tha bioraithmean nan e creideamh coitcheannach, chan eil iad na mhèasadh a tha air a dhligadh le saidheans. Tha na trì cùrsaichean gu h-ìola air an dèidhinn bheireidh agus air a chruthachadh le foirmle sinusoidal seatha-tàth. Chan eil thu, do shlàinte, no do chràite air thuinn air a thomhais, agus chan ciall samhla samhla samhla ri pointe air cuairt.",
+		"axis_label": "cuairt air a chruthachadh",
+		"cycle_belief": "creideamh {{days}} latha",
+		"range": "Raon",
+		"range_days": "{{days}} l",
+		"formula_note": "Mar a thigear a shealladh: luach = sin(2*PI * latha bho bhreith / ùine) * 100, far a bheil ùinnean de 23, 28 agus 33 latha. Tha na h-axes far a thig an cuairt a-mhàin, chan eacharrach de neach sam bith.",
+		"unknown_birth": "Cha chan eatha deireadh-breith uidheach fhathast air an bhoiridh seo, mar tha gin latha zero ann airson na cuairtean a chumadh ris. Chan thaighte ann."
 	},
 	"data": {
 		"planets": {
@@ -439,5 +549,11 @@
 			"Vaimoana": "Tahitien: 'Uisge a' chuain'",
 			"Victor": "Laideann: 'Ceannsaiche' no 'Buannaiche'"
 		}
+	},
+	"consent": {
+		"title": "Staitistichean cleachdadh gun leth?",
+		"body": "Tha a’ còrradh uair a thuigeadh arainn a chleachdadh. Chan eil ath-chluich ath-choirs, chan eil glacadh fèin-obair, chan eil briosgaidean, chan eil dàta pearsanta. Ma thèir thu ath-chù ris, chan eil dad air a chuir.",
+		"accept": "Ceadaich",
+		"decline": "Mìghleann mi"
 	}
 }

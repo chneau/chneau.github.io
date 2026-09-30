@@ -1,0 +1,12 @@
+/*
+ * Crimson Desert save editor tokens.
+ *
+ * The editor's palette is the weathered crimson defined as the Mantine `brand`
+ * tuple in `app/main.tsx`; this only republishes the active shade to the shared
+ * utilities so focus rings, status dots and the app switcher use the accent
+ * rather than silently falling back to the body text colour.
+ */
+
+:root {
+	--app-accent: var(--mantine-primary-color-filled);
+}

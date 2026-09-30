@@ -26,7 +26,7 @@
  * runs the whole set through the engine.
  */
 
-import { planAddition } from "@/lib/add-plan";
+import { planAddition, storageKeys } from "@/lib/add-plan";
 import type { EquipmentDetails } from "@/lib/equipment";
 import {
 	type CatalogItem,
@@ -240,17 +240,55 @@ export const cheatGearPlans = async (): Promise<CheatGearPlan[]> => {
 	});
 };
 
-/** What one set item could not be staged, and why. */
-type CheatGearSkip = { label: string; reason: string };
+/**
+ * What one set item could not be staged, and why.
+ *
+ * The two membership flags are the same pair the equipment browser shows beside
+ * an item, so one item reads the same way wherever it is refused: `existing` is
+ * a copy the save itself holds, and `wasStaged` is an insertion already queued
+ * for this download. Both are false when the add rule refused on its own
+ * grounds — no donor record, an unstackable storage — which is a fact about the
+ * rule rather than about what the save holds.
+ */
+type CheatGearSkip = {
+	label: string;
+	reason: string;
+	/** The storage already holds this item; the copy that is there is the one to edit. */
+	existing: boolean;
+	/** An insertion for this item is already staged in this storage. */
+	wasStaged: boolean;
+};
+
+/** A skip for one of the two membership cases, which read the same either way. */
+const held = (label: string, reason: string): CheatGearSkip => ({
+	label,
+	reason,
+	existing: true,
+	wasStaged: false,
+});
+
+const queued = (label: string, reason: string): CheatGearSkip => ({
+	label,
+	reason,
+	existing: false,
+	wasStaged: true,
+});
 
 /**
  * Stages the whole set into one storage.
  *
- * An item the storage already holds — or one already staged this session — is
- * left out rather than duplicated, because the engine refuses a second record
- * with the same item key in one inventory. Plain items go through the picker's
- * own add rule, so a storage that holds nothing stackable can only take the
- * character gear, and the skips say so.
+ * Both paths first answer the two questions the add rule asks and the equipment
+ * inserter answers by throwing: is this item already in the storage, and is an
+ * insertion for it already staged? Both answers are a skip with a reason beside
+ * the item, never a refusal of the batch — the engine throws out of the whole
+ * download, so one item the save already holds would otherwise take every other
+ * staged edit down with it. A second press therefore stages nothing new, which
+ * is why the set is idempotent rather than revised: a staged insertion is
+ * something the user can have since refined and socketed by hand, and a preset
+ * pressing the same button again has no business overwriting that.
+ *
+ * What is left goes to the picker's own add rule, so a storage that holds
+ * nothing stackable can only take the character gear, and the skips say so.
  */
 export const cheatGearEdits = async ({
 	inventoryKey,
@@ -266,9 +304,34 @@ export const cheatGearEdits = async ({
 	staged?: SaveEdit[];
 }): Promise<{ edits: SaveEdit[]; skipped: CheatGearSkip[] }> => {
 	const plans = await cheatGearPlans();
+	const { held: inStorage, staged: queuedKeys } = storageKeys({
+		records,
+		edits: staged,
+		inventoryKey,
+	});
 	const edits: SaveEdit[] = [];
 	const skipped: CheatGearSkip[] = [];
 	for (const plan of plans) {
+		// The two membership cases are settled once, for every path, so the
+		// equipment inserter and the add rule cannot disagree about them. An item
+		// the storage holds as a stack would otherwise be grown here, which a
+		// preset must not do: it stages one item per slot and says what it left
+		// alone.
+		if (queuedKeys.has(plan.itemKey)) {
+			skipped.push(
+				queued(
+					plan.itemName,
+					`already staged for ${storageName(inventoryKey)}`,
+				),
+			);
+			continue;
+		}
+		if (inStorage.has(plan.itemKey)) {
+			skipped.push(
+				held(plan.itemName, `already in ${storageName(inventoryKey)}`),
+			);
+			continue;
+		}
 		if (plan.equipment) {
 			edits.push({
 				type: "insertEquipment",
@@ -291,15 +354,11 @@ export const cheatGearEdits = async ({
 			quantity: 1,
 		});
 		if ("error" in planned) {
-			skipped.push({ label: plan.itemName, reason: planned.error });
-			continue;
-		}
-		// The add rule grows a stack the storage already holds, which a preset must
-		// not do: it stages one item per slot and says what it left alone.
-		if (planned.edit.type === "quantity") {
 			skipped.push({
 				label: plan.itemName,
-				reason: `already in ${storageName(inventoryKey)}`,
+				reason: planned.error,
+				existing: false,
+				wasStaged: false,
 			});
 			continue;
 		}

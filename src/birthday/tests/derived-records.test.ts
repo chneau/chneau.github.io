@@ -43,9 +43,10 @@ const expectedDailyInsight = (
 	name: string,
 	ref: Date,
 ): Birthday["dailyInsight"] => {
-	const today = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, "0")}-${String(
-		ref.getDate(),
-	).padStart(2, "0")}`;
+	const today = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(
+		2,
+		"0",
+	)}-${String(ref.getDate()).padStart(2, "0")}`;
 	const str = name + today;
 	let hash = 0;
 	for (let i = 0; i < str.length; i++) {
@@ -450,33 +451,42 @@ describe("the date-roll contract", () => {
 			for (const b of recomputeBirthdays()) {
 				const where = `${ref.toDateString()} ${b.name}`;
 				if (b.age < 0) violations.push(`${where}: age ${b.age}`);
-				if (b.daysBeforeBirthday < 0)
+				if (b.daysBeforeBirthday < 0) {
 					violations.push(
 						`${where}: daysBeforeBirthday ${b.daysBeforeBirthday}`,
 					);
-				if (b.nextBirthday.getTime() < midnight.getTime())
+				}
+				if (b.nextBirthday.getTime() < midnight.getTime()) {
 					violations.push(`${where}: nextBirthday in the past`);
+				}
 				if (
 					b.nextBirthday.getMonth() + 1 !== b.month ||
 					b.nextBirthday.getDate() !== b.day
-				)
+				) {
 					violations.push(
-						`${where}: nextBirthday ${b.nextBirthday.getMonth() + 1}/${b.nextBirthday.getDate()} != ${b.month}/${b.day}`,
+						`${where}: nextBirthday ${
+							b.nextBirthday.getMonth() + 1
+						}/${b.nextBirthday.getDate()} != ${b.month}/${b.day}`,
 					);
-				if (b.progress < 0 || b.progress > 100)
+				}
+				if (b.progress < 0 || b.progress > 100) {
 					violations.push(`${where}: progress ${b.progress}`);
-				if (b.ageInDays < b.age * 365)
+				}
+				if (b.ageInDays < b.age * 365) {
 					violations.push(
 						`${where}: ageInDays ${b.ageInDays} < ${b.age * 365}`,
 					);
-				if (b.ageInMonths < b.age * 12 || b.ageInMonths >= b.age * 12 + 12)
+				}
+				if (b.ageInMonths < b.age * 12 || b.ageInMonths >= b.age * 12 + 12) {
 					violations.push(`${where}: ageInMonths ${b.ageInMonths}`);
+				}
 				if (
 					b.ageGroup === undefined ||
 					b.season === undefined ||
 					b.sign === undefined
-				)
+				) {
 					violations.push(`${where}: missing classification field`);
+				}
 			}
 		}
 		setSystemTime(realNow);

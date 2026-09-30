@@ -45,7 +45,12 @@ export const requireBytes = (
 ): void => {
 	if (!hasBytes(data, offset, size)) {
 		throw new RangeError(
-			`${context} at 0x${Math.max(0, offset).toString(16).toUpperCase()} needs ${size} bytes but only ${Math.max(0, data.length - offset)} remain`,
+			`${context} at 0x${Math.max(0, offset)
+				.toString(16)
+				.toUpperCase()} needs ${size} bytes but only ${Math.max(
+				0,
+				data.length - offset,
+			)} remain`,
 		);
 	}
 };

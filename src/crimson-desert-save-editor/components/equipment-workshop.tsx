@@ -315,7 +315,6 @@ export const EquipmentEditor = ({
 							compatibility: gearCompatibilityLabel(compatibility, key),
 						}));
 						return (
-							// biome-ignore lint/suspicious/noArrayIndexKey: socket slots are positional; the index is the socket number.
 							<div key={i}>
 								<Text size="sm" fw={500}>
 									Socket {i + 1}

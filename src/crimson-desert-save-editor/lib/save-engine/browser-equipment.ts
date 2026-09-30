@@ -144,7 +144,9 @@ export const describeInventory = async (
 			.slice(0, 8)
 			.map(
 				(record) =>
-					`record at 0x${record.recordStart.toString(16).toUpperCase()} is missing ${record.missing.join(", ")}`,
+					`record at 0x${record.recordStart
+						.toString(16)
+						.toUpperCase()} is missing ${record.missing.join(", ")}`,
 			)
 			.concat(skipped.length > 8 ? [`and ${skipped.length - 8} more`] : []),
 	};

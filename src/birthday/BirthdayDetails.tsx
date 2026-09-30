@@ -9,13 +9,19 @@ import {
 	Tooltip,
 } from "@mantine/core";
 import dayjs from "dayjs";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { Birthday } from "./birthdays";
-import { birthdays, getAgeEmoji, getKindColor } from "./birthdays";
-import { getCompatibleElements } from "./compatibility";
+import { birthdays } from "./birthdays";
+import {
+	getCompatibleElements,
+	getDuplicateRecords,
+	getSameNamedRecords,
+	isSameRecord,
+} from "./compatibility";
 import { notify } from "./notify";
 import { OnThisDay } from "./OnThisDay";
+import { ShareCard, shareCardFileName } from "./ShareCard";
 import { store } from "./store";
 
 const BiorhythmsChart = lazy(() =>
@@ -29,34 +35,80 @@ type BirthdayDetailsProps = {
 export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 	const { t, i18n } = useTranslation();
 	const [downloading, setDownloading] = useState(false);
+	// Inline as well as in a toast: a rasterise that fails after a few hundred
+	// milliseconds is easy to miss as a transient notification, and the click
+	// that caused it looks like a dead click without one.
+	const [cardError, setCardError] = useState<string | null>(null);
+	// A ref beats `getElementById(\`card-${record.name}\`)`: the name is free
+	// text and would have to survive being an id, and it is not unique enough
+	// to rely on across rows.
+	const cardRef = useRef<HTMLDivElement | null>(null);
 
+	// Identity is the exact (name, birthdayString) pair — see `isSameRecord`.
+	// The previous `b.name !== record.name` filter keyed on a *display* label,
+	// so it hid a genuine same-named person who shared the date.
 	const sameBirthday = birthdays.filter(
 		(b) =>
-			b.name !== record.name &&
+			!isSameRecord(b, record) &&
 			b.month === record.month &&
 			b.day === record.day,
 	);
+	// Same-named rows are scored independently on their own element, so the
+	// "compatible" badges below are not a claim about those people. A row that
+	// is duplicated outright cannot be told from its twin at all, and must not
+	// be presented as matching.
+	const sameNamed = getSameNamedRecords(birthdays, record);
+	const duplicates = getDuplicateRecords(birthdays, record);
 	const compatibleElements = getCompatibleElements(record.element);
 
-	const handleDownloadCard = async () => {
-		const element = document.getElementById(`card-${record.name}`);
-		if (!element) return;
+	/**
+	 * English text for the keys this adds. `locales/*.json` is owned elsewhere,
+	 * so each key is looked up as a candidate list with this default attached
+	 * (the pattern `ManageBirthdaysModal` uses): until a key is translated it
+	 * degrades to English instead of leaking `"app.compatibility.some_key"` into
+	 * the UI. Once the keys land in `en.json` the default is simply unused.
+	 */
+	const NEW_MESSAGES = {
+		"app.compatibility.duplicate_row":
+			"This name and date are also saved as {{count}} other entr{{count, plural, one {y} other {ies}} — the data cannot tell them apart, so no match is claimed here.",
+		"app.compatibility.same_name_note":
+			"{{count}} other entr{{count, plural, one {y}} named {{name}} {{count, plural, one {is} other {are}} listed here; they are separate people, scored on their own zodiac element.",
+		"app.compatibility.shared_birthday": "Shared: {{names}}",
+	} as const;
+	const tn = (
+		key: keyof typeof NEW_MESSAGES,
+		params?: Record<string, string | number>,
+	) => t([key], { ...params, defaultValue: NEW_MESSAGES[key] });
 
+	const handleDownloadCard = async () => {
+		const element = cardRef.current;
+		if (!element) {
+			setCardError(t("app.card_error"));
+			return;
+		}
+
+		setCardError(null);
 		setDownloading(true);
 		try {
 			const html2canvas = (await import("html2canvas")).default;
 			const canvas = await html2canvas(element, {
-				backgroundColor: store.darkMode ? "#141414" : "#ffffff",
+				// The card paints its own opaque background (see ShareCard), so
+				// there is nothing for html2canvas to fill in behind it — and
+				// nothing that could tie the export to the current theme.
+				backgroundColor: null,
 				scale: 2,
+				logging: false,
 			});
 			const link = document.createElement("a");
-			link.download = `birthday-card-${record.name}.png`;
+			link.download = shareCardFileName(record.name);
 			link.href = canvas.toDataURL("image/png");
 			link.click();
 			notify.success(`Downloaded birthday card for ${record.name}! 📸`);
 		} catch (e) {
 			console.error("Failed to generate card", e);
-			notify.error("Failed to generate birthday card");
+			const message = t("app.card_error");
+			setCardError(message);
+			notify.error(message);
 		} finally {
 			setDownloading(false);
 		}
@@ -86,11 +138,21 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 				<Button
 					leftSection={<span>📸</span>}
 					size="sm"
+					// Mantine's `loading` swaps the left section for a spinner and
+					// blocks the button, so a second click cannot queue a second
+					// rasterise; `aria-busy` carries the same state to assistive
+					// tech, which does not see the spinner.
 					loading={downloading}
+					aria-busy={downloading}
 					onClick={handleDownloadCard}
 				>
 					{t("app.card")}
 				</Button>
+				{cardError && (
+					<Text size="xs" c="red" role="alert">
+						{cardError}
+					</Text>
+				)}
 				<Divider orientation="vertical" style={{ height: 20 }} />
 				<a
 					href={`https://en.wikipedia.org/wiki/${record.year}`}
@@ -182,7 +244,10 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 					{sameBirthday.length > 0 && (
 						<div style={{ marginTop: 4, fontSize: "12px" }}>
 							<Text c="dimmed" component="span">
-								👯 Shared: {sameBirthday.map((b) => b.name).join(", ")}
+								👯{" "}
+								{tn("app.compatibility.shared_birthday", {
+									names: sameBirthday.map((b) => b.name).join(", "),
+								})}
 							</Text>
 						</div>
 					)}
@@ -230,6 +295,33 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 							</Badge>
 						))}
 					</div>
+					{/* Qualifiers. The badges above come from *this* record's
+					    element alone, so say so when the list holds another
+					    entry with the same name — otherwise "compatible" reads as
+					    "these people match". A duplicated row is weaker still:
+					    it is indistinguishable from its twin, so no match may be
+					    claimed at all. */}
+					{duplicates.length > 0 && (
+						<div style={{ marginTop: 6, fontSize: "11px" }}>
+							<Text c="yellow" component="span">
+								⚠️{" "}
+								{tn("app.compatibility.duplicate_row", {
+									count: duplicates.length,
+								})}
+							</Text>
+						</div>
+					)}
+					{duplicates.length === 0 && sameNamed.length > 0 && (
+						<div style={{ marginTop: 6, fontSize: "11px" }}>
+							<Text c="dimmed" component="span">
+								ℹ️{" "}
+								{tn("app.compatibility.same_name_note", {
+									count: sameNamed.length,
+									name: record.name,
+								})}
+							</Text>
+						</div>
+					)}
 				</Card>
 
 				{/* Cosmic & Biological Stats */}
@@ -300,105 +392,28 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 				</Suspense>
 			</div>
 
-			{/* Hidden card for export capture */}
+			{/*
+			 * Offscreen purely so html2canvas has a laid-out node to
+			 * rasterise. It must stay *rendered* rather than `display: none`
+			 * or `visibility: hidden`: html2canvas skips anything whose
+			 * computed display/opacity/visibility says it is not painted, so
+			 * either would hand back an empty PNG.
+			 *
+			 * `aria-hidden` because it is a duplicate of content already on the
+			 * page, and screen readers should not meet it twice.
+			 */}
 			<div
+				aria-hidden="true"
 				style={{
 					position: "absolute",
 					left: "-9999px",
-					top: "-9999px",
+					top: 0,
+					// Belt and braces: the node is off-canvas, but a stray
+					// pointer event on it would be invisible and unreachable.
+					pointerEvents: "none",
 				}}
 			>
-				<div
-					id={`card-${record.name}`}
-					style={{
-						width: "400px",
-						padding: "40px",
-						background: store.darkMode
-							? "linear-gradient(135deg, #141414 0%, #262626 100%)"
-							: "linear-gradient(135deg, #f0f2f5 0%, #ffffff 100%)",
-						color: store.darkMode ? "white" : "black",
-						textAlign: "center",
-						borderRadius: "16px",
-						border: `2px solid ${
-							getKindColor(record.kind) || "var(--tk-accent)"
-						}`,
-					}}
-				>
-					<div style={{ fontSize: "48px", marginBottom: "16px" }}>
-						{getAgeEmoji(record.age, record.kind)}
-					</div>
-					<h1
-						style={{
-							margin: 0,
-							color: store.darkMode ? "white" : "black",
-						}}
-					>
-						{t("app.timeline.anniversary")}, {record.name}!
-					</h1>
-					<h2
-						style={{
-							opacity: 0.8,
-							color: store.darkMode ? "white" : "black",
-						}}
-					>
-						{t("app.timeline.turns", { age: record.age + 1 })}
-					</h2>
-					<div
-						style={{
-							marginTop: "16px",
-							marginBottom: "16px",
-							padding: "12px",
-							background: "rgba(24, 144, 255, 0.1)",
-							borderRadius: "8px",
-							fontSize: "14px",
-						}}
-					>
-						🔮 {t(`data.insights.${record.dailyInsight}`)}
-					</div>
-					<div style={{ marginTop: "24px", fontSize: "18px" }}>
-						<p>
-							{record.signSymbol} {t(`data.zodiac.${record.sign}`)}
-						</p>
-						<p>
-							💎 {t(`data.birthgems.${record.birthgem}`)} {record.birthgemEmoji}
-						</p>
-						<p>🐉 {t(`data.chinese_zodiac.${record.chineseZodiac}`)}</p>
-						<p>
-							{record.moonPhaseIcon} {t(`data.moon_phases.${record.moonPhase}`)}
-						</p>
-						<p>
-							🔢 {t("units.path")} {record.lifePathNumber}
-						</p>
-						<p>
-							🚀 {record.distanceTraveled.toLocaleString()}{" "}
-							{t("units.km_orbit")}
-						</p>
-						<p>
-							💓 {record.heartbeats.toLocaleString()} {t("units.beats")}
-						</p>
-					</div>
-					<Divider style={{ borderColor: "rgba(128,128,128,0.3)" }} />
-					<p
-						style={{
-							fontStyle: "italic",
-							fontSize: "14px",
-							opacity: 0.7,
-						}}
-					>
-						{t(`data.life_path.${record.lifePathMeaning}`)}
-						<br />
-						{t(`data.zodiac_traits.${record.sign}`)}
-					</p>
-					<div
-						style={{
-							marginTop: "24px",
-							fontSize: "12px",
-							opacity: 0.5,
-						}}
-					>
-						{t("app.title")}
-					</div>
-				</div>
+				<ShareCard ref={cardRef} record={record} />
 			</div>
 		</div>
 	);

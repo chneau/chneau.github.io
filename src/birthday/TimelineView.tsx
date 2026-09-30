@@ -2,25 +2,77 @@ import { Text, Timeline } from "@mantine/core";
 import dayjs from "dayjs";
 import { CalendarClock, RotateCcw } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useCalendarDay } from "../hooks/useToday";
 import { EmptyState } from "../shared";
 import type { Birthday } from "./birthdays";
-import { KindIcon } from "./KindIcon";
+import { getKindColor } from "./birthdays";
+import { KindIcon, kindLabelKey } from "./KindIcon";
 import { dataStore, store } from "./store";
 
-/** Urgency buckets used for both the timeline dots and the legend. */
-const URGENCY = [
-	{ key: "today", color: "red", maxDays: 0 },
-	{ key: "week", color: "green", maxDays: 7 },
-	{ key: "month", color: "blue", maxDays: 30 },
-	{ key: "later", color: "gray", maxDays: Number.POSITIVE_INFINITY },
-] as const;
+/** How far out a celebration is, in order. Drives the group headings. */
+type BucketKey = "today" | "week" | "month" | "later";
 
-const getUrgencyColor = (daysBeforeBirthday: number): string =>
-	URGENCY.find((bucket) => daysBeforeBirthday <= bucket.maxDays)?.color ??
-	"gray";
+const BUCKETS = [
+	{ key: "today", maxDays: 0 },
+	{ key: "week", maxDays: 7 },
+	{ key: "month", maxDays: 30 },
+	{ key: "later", maxDays: Number.POSITIVE_INFINITY },
+] as const satisfies readonly { key: BucketKey; maxDays: number }[];
+
+const KINDS = ["♂️", "♀️", "💒"] as const satisfies readonly Birthday["kind"][];
+
+export const bucketOf = (daysBeforeBirthday: number): BucketKey =>
+	BUCKETS.find((bucket) => daysBeforeBirthday <= bucket.maxDays)?.key ??
+	"later";
+
+type Bucket = { key: BucketKey; items: Birthday[] };
+
+/**
+ * Groups people into Today / This week / This month / Later, dropping the
+ * empty ones so a family with nothing upcoming in March does not get a
+ * stranded heading.
+ */
+export const groupByBucket = (people: readonly Birthday[]): Bucket[] =>
+	BUCKETS.map(({ key }) => ({
+		key,
+		items: people.filter(
+			(person) => bucketOf(person.daysBeforeBirthday) === key,
+		),
+	})).filter((bucket) => bucket.items.length > 0);
+
+/**
+ * Locale-aware date formatter. `Intl` handles the per-language field order,
+ * which `dayjs().format("D MMM")` cannot: it always puts the day number first,
+ * even in locales that write the month first.
+ */
+const localeDate = (
+	date: Date,
+	language: string,
+	options: Intl.DateTimeFormatOptions,
+	fallback: string,
+): string => {
+	try {
+		return new Intl.DateTimeFormat(language, options).format(date);
+	} catch {
+		return fallback;
+	}
+};
 
 export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
+	// `app.timeline.today` is not in `locales/en.json` yet, so the typed `t()`
+	// (whose key union is derived from that file) rejects it. Delete this
+	// helper once the locale JSONs gain the key.
+	const tr = t as unknown as (key: string) => string;
+
+	// The buckets are relative to today, so a tab left open overnight must not
+	// keep showing yesterday's "Today". Subscribing to the calendar day
+	// re-renders at midnight, which is exactly when the grouping must change;
+	// `groupByBucket` is a linear pass over the list, so it is cheap enough to
+	// re-run inline rather than memoising a value nothing else feeds.
+	useCalendarDay();
+
+	const buckets = groupByBucket(data);
 
 	const handleResetFilters = () => {
 		store.search = "";
@@ -50,7 +102,20 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 	}
 
 	return (
-		<div style={{ padding: "16px 0", maxHeight: 500, overflowY: "auto" }}>
+		// The scroll container is focusable on purpose (WCAG 2.1.1: a scrollable
+		// region that cannot take focus is unreachable by keyboard). A named
+		// `<section>` is the announced scrollable landmark, and the shared CSS
+		// draws a focus ring on it, so the extra tab stop costs nothing.
+		<section
+			// biome-ignore lint/a11y/noNoninteractiveTabindex: WCAG 2.1.1 - the list scrolls, so it has to be focusable to be scrolled by keyboard.
+			tabIndex={0}
+			aria-label={t("app.timeline.title")}
+			style={{
+				padding: "16px 0",
+				maxHeight: 500,
+				overflowY: "auto",
+			}}
+		>
 			<div
 				style={{
 					display: "flex",
@@ -62,77 +127,126 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 					color: "var(--tk-text-dim)",
 				}}
 			>
-				{URGENCY.map((bucket) => (
+				{KINDS.map((kind) => (
 					<span
-						key={bucket.key}
+						key={kind}
 						style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
 					>
-						<span
-							aria-hidden="true"
-							style={{
-								width: 8,
-								height: 8,
-								borderRadius: 999,
-								background: `var(--mantine-color-${bucket.color}-6)`,
-							}}
-						/>
-						{t(`app.timeline.legend.${bucket.key}`)}
+						<KindIcon kind={kind} size={12} />
+						{t(kindLabelKey(kind))}
 					</span>
 				))}
 			</div>
-			<Timeline>
-				{data.map((x) => (
-					<Timeline.Item
-						key={x.name}
-						color={getUrgencyColor(x.daysBeforeBirthday)}
-						title={
-							<Text c="dimmed" style={{ width: 80, display: "inline-block" }}>
-								{x.birthdayString.slice(5)}
-							</Text>
-						}
+
+			{buckets.map((bucket) => {
+				const isToday = bucket.key === "today";
+				return (
+					<section
+						key={bucket.key}
+						aria-labelledby={`timeline-bucket-${bucket.key}`}
+						style={{ marginBottom: 18 }}
 					>
-						<button
-							type="button"
+						<Text
+							component="h3"
+							id={`timeline-bucket-${bucket.key}`}
+							fw={600}
+							size={isToday ? "md" : "sm"}
 							style={{
-								cursor: "pointer",
-								padding: "4px 8px",
-								borderRadius: 6,
-								display: "inline-block",
-								transition: "background 0.2s",
-								background: "none",
-								border: "none",
-								textAlign: "left",
-							}}
-							onClick={() => {
-								dataStore.selectedBirthday = x;
+								color: isToday ? "var(--tk-accent-ink)" : "var(--tk-text-dim)",
+								letterSpacing: isToday ? "-0.01em" : undefined,
+								textTransform: isToday ? "none" : "uppercase",
+								fontSize: isToday ? undefined : 11,
+								display: "flex",
+								alignItems: "baseline",
+								gap: 8,
+								marginBottom: 8,
 							}}
 						>
-							<Text fw={600} style={{ color: "#1677ff" }}>
-								<span
-									style={{
-										display: "inline-flex",
-										alignItems: "center",
-										gap: 6,
-									}}
+							{t(`app.timeline.legend.${bucket.key}`)}
+							<span
+								aria-hidden="true"
+								style={{
+									fontWeight: 400,
+									opacity: 0.7,
+									fontVariantNumeric: "tabular-nums",
+								}}
+							>
+								{bucket.items.length}
+							</span>
+						</Text>
+						<Timeline bulletSize={isToday ? 22 : 18}>
+							{bucket.items.map((x) => (
+								<Timeline.Item
+									key={`${x.name}-${x.birthdayString}`}
+									color={getKindColor(x.kind)}
+									title={
+										<Text c="dimmed" component="span" style={{ fontSize: 12 }}>
+											{localeDate(
+												x.nextBirthday,
+												i18n.language,
+												{ weekday: "short", day: "numeric", month: "short" },
+												dayjs(x.nextBirthday).format("ddd D MMM"),
+											)}
+										</Text>
+									}
 								>
-									<KindIcon kind={x.kind} size={12} />
-									{x.name}
-								</span>
-							</Text>
-							<br />
-							<Text c="dimmed" style={{ fontSize: "0.85em" }}>
-								{x.kind === "💒"
-									? t("app.timeline.anniversary")
-									: t("app.timeline.turns", { age: x.age + 1 })}{" "}
-								{t("app.timeline.in_days", {
-									days: x.daysBeforeBirthday,
-									day: dayjs(x.birthday).format("dddd"),
-								})}
-							</Text>
-						</button>
-					</Timeline.Item>
-				))}
-			</Timeline>
-		</div>
+									<button
+										type="button"
+										style={{
+											display: "block",
+											width: "100%",
+											padding: "4px 8px",
+											borderRadius: 6,
+											textAlign: "left",
+											background: isToday ? "var(--tk-accent-soft)" : "none",
+											border: "none",
+											color: "inherit",
+											font: "inherit",
+											cursor: "pointer",
+										}}
+										onClick={() => {
+											dataStore.selectedBirthday = x;
+										}}
+									>
+										<span
+											style={{
+												display: "inline-flex",
+												alignItems: "center",
+												gap: 6,
+											}}
+										>
+											<KindIcon kind={x.kind} size={12} />
+											<Text component="span" fw={600}>
+												{x.name}
+											</Text>
+										</span>
+										<Text
+											c="dimmed"
+											component="span"
+											style={{ fontSize: "0.85em" }}
+										>
+											{x.kind === "💒"
+												? t("app.timeline.anniversary")
+												: t("app.timeline.turns", { age: x.age + 1 })}{" "}
+											{x.daysBeforeBirthday === 0
+												? tr("app.timeline.today")
+												: t("app.timeline.in_days", {
+														days: x.daysBeforeBirthday,
+														day: localeDate(
+															x.nextBirthday,
+															i18n.language,
+															{ weekday: "long" },
+															dayjs(x.nextBirthday).format("dddd"),
+														),
+													})}
+										</Text>
+									</button>
+								</Timeline.Item>
+							))}
+						</Timeline>
+					</section>
+				);
+			})}
+		</section>
 	);
 };

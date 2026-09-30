@@ -51,7 +51,6 @@ const FlyTo = ({ point }: { point: MapPoint | null }) => {
  */
 const FitOnView = ({ view, points }: { view: MapView; points: MapPoint[] }) => {
 	const map = useMap();
-	// biome-ignore lint/correctness/useExhaustiveDependencies: refit only when the mode changes
 	useEffect(() => {
 		if (view !== "area" || points.length < 2) {
 			return;

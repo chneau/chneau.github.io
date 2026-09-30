@@ -1,0 +1,26 @@
+/*
+ * The collapse chevron in the shared `Section` card.
+ *
+ * The rotation itself is inline, because it is state. The *duration* lives
+ * here, in a stylesheet, and that placement is the whole point: an inline
+ * `transition` outranks every author rule - including the global
+ * `prefers-reduced-motion` reset in `base.css` - so an inline duration makes
+ * that reset decorative. A selector-based rule is at least reachable.
+ */
+
+.app-section__chevron {
+	transition: transform var(--app-speed) var(--app-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	/*
+	 * The `*` reset in `base.css` has specificity (0,0,0) and loses to the
+	 * class rule above (0,1,0), so it cannot neutralise this transition on its
+	 * own. `!important` is what makes the override win regardless of the order
+	 * the two stylesheets end up in - the same reasoning as the `[data-reveal]`
+	 * override in `cv/cv.css`.
+	 */
+	.app-section__chevron {
+		transition-duration: 0.001ms !important;
+	}
+}
