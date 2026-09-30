@@ -246,8 +246,7 @@ describe("store / wikiCache wiring", () => {
 		// happens to be first, which in a full-file run is a leftover entry from
 		// an earlier test - so the timestamp comparison could pass without ever
 		// touching the entry under test.
-		const entry = () =>
-			persisted()?.entries.find((e) => e.key === "en-09-01");
+		const entry = () => persisted()?.entries.find((e) => e.key === "en-09-01");
 		const first = entry()?.storedAt;
 
 		// `storedAt` has millisecond resolution, so guarantee the clock has moved
