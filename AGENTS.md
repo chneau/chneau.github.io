@@ -19,6 +19,7 @@ from a habit carried in from another repository, this file wins.
 | `bun run check`        | **The gate** — clean, Deno fmt, Oxlint, Biome, tsc, `bun test`                      |
 | `bun run check:fix`    | Formatters and linters only, no typecheck or tests                                  |
 | `bun run check:export` | `ts-unused-exports` — not part of `check`; run it when adding or removing an export |
+| `bun x react-doctor`   | React correctness, a11y, performance and maintainability — the React gate           |
 | `bun run build`        | Production build of all environments into `dist/`                                   |
 | `bun run deploy`       | Build, then publish `dist/` to GitHub Pages                                         |
 
@@ -214,6 +215,29 @@ Mantine.
   main thread, yielding through a `setTimeout` macrotask (ADR-0001, ADR-0003).
   Do not move work into a worker or add a server round-trip.
 
+### React: hooks, effects and identity
+
+React 19, with `react-doctor` as the standing reviewer of the rules below.
+
+- An effect declares every value it reads. A value that changes and is used
+  inside an effect belongs in the dependency array; a value deliberately read
+  once, because re-running on it would be wrong, is named for what it is
+  (`useRef`, a ref guard) rather than left to a lint suppression.
+- No effect that only derives state from props — compute it during render. An
+  effect that fetches, subscribes, measures the DOM or writes to the browser is
+  an effect; its cleanup returns.
+- A key is derived from what the element **is** (`item.href`, an id), never from
+  the `.map()` index. An index key is reassigned on reorder, so React hands one
+  element's state to a different element — it typechecks, lints and passes.
+- A callback or object passed to a child is stable, or the child is memoised
+  deliberately and its props say why. An inline arrow in a hot list is a
+  re-render on every parent tick.
+- Long work yields rather than blocking, and the progress it produces is visible
+  wherever the user has since gone — the indicator lives in shared chrome, not
+  only on the page that started it.
+- Rendering is a function of props and state; mutating a value that a render
+  already read is the stale read §7 warns about, and no tool will catch it.
+
 ---
 
 ## 6. Dependencies
@@ -236,13 +260,30 @@ Mantine.
 bun run check     # the gate: clean, Deno fmt, Oxlint, Biome, tsc, bun test
 bun test          # the suites on their own
 bun run build     # the real production build, per environment
+bun x react-doctor@latest   # the React gate: correctness, a11y, performance, maintainability
 ```
 
-- Target **0 errors, 0 warnings**. `check` runs tsc (`bun run lint`), so
-  `noUnusedLocals`, `noUnusedParameters` and `noUncheckedIndexedAccess` are
-  enforced; CI runs `bun install --frozen-lockfile`, `bun run lint`,
-  `bun run test`, `bun run build`, so a forgotten lockfile update, a type error,
-  a failing test and a broken build are each a separate red.
+- Target **0 errors, 0 warnings**, and `Score: 100 / 100` from `react-doctor`.
+  `check` runs tsc (`bun run lint`), so `noUnusedLocals`, `noUnusedParameters`
+  and `noUncheckedIndexedAccess` are enforced; CI runs
+  `bun install --frozen-lockfile`, `bun run lint`, `bun run test`,
+  `bun run build`, so a forgotten lockfile update, a type error, a failing test
+  and a broken build are each a separate red.
+- **Two gates, neither optional, and neither a substitute for the other.**
+  `check` is the style, typing and dead-code gate; `react-doctor` is the
+  React-correctness gate, and this is a React 19 codebase, so a rule about a
+  hook's dependencies, an effect that never re-runs, a re-render, an unstable
+  callback or a missing key belongs to it. A change can pass one while failing
+  the other. `react-doctor` is invoked ad hoc rather than wired into `check` or
+  CI today — run it on anything touching a component before calling the work
+  finished.
+- **FORBIDDEN**: "fixing" a `react-doctor` finding by suppressing it. A
+  `doctor.config.json`, a `reactDoctor` key in `package.json`, or an inline
+  `react-doctor-disable-next-line` switches a rule off and fixes nothing; it
+  hides the defect from the next reader and from every test. Refactor instead.
+  The only acceptable suppression is a narrowly scoped one for a provable false
+  positive, it carries a `biome-ignore`-style reason, and it needs a second pair
+  of eyes — §3 governs.
 - **`bun run check` is the source of truth and it rewrites files** — Deno fmt
   with `--use-tabs`, Oxlint with `--fix`, Biome with `--write --unsafe`. It may
   reformat files unrelated to the change you were asked for. Accept the output
@@ -251,11 +292,12 @@ bun run build     # the real production build, per environment
   formatting on purpose.
 - **Fix real problems by changing the code.** Suppressions are bounded by §3 and
   are not a route to a green gate.
-- **The gate does not replace reading the code.** `tsc`, `biome` and `bun test`
-  are all silent about a _stale read_ — a value read outside render that only
-  stays fresh because of a read render used to do. Such a bug typechecks, lints
-  and passes every suite while being plainly broken at runtime. So is the
-  reverse: a test that passes because it reads what the code writes.
+- **The gates do not replace reading the code.** `tsc`, `biome`, `bun test` and
+  `react-doctor` are all silent about a _stale read_ — a value read outside
+  render that only stays fresh because of a read render used to do. Such a bug
+  typechecks, lints, passes every suite and scores 100 while being plainly
+  broken at runtime. So is the reverse: a test that passes because it reads what
+  the code writes.
 
 ---
 
