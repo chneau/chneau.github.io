@@ -45,7 +45,8 @@ export const money = (value: number, currency = "GBP"): string => {
 	try {
 		return moneyFormat(currency).format(value);
 	} catch {
-		return `£${value.toFixed(2)}`;
+		// An unrecognised code must not be mislabelled as pounds.
+		return `${currency} ${value.toFixed(2)}`;
 	}
 };
 

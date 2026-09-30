@@ -14,9 +14,9 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { useSnapshot } from "valtio";
 import type { AppSettings } from "../data/types";
-import { railActions, railStore } from "../store";
+import { useThrottledSnapshots } from "../hooks";
+import { railActions, railUiStores } from "../store";
 import { palette } from "../theme";
 
 type SettingRow = {
@@ -91,7 +91,7 @@ export const SettingsModal = ({
 }: {
 	onOpenShortcuts: () => void;
 }) => {
-	const snap = useSnapshot(railStore);
+	const [snap] = useThrottledSnapshots(railUiStores);
 	const { isSettingsOpen, settings } = snap;
 	const [confirmingReset, setConfirmingReset] = useState(false);
 

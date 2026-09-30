@@ -23,7 +23,9 @@ class RailAudioEngine {
 	public unlockAudio() {
 		this.init();
 		if (this.ctx && this.ctx.state === "suspended") {
-			this.ctx.resume();
+			// Autoplay policies can reject `resume()`; that is expected until a
+			// user gesture, so swallow it rather than surface an unhandled error.
+			void this.ctx.resume().catch(() => {});
 		}
 	}
 

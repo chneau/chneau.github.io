@@ -6,6 +6,7 @@ import {
 	TextInput,
 	UnstyledButton,
 } from "@mantine/core";
+import Fuse from "fuse.js";
 import { CornerDownLeft, Search } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { ALL_APPS } from "../apps";
@@ -19,6 +20,8 @@ export type Command = {
 	hint?: string;
 	/** Extra text searched in addition to the label. */
 	keywords?: string;
+	/** Single-key launch shortcut, rendered as a keycap. */
+	hotkey?: string;
 	icon?: ReactNode;
 	run: () => void;
 };
@@ -30,12 +33,19 @@ const NAV_COMMANDS: Command[] = ALL_APPS.map((app) => {
 		label: `Go to ${app.title}`,
 		hint: app.tag,
 		keywords: app.description,
+		hotkey: app.hotkey,
 		icon: <Icon size={16} />,
 		run: () => {
 			window.location.href = app.href;
 		},
 	};
 });
+
+const FUSE_OPTIONS: ConstructorParameters<typeof Fuse<Command>>[1] = {
+	keys: ["label", "hint", "keywords"],
+	threshold: 0.38,
+	ignoreLocation: true,
+};
 
 /** Open state for `CommandPalette`, bound to Cmd/Ctrl-K. */
 export const useCommandPalette = () => {
@@ -77,17 +87,21 @@ export const CommandPalette = ({
 	const [query, setQuery] = useState("");
 	const [active, setActive] = useState(0);
 	const inputRef = useRef<HTMLInputElement>(null);
+	/** True while the user steers with the keyboard; stops hover stealing focus. */
+	const keyboardNav = useRef(false);
+
+	const allCommands = useMemo(() => [...commands, ...NAV_COMMANDS], [commands]);
+	const fuse = useMemo(
+		() => new Fuse(allCommands, FUSE_OPTIONS),
+		[allCommands],
+	);
 
 	const items = useMemo(() => {
-		const all = [...commands, ...NAV_COMMANDS];
-		const q = query.trim().toLowerCase();
-		if (!q) return all;
-		return all.filter((command) =>
-			`${command.label} ${command.hint ?? ""} ${command.keywords ?? ""}`
-				.toLowerCase()
-				.includes(q),
-		);
-	}, [commands, query]);
+		const trimmed = query.trim();
+		return trimmed
+			? fuse.search(trimmed).map((result) => result.item)
+			: allCommands;
+	}, [allCommands, fuse, query]);
 
 	useEffect(() => {
 		setActive(0);
@@ -97,8 +111,16 @@ export const CommandPalette = ({
 		if (opened) {
 			setQuery("");
 			setActive(0);
+			keyboardNav.current = false;
 		}
 	}, [opened]);
+
+	// Keep the highlighted row valid as the result set shrinks/grows.
+	useEffect(() => {
+		setActive((index) =>
+			items.length === 0 ? 0 : Math.min(index, items.length - 1),
+		);
+	}, [items]);
 
 	const runAt = (index: number) => {
 		const command = items[index];
@@ -134,12 +156,15 @@ export const CommandPalette = ({
 				value={query}
 				onChange={(event) => setQuery(event.currentTarget.value)}
 				onKeyDown={(event) => {
+					if (items.length === 0) return;
 					if (event.key === "ArrowDown") {
 						event.preventDefault();
-						setActive((index) => Math.min(index + 1, items.length - 1));
+						keyboardNav.current = true;
+						setActive((index) => (index + 1) % items.length);
 					} else if (event.key === "ArrowUp") {
 						event.preventDefault();
-						setActive((index) => Math.max(index - 1, 0));
+						keyboardNav.current = true;
+						setActive((index) => (index - 1 + items.length) % items.length);
 					} else if (event.key === "Enter") {
 						event.preventDefault();
 						runAt(active);
@@ -168,7 +193,10 @@ export const CommandPalette = ({
 							id={`command-${command.id}`}
 							role="option"
 							aria-selected={index === active}
-							onMouseEnter={() => setActive(index)}
+							onMouseMove={() => {
+								if (keyboardNav.current) return;
+								setActive(index);
+							}}
 							onClick={() => runAt(index)}
 							style={{
 								display: "flex",
@@ -204,6 +232,11 @@ export const CommandPalette = ({
 								>
 									{command.hint}
 								</Text>
+							) : null}
+							{command.hotkey ? (
+								<Kbd size="xs" style={{ flexShrink: 0 }}>
+									{command.hotkey}
+								</Kbd>
 							) : null}
 							{index === active ? (
 								<CornerDownLeft

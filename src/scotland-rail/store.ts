@@ -45,7 +45,11 @@ const getInitialState = (): RailStore => {
 		selectedCategory: "all",
 		isInfoOpen: false,
 		isSettingsOpen: false,
-		settings: DEFAULT_SETTINGS,
+		// A COPY, not the shared constant. `proxy()` wraps whatever object it is
+		// given, so assigning `DEFAULT_SETTINGS` by reference meant every user
+		// toggle mutated the module-level constant - and `resetSettings` then
+		// spread that already-mutated object, making "reset to defaults" a no-op.
+		settings: { ...DEFAULT_SETTINGS },
 	};
 
 	// Deep links override the defaults; invalid/unknown values are ignored.
@@ -99,8 +103,12 @@ const saveSettings = debounce(() => {
 	}
 }, 300);
 
-// Persist settings changes
-subscribe(railStore.settings, saveSettings);
+// Persist settings changes.
+//
+// Subscribed to the ROOT proxy, not `railStore.settings`: `resetSettings`
+// replaces the nested settings object wholesale, which would orphan a listener
+// bound to the old one and silently stop persisting every later change.
+subscribe(railStore, saveSettings);
 
 // Mirror the shareable subset of the store into the URL. Debounced because
 // timeOffset changes on every animation frame while the replay is playing.
@@ -228,6 +236,8 @@ export const railActions = {
 		railStore.settings[key] = value;
 	},
 	resetSettings: () => {
+		// A fresh object, and `saveSettings` runs on the root proxy so the
+		// restored defaults are actually written to storage.
 		railStore.settings = { ...DEFAULT_SETTINGS };
 	},
 	restart: () => {
@@ -239,3 +249,9 @@ export const railActions = {
 // Initial compute
 recomputeFilteredServices();
 recomputeActiveTrains();
+
+/**
+ * Stable store bundle for the throttled UI hook (`useThrottledSnapshots`).
+ * Kept module-level so the subscription identity never changes between renders.
+ */
+export const railUiStores = [railStore, derivedStore] as const;

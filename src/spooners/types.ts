@@ -309,6 +309,11 @@ export type Formatter = {
 	money: (value: number, currency: string) => string;
 	/** Converts a value metric into the display currency before formatting. */
 	metric: (kind: ValueKind, value: number, currency: string) => string;
+	/** The ISO code everything is converted to, or null in "native" mode. */
+	targetCurrency: string | null;
+	/** Numeric conversions, for comparing/sorting rather than displaying. */
+	convertMoney: (value: number, currency: string) => number;
+	convertMetric: (kind: ValueKind, value: number, currency: string) => number;
 };
 
 /**

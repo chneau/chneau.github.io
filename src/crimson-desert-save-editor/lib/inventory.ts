@@ -47,6 +47,10 @@ export type ParseResult = {
 	containerVersion: number;
 	payloadBytes: number;
 	records: InventoryRecord[];
+	/** Inventory records withheld because an identity field was absent. */
+	skippedRecords: number;
+	/** One short reason per skipped record, for the UI to show. */
+	skippedDetails: string[];
 	companions?: CompanionSummary;
 	skills?: SkillDescription;
 	dyes?: DyeDescription;

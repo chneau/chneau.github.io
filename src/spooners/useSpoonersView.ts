@@ -22,7 +22,7 @@ import {
 import { metricText } from "./portions";
 import { makeScale, median, money } from "./price";
 import { canConvertTo, convert, type RateTable } from "./rates";
-import type { Formatter, MapPoint, SpoonersCache } from "./types";
+import type { Formatter, MapPoint, SpoonersCache, ValueKind } from "./types";
 
 const DEFAULT_ITEM_HINT = "guinness";
 
@@ -134,7 +134,15 @@ export const useSpoonersView = (input: SpoonersViewInput) => {
 
 	// converted mode: everything into one currency, so EUR pubs show up too
 	const convertTo = convertCurrency !== "native" ? convertCurrency : null;
-	const converting = Boolean(convertTo && canConvertTo(convertTo, rates));
+	// `convert` silently returns the amount unchanged when a venue's own
+	// currency is missing from the table, which would mix currencies - so only
+	// convert when every pub can be converted.
+	const allCurrenciesConvertible = priced.every((venue) =>
+		canConvertTo(venue.currency, rates),
+	);
+	const converting = Boolean(
+		convertTo && canConvertTo(convertTo, rates) && allCurrenciesConvertible,
+	);
 	const displayVenues = useMemo(() => {
 		if (!(converting && convertTo)) {
 			return nativeVenues;
@@ -168,23 +176,29 @@ export const useSpoonersView = (input: SpoonersViewInput) => {
 
 	// one place that knows how to show a price/metric in the display currency
 	const targetCurrency = converting && convertTo ? convertTo : null;
-	const format = useMemo<Formatter>(
-		() => ({
+	const format = useMemo<Formatter>(() => {
+		const convertMoney = (value: number, from: string) =>
+			targetCurrency ? convert(value, from, targetCurrency, rates) : value;
+		const convertMetric = (kind: ValueKind, value: number, from: string) => {
+			if (!targetCurrency) {
+				return value;
+			}
+			const rate = convert(1, from, targetCurrency, rates);
+			return kind === "calorie" ? value / rate : value * rate;
+		};
+		return {
+			targetCurrency,
+			convertMoney,
+			convertMetric,
 			money: (value, from) =>
-				targetCurrency
-					? money(convert(value, from, targetCurrency, rates), targetCurrency)
-					: money(value, from),
-			metric: (kind, value, from) => {
-				if (!targetCurrency) {
-					return metricText({ kind, value }, from);
-				}
-				const rate = convert(1, from, targetCurrency, rates);
-				const converted = kind === "calorie" ? value / rate : value * rate;
-				return metricText({ kind, value: converted }, targetCurrency);
-			},
-		}),
-		[targetCurrency, rates],
-	);
+				money(convertMoney(value, from), targetCurrency ?? from),
+			metric: (kind, value, from) =>
+				metricText(
+					{ kind, value: convertMetric(kind, value, from) },
+					targetCurrency ?? from,
+				),
+		};
+	}, [targetCurrency, rates]);
 
 	// only compare pubs that can serve every item of the round
 	const completeVenues = useMemo(

@@ -174,7 +174,12 @@ export const venueOpenState = (
 	if (!times) {
 		return { open: false, hours: null };
 	}
-	const dateKey = now.toISOString().slice(0, 10);
+	// Local calendar date, so a one-off override lines up with the local
+	// weekday/hours used below (an ISO key would drift near midnight).
+	const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+		2,
+		"0",
+	)}-${String(now.getDate()).padStart(2, "0")}`;
 	const dayKey = DAY_KEYS[now.getDay()] ?? "mon";
 	const day = times.dates?.[dateKey] ?? times.days?.[dayKey] ?? null;
 	if (!day?.open || day.isClosed) {
@@ -558,14 +563,32 @@ export type ValueLeader = {
 };
 
 /**
+ * How to fold every venue's money/metric into one display currency, so a €
+ * pub is not ranked against a £ one on the raw number.
+ */
+type ValueConversion = {
+	metric: (kind: ValueKind, value: number, currency: string) => number;
+	money: (value: number, currency: string) => number;
+	/** ISO code the converted numbers are in. */
+	currency: string;
+};
+
+/**
  * Best value per item across the country, on the item's canonical portion.
  * Used to answer "cheapest per alcohol unit" / "most calories per pound".
+ *
+ * With no `conversion`, one leader is kept per (currency, metric) so the two
+ * currencies are ranked separately. Given a `conversion`, every venue is
+ * normalised first and a single best per metric is returned.
  */
-export const valueLeaders = (cache: SpoonersCache): ValueLeader[] => {
+export const valueLeaders = (
+	cache: SpoonersCache,
+	conversion?: ValueConversion,
+): ValueLeader[] => {
 	const out: ValueLeader[] = [];
 	for (const [name, definition] of Object.entries(cache.items)) {
 		const nature = itemNature(definition);
-		let best: ValueLeader | null = null;
+		const bests = new Map<string, { score: number; lead: ValueLeader }>();
 		let count = 0;
 		for (const entry of Object.values(cache.venues)) {
 			const portions = entry.items[name];
@@ -581,27 +604,39 @@ export const valueLeaders = (cache: SpoonersCache): ValueLeader[] => {
 			if (!value) {
 				continue;
 			}
+			const currency = venueCurrency(entry.detail);
+			// Without a conversion, compare only like-for-like currencies.
+			const key = conversion ? value.kind : `${currency}|${value.kind}`;
+			const score = conversion
+				? conversion.metric(value.kind, value.value, currency)
+				: value.value;
+			const current = bests.get(key);
 			const better =
-				!best || valueDirection(value.kind) * (value.value - best.value) < 0;
+				!current || valueDirection(value.kind) * (score - current.score) < 0;
 			if (better) {
-				best = {
-					name,
-					menu: definition?.menu ?? null,
-					category: definition?.category ?? null,
-					nature,
-					kind: value.kind,
-					value: value.value,
-					price: picked.price,
-					portion: picked.portion,
-					currency: venueCurrency(entry.detail),
-					venueRef: entry.venue.venueRef,
-					venueName: entry.venue.name,
-					count,
-				};
+				bests.set(key, {
+					score,
+					lead: {
+						name,
+						menu: definition?.menu ?? null,
+						category: definition?.category ?? null,
+						nature,
+						kind: value.kind,
+						value: conversion ? score : value.value,
+						price: conversion
+							? conversion.money(picked.price, currency)
+							: picked.price,
+						portion: picked.portion,
+						currency: conversion ? conversion.currency : currency,
+						venueRef: entry.venue.venueRef,
+						venueName: entry.venue.name,
+						count,
+					},
+				});
 			}
 		}
-		if (best) {
-			out.push({ ...best, count });
+		for (const { lead } of bests.values()) {
+			out.push({ ...lead, count });
 		}
 	}
 	return out;

@@ -8,7 +8,7 @@ import { Sparkline } from "./Sparkline";
 
 type Bin = { start: number; end: number; count: number };
 
-const buildHistogram = (prices: number[]): Bin[] => {
+export const buildHistogram = (prices: number[]): Bin[] => {
 	if (!prices.length) {
 		return [];
 	}
@@ -19,6 +19,11 @@ const buildHistogram = (prices: number[]): Bin[] => {
 	const bins: Bin[] = [];
 	for (let start = min; start < max - 1e-9; start += step) {
 		bins.push({ start, end: start + step, count: 0 });
+	}
+	// When every price is identical, min === max and the loop above produces
+	// nothing; one bin is still enough to render the histogram.
+	if (!bins.length) {
+		bins.push({ start: min, end: min + step, count: 0 });
 	}
 	for (const price of prices) {
 		const index = Math.min(

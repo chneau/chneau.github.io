@@ -1,6 +1,6 @@
 import { Box, Group, InputBase, Popover, Text } from "@mantine/core";
 import { Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ItemInfo } from "../types";
 
 const ROW_HEIGHT = 34;
@@ -24,6 +24,8 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 	const [highlight, setHighlight] = useState(0);
 	const [scrollTop, setScrollTop] = useState(0);
 	const viewportRef = useRef<HTMLDivElement>(null);
+	const listboxId = useId();
+	const optionId = (index: number) => `${listboxId}-option-${index}`;
 
 	const filtered = useMemo(() => {
 		const needle = query.trim().toLowerCase();
@@ -101,6 +103,13 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 				<InputBase
 					label={label}
 					placeholder="Search for a drink or a dish…"
+					role="combobox"
+					aria-expanded={opened}
+					aria-controls={opened ? listboxId : undefined}
+					aria-autocomplete="list"
+					aria-activedescendant={
+						opened && filtered[highlight] ? optionId(highlight) : undefined
+					}
 					value={opened ? query : (value ?? "")}
 					onFocus={() => {
 						setOpened(true);
@@ -138,6 +147,7 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 			<Popover.Dropdown p={0}>
 				<Box
 					ref={viewportRef}
+					id={listboxId}
 					role="listbox"
 					style={{ height: VIEWPORT, overflowY: "auto", position: "relative" }}
 					onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
@@ -154,6 +164,7 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 							return (
 								<Box
 									key={item.name}
+									id={optionId(index)}
 									role="option"
 									aria-selected={active}
 									onMouseEnter={() => setHighlight(index)}

@@ -6,6 +6,9 @@ const nowStr = dayjs().format("MMM D, HH:mm");
 
 const SITE_URL = "https://chneau.github.io";
 
+/** Single 1200×630 PNG committed to public/ and copied to the site root. */
+const OG_IMAGE = `${SITE_URL}/og.png`;
+
 const emojiIcon = (emoji: string) =>
 	`data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${emoji}</text></svg>`;
 
@@ -19,32 +22,114 @@ const manifestLink = {
 	attrs: { rel: "manifest", href: "manifest.json" },
 };
 
+/** iOS ignores web-manifest icons; it needs an explicit touch icon link. */
+const appleTouchIcon = (slug: string) => ({
+	tag: "link" as const,
+	attrs: { rel: "apple-touch-icon", href: `/icons/${slug}-192.png` },
+});
+
 type Meta = {
 	title: string;
 	description: string;
 	path: string;
 	themeColor: string;
+	/** Per-app share image; defaults to the branded site-wide card. */
+	image?: string;
+	locale?: string;
+	alternateLocales?: string[];
+	type?: "website" | "profile";
 };
 
-/** Shared description / theme-colour / social tags for every app. */
-const metaTags = ({ title, description, path, themeColor }: Meta) => [
-	{ tag: "meta", attrs: { name: "description", content: description } },
-	{ tag: "meta", attrs: { name: "theme-color", content: themeColor } },
-	{ tag: "meta", attrs: { property: "og:type", content: "website" } },
-	{
-		tag: "meta",
-		attrs: { property: "og:site_name", content: "chneau.github.io" },
+/** Shared canonical / description / social tags for every app. */
+const metaTags = ({
+	title,
+	description,
+	path,
+	themeColor,
+	image = OG_IMAGE,
+	locale = "en_GB",
+	alternateLocales = [],
+	type = "website",
+}: Meta) => {
+	const url = `${SITE_URL}${path}`;
+	return [
+		{ tag: "meta", attrs: { name: "description", content: description } },
+		{ tag: "meta", attrs: { name: "theme-color", content: themeColor } },
+		{ tag: "link", attrs: { rel: "canonical", href: url } },
+		// Open Graph
+		{ tag: "meta", attrs: { property: "og:type", content: type } },
+		{
+			tag: "meta",
+			attrs: { property: "og:site_name", content: "chneau.github.io" },
+		},
+		{ tag: "meta", attrs: { property: "og:title", content: title } },
+		{
+			tag: "meta",
+			attrs: { property: "og:description", content: description },
+		},
+		{ tag: "meta", attrs: { property: "og:url", content: url } },
+		{ tag: "meta", attrs: { property: "og:locale", content: locale } },
+		...alternateLocales.map((alternate) => ({
+			tag: "meta",
+			attrs: { property: "og:locale:alternate", content: alternate },
+		})),
+		{ tag: "meta", attrs: { property: "og:image", content: image } },
+		{ tag: "meta", attrs: { property: "og:image:width", content: "1200" } },
+		{ tag: "meta", attrs: { property: "og:image:height", content: "630" } },
+		{ tag: "meta", attrs: { property: "og:image:alt", content: title } },
+		// Twitter
+		{
+			tag: "meta",
+			attrs: {
+				name: "twitter:card",
+				content: image ? "summary_large_image" : "summary",
+			},
+		},
+		{ tag: "meta", attrs: { name: "twitter:title", content: title } },
+		{
+			tag: "meta",
+			attrs: { name: "twitter:description", content: description },
+		},
+		...(image
+			? [
+					{ tag: "meta", attrs: { name: "twitter:image", content: image } },
+					{
+						tag: "meta",
+						attrs: { name: "twitter:image:alt", content: title },
+					},
+				]
+			: []),
+	];
+};
+
+const jsonLd = (data: unknown) => ({
+	tag: "script" as const,
+	attrs: { type: "application/ld+json" },
+	children: JSON.stringify(data),
+});
+
+const personLd = {
+	"@context": "https://schema.org",
+	"@type": "Person",
+	name: "Charles Neau",
+	jobTitle: "Senior Full-Stack & Systems Engineer",
+	url: SITE_URL,
+	email: "mailto:charles63500@gmail.com",
+	address: {
+		"@type": "PostalAddress",
+		addressLocality: "Edinburgh",
+		addressCountry: "GB",
 	},
-	{ tag: "meta", attrs: { property: "og:title", content: title } },
-	{ tag: "meta", attrs: { property: "og:description", content: description } },
-	{ tag: "meta", attrs: { property: "og:url", content: `${SITE_URL}${path}` } },
-	{ tag: "meta", attrs: { name: "twitter:card", content: "summary" } },
-	{ tag: "meta", attrs: { name: "twitter:title", content: title } },
-	{
-		tag: "meta",
-		attrs: { name: "twitter:description", content: description },
-	},
-];
+	sameAs: ["https://github.com/chneau", "https://linkedin.com/in/chneau"],
+};
+
+const websiteLd = {
+	"@context": "https://schema.org",
+	"@type": "WebSite",
+	name: "chneau.github.io",
+	url: SITE_URL,
+	author: { "@type": "Person", name: "Charles Neau" },
+};
 
 const manifestCopy = (name: string) => [
 	{ from: `./manifests/${name}.json`, to: "manifest.json" },
@@ -76,7 +161,10 @@ export default defineConfig({
 						path: "/",
 						themeColor: "#1677ff",
 					}),
+					jsonLd(websiteLd),
+					jsonLd(personLd),
 					manifestLink,
+					appleTouchIcon("root"),
 					shortcutIcon(emojiIcon("🚀")),
 				],
 			},
@@ -102,11 +190,14 @@ export default defineConfig({
 					...metaTags({
 						title: "Charles Neau | Curriculum Vitae",
 						description:
-							"Charles Neau — Senior Full-Stack & Systems Engineer. 10+ years across Go, TypeScript, React, Python and cloud infrastructure.",
+							"Senior Full-Stack & Systems Engineer — 10+ years experience across Go, TypeScript, React 19, Python, cloud infrastructure & optimization.",
 						path: "/cv/",
 						themeColor: "#127f5f",
+						type: "profile",
 					}),
+					jsonLd(personLd),
 					manifestLink,
+					appleTouchIcon("cv"),
 					shortcutIcon(emojiIcon("📄")),
 				],
 			},
@@ -132,11 +223,20 @@ export default defineConfig({
 					...metaTags({
 						title: "Birthday Tracker",
 						description:
-							"Track birthdays, milestones, biorhythms, zodiac signs and export calendar events.",
+							"Track birthdays, milestones, biorhythms, zodiac signs, and export calendar events.",
 						path: "/birthday/",
 						themeColor: "#34d399",
+						alternateLocales: [
+							"de_DE",
+							"es_ES",
+							"fr_FR",
+							"gd_GB",
+							"ty_PF",
+							"zh_CN",
+						],
 					}),
 					manifestLink,
+					appleTouchIcon("birthday"),
 					shortcutIcon(emojiIcon("🎂")),
 				],
 			},
@@ -167,6 +267,7 @@ export default defineConfig({
 						themeColor: "#5aa9c9",
 					}),
 					manifestLink,
+					appleTouchIcon("scotland-rail"),
 					shortcutIcon(emojiIcon("🚆")),
 				],
 			},
@@ -199,6 +300,7 @@ export default defineConfig({
 						themeColor: "#9d5062",
 					}),
 					manifestLink,
+					appleTouchIcon("crimson-desert-save-editor"),
 					shortcutIcon(crimsonIcon),
 				],
 			},
@@ -230,11 +332,12 @@ export default defineConfig({
 					...metaTags({
 						title: "Spooners | Pub prices on a map",
 						description:
-							"See what every pub charges for the same drink or dish — searchable map, cheapest-to-dearest rankings and price distributions.",
+							"See what every pub charges for the same drink or dish — searchable map, cheapest-to-dearest rankings and price distribution charts.",
 						path: "/spooners/",
 						themeColor: "#e6ad00",
 					}),
 					manifestLink,
+					appleTouchIcon("spooners"),
 					shortcutIcon(emojiIcon("🍺")),
 				],
 			},
@@ -266,11 +369,12 @@ export default defineConfig({
 					...metaTags({
 						title: "Design System | chneau.github.io",
 						description:
-							"The shared design tokens and components behind chneau.github.io.",
+							"The shared tokens, components and patterns behind every app on this site.",
 						path: "/design/",
 						themeColor: "#6366f1",
 					}),
 					manifestLink,
+					appleTouchIcon("design"),
 					shortcutIcon(emojiIcon("🧩")),
 				],
 			},

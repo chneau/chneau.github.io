@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { EmptyState } from "../../shared";
 import { type ValueLeader, valueLeaders } from "../derive";
 import { valueDirection } from "../portions";
+import { currencySymbol } from "../price";
 import type { Formatter, SpoonersCache, ValueKind } from "../types";
 
 type Props = {
@@ -22,12 +23,6 @@ type Props = {
 	onVenue: (ref: number) => void;
 	format: Formatter;
 };
-
-const TABS: { label: string; value: ValueKind }[] = [
-	{ label: "£ per unit", value: "unit" },
-	{ label: "£ per 100 ml", value: "volume" },
-	{ label: "kcal per £", value: "calorie" },
-];
 
 const LIMIT = 60;
 
@@ -45,8 +40,20 @@ export const ValueExplorer = ({
 
 	// only paid for once the explorer is opened
 	const leaders = useMemo(
-		() => (opened ? valueLeaders(cache) : []),
-		[opened, cache],
+		() =>
+			opened
+				? valueLeaders(
+						cache,
+						format.targetCurrency
+							? {
+									metric: format.convertMetric,
+									money: format.convertMoney,
+									currency: format.targetCurrency,
+								}
+							: undefined,
+					)
+				: [],
+		[opened, cache, format],
 	);
 
 	const rows = useMemo(() => {
@@ -60,11 +67,27 @@ export const ValueExplorer = ({
 					(row.category ?? "").toLowerCase().includes(needle)),
 		);
 		const dir = valueDirection(tab);
-		wanted.sort((a, b) => dir * (a.value - b.value));
+		// When prices are not converted, keep each currency's ranking together
+		// so £ and € values are never interleaved by their raw numbers.
+		wanted.sort(
+			(a, b) =>
+				(format.targetCurrency ? 0 : a.currency.localeCompare(b.currency)) ||
+				dir * (a.value - b.value),
+		);
 		return wanted.slice(0, LIMIT);
-	}, [leaders, tab, query]);
+	}, [leaders, tab, query, format.targetCurrency]);
 
 	const anyKind = leaders.length > 0;
+	// Label the value metric in whatever currency is being shown; when native
+	// prices are mixed the symbol is left neutral.
+	const symbol = format.targetCurrency
+		? currencySymbol(format.targetCurrency)
+		: "currency";
+	const tabs: { label: string; value: ValueKind }[] = [
+		{ label: `${symbol} per unit`, value: "unit" },
+		{ label: `${symbol} per 100 ml`, value: "volume" },
+		{ label: `kcal per ${symbol}`, value: "calorie" },
+	];
 
 	return (
 		<Modal
@@ -78,11 +101,14 @@ export const ValueExplorer = ({
 				<Text size="xs" c="dimmed">
 					Every item ranked on its own, using each item's usual portion. The
 					venue shown is the cheapest one selling it.
+					{format.targetCurrency
+						? ` All prices are converted to ${format.targetCurrency}.`
+						: " Each currency is ranked separately."}
 				</Text>
 				<SegmentedControl
 					fullWidth
 					value={tab}
-					data={TABS.map((item) => ({ label: item.label, value: item.value }))}
+					data={tabs.map((item) => ({ label: item.label, value: item.value }))}
 					onChange={(value) => setTab(value as ValueKind)}
 				/>
 				<TextInput
@@ -98,44 +124,44 @@ export const ValueExplorer = ({
 				/>
 				<Box style={{ maxHeight: "58vh", overflowY: "auto" }}>
 					{rows.map((row, index) => (
-						<UnstyledButton
+						<Box
 							key={`${row.name}-${row.venueRef}`}
-							onClick={() => onItem(row.name)}
 							style={{ display: "block", width: "100%", padding: "6px 4px" }}
 						>
 							<Group justify="space-between" gap={8} wrap="nowrap">
-								<Group gap={8} wrap="nowrap" style={{ minWidth: 0 }}>
-									<Text size="xs" c="dimmed" w={22} ta="right">
-										{index + 1}
-									</Text>
-									<Box style={{ minWidth: 0 }}>
-										<Text size="sm" lineClamp={1}>
-											{row.name}
+								<UnstyledButton
+									onClick={() => onItem(row.name)}
+									style={{ flex: 1, minWidth: 0, textAlign: "left" }}
+								>
+									<Group gap={8} wrap="nowrap" style={{ minWidth: 0 }}>
+										<Text size="xs" c="dimmed" w={22} ta="right">
+											{index + 1}
 										</Text>
-										<Text size="xs" c="dimmed" lineClamp={1}>
-											{[row.menu, row.category].filter(Boolean).join(" · ")}
-											{row.count > 1 ? ` · ${row.count} pubs` : ""}
-										</Text>
-									</Box>
-								</Group>
+										<Box style={{ minWidth: 0 }}>
+											<Text size="sm" lineClamp={1}>
+												{row.name}
+											</Text>
+											<Text size="xs" c="dimmed" lineClamp={1}>
+												{[row.menu, row.category].filter(Boolean).join(" · ")}
+												{row.count > 1 ? ` · ${row.count} pubs` : ""}
+												{format.targetCurrency ? "" : ` · ${row.currency}`}
+											</Text>
+										</Box>
+									</Group>
+								</UnstyledButton>
 								<Box style={{ textAlign: "right", flexShrink: 0 }}>
 									<Text size="sm" fw={700}>
 										{format.metric(row.kind, row.value, row.currency)}
 									</Text>
-									<Text
-										size="xs"
-										c="dimmed"
-										onClick={(event) => {
-											event.stopPropagation();
-											onVenue(row.venueRef);
-										}}
-									>
-										{row.portion} {format.money(row.price, row.currency)} ·{" "}
-										{row.venueName}
-									</Text>
+									<UnstyledButton onClick={() => onVenue(row.venueRef)}>
+										<Text size="xs" c="dimmed">
+											{row.portion} {format.money(row.price, row.currency)} ·{" "}
+											{row.venueName}
+										</Text>
+									</UnstyledButton>
 								</Box>
 							</Group>
-						</UnstyledButton>
+						</Box>
 					))}
 					{rows.length ? null : anyKind ? (
 						<EmptyState

@@ -101,5 +101,12 @@ export const writeUrlState = (values: RailUrlValues): void => {
 	const url = `${window.location.pathname}${
 		query ? `?${query}` : ""
 	}${window.location.hash}`;
-	window.history.replaceState(null, "", url);
+	// Safari throttles `replaceState` (≈100 calls / 30 s) and throws a
+	// `SecurityError` once the budget is exhausted. Never let URL mirroring
+	// take down the replay: a stale address bar is harmless, a crash is not.
+	try {
+		window.history.replaceState(null, "", url);
+	} catch {
+		// ignore SecurityError / DataCloneError from aggressive URL syncing
+	}
 };

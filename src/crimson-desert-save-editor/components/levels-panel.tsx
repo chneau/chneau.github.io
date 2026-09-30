@@ -212,7 +212,7 @@ export const LevelsPanel = ({
 
 	if (description?.error) {
 		return (
-			<Stack component="main" gap="lg" p="md" style={{ flex: 1 }}>
+			<Stack component="section" gap="lg" p="md" style={{ flex: 1 }}>
 				<Alert color="yellow" title="Level editing unavailable">
 					{description.error}
 				</Alert>
@@ -222,7 +222,7 @@ export const LevelsPanel = ({
 
 	return (
 		<Stack
-			component="main"
+			component="section"
 			gap="lg"
 			p="md"
 			style={{ flex: 1, minHeight: 0, overflow: "auto" }}

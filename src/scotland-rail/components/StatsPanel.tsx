@@ -9,13 +9,13 @@ import {
 	Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useSnapshot } from "valtio";
 import { CATEGORIES, type TrainService } from "../data/types";
 import {
 	type ActiveTrainState,
 	getPolylineDistances,
 } from "../engine/interpolator";
-import { derivedStore, railActions, railStore } from "../store";
+import { useThrottledSnapshots } from "../hooks";
+import { railActions, railUiStores } from "../store";
 import { palette } from "../theme";
 import { formatTime } from "../utils";
 
@@ -109,8 +109,8 @@ const HighlightRow = ({
 );
 
 export const StatsPanel = () => {
-	const snap = useSnapshot(railStore);
-	const derivedSnap = useSnapshot(derivedStore);
+	// Throttled: the derived stats are heavy and do not need 60 fps fidelity.
+	const [snap, derivedSnap] = useThrottledSnapshots(railUiStores);
 	const { timeOffset, selectedCategory, searchQuery } = snap;
 	const { activeTrains, filteredServices } = derivedSnap;
 
@@ -265,6 +265,8 @@ export const StatsPanel = () => {
 							gap: 6,
 						}}
 						onClick={() => setCollapsed(!collapsed)}
+						aria-label={collapsed ? "Expand highlights" : "Collapse highlights"}
+						aria-expanded={!collapsed}
 						title={collapsed ? "Expand highlights" : "Collapse highlights"}
 					>
 						<Flame size={15} />
@@ -276,6 +278,7 @@ export const StatsPanel = () => {
 					{!collapsed && stats && (
 						<SegmentedControl
 							size="xs"
+							aria-label="Distance units"
 							value={unit}
 							onChange={(val) => setUnit(val as "metric" | "imperial")}
 							data={[

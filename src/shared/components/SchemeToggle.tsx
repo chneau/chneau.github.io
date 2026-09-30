@@ -10,6 +10,7 @@ type SchemeToggleProps = {
 export const SchemeToggle = ({ dark, onToggle }: SchemeToggleProps) => (
 	<HeaderAction
 		iconOnly
+		ariaPressed={dark}
 		label={dark ? "Light mode" : "Dark mode"}
 		onClick={onToggle}
 		icon={dark ? <Sun size={16} /> : <Moon size={16} />}

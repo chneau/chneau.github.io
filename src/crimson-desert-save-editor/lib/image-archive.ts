@@ -32,6 +32,8 @@ const archives: ArchiveState[] = Array.from({ length: ARCHIVE_COUNT }, () => ({
 	status: "idle",
 }));
 const urls = new Map<string, string>();
+/** How many mounted pictures are still using each cached blob URL. */
+const refCounts = new Map<string, number>();
 const inflating = new Set<string>();
 const listeners = new Set<() => void>();
 
@@ -80,9 +82,46 @@ const loadArchive = (index: number) => {
 			emit();
 		})
 		.catch(() => {
+			// No `emit` here: notifying listeners would call `imageUrl` again,
+			// and the error-to-idle retry below would refetch in a loop. The
+			// next mount retries instead.
 			state.status = "error";
-			emit();
 		});
+};
+
+/**
+ * Records that one mounted picture is using `name`, so the blob URL created
+ * for it can be revoked once the last consumer goes away. Catalog browsing
+ * mounts and unmounts thousands of rows; without this every visited picture
+ * keeps its WebP bytes alive for the life of the tab.
+ */
+const retain = (name: string): void => {
+	refCounts.set(name, (refCounts.get(name) ?? 0) + 1);
+};
+
+const release = (name: string): void => {
+	const remaining = (refCounts.get(name) ?? 1) - 1;
+	if (remaining > 0) {
+		refCounts.set(name, remaining);
+		return;
+	}
+	refCounts.delete(name);
+	const url = urls.get(name);
+	if (url !== undefined) {
+		URL.revokeObjectURL(url);
+		urls.delete(name);
+	}
+};
+
+/** Cache a freshly created blob URL, unless its only consumer already left. */
+const publish = (name: string, url: string): void => {
+	if ((refCounts.get(name) ?? 0) <= 0) {
+		URL.revokeObjectURL(url);
+		return;
+	}
+	const previous = urls.get(name);
+	if (previous !== undefined) URL.revokeObjectURL(previous);
+	urls.set(name, url);
 };
 
 /**
@@ -97,6 +136,12 @@ const imageUrl = (path: string | undefined): string | undefined => {
 	if (cached) return cached;
 	const index = imagePart(name);
 	const state = archiveState(index);
+	if (state.status === "error") {
+		// A failed archive is retryable: reset to idle so the next mount, or the
+		// next listener notification, fetches it again instead of showing a
+		// permanent placeholder with no explanation.
+		state.status = "idle";
+	}
 	if (state.status === "idle") {
 		loadArchive(index);
 		return undefined;
@@ -111,7 +156,7 @@ const imageUrl = (path: string | undefined): string | undefined => {
 			entry.dataOffset,
 			entry.dataOffset + entry.compressedSize,
 		);
-		urls.set(
+		publish(
 			name,
 			URL.createObjectURL(new Blob([stored], { type: PICTURE_TYPE })),
 		);
@@ -121,7 +166,7 @@ const imageUrl = (path: string | undefined): string | undefined => {
 		inflating.add(name);
 		void readZipEntry(state.bytes, entry)
 			.then((picture) => {
-				urls.set(
+				publish(
 					name,
 					URL.createObjectURL(new Blob([picture], { type: PICTURE_TYPE })),
 				);
@@ -148,9 +193,15 @@ export const useImage = (path: string | undefined): string | undefined => {
 			setUrl(undefined);
 			return;
 		}
+		const name = path.replace(/^\//, "");
+		retain(name);
 		const update = () => setUrl(imageUrl(path));
 		update();
-		return subscribe(update);
+		const unsubscribe = subscribe(update);
+		return () => {
+			unsubscribe();
+			release(name);
+		};
 	}, [path]);
 	return url;
 };

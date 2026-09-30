@@ -119,6 +119,19 @@ export const basketVenues = (
 	return venues;
 };
 
+/**
+ * Names travel inside a comma/colon-delimited string, so they are
+ * percent-encoded. Older links stored raw names, and hand-typed names may not
+ * be valid escapes, so a failure falls back to the raw text.
+ */
+const decodeBasketName = (value: string): string => {
+	try {
+		return decodeURIComponent(value);
+	} catch {
+		return value;
+	}
+};
+
 /** "Guinness:2,Budweiser:1" <-> BasketItem[] */
 export const parseBasket = (value: string | null): BasketItem[] => {
 	if (!value) {
@@ -130,7 +143,7 @@ export const parseBasket = (value: string | null): BasketItem[] => {
 		if (separator < 0) {
 			continue;
 		}
-		const name = part.slice(0, separator).trim();
+		const name = decodeBasketName(part.slice(0, separator)).trim();
 		const qty = Number.parseInt(part.slice(separator + 1), 10);
 		if (name && Number.isFinite(qty) && qty > 0) {
 			const existing = items.find((item) => item.name === name);
@@ -147,5 +160,5 @@ export const parseBasket = (value: string | null): BasketItem[] => {
 export const serializeBasket = (items: BasketItem[]): string =>
 	items
 		.filter((item) => item.qty > 0)
-		.map((item) => `${item.name}:${item.qty}`)
+		.map((item) => `${encodeURIComponent(item.name)}:${item.qty}`)
 		.join(",");
