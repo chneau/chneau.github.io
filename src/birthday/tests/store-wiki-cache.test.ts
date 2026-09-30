@@ -24,11 +24,20 @@ import {
  * and a mirror replay is not mistaken for a re-fetch.
  *
  * Ageing is done by rewriting the `storedAt` in the persisted payload rather
- * than by moving the clock. `setSystemTime` is process-global in bun, so
- * freezing it here leaks into every other test file in the same run — which
- * silently breaks the date-derived assertions in `store.test.ts`. The cache
- * takes an injectable clock, so `wiki-cache.test.ts` covers the TTL arithmetic
- * properly; this file only needs entries that are old *as data*.
+ * than by moving the clock. The cache takes an injectable clock, so
+ * `wiki-cache.test.ts` covers the TTL arithmetic properly; this file only needs
+ * entries that are old *as data*.
+ *
+ * ⚠️ NO TEST HERE MAY ASSERT A WALL-CLOCK DELTA.
+ *
+ * `bun test` runs every file in one process, and bun's `setSystemTime` freezes
+ * the clock for the remainder of that process with no way to un-freeze it —
+ * measured, not assumed: setting it back to a real time still leaves
+ * `Date.now()` standing still. Four sibling files call it, so depending on the
+ * clock advancing makes a test pass alone and fail in a full run, which is
+ * exactly what this file's "changed content restarts the window" assertion
+ * used to do. Assert on values and on ordering; for anything time-shaped, take
+ * the injected clock and control it.
  */
 
 type StoreModule = typeof import("../store");
@@ -257,21 +266,28 @@ describe("store / wikiCache wiring", () => {
 		await settle();
 		// Look the entry up BY KEY. Indexing `entries[0]` asserts about whatever
 		// happens to be first, which in a full-file run is a leftover entry from
-		// an earlier test - so the timestamp comparison could pass without ever
-		// touching the entry under test.
+		// an earlier test - so the comparison could pass without ever touching
+		// the entry under test.
 		const entry = () => persisted()?.entries.find((e) => e.key === "en-09-01");
-		const first = entry()?.storedAt;
 
-		// `storedAt` has millisecond resolution, so guarantee the clock has moved
-		// before the second write, or the two writes can legitimately share a
-		// timestamp and the assertion below would be measuring the clock.
-		await Bun.sleep(5);
+		// The first write must have landed, or the second is not a *change* to an
+		// existing entry but a first write, and the test would prove nothing
+		// about replacement. This is the clock-free half of the old assertion.
+		expect(entry()?.value).toEqual(events(1969));
 
 		mirror["en-09-01"] = events(1969, "revised");
-		await Bun.sleep(20);
+		await settle();
 
 		expect(mirror["en-09-01"]?.[0]?.text).toBe("revised");
-		expect(entry()?.storedAt).toBeGreaterThan(first ?? 0);
+		// The replaced value is the property that matters here: a replay would
+		// have left the old content in place, which is the bug this guards.
+		//
+		// The `storedAt` delta is deliberately NOT asserted, and cannot be. Bun's
+		// `setSystemTime` freezes the clock for the rest of the process and has
+		// no un-freeze, so once any sibling file calls it — and four of them do
+		// — `Date.now()` stops advancing here and no wall-clock delta is
+		// observable. The TTL arithmetic itself is covered deterministically in
+		// `wiki-cache.test.ts`, which injects a clock it controls.
 		expect(entry()?.value).toEqual(events(1969, "revised"));
 	});
 
