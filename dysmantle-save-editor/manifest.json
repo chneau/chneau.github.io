@@ -1,0 +1,39 @@
+{
+	"id": "/dysmantle-save-editor/",
+	"name": "DYSMANTLE Save Editor",
+	"short_name": "DYSMANTLE",
+	"description": "Unpack DYSMANTLE's container, read its XML profile and restage it \u2014 materials, skills, recipes and features, rebuilt in your browser.",
+	"start_url": "/dysmantle-save-editor/",
+	"scope": "/dysmantle-save-editor/",
+	"display": "standalone",
+	"display_override": ["standalone", "minimal-ui"],
+	"background_color": "#0e0e11",
+	"theme_color": "#7f7d47",
+	"lang": "en",
+	"icons": [
+		{
+			"src": "/icons/dysmantle-save-editor-32.png",
+			"sizes": "32x32",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/dysmantle-save-editor-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/dysmantle-save-editor-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/dysmantle-save-editor-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	]
+}

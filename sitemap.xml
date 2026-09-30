@@ -26,6 +26,36 @@
 		<priority>0.7</priority>
 	</url>
 	<url>
+		<loc>https://chneau.github.io/power-fantasy-save-editor/</loc>
+		<changefreq>monthly</changefreq>
+		<priority>0.7</priority>
+	</url>
+	<url>
+		<loc>https://chneau.github.io/no-rest-for-the-wicked-save-editor/</loc>
+		<changefreq>monthly</changefreq>
+		<priority>0.7</priority>
+	</url>
+	<url>
+		<loc>https://chneau.github.io/dysmantle-save-editor/</loc>
+		<changefreq>monthly</changefreq>
+		<priority>0.7</priority>
+	</url>
+	<url>
+		<loc>https://chneau.github.io/cyberpunk-2077-save-editor/</loc>
+		<changefreq>monthly</changefreq>
+		<priority>0.7</priority>
+	</url>
+	<url>
+		<loc>https://chneau.github.io/deadly-days-roadtrip-save-editor/</loc>
+		<changefreq>monthly</changefreq>
+		<priority>0.7</priority>
+	</url>
+	<url>
+		<loc>https://chneau.github.io/tails-of-iron-2-save-editor/</loc>
+		<changefreq>monthly</changefreq>
+		<priority>0.7</priority>
+	</url>
+	<url>
 		<loc>https://chneau.github.io/spooners/</loc>
 		<changefreq>weekly</changefreq>
 		<priority>0.7</priority>

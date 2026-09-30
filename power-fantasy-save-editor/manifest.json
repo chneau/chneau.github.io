@@ -1,0 +1,39 @@
+{
+	"id": "/power-fantasy-save-editor/",
+	"name": "Power Fantasy Save Editor",
+	"short_name": "PF Editor",
+	"description": "Decrypt and edit Power Fantasy's AES-encrypted Unity save \u2014 blood rubies, heroes, passives and infusions, rebuilt and verified in your browser.",
+	"start_url": "/power-fantasy-save-editor/",
+	"scope": "/power-fantasy-save-editor/",
+	"display": "standalone",
+	"display_override": ["standalone", "minimal-ui"],
+	"background_color": "#0e0e11",
+	"theme_color": "#d44a63",
+	"lang": "en",
+	"icons": [
+		{
+			"src": "/icons/power-fantasy-save-editor-32.png",
+			"sizes": "32x32",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/power-fantasy-save-editor-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/power-fantasy-save-editor-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/power-fantasy-save-editor-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	]
+}

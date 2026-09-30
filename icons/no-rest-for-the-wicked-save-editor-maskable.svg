@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+	<rect width="512" height="512" fill="#c8654c" />
+	<g transform="translate(256 256) scale(0.78) translate(-256 -256)">
+		<!-- A waxing crescent: the lit limb of a disc with a second disc bitten out of
+		     the upper right, so the ink reads as one thick sliver of moon. -->
+		<path d="M362.3 232.3 A120 120 0 1 1 223 73.1 A106 106 0 0 0 362.3 232.3 Z"
+			fill="#2b140b" />
+		<!-- Two receding ground lines: the horizon the moon hangs over. -->
+		<g fill="none" stroke="#2b140b" stroke-width="38" stroke-linecap="round">
+			<path d="M132 356 h248" />
+			<path d="M244 404 h136" />
+		</g>
+	</g>
+</svg>
