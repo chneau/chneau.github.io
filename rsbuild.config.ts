@@ -361,6 +361,190 @@ export default defineConfig({
 				polyfill: "usage",
 			},
 		},
+		"tails-of-iron-2-save-editor": {
+			source: {
+				entry: {
+					index: "./src/tails-of-iron-2-save-editor/app/main.tsx",
+				},
+			},
+			html: {
+				title: "Tails of Iron 2 Save Editor",
+				tags: [
+					...metaTags({
+						title: "Tails of Iron 2 Save Editor",
+						description:
+							"Read and edit Tails of Iron 2 save profiles in your browser — decoded, staged and rebuilt on your own device.",
+						path: "/tails-of-iron-2-save-editor/",
+						themeColor: "#4577a7",
+					}),
+					manifestLink,
+					appleTouchIcon("tails-of-iron-2-save-editor"),
+					shortcutIcon(emojiIcon("🐈")),
+				],
+			},
+			dev: {
+				assetPrefix: "/tails-of-iron-2-save-editor/",
+			},
+			output: {
+				distPath: { root: "dist/tails-of-iron-2-save-editor" },
+				assetPrefix: "/tails-of-iron-2-save-editor/",
+				copy: manifestCopy("tails-of-iron-2-save-editor"),
+				overrideBrowserslist: [">0%, defaults"],
+				polyfill: "usage",
+			},
+		},
+		"power-fantasy-save-editor": {
+			source: {
+				entry: { index: "./src/power-fantasy-save-editor/app/main.tsx" },
+			},
+			html: {
+				title: "Power Fantasy Save Editor",
+				tags: [
+					...metaTags({
+						title: "Power Fantasy Save Editor",
+						description:
+							"Decrypt and edit Power Fantasy's AES-encrypted Unity save — blood rubies, heroes, passives and infusions, rebuilt and verified in your browser.",
+						path: "/power-fantasy-save-editor/",
+						themeColor: "#d44a63",
+					}),
+					manifestLink,
+					appleTouchIcon("power-fantasy-save-editor"),
+					shortcutIcon(emojiIcon("💎")),
+				],
+			},
+			dev: {
+				assetPrefix: "/power-fantasy-save-editor/",
+			},
+			output: {
+				distPath: { root: "dist/power-fantasy-save-editor" },
+				assetPrefix: "/power-fantasy-save-editor/",
+				copy: manifestCopy("power-fantasy-save-editor"),
+				overrideBrowserslist: [">0%, defaults"],
+				polyfill: "usage",
+			},
+		},
+		"no-rest-for-the-wicked-save-editor": {
+			source: {
+				entry: {
+					index: "./src/no-rest-for-the-wicked-save-editor/app/main.tsx",
+				},
+			},
+			html: {
+				title: "No Rest for the Wicked Save Editor",
+				tags: [
+					...metaTags({
+						title: "No Rest for the Wicked Save Editor",
+						description:
+							"Read Moon Studios' CERIMAL format directly — character, realm and account saves decoded and rebuilt byte for byte, on your own device.",
+						path: "/no-rest-for-the-wicked-save-editor/",
+						themeColor: "#c8654c",
+					}),
+					manifestLink,
+					appleTouchIcon("no-rest-for-the-wicked-save-editor"),
+					shortcutIcon(emojiIcon("🌙")),
+				],
+			},
+			dev: {
+				assetPrefix: "/no-rest-for-the-wicked-save-editor/",
+			},
+			output: {
+				distPath: { root: "dist/no-rest-for-the-wicked-save-editor" },
+				assetPrefix: "/no-rest-for-the-wicked-save-editor/",
+				copy: manifestCopy("no-rest-for-the-wicked-save-editor"),
+				overrideBrowserslist: [">0%, defaults"],
+				polyfill: "usage",
+			},
+		},
+		"dysmantle-save-editor": {
+			source: {
+				entry: { index: "./src/dysmantle-save-editor/app/main.tsx" },
+			},
+			html: {
+				title: "DYSMANTLE Save Editor",
+				tags: [
+					...metaTags({
+						title: "DYSMANTLE Save Editor",
+						description:
+							"Unpack DYSMANTLE's container, read its XML profile and restage it — materials, skills, recipes and features, rebuilt in your browser.",
+						path: "/dysmantle-save-editor/",
+						themeColor: "#7f7d47",
+					}),
+					manifestLink,
+					appleTouchIcon("dysmantle-save-editor"),
+					shortcutIcon(emojiIcon("⛑️")),
+				],
+			},
+			dev: {
+				assetPrefix: "/dysmantle-save-editor/",
+			},
+			output: {
+				distPath: { root: "dist/dysmantle-save-editor" },
+				assetPrefix: "/dysmantle-save-editor/",
+				copy: manifestCopy("dysmantle-save-editor"),
+				overrideBrowserslist: [">0%, defaults"],
+				polyfill: "usage",
+			},
+		},
+		"cyberpunk-2077-save-editor": {
+			source: {
+				entry: { index: "./src/cyberpunk-2077-save-editor/app/main.tsx" },
+			},
+			html: {
+				title: "Cyberpunk 2077 Save Editor",
+				tags: [
+					...metaTags({
+						title: "Cyberpunk 2077 Save Editor",
+						description:
+							"Decode Cyberpunk 2077's VASC container and REDengine node tree — attributes, skills and Street Cred, without WolvenKit or a command line.",
+						path: "/cyberpunk-2077-save-editor/",
+						themeColor: "#e3ad00",
+					}),
+					manifestLink,
+					appleTouchIcon("cyberpunk-2077-save-editor"),
+					shortcutIcon(emojiIcon("⚡")),
+				],
+			},
+			dev: {
+				assetPrefix: "/cyberpunk-2077-save-editor/",
+			},
+			output: {
+				distPath: { root: "dist/cyberpunk-2077-save-editor" },
+				assetPrefix: "/cyberpunk-2077-save-editor/",
+				copy: manifestCopy("cyberpunk-2077-save-editor"),
+				overrideBrowserslist: [">0%, defaults"],
+				polyfill: "usage",
+			},
+		},
+		"deadly-days-roadtrip-save-editor": {
+			source: {
+				entry: { index: "./src/deadly-days-roadtrip-save-editor/app/main.tsx" },
+			},
+			html: {
+				title: "Deadly Days Roadtrip Save Editor",
+				tags: [
+					...metaTags({
+						title: "Deadly Days Roadtrip Save Editor",
+						description:
+							"Parse Deadly Days' Unreal Engine 5 GVAS save in the browser — currencies, upgrade levels and character progress, verified before download.",
+						path: "/deadly-days-roadtrip-save-editor/",
+						themeColor: "#de8a2f",
+					}),
+					manifestLink,
+					appleTouchIcon("deadly-days-roadtrip-save-editor"),
+					shortcutIcon(emojiIcon("🚗")),
+				],
+			},
+			dev: {
+				assetPrefix: "/deadly-days-roadtrip-save-editor/",
+			},
+			output: {
+				distPath: { root: "dist/deadly-days-roadtrip-save-editor" },
+				assetPrefix: "/deadly-days-roadtrip-save-editor/",
+				copy: manifestCopy("deadly-days-roadtrip-save-editor"),
+				overrideBrowserslist: [">0%, defaults"],
+				polyfill: "usage",
+			},
+		},
 		design: {
 			source: {
 				entry: { index: "./src/design/index.tsx" },

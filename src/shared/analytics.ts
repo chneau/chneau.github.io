@@ -31,7 +31,13 @@ type AnalyticsApp =
 	| "scotland-rail"
 	| "spooners"
 	| "design"
-	| "crimson-desert-save-editor";
+	| "crimson-desert-save-editor"
+	| "cyberpunk-2077-save-editor"
+	| "no-rest-for-the-wicked-save-editor"
+	| "power-fantasy-save-editor"
+	| "dysmantle-save-editor"
+	| "tails-of-iron-2-save-editor"
+	| "deadly-days-roadtrip-save-editor";
 
 /**
  * Flat, JSON-serialisable event properties. `null` / `undefined` values are

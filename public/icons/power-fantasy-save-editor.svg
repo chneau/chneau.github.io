@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+	<rect width="512" height="512" rx="112" fill="#d44a63" />
+	<g>
+		<!-- A brilliant-cut gem: a flat table, a chevron splitting the crown, a girdle
+		     across the widest point, and a centre line down the pavilion. -->
+		<path d="M192 128h128l84 98-148 158-148-158z" fill="#240d14" />
+		<g fill="none" stroke="#d44a63" stroke-width="14" stroke-linejoin="round">
+			<path d="M192 128 L256 246 L320 128" />
+			<path d="M108 246 H404" />
+			<path d="M256 246 V384" />
+		</g>
+	</g>
+</svg>

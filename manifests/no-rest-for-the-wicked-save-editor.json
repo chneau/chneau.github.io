@@ -1,0 +1,39 @@
+{
+	"id": "/no-rest-for-the-wicked-save-editor/",
+	"name": "No Rest for the Wicked Save Editor",
+	"short_name": "NRW Editor",
+	"description": "Read Moon Studios' CERIMAL format directly \u2014 character, realm and account saves decoded and rebuilt byte for byte, on your own device.",
+	"start_url": "/no-rest-for-the-wicked-save-editor/",
+	"scope": "/no-rest-for-the-wicked-save-editor/",
+	"display": "standalone",
+	"display_override": ["standalone", "minimal-ui"],
+	"background_color": "#0e0e11",
+	"theme_color": "#c8654c",
+	"lang": "en",
+	"icons": [
+		{
+			"src": "/icons/no-rest-for-the-wicked-save-editor-32.png",
+			"sizes": "32x32",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/no-rest-for-the-wicked-save-editor-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/no-rest-for-the-wicked-save-editor-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/no-rest-for-the-wicked-save-editor-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	]
+}

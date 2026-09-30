@@ -83,12 +83,33 @@ A 100% client-side, privacy-focused save editor for _Crimson Desert_.
 - **Character Progression & Quests**: Manage level, bond experience, skill
   unlocks, quest completions, and companion rosters.
 
-### 5. 🍺 [Spooners](https://chneau.github.io/spooners/)
+### 5. 💾 [Save Editors](https://chneau.github.io/#main)
+
+Six client-side save editors, one per game. Each is a decoder written for that
+format and nothing else: your file is parsed in the tab, changes are staged
+rather than applied, and a rebuilt file is decoded again and compared against
+what you asked for before it is handed over. A rebuild that does not read back
+is never offered.
+
+| App                                                                                    | Format                      |
+| -------------------------------------------------------------------------------------- | --------------------------- |
+| [Crimson Desert](https://chneau.github.io/crimson-desert-save-editor/)                 | ChaCha20 + HMAC + PARC      |
+| [Power Fantasy](https://chneau.github.io/power-fantasy-save-editor/)                   | PBKDF2 + AES-128-CBC        |
+| [No Rest for the Wicked](https://chneau.github.io/no-rest-for-the-wicked-save-editor/) | CERIMAL, xxHash64           |
+| [DYSMANTLE](https://chneau.github.io/dysmantle-save-editor/)                           | 10TONS container, zlib, XML |
+| [Cyberpunk 2077](https://chneau.github.io/cyberpunk-2077-save-editor/)                 | VASC, LZ4, REDengine 4      |
+| [Deadly Days Roadtrip](https://chneau.github.io/deadly-days-roadtrip-save-editor/)     | GVAS (Unreal Engine 5)      |
+| [Tails of Iron 2](https://chneau.github.io/tails-of-iron-2-save-editor/)               | UTF-8, XOR 0x81             |
+
+They share one workbench, one inspector and one edit model (`src/shared/save/`);
+a game contributes its format and its quick actions and nothing else.
+
+### 6. 🍺 [Spooners](https://chneau.github.io/spooners/)
 
 See what every pub charges for the same drink or dish — a searchable map,
 cheapest-to-dearest rankings, and price distribution charts.
 
-### 6. 🎨 [Design System](https://chneau.github.io/design/)
+### 7. 🎨 [Design System](https://chneau.github.io/design/)
 
 The shared tokens, components, and patterns behind every app on this site.
 
@@ -150,9 +171,15 @@ Or run an isolated app environment:
 bun run start:cv
 bun run start:birthday
 bun run start:scotland-rail
-bun run start:crimson-desert-save-editor
 bun run start:spooners
 bun run start:design
+bun run start:crimson-desert-save-editor
+bun run start:power-fantasy-save-editor
+bun run start:no-rest-for-the-wicked-save-editor
+bun run start:dysmantle-save-editor
+bun run start:cyberpunk-2077-save-editor
+bun run start:deadly-days-roadtrip-save-editor
+bun run start:tails-of-iron-2-save-editor
 ```
 
 ### Testing & Verification
