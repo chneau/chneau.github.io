@@ -23,7 +23,7 @@
 		"deploy": "published=; trap '[ -n \"$published\" ] && rm -rf dist' EXIT; bun run build && gh-pages --dist dist --branch master && published=1",
 		"deploy:all": "bun run deploy",
 		"upgrade": "bun update --latest",
-		"check": "bun run --sequential check:clean check:deno check:oxlint check:biome lint test",
+		"check": "bun run --sequential check:clean check:deno check:oxlint check:biome check:export lint test",
 		"check:fix": "bun run --sequential --no-exit-on-error check:deno check:oxlint check:biome",
 		"lint": "tsc --noEmit",
 		"all": "bun run --sequential --no-exit-on-error upgrade check",
