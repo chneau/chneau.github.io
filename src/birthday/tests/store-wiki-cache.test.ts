@@ -33,8 +33,6 @@ import {
 
 type StoreModule = typeof import("../store");
 
-const globals = globalThis as unknown as Record<string, unknown>;
-
 const map = new Map<string, string>();
 const storage = {
 	getItem: (k: string) => map.get(k) ?? null,
@@ -62,32 +60,6 @@ const loadStore = async (seed?: Record<string, string>) => {
 /** Valtio batches its notifications into a microtask. */
 const settle = () => new Promise<void>((r) => setTimeout(r, 0));
 
-/**
- * Wait for a condition rather than for a fixed delay.
- *
- * The mirror -> cache bridge is several steps: a Valtio notification, the
- * `syncWikiCache` subscriber, `sync()`, `#admit`, then a persist. How long
- * that takes depends on what else the process is doing, so any fixed sleep is
- * either slow in the best case or flaky in the worst - and this test was
- * demonstrably both: it passed in isolation and failed in the full suite, with
- * instrumentation showing `sync()` correctly receiving the changed value
- * *after* the assertion had already run.
- *
- * Polling asserts the behaviour and stays fast when the machine is idle.
- */
-const waitFor = async (
-	condition: () => boolean,
-	timeoutMs = 750,
-): Promise<void> => {
-	const deadline = Date.now() + timeoutMs;
-	while (!condition()) {
-		if (Date.now() > deadline) {
-			throw new Error(`waitFor: condition not met within ${timeoutMs}ms`);
-		}
-		await Bun.sleep(5);
-	}
-};
-
 const events = (year: number, text = `event ${year}`): WikiEvents => [
 	{ text, year },
 ];
@@ -95,37 +67,78 @@ const events = (year: number, text = `event ${year}`): WikiEvents => [
 const persisted = () => {
 	const raw = map.get(WIKI_CACHE_STORAGE_KEY);
 	if (raw === undefined) return null;
-	return JSON.parse(raw) as { entries: { key: string; storedAt: number }[] };
+	return JSON.parse(raw) as {
+		entries: { key: string; storedAt: number; value: unknown }[];
+	};
 };
 
 const DAY = 24 * 60 * 60 * 1000;
 const daysAgo = (n: number) => Date.now() - n * DAY;
 
 let consoleError: typeof console.error;
-const previousGlobals = {
-	console: console.error,
-	localStorage: globals.localStorage,
-	window: globals.window,
-	document: globals.document,
-	setInterval: globals.setInterval,
+
+/**
+ * The previous DESCRIPTORS, not the previous values.
+ *
+ * `bun test` runs every file in ONE process, and several others install a DOM
+ * via `src/shared/tests/happy-dom.ts`, whose `GlobalRegistrator` defines
+ * `localStorage`, `window` and `document` as ACCESSOR properties on
+ * `globalThis`. Two things follow, and this file got both wrong:
+ *
+ *  1. Plain assignment (`globals.localStorage = storage`) throws
+ *     "Attempted to assign to readonly property" against such a property.
+ *  2. Restoring the VALUE rather than the descriptor reads the getter and then
+ *     leaves a permanent writable data property behind, so every file that runs
+ *     afterwards sees a `localStorage` that no longer behaves like a DOM one.
+ *
+ * Between them these produced failures in this file and in unrelated ones, none
+ * of which reproduced in isolation - which is why the wiki-cache wiring test
+ * below passed alone and failed in the full suite.
+ */
+const GLOBAL_KEYS = [
+	"localStorage",
+	"window",
+	"document",
+	"setInterval",
+] as const;
+
+const previousGlobals = new Map<string, PropertyDescriptor | undefined>(
+	GLOBAL_KEYS.map((key) => [
+		key,
+		Object.getOwnPropertyDescriptor(globalThis, key),
+	]),
+);
+
+/** Install a global as a writable, configurable data property. */
+const setGlobal = (key: string, value: unknown): void => {
+	Object.defineProperty(globalThis, key, {
+		value,
+		configurable: true,
+		writable: true,
+		enumerable: true,
+	});
 };
 
 beforeAll(() => {
 	// the deliberately-broken payloads below log; keep the suite quiet
 	consoleError = console.error;
 	console.error = () => {};
-	globals.localStorage = storage;
-	globals.window = undefined;
-	globals.document = undefined;
-	globals.setInterval = undefined;
+	setGlobal("localStorage", storage);
+	setGlobal("window", undefined);
+	setGlobal("document", undefined);
+	setGlobal("setInterval", undefined);
 });
 
 afterAll(() => {
 	console.error = consoleError;
-	globals.localStorage = previousGlobals.localStorage;
-	globals.window = previousGlobals.window;
-	globals.document = previousGlobals.document;
-	globals.setInterval = previousGlobals.setInterval;
+	for (const [key, descriptor] of previousGlobals) {
+		if (descriptor) {
+			Object.defineProperty(globalThis, key, descriptor);
+		} else {
+			Reflect.deleteProperty(globalThis, key);
+		}
+	}
+	previousGlobals.clear();
 	map.clear();
 });
 
@@ -255,7 +268,7 @@ describe("store / wikiCache wiring", () => {
 		await Bun.sleep(5);
 
 		mirror["en-09-01"] = events(1969, "revised");
-		await waitFor(() => entry()?.storedAt !== first);
+		await Bun.sleep(20);
 
 		expect(mirror["en-09-01"]?.[0]?.text).toBe("revised");
 		expect(entry()?.storedAt).toBeGreaterThan(first ?? 0);
