@@ -1,0 +1,39 @@
+{
+	"id": "/deadly-days-roadtrip-save-editor/",
+	"name": "Deadly Days Roadtrip Save Editor",
+	"short_name": "Deadly Days",
+	"description": "Parse Deadly Days' Unreal Engine 5 GVAS save in the browser \u2014 currencies, upgrade levels and character progress, verified before download.",
+	"start_url": "/deadly-days-roadtrip-save-editor/",
+	"scope": "/deadly-days-roadtrip-save-editor/",
+	"display": "standalone",
+	"display_override": ["standalone", "minimal-ui"],
+	"background_color": "#0e0e11",
+	"theme_color": "#de8a2f",
+	"lang": "en",
+	"icons": [
+		{
+			"src": "/icons/deadly-days-roadtrip-save-editor-32.png",
+			"sizes": "32x32",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/deadly-days-roadtrip-save-editor-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/deadly-days-roadtrip-save-editor-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/deadly-days-roadtrip-save-editor-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	]
+}

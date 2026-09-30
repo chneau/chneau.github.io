@@ -38,5 +38,50 @@ export {
 } from "./hooks/useThemeMode";
 export { prefersReducedMotion } from "./motion";
 export { usePinnedApps, useRecents } from "./recent";
+// The save-editing framework, re-exported from one barrel so a game's codec is
+// a single import. Deliberately not exhaustive: the workbench components and
+// the byte/JSON helpers are imported from their own modules by the code that
+// needs them, and a re-export nothing imports is dead weight `check:export`
+// rightly refuses. Add a name here when an app reaches for the barrel.
+export {
+	ByteReader,
+	type Bytes,
+	ByteWriter,
+	bytesEqual,
+	firstDifference,
+	utf16leBytes,
+	zlibDeflate,
+	zlibInflate,
+} from "./save/bytes";
+export {
+	type SaveSample,
+	SaveWorkbench,
+} from "./save/components/SaveWorkbench";
+export {
+	aesCbcDecrypt,
+	aesCbcEncrypt,
+	base64Decode,
+	base64Encode,
+	pbkdf2Sha1,
+	xorBytes,
+} from "./save/crypto";
+export { applyEdits, editId, effectiveEdits, withEdits } from "./save/edits";
+export { formatBytes } from "./save/file";
+export {
+	getAtPath,
+	isJsonObject,
+	type JsonValue,
+	type PathSegment,
+	type SavePath,
+	setAtPath,
+} from "./save/json";
+export { verifyRoundTrip } from "./save/roundtrip";
+export type {
+	FormatNote,
+	QuickAction,
+	SaveCodec,
+	SaveEdit,
+	SummaryRow,
+} from "./save/types";
 export { registerServiceWorker } from "./service-worker";
 export { createAppTheme } from "./theme";

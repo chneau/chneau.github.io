@@ -92,7 +92,12 @@ describe("AppSwitcher app registry", () => {
 		for (const app of ALL_APPS) expect(reachable).toContain(app.href);
 	});
 
-	test("all seven registry entries are present", () => {
+	test("every registry entry, in dashboard order, is present", () => {
+		// Spelled out rather than derived from `APPS`, because the assertion
+		// this guards is the *order* and the *set* — a list rebuilt from the
+		// source would agree with it by construction and prove nothing. Adding an
+		// app means adding a line here, which is the point: it is the registry's
+		// contract with the router, the palette and the 404.
 		expect(ALL_APPS.map((app) => app.href)).toEqual([
 			"/",
 			"/cv/",
@@ -100,6 +105,12 @@ describe("AppSwitcher app registry", () => {
 			"/scotland-rail/",
 			"/crimson-desert-save-editor/",
 			"/spooners/",
+			"/tails-of-iron-2-save-editor/",
+			"/power-fantasy-save-editor/",
+			"/no-rest-for-the-wicked-save-editor/",
+			"/dysmantle-save-editor/",
+			"/cyberpunk-2077-save-editor/",
+			"/deadly-days-roadtrip-save-editor/",
 			"/design/",
 		]);
 	});

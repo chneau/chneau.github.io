@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+	<rect width="512" height="512" rx="112" fill="#e3ad00" />
+	<g>
+		<!-- A lightning bolt as two staggered notches cut into one polygon: the sharp
+		     zigzag is the whole silhouette, so it stays legible at 32px. -->
+		<path d="M338 84 L152 268 L238 268 L172 428 L360 236 L270 236 Z"
+			fill="#241a00" />
+	</g>
+</svg>

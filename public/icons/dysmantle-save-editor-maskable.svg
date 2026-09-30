@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+	<rect width="512" height="512" fill="#7f7d47" />
+	<g transform="translate(256 256) scale(0.78) translate(-256 -256)">
+		<!-- A builder's hard hat in front view: a semicircular shell with a knocked-out
+		     centre ridge, sitting on a brim wider than the shell. -->
+		<path d="M120 308 V268 a136 136 0 0 1 272 0 V308 Z" fill="#1b1a10" />
+		<path d="M256 132 V308" stroke="#7f7d47" stroke-width="24" />
+		<rect x="88" y="308" width="336" height="58" rx="29" fill="#1b1a10" />
+	</g>
+</svg>
