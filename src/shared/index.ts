@@ -1,5 +1,11 @@
-export { initAnalytics } from "./analytics";
-export { APPS, type AppEntry } from "./apps";
+export {
+	getAnalyticsConsent,
+	initAnalytics,
+	setAnalyticsConsent,
+	track,
+} from "./analytics";
+export { APP_CATEGORIES, APPS, type AppEntry } from "./apps";
+export { AppCard } from "./components/AppCard";
 export { AppHeader } from "./components/AppHeader";
 export { AppSwitcher } from "./components/AppSwitcher";
 export { BackHome } from "./components/BackHome";
@@ -27,6 +33,16 @@ export { Skeleton } from "./components/Skeleton";
 export { SkipLink } from "./components/SkipLink";
 export { Stat } from "./components/Stat";
 export { StatusDot } from "./components/StatusDot";
+export {
+	applyColorMode,
+	type ColorMode,
+	initTheme,
+	type ResolvedColorMode,
+	ROOT_THEME_KEY,
+	resolveColorMode,
+	useThemeMode,
+} from "./hooks/useThemeMode";
 export { prefersReducedMotion } from "./motion";
+export { usePinnedApps, useRecents } from "./recent";
 export { registerServiceWorker } from "./service-worker";
 export { createAppTheme } from "./theme";

@@ -4,9 +4,51 @@
  * Port of the `struct` usage from the original Python engine. All integer
  * reads return plain `number`s except the 64-bit variants, which use `bigint`
  * so sentinel values such as `0xFFFFFFFFFFFFFFFF` stay exact.
+ *
+ * The accessors here are deliberately unchecked: Python's `struct.unpack_from`
+ * raises on a short buffer, but the port replaced that with `?? 0` so the read
+ * helpers stay branch-free on the hot parse path. That makes an out-of-bounds
+ * read *silent*, so every parser must establish that its range is in bounds
+ * first — `requireBytes` below is the boundary check to use. Corruption that
+ * slips past it is caught as a parse error rather than as a bogus value.
  */
 
 const textDecoder = new TextDecoder("utf-8");
+
+/**
+ * Whether `[offset, offset + size)` lies fully inside `data`.
+ *
+ * Parsers call this before a run of reads so a truncated or hostile payload
+ * fails loudly instead of being silently misread as zeros.
+ */
+export const hasBytes = (
+	data: Uint8Array,
+	offset: number,
+	size: number,
+): boolean =>
+	Number.isInteger(offset) &&
+	Number.isInteger(size) &&
+	offset >= 0 &&
+	size >= 0 &&
+	offset + size <= data.length;
+
+/**
+ * Throws a `RangeError` when `[offset, offset + size)` is not fully inside
+ * `data`. `context` names the field, so the message a user sees points at what
+ * was being read when the payload ran out.
+ */
+export const requireBytes = (
+	data: Uint8Array,
+	offset: number,
+	size: number,
+	context: string,
+): void => {
+	if (!hasBytes(data, offset, size)) {
+		throw new RangeError(
+			`${context} at 0x${Math.max(0, offset).toString(16).toUpperCase()} needs ${size} bytes but only ${Math.max(0, data.length - offset)} remain`,
+		);
+	}
+};
 
 export const readU8 = (data: Uint8Array, offset: number): number => {
 	return data[offset] ?? 0;

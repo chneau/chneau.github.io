@@ -89,14 +89,55 @@ export class SaveSession {
 				// One decode for the whole parse: every describer takes the payload
 				// instead of decoding the same bytes again.
 				const decoded = await decodeSave(source);
+				// The describers together block the main thread for a quarter of a
+				// second on an endgame save. Emitting progress and yielding between
+				// them lets the tab paint the bar instead of appearing frozen.
+				const total = 7;
+				let completed = 0;
+				const step = async <T>(
+					message: string,
+					read: () => Promise<T>,
+				): Promise<T> => {
+					emit({ type: "progress", completed, total, message });
+					await yieldToBrowser();
+					const value = await read();
+					completed += 1;
+					return value;
+				};
+				const inventory = await step("Reading inventory…", () =>
+					describeInventory(decoded),
+				);
+				const companions = await step("Reading companions…", () =>
+					describeCompanions(decoded),
+				);
+				const skills = await step("Reading skills…", () =>
+					describeSkills(decoded),
+				);
+				const dyes = await step("Reading dyes…", () => describeDyes(decoded));
+				const levels = await step("Reading levels…", () =>
+					describeCharacters(decoded),
+				);
+				const names = await step("Reading companion names…", () =>
+					describeCompanionNames(decoded),
+				);
+				const conditions = await step("Reading item wear…", () =>
+					describeItemConditions(decoded),
+				);
+				emit({
+					type: "progress",
+					completed: total,
+					total,
+					message: "Preparing save view…",
+				});
+				await yieldToBrowser();
 				const payload: SaveParseResult = {
-					...(await describeInventory(decoded)),
-					companions: await describeCompanions(decoded),
-					skills: await describeSkills(decoded),
-					dyes: await describeDyes(decoded),
-					levels: await describeCharacters(decoded),
-					names: await describeCompanionNames(decoded),
-					conditions: await describeItemConditions(decoded),
+					...inventory,
+					companions,
+					skills,
+					dyes,
+					levels,
+					names,
+					conditions,
 				};
 				if (generation !== this.generation) return;
 				this.sourceBytes = source;

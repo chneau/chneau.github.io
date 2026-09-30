@@ -22,8 +22,12 @@ type HeaderActionProps = {
 	/** For controls that open a menu. */
 	ariaExpanded?: boolean;
 	ariaHaspopup?: "menu" | "dialog" | "listbox" | "tree" | "grid";
+	/** id of the element this control owns (e.g. the menu it opens). */
+	ariaControls?: string;
 	/** Toggle state for assistive tech; defaults to `active` when set. */
 	ariaPressed?: boolean;
+	/** Optional DOM id, useful when something references this control. */
+	id?: string;
 	className?: string;
 };
 
@@ -47,7 +51,9 @@ export const HeaderAction = forwardRef<
 			loading,
 			ariaExpanded,
 			ariaHaspopup,
+			ariaControls,
 			ariaPressed,
+			id,
 			className,
 		},
 		ref,
@@ -77,11 +83,16 @@ export const HeaderAction = forwardRef<
 			return (
 				<a
 					ref={ref as Ref<HTMLAnchorElement>}
+					id={id}
 					className={classes}
 					href={inert ? undefined : href}
 					target={target}
 					rel={target === "_blank" ? "noreferrer" : undefined}
 					aria-label={label}
+					aria-expanded={ariaExpanded}
+					aria-haspopup={ariaHaspopup}
+					aria-controls={ariaControls}
+					aria-busy={loading || undefined}
 					aria-disabled={inert || undefined}
 					title={label}
 					onClick={inert ? undefined : onClick}
@@ -95,11 +106,13 @@ export const HeaderAction = forwardRef<
 			<button
 				ref={ref as Ref<HTMLButtonElement>}
 				type="button"
+				id={id}
 				className={classes}
 				aria-label={label}
 				title={label}
 				aria-expanded={ariaExpanded}
 				aria-haspopup={ariaHaspopup}
+				aria-controls={ariaControls}
 				aria-pressed={pressed}
 				aria-busy={loading || undefined}
 				disabled={inert}

@@ -13,7 +13,12 @@ import { useMemo } from "react";
 import { basketVenues } from "../basket";
 import { categoryLabel } from "../itemFacts";
 import { valueDirection } from "../portions";
-import type { Formatter, SpoonersCache, ValueKind } from "../types";
+import type {
+	Formatter,
+	PricedVenue,
+	SpoonersCache,
+	ValueKind,
+} from "../types";
 import { ItemFacts } from "./ItemFacts";
 import { VenueImage } from "./VenueImage";
 
@@ -60,19 +65,34 @@ export const ItemModal = ({
 	);
 
 	const bestByKind = useMemo(() => {
-		const best = new Map<ValueKind, Best>();
+		const best = new Map<string, Best>();
 		for (const venue of venues) {
 			if (!venue.metricKind || venue.metricValue == null) {
 				continue;
 			}
-			const current = best.get(venue.metricKind);
+			const kind = venue.metricKind;
+			const comparable = format.convertMetric(
+				kind,
+				venue.metricValue,
+				venue.currency,
+			);
+			// In native mode keep one best per currency, so a € metric is never
+			// compared to a £ one.
+			const key = format.targetCurrency ? kind : `${kind}|${venue.currency}`;
+			const current = best.get(key);
 			const better =
 				!current ||
-				valueDirection(venue.metricKind) * (venue.metricValue - current.value) <
+				valueDirection(kind) *
+					(comparable -
+						format.convertMetric(
+							current.kind,
+							current.value,
+							current.currency,
+						)) <
 					0;
 			if (better) {
-				best.set(venue.metricKind, {
-					kind: venue.metricKind,
+				best.set(key, {
+					kind,
 					value: venue.metricValue,
 					venueName: venue.name,
 					price: venue.price,
@@ -81,12 +101,32 @@ export const ItemModal = ({
 			}
 		}
 		return [...best.values()];
-	}, [venues]);
+	}, [venues, format]);
 
-	const cheapest = useMemo(
-		() => [...venues].sort((a, b) => a.price - b.price).slice(0, 10),
-		[venues],
-	);
+	const cheapest = useMemo(() => {
+		if (format.targetCurrency) {
+			return [...venues]
+				.sort(
+					(a, b) =>
+						format.convertMoney(a.price, a.currency) -
+						format.convertMoney(b.price, b.currency),
+				)
+				.slice(0, 10);
+		}
+		// Native mode: rank each currency on its own, then show both.
+		const groups = new Map<string, PricedVenue[]>();
+		for (const venue of venues) {
+			const list = groups.get(venue.currency);
+			if (list) {
+				list.push(venue);
+			} else {
+				groups.set(venue.currency, [venue]);
+			}
+		}
+		return [...groups.values()].flatMap((list) =>
+			[...list].sort((a, b) => a.price - b.price).slice(0, 10),
+		);
+	}, [venues, format]);
 
 	if (!itemName) {
 		return (
@@ -128,7 +168,11 @@ export const ItemModal = ({
 						<Divider label="Best value in the country" labelPosition="left" />
 						<Stack gap={2}>
 							{bestByKind.map((row) => (
-								<Group justify="space-between" gap={8} key={row.kind}>
+								<Group
+									justify="space-between"
+									gap={8}
+									key={`${row.kind}-${row.currency}`}
+								>
 									<Text size="sm">
 										{format.metric(row.kind, row.value, row.currency)}
 									</Text>

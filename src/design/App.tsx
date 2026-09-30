@@ -33,8 +33,10 @@ import { useEffect, useState } from "react";
 import {
 	APP_SWITCH_SHORTCUTS,
 	APPS,
+	AppCard,
 	AppHeader,
 	AppSwitcher,
+	applyColorMode,
 	BackHome,
 	Brand,
 	type Command,
@@ -56,6 +58,12 @@ import {
 	useCommandPalette,
 	useShortcutsHelp,
 } from "../shared";
+import {
+	TOKEN_DEFS,
+	type TokenDef,
+	type TokenLayers,
+	useTokenSnapshot,
+} from "./tokens";
 
 const brand: MantineColorsTuple = [
 	"#eef2ff",
@@ -92,82 +100,8 @@ const readInitialDark = (): boolean => {
 	return systemPrefersDark();
 };
 
-type ColourToken = {
-	variable: string;
-	name: string;
-	light: string;
-	dark: string;
-};
-
-const COLORS: readonly ColourToken[] = [
-	{
-		variable: "--app-bg",
-		name: "Background",
-		light: "#f4f4f5",
-		dark: "#09090b",
-	},
-	{
-		variable: "--app-bg-deep",
-		name: "Background deep",
-		light: "#ececee",
-		dark: "#050506",
-	},
-	{
-		variable: "--app-surface",
-		name: "Surface",
-		light: "#ffffff",
-		dark: "#121215",
-	},
-	{
-		variable: "--app-surface-2",
-		name: "Surface raised",
-		light: "#f4f4f6",
-		dark: "#17171b",
-	},
-	{
-		variable: "--app-surface-3",
-		name: "Surface sunken",
-		light: "#e9e9ec",
-		dark: "#1f1f24",
-	},
-	{
-		variable: "--app-border",
-		name: "Border",
-		light: "rgba(24, 24, 27, 0.1)",
-		dark: "rgba(255, 255, 255, 0.08)",
-	},
-	{ variable: "--app-text", name: "Text", light: "#18181b", dark: "#f4f4f5" },
-	{
-		variable: "--app-text-muted",
-		name: "Text muted",
-		light: "#52525b",
-		dark: "#a1a1aa",
-	},
-	{
-		variable: "--app-text-faint",
-		name: "Text faint",
-		light: "#71717a",
-		dark: "#8a8a92",
-	},
-	{
-		variable: "--app-danger",
-		name: "Danger",
-		light: "#c2443d",
-		dark: "#f08a84",
-	},
-	{
-		variable: "--app-warn",
-		name: "Warning",
-		light: "#b7801f",
-		dark: "#e6c069",
-	},
-	{
-		variable: "--mantine-primary-color-filled",
-		name: "Accent",
-		light: "#4f46e5",
-		dark: "#6366f1",
-	},
-];
+const byCategory = (category: TokenDef["category"]) =>
+	TOKEN_DEFS.filter((token) => token.category === category);
 
 const CopyableCode = ({ value, label }: { value: string; label: string }) => {
 	const [copied, setCopied] = useState(false);
@@ -203,31 +137,205 @@ const CopyableCode = ({ value, label }: { value: string; label: string }) => {
 	);
 };
 
-const Swatch = ({ token }: { token: ColourToken }) => (
+/** Visually hidden heading so each card still contributes to the outline. */
+const SectionHeading = ({ children }: { children: string }) => (
+	<Title order={2} className="sr-only">
+		{children}
+	</Title>
+);
+
+/** Compares the current scheme's declared value with the live computed one. */
+const DriftBadge = ({
+	declared,
+	live,
+}: {
+	declared: string | undefined;
+	live: string | undefined;
+}) => {
+	if (!declared || !live) {
+		return (
+			<Text size="xs" c="dimmed">
+				—
+			</Text>
+		);
+	}
+	const drift = declared !== live;
+	return (
+		<Badge size="xs" variant="light" color={drift ? "red" : "green"}>
+			{drift ? "drift" : "in sync"}
+		</Badge>
+	);
+};
+
+const TokenValue = ({ children }: { children: string | undefined }) => (
+	<Text
+		size="xs"
+		c="dimmed"
+		className="app-num"
+		style={{ wordBreak: "break-word" }}
+	>
+		{children ?? "—"}
+	</Text>
+);
+
+const ColourCard = ({
+	token,
+	layers,
+	live,
+	scheme,
+}: {
+	token: TokenDef;
+	layers: TokenLayers;
+	live: Record<string, string>;
+	scheme: "light" | "dark";
+}) => {
+	const light = layers.light[token.name];
+	const dark = layers.dark[token.name];
+	const current = scheme === "dark" ? dark : light;
+
+	return (
+		<Card withBorder padding="xs" radius="md">
+			<Group gap={4} grow>
+				<div
+					title={`${token.label} — light`}
+					style={{
+						height: 40,
+						borderRadius: "var(--app-radius-xs)",
+						background: light ?? `var(${token.name})`,
+						border: "1px solid var(--app-border)",
+					}}
+				/>
+				<div
+					title={`${token.label} — dark`}
+					style={{
+						height: 40,
+						borderRadius: "var(--app-radius-xs)",
+						background: dark ?? `var(${token.name})`,
+						border: "1px solid var(--app-border)",
+					}}
+				/>
+			</Group>
+			<Group justify="space-between" gap={6} wrap="nowrap" mt={6}>
+				<Text size="xs" fw={600} truncate>
+					{token.label}
+				</Text>
+				<DriftBadge declared={current} live={live[token.name]} />
+			</Group>
+			<CopyableCode value={`var(${token.name})`} label={token.label} />
+			<TokenValue>{`${light ?? "—"} · ${dark ?? "—"}`}</TokenValue>
+		</Card>
+	);
+};
+
+const AccentCard = ({
+	token,
+	live,
+}: {
+	token: TokenDef;
+	live: Record<string, string>;
+}) => (
 	<Card withBorder padding="xs" radius="md">
 		<div
 			style={{
-				height: 44,
-				borderRadius: 8,
-				background: `var(${token.variable})`,
+				height: 40,
+				borderRadius: "var(--app-radius-xs)",
+				background: `var(${token.name})`,
 				border: "1px solid var(--app-border)",
 			}}
 		/>
 		<Text size="xs" fw={600} mt={6}>
-			{token.name}
+			{token.label}
 		</Text>
-		<CopyableCode value={`var(${token.variable})`} label={token.name} />
-		<Text size="xs" c="dimmed" mt={2} className="app-num">
-			{token.light} / {token.dark}
-		</Text>
+		<CopyableCode value={`var(${token.name})`} label={token.label} />
+		<TokenValue>{live[token.name]}</TokenValue>
 	</Card>
 );
+
+const RadiusCard = ({
+	token,
+	live,
+}: {
+	token: TokenDef;
+	live: Record<string, string>;
+}) => (
+	<Card withBorder padding="xs" radius="md">
+		<div
+			style={{
+				height: 44,
+				background: "var(--app-surface-2)",
+				border: "1px solid var(--app-border-strong)",
+				borderRadius: `var(${token.name})`,
+			}}
+		/>
+		<Text size="xs" fw={600} mt={6}>
+			{token.label}
+		</Text>
+		<CopyableCode value={`var(${token.name})`} label={token.label} />
+		<TokenValue>{live[token.name]}</TokenValue>
+	</Card>
+);
+
+const ShadowCard = ({
+	token,
+	live,
+}: {
+	token: TokenDef;
+	live: Record<string, string>;
+}) => (
+	<Card withBorder padding="xs" radius="md">
+		<div
+			style={{
+				height: 44,
+				borderRadius: "var(--app-radius-md)",
+				background: "var(--app-surface)",
+				boxShadow: `var(${token.name})`,
+			}}
+		/>
+		<Text size="xs" fw={600} mt={6}>
+			{token.label}
+		</Text>
+		<CopyableCode value={`var(${token.name})`} label={token.label} />
+		<TokenValue>{live[token.name]}</TokenValue>
+	</Card>
+);
+
+const FontCard = ({
+	token,
+	live,
+}: {
+	token: TokenDef;
+	live: Record<string, string>;
+}) => {
+	const mono = token.name.includes("mono");
+	return (
+		<Card withBorder padding="sm" radius="md">
+			<Text
+				style={{
+					fontFamily: `var(${token.name})`,
+					fontSize: mono ? 14 : 18,
+				}}
+			>
+				{mono ? "00:00 · £12.50 · 1,234" : "Grumpy wizards make toxic brew"}
+			</Text>
+			<Group justify="space-between" mt={6} gap={6} wrap="nowrap">
+				<Text size="xs" fw={600}>
+					{token.label}
+				</Text>
+				<CopyableCode value={`var(${token.name})`} label={token.label} />
+			</Group>
+			<TokenValue>{live[token.name]}</TokenValue>
+		</Card>
+	);
+};
 
 export const App = () => {
 	const [dark, setDark] = useState(readInitialDark);
 	const [stops, setStops] = useState(24);
+	const [pinned, setPinned] = useState<string[]>([]);
+	const [moved, setMoved] = useState(false);
 	const shortcuts = useShortcutsHelp();
 	const palette = useCommandPalette();
+	const scheme: "light" | "dark" = dark ? "dark" : "light";
 
 	useEffect(() => {
 		try {
@@ -236,6 +344,14 @@ export const App = () => {
 			// Ignore storage failures; the in-memory scheme still works.
 		}
 	}, [dark]);
+
+	// Mirror the scheme onto <html> so tokens.css switches *before* the tokens
+	// below are read back for the drift check.
+	useEffect(() => {
+		applyColorMode(scheme);
+	}, [scheme]);
+
+	const { layers, live } = useTokenSnapshot(scheme);
 
 	// Mirror the hub's shortcuts so the hint below is honest: 1–6 switch app, T themes.
 	useEffect(() => {
@@ -269,6 +385,13 @@ export const App = () => {
 		setDark(systemPrefersDark());
 	};
 
+	const togglePin = (href: string) =>
+		setPinned((current) =>
+			current.includes(href)
+				? current.filter((value) => value !== href)
+				: [...current, href],
+		);
+
 	const commands: Command[] = [
 		{
 			id: "toggle-theme",
@@ -289,10 +412,11 @@ export const App = () => {
 		{
 			id: "reset-demo-controls",
 			label: "Reset demo controls",
-			keywords: "reset demo controls default stops theme",
+			keywords: "reset demo controls default stops theme pins",
 			icon: <RotateCcw size={16} />,
 			run: () => {
 				setStops(24);
+				setPinned([]);
 				resetScheme();
 			},
 		},
@@ -348,8 +472,10 @@ export const App = () => {
 						<div>
 							<Title order={1}>Design System</Title>
 							<Text c="dimmed">
-								The tokens and primitives every app shares. Change the scheme
-								with the toggle in the header.
+								The living style guide: every value below is read back from{" "}
+								<Code>tokens.css</Code> at runtime, so the gallery never drifts
+								from the system it documents. Toggle the scheme to see the light
+								and dark layers swap.
 							</Text>
 							<Group gap={6} mt={8} align="center" wrap="wrap">
 								<Text size="xs" c="dimmed">
@@ -371,15 +497,128 @@ export const App = () => {
 						</div>
 
 						<Section title="Colour tokens" badge={<Palette size={14} />}>
-							<SimpleGrid cols={{ base: 2, sm: 3, md: 4 }} spacing="sm">
-								{COLORS.map((token) => (
-									<Swatch key={token.variable} token={token} />
+							<SectionHeading>Colour tokens</SectionHeading>
+							<Text size="sm" c="dimmed" mb="sm">
+								Each card shows the declared light and dark values side by side.
+								The badge compares the active scheme's declaration with the live
+								computed value.
+							</Text>
+							<SimpleGrid
+								cols={{ base: 2, sm: 3, md: 4 }}
+								spacing="sm"
+								role="group"
+								aria-label="Colour token swatches"
+							>
+								{byCategory("colour").map((token) => (
+									<ColourCard
+										key={token.name}
+										token={token}
+										layers={layers}
+										live={live}
+										scheme={scheme}
+									/>
+								))}
+							</SimpleGrid>
+							<Text size="xs" fw={700} tt="uppercase" c="dimmed" mt="md">
+								Accent (provided by Mantine / the app theme)
+							</Text>
+							<SimpleGrid
+								cols={{ base: 2, sm: 4 }}
+								spacing="sm"
+								mt="xs"
+								role="group"
+								aria-label="Accent token swatches"
+							>
+								{byCategory("accent").map((token) => (
+									<AccentCard key={token.name} token={token} live={live} />
 								))}
 							</SimpleGrid>
 						</Section>
 
+						<Section title="Radii" badge={<SquareStack size={14} />}>
+							<SectionHeading>Radii</SectionHeading>
+							<SimpleGrid
+								cols={{ base: 2, sm: 3, md: 5 }}
+								spacing="sm"
+								role="group"
+								aria-label="Radius tokens"
+							>
+								{byCategory("radius").map((token) => (
+									<RadiusCard key={token.name} token={token} live={live} />
+								))}
+							</SimpleGrid>
+						</Section>
+
+						<Section title="Shadows" badge={<Sparkles size={14} />}>
+							<SectionHeading>Shadows</SectionHeading>
+							<SimpleGrid
+								cols={{ base: 1, sm: 3 }}
+								spacing="md"
+								role="group"
+								aria-label="Shadow tokens"
+							>
+								{byCategory("shadow").map((token) => (
+									<ShadowCard key={token.name} token={token} live={live} />
+								))}
+							</SimpleGrid>
+						</Section>
+
+						<Section
+							title="Glass & border-strong"
+							badge={<Palette size={14} />}
+						>
+							<SectionHeading>Glass and border-strong</SectionHeading>
+							<SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+								<Card withBorder padding="md" radius="md">
+									<div
+										className="app-glass"
+										style={{
+											height: 96,
+											borderRadius: "var(--app-radius-lg)",
+											display: "grid",
+											placeItems: "center",
+										}}
+									>
+										<Text size="sm">.app-glass</Text>
+									</div>
+									<Group justify="space-between" mt="xs" gap="xs">
+										<Text size="xs" fw={600}>
+											Glass panel
+										</Text>
+										<CopyableCode value="var(--app-glass)" label="Glass" />
+									</Group>
+									<TokenValue>{live["--app-glass"]}</TokenValue>
+								</Card>
+								<Card withBorder padding="md" radius="md">
+									<div
+										style={{
+											height: 96,
+											borderRadius: "var(--app-radius-lg)",
+											border: "1px solid var(--app-border-strong)",
+											background: "var(--app-surface)",
+											display: "grid",
+											placeItems: "center",
+										}}
+									>
+										<Text size="sm">1px border-strong</Text>
+									</div>
+									<Group justify="space-between" mt="xs" gap="xs">
+										<Text size="xs" fw={600}>
+											Border strong
+										</Text>
+										<CopyableCode
+											value="var(--app-border-strong)"
+											label="Border strong"
+										/>
+									</Group>
+									<TokenValue>{live["--app-border-strong"]}</TokenValue>
+								</Card>
+							</SimpleGrid>
+						</Section>
+
 						<Section title="Typography" badge={<Type size={14} />}>
-							<Stack gap="xs">
+							<SectionHeading>Typography</SectionHeading>
+							<Stack gap="xs" mb="md">
 								<Title order={1} component="div">
 									Heading one
 								</Title>
@@ -393,12 +632,98 @@ export const App = () => {
 								<Text c="dimmed">Muted text for secondary detail.</Text>
 								<Text className="app-num">00:00 · 1,234 · £12.50</Text>
 							</Stack>
+							<SimpleGrid
+								cols={{ base: 1, sm: 3 }}
+								spacing="sm"
+								role="group"
+								aria-label="Font stacks"
+							>
+								{byCategory("typography").map((token) => (
+									<FontCard key={token.name} token={token} live={live} />
+								))}
+							</SimpleGrid>
+						</Section>
+
+						<Section title="Motion" badge={<Zap size={14} />}>
+							<SectionHeading>Motion</SectionHeading>
+							<Stack gap="sm">
+								<Group gap="lg" align="center" wrap="wrap">
+									<div
+										style={{
+											width: 220,
+											height: 44,
+											display: "flex",
+											alignItems: "center",
+											padding: 4,
+											borderRadius: "var(--app-radius-pill)",
+											background: "var(--app-surface-2)",
+											border: "1px solid var(--app-border)",
+										}}
+									>
+										<span
+											aria-hidden="true"
+											style={{
+												width: 34,
+												height: 34,
+												borderRadius: "var(--app-radius-pill)",
+												background:
+													"var(--mantine-primary-color-filled, var(--app-text))",
+												transform: moved
+													? "translateX(176px)"
+													: "translateX(0)",
+												transition:
+													"transform var(--app-speed) var(--app-ease)",
+											}}
+										/>
+									</div>
+									<Button
+										variant="default"
+										size="sm"
+										leftSection={<Zap size={14} />}
+										onClick={() => setMoved((value) => !value)}
+									>
+										Animate
+									</Button>
+								</Group>
+								<Stack gap={6}>
+									{byCategory("motion").map((token) => (
+										<Group
+											key={token.name}
+											justify="space-between"
+											gap="md"
+											wrap="wrap"
+										>
+											<Text size="sm" fw={600}>
+												{token.label}
+											</Text>
+											<Group gap="sm" wrap="nowrap">
+												<CopyableCode
+													value={`var(${token.name})`}
+													label={token.label}
+												/>
+												<TokenValue>{live[token.name]}</TokenValue>
+											</Group>
+										</Group>
+									))}
+								</Stack>
+							</Stack>
 						</Section>
 
 						<Section title="Controls" badge={<SquareStack size={14} />}>
+							<SectionHeading>Controls</SectionHeading>
 							<Stack gap="md">
-								<Group gap="sm" wrap="wrap">
+								<Group
+									gap="sm"
+									wrap="wrap"
+									role="group"
+									aria-label="Header actions"
+								>
 									<CommandPaletteButton onClick={palette.open} />
+									<ShortcutsHelpButton onClick={shortcuts.open} />
+									<SchemeToggle
+										dark={dark}
+										onToggle={() => setDark((value) => !value)}
+									/>
 									<HeaderAction
 										iconOnly
 										label="Icon only"
@@ -437,13 +762,22 @@ export const App = () => {
 									</HeaderAction>
 								</Group>
 								<Divider />
-								<Group gap="sm" wrap="wrap">
+								<Group
+									gap="sm"
+									wrap="wrap"
+									role="group"
+									aria-label="Mantine controls"
+								>
 									<Button>Filled</Button>
 									<Button variant="light">Light</Button>
 									<Button variant="default">Default</Button>
 									<Button variant="subtle">Subtle</Button>
 									<Button variant="outline">Outline</Button>
-									<ActionIcon variant="default" size={36}>
+									<ActionIcon
+										variant="default"
+										size={36}
+										aria-label="Demo icon action"
+									>
 										<Zap size={16} />
 									</ActionIcon>
 									<Badge variant="light">Badge</Badge>
@@ -463,6 +797,7 @@ export const App = () => {
 								</Text>
 							}
 						>
+							<SectionHeading>Indicators</SectionHeading>
 							<Stack gap="md">
 								<Group gap="lg">
 									<Group gap="xs">
@@ -472,6 +807,10 @@ export const App = () => {
 									<Group gap="xs">
 										<StatusDot on={false} />
 										<Text size="sm">Offline</Text>
+									</Group>
+									<Group gap="xs">
+										<StatusDot label="Live data feed" />
+										<Text size="sm">Labelled status</Text>
 									</Group>
 								</Group>
 								<Stack gap={6}>
@@ -498,7 +837,13 @@ export const App = () => {
 						</Section>
 
 						<Section title="Data" badge={<SquareStack size={14} />}>
-							<SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md">
+							<SectionHeading>Data</SectionHeading>
+							<SimpleGrid
+								cols={{ base: 1, sm: 3 }}
+								spacing="md"
+								role="group"
+								aria-label="Stat blocks"
+							>
 								<Stat
 									icon={<Zap size={13} />}
 									label="Fastest"
@@ -516,14 +861,96 @@ export const App = () => {
 							</SimpleGrid>
 						</Section>
 
-						<Card withBorder padding="lg" radius="md">
-							<Title order={2} mb={6}>
-								Chrome
-							</Title>
-							<Text c="dimmed" size="sm">
-								Header, footer and grain are shared too. The footer is below.
+						<Section title="App cards" badge={<Layers size={14} />}>
+							<SectionHeading>App cards</SectionHeading>
+							<Text size="sm" c="dimmed" mb="sm">
+								<Code>AppCard</Code> is the dashboard tile, reused here. Pin a
+								card to see the pinned state; the whole surface stays a single
+								link.
 							</Text>
-						</Card>
+							<div
+								className="app-grid"
+								role="group"
+								aria-label="App card examples"
+							>
+								{APPS.map((item, index) => (
+									<AppCard
+										key={item.href}
+										item={item}
+										index={index}
+										pinned={pinned.includes(item.href)}
+										lastVisitedAt={
+											index === 0 ? Date.now() - 3_600_000 : undefined
+										}
+										onTogglePin={togglePin}
+									/>
+								))}
+							</div>
+						</Section>
+
+						<Section title="Patterns" badge={<Sparkles size={14} />}>
+							<SectionHeading>Patterns</SectionHeading>
+							<Text size="sm" c="dimmed" mb="sm">
+								The shared loading, empty and status states compose without any
+								extra styling.
+							</Text>
+							<Card withBorder padding="md" radius="md">
+								<Group justify="space-between" mb="sm">
+									<Group gap="xs">
+										<StatusDot label="Syncing" />
+										<Text size="sm" fw={600}>
+											Syncing data
+										</Text>
+									</Group>
+									<Badge variant="light">loading</Badge>
+								</Group>
+								<Stack gap={6}>
+									<Skeleton width="70%" />
+									<Skeleton width="90%" />
+									<Skeleton width="50%" />
+								</Stack>
+							</Card>
+							<EmptyState
+								icon={<Search size={20} />}
+								title="No matches"
+								body="Empty-state mark, heading, body and action are shared across every app."
+							/>
+						</Section>
+
+						<Section title="Chrome" badge={<Layers size={14} />}>
+							<SectionHeading>Chrome</SectionHeading>
+							<Stack gap="md">
+								<Text size="sm" c="dimmed">
+									<Code>Brand</Code>, <Code>AppSwitcher</Code>,{" "}
+									<Code>SkipLink</Code>, <Code>Grain</Code> and{" "}
+									<Code>Footer</Code> frame every page. The skip link and grain
+									are always mounted at the top of this page; press Tab from the
+									address bar to reveal the skip link.
+								</Text>
+								<Group gap="lg" align="center" wrap="wrap">
+									<Brand
+										href="/"
+										icon={<Layers size={18} />}
+										title="Brand with icon"
+										subtitle="and subtitle"
+									/>
+									<Brand title="Brand only" />
+								</Group>
+								<Text size="sm" c="dimmed">
+									<Code>AppSwitcher</Code> is the dropdown in the page header
+									(above), so it is demonstrated live rather than duplicated
+									here.
+								</Text>
+								<Divider />
+								<Text size="sm" c="dimmed">
+									Mantine theme layer: <Code>createAppTheme</Code> owns the
+									neutral ramp, shadow scale, default component props and
+									accents. The neutral ramp is intentionally <em>not</em>{" "}
+									mirrored by <Code>tokens.css</Code> — they are separate
+									layers, as the shared token test locks in.
+								</Text>
+							</Stack>
+						</Section>
 					</Stack>
 				</main>
 

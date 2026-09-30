@@ -9,16 +9,16 @@ import {
 	Title,
 } from "@mantine/core";
 import { Clock, Landmark, Wrench, X } from "lucide-react";
-import { useSnapshot } from "valtio";
 import { STATIONS_BY_ID } from "../data/geography";
 import { CATEGORIES } from "../data/types";
-import { derivedStore, railActions, railStore } from "../store";
+import { useThrottledSnapshots } from "../hooks";
+import { railActions, railUiStores } from "../store";
 import { palette } from "../theme";
 import { formatTime } from "../utils";
 
 export const ServiceDetails = () => {
-	const snap = useSnapshot(railStore);
-	const derivedSnap = useSnapshot(derivedStore);
+	// Throttled: the live status line tracks at ~15 Hz, plenty for the panel.
+	const [snap, derivedSnap] = useThrottledSnapshots(railUiStores);
 	const { selectedService } = snap;
 	const { activeTrains } = derivedSnap;
 

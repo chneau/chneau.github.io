@@ -1,6 +1,6 @@
 import { Box, Group, InputBase, Popover, Text } from "@mantine/core";
 import { Beer } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { VenueInfo } from "../types";
 
 type Props = {
@@ -17,6 +17,8 @@ export const PubSearch = ({ venues, onSelect, label }: Props) => {
 	const [query, setQuery] = useState("");
 	const [highlight, setHighlight] = useState(0);
 	const viewportRef = useRef<HTMLDivElement>(null);
+	const listboxId = useId();
+	const optionId = (index: number) => `${listboxId}-option-${index}`;
 
 	const filtered = useMemo(() => {
 		const needle = query.trim().toLowerCase();
@@ -84,6 +86,13 @@ export const PubSearch = ({ venues, onSelect, label }: Props) => {
 				<InputBase
 					label={label}
 					placeholder="Find a pub by name or town…"
+					role="combobox"
+					aria-expanded={opened}
+					aria-controls={opened ? listboxId : undefined}
+					aria-autocomplete="list"
+					aria-activedescendant={
+						opened && results[highlight] ? optionId(highlight) : undefined
+					}
 					value={opened ? query : ""}
 					leftSection={<Beer size={14} />}
 					rightSection={
@@ -122,6 +131,7 @@ export const PubSearch = ({ venues, onSelect, label }: Props) => {
 			<Popover.Dropdown p={0}>
 				<Box
 					ref={viewportRef}
+					id={listboxId}
 					role="listbox"
 					style={{ maxHeight: 300, overflowY: "auto" }}
 				>
@@ -130,6 +140,7 @@ export const PubSearch = ({ venues, onSelect, label }: Props) => {
 						return (
 							<Box
 								key={venue.venueRef}
+								id={optionId(index)}
 								data-index={index}
 								role="option"
 								aria-selected={active}

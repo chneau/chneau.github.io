@@ -15,6 +15,8 @@ export type AppEntry = {
 	title: string;
 	tag: string;
 	tagColor: string;
+	/** Broad grouping used by the dashboard's category filter. */
+	category: string;
 	shortcutKey: string;
 	hotkey: string;
 	description: string;
@@ -27,12 +29,13 @@ const HUB: AppEntry = {
 	title: "Dashboard",
 	tag: "Hub",
 	tagColor: "gray",
+	category: "Meta",
 	shortcutKey: "Home",
 	hotkey: "0",
 	description: "Personal hub and web apps by chneau.",
 };
 
-/** Every sub-app, mirrored by the dashboard cards and its 1–5 hotkeys. */
+/** Every sub-app, mirrored by the dashboard cards and its 1–6 hotkeys. */
 export const APPS: AppEntry[] = [
 	{
 		href: "/cv/",
@@ -40,6 +43,7 @@ export const APPS: AppEntry[] = [
 		title: "Curriculum Vitae",
 		tag: "Senior Full-Stack & Systems",
 		tagColor: "purple",
+		category: "Personal",
 		shortcutKey: "Press 1",
 		hotkey: "1",
 		description:
@@ -51,6 +55,7 @@ export const APPS: AppEntry[] = [
 		title: "Birthday Tracker",
 		tag: "Tracker",
 		tagColor: "blue",
+		category: "Personal",
 		shortcutKey: "Press 2",
 		hotkey: "2",
 		description:
@@ -62,6 +67,7 @@ export const APPS: AppEntry[] = [
 		title: "A Day in Scottish Rail",
 		tag: "24h Replay",
 		tagColor: "cyan",
+		category: "Play",
 		shortcutKey: "Press 3",
 		hotkey: "3",
 		description:
@@ -73,6 +79,7 @@ export const APPS: AppEntry[] = [
 		title: "Crimson Desert Save Editor",
 		tag: "100% Client-Side",
 		tagColor: "yellow",
+		category: "Build",
 		shortcutKey: "Press 4",
 		hotkey: "4",
 		description:
@@ -84,6 +91,7 @@ export const APPS: AppEntry[] = [
 		title: "Spooners",
 		tag: "Price map",
 		tagColor: "green",
+		category: "Play",
 		shortcutKey: "Press 5",
 		hotkey: "5",
 		description:
@@ -95,11 +103,17 @@ export const APPS: AppEntry[] = [
 		title: "Design System",
 		tag: "Style guide",
 		tagColor: "indigo",
+		category: "Build",
 		shortcutKey: "Press 6",
 		hotkey: "6",
 		description:
 			"The shared tokens, components and patterns behind every app on this site.",
 	},
+];
+
+/** Distinct categories, in the order they should appear in the filter. */
+export const APP_CATEGORIES: string[] = [
+	...new Set(APPS.map((app) => app.category)),
 ];
 
 /** Dashboard first, then every sub-app. Used by the navbar app switcher. */

@@ -344,7 +344,15 @@ export const RoundCard = ({
 
 					{currencies && currencies.length > 1 && currency && onCurrency ? (
 						<Box>
-							<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
+							<Text
+								role="heading"
+								aria-level={3}
+								size="xs"
+								c="dimmed"
+								fw={600}
+								tt="uppercase"
+								mb={4}
+							>
 								Currency
 							</Text>
 							<SegmentedControl
@@ -382,15 +390,24 @@ export const RoundCard = ({
 								/>
 							</Group>
 						}
+						aria-expanded={filtersOpen}
+						aria-controls="round-filters"
 						onClick={() => setFiltersOpen((open) => !open)}
 					>
 						Filters
 					</Button>
 
 					<Collapse expanded={filtersOpen}>
-						<Stack gap="sm">
+						<Stack gap="sm" id="round-filters">
 							<Group justify="space-between" align="center">
-								<Text size="xs" c="dimmed" fw={700} tt="uppercase">
+								<Text
+									role="heading"
+									aria-level={3}
+									size="xs"
+									c="dimmed"
+									fw={700}
+									tt="uppercase"
+								>
 									Filters
 								</Text>
 								<Button
@@ -404,7 +421,15 @@ export const RoundCard = ({
 							</Group>
 							{dietaryRelevant && filters.length ? (
 								<Box>
-									<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
+									<Text
+										role="heading"
+										aria-level={3}
+										size="xs"
+										c="dimmed"
+										fw={600}
+										tt="uppercase"
+										mb={4}
+									>
 										Dietary
 									</Text>
 									<Chip.Group
@@ -425,7 +450,15 @@ export const RoundCard = ({
 
 							{facilities.length ? (
 								<Box>
-									<Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>
+									<Text
+										role="heading"
+										aria-level={3}
+										size="xs"
+										c="dimmed"
+										fw={600}
+										tt="uppercase"
+										mb={4}
+									>
 										Pub facilities
 									</Text>
 									<Chip.Group

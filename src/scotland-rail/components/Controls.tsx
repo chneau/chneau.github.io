@@ -23,15 +23,15 @@ import {
 	TrendingDown,
 	TrendingUp,
 } from "lucide-react";
-import { useSnapshot } from "valtio";
 import { CATEGORIES, type Category, type ViewPreset } from "../data/types";
-import { derivedStore, railActions, railStore } from "../store";
+import { useThrottledSnapshots } from "../hooks";
+import { railActions, railUiStores } from "../store";
 import { palette } from "../theme";
 import { formatTime } from "../utils";
 
 export const Controls = () => {
-	const snap = useSnapshot(railStore);
-	const derivedSnap = useSnapshot(derivedStore);
+	// Throttled: the HUD does not need to follow the 60 fps clock exactly.
+	const [snap, derivedSnap] = useThrottledSnapshots(railUiStores);
 
 	const {
 		timeOffset,
@@ -173,6 +173,7 @@ export const Controls = () => {
 						<Group gap="xs" wrap="wrap">
 							<TextInput
 								placeholder="Search service or station"
+								aria-label="Search service or station"
 								value={searchQuery}
 								onChange={(e) =>
 									railActions.setSearchQuery(e.currentTarget.value)
@@ -200,6 +201,7 @@ export const Controls = () => {
 							/>
 							<SegmentedControl
 								size="xs"
+								aria-label="Map view"
 								value={viewPreset}
 								onChange={(val) => railActions.setViewPreset(val as ViewPreset)}
 								data={[
@@ -219,6 +221,8 @@ export const Controls = () => {
 							value={timeOffset}
 							onChange={(val) => railActions.setTimeOffset(val)}
 							label={(val) => formatTime(val)}
+							thumbLabel="Replay time"
+							thumbValueText={(val) => formatTime(val)}
 							styles={{
 								bar: { background: palette.accent },
 								track: { background: "var(--app-border-strong)" },
@@ -278,6 +282,7 @@ export const Controls = () => {
 								<Select
 									value={String(speed)}
 									onChange={(val) => railActions.setSpeed(Number(val ?? 1))}
+									aria-label="Playback speed"
 									size="xs"
 									allowDeselect={false}
 									style={{ width: 116 }}

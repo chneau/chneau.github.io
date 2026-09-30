@@ -14,7 +14,7 @@ import type { DecodedSave } from "./container";
 import type { EquipmentCatalogEntry } from "./data";
 import { defined } from "./defined";
 import { setEquipment } from "./equipment-editor";
-import { readInventory } from "./inventory-reader";
+import { readInventoryWithDiagnostics } from "./inventory-reader";
 import { applyItemDiscovery } from "./item-discovery";
 import { sha256Hex } from "./transaction";
 
@@ -43,6 +43,10 @@ export type InventoryDescription = {
 	containerVersion: number;
 	payloadBytes: number;
 	records: InventoryDescriptionRecord[];
+	/** Inventory records withheld because an identity field was absent. */
+	skippedRecords: number;
+	/** One short reason per skipped record, for the UI to show. */
+	skippedDetails: string[];
 };
 
 /** What a record's own fields hold about its gear, before the catalog is read. */
@@ -105,7 +109,10 @@ export const describeInventory = async (
 ): Promise<InventoryDescription> => {
 	const catalog = await equipmentCatalog();
 	const records: InventoryDescriptionRecord[] = [];
-	for (const record of readInventory(save.rawPayload)) {
+	const { records: readRecords, skipped } = readInventoryWithDiagnostics(
+		save.rawPayload,
+	);
+	for (const record of readRecords) {
 		const definition = catalog[String(record.itemKey)];
 		records.push({
 			inventoryKey: record.inventoryKey,
@@ -132,6 +139,14 @@ export const describeInventory = async (
 		containerVersion: save.header.version,
 		payloadBytes: save.rawPayload.length,
 		records,
+		skippedRecords: skipped.length,
+		skippedDetails: skipped
+			.slice(0, 8)
+			.map(
+				(record) =>
+					`record at 0x${record.recordStart.toString(16).toUpperCase()} is missing ${record.missing.join(", ")}`,
+			)
+			.concat(skipped.length > 8 ? [`and ${skipped.length - 8} more`] : []),
 	};
 };
 

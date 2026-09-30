@@ -1,5 +1,5 @@
 import { Crosshair, MapPin, MoveRight, ZoomIn, ZoomOut } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 import { prefersReducedMotion } from "../../shared";
 import {
@@ -95,7 +95,20 @@ const getDayNightAtmosphere = (
 	};
 };
 
+// The static layer (coastlines, lochs, rails, landmarks, stations) is baked to
+// an offscreen canvas and then blitted. Pan is applied as a bitmap translation,
+// so it never re-projects geometry. The bake is quantized to this grid: as long
+// as the live pan stays within one grid cell the cached bitmap is reused, and
+// STATIC_MARGIN of slack around the viewport hides the cell boundary.
+const STATIC_GRID = 128;
+const STATIC_MARGIN = STATIC_GRID;
+
+/** Minimum gap between aggregate live-region announcements, in milliseconds. */
+const ANNOUNCE_INTERVAL_MS = 2500;
+
 export const ReplayCanvas = () => {
+	// Raw snapshot on purpose: the map must animate at 60 fps. The HUD surfaces
+	// use the throttled hook instead.
 	const snap = useSnapshot(railStore);
 	const derivedSnap = useSnapshot(derivedStore);
 
@@ -110,25 +123,12 @@ export const ReplayCanvas = () => {
 	const selectedServiceId = selectedService?.id ?? null;
 	const reducedMotion = prefersReducedMotion();
 
-	// Screen-reader summary so the map is not a pointer-only surface.
-	const activeTrainsSummary = useMemo(() => {
-		if (activeTrains.length === 0) {
-			return "No trains are currently running.";
-		}
-		const names = activeTrains
-			.slice(0, 8)
-			.map(
-				(t) =>
-					`${t.service.serviceNumber} ${t.service.name}${
-						t.isDwelling ? ` at ${t.currentStopName}` : ""
-					}`,
-			);
-		const more =
-			activeTrains.length > names.length
-				? `, plus ${activeTrains.length - names.length} more`
-				: "";
-		return `${activeTrains.length} trains running: ${names.join("; ")}${more}.`;
-	}, [activeTrains]);
+	// Screen-reader summary so the map is not a pointer-only surface. Building
+	// it every frame would flood assistive tech, so announcements are throttled
+	// (a train selection reports immediately; aggregate updates wait).
+	const [liveMessage, setLiveMessage] = useState("");
+	const lastAnnounceRef = useRef(0);
+	const lastAnnouncedSelectionRef = useRef<string | null>(null);
 
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
 	const staticCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -139,6 +139,58 @@ export const ReplayCanvas = () => {
 	const [ready, setReady] = useState(false);
 	const isDraggingRef = useRef<boolean>(false);
 	const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+	// Quantized pan used as the static-layer cache key. Staying on the grid for
+	// small movements means the bitmap is not re-baked each pan frame.
+	const bakeX = Math.round(pan.x / STATIC_GRID) * STATIC_GRID;
+	const bakeY = Math.round(pan.y / STATIC_GRID) * STATIC_GRID;
+
+	// Publish the screen-reader summary at a human cadence. A change of selected
+	// service is announced straight away; otherwise at most one update per
+	// ANNOUNCE_INTERVAL_MS so 15x playback does not flood the live region.
+	useEffect(() => {
+		const selectionChanged =
+			lastAnnouncedSelectionRef.current !== selectedServiceId;
+		const now = performance.now();
+		if (
+			!selectionChanged &&
+			now - lastAnnounceRef.current < ANNOUNCE_INTERVAL_MS
+		) {
+			return;
+		}
+		lastAnnounceRef.current = now;
+		lastAnnouncedSelectionRef.current = selectedServiceId;
+
+		if (activeTrains.length === 0) {
+			setLiveMessage("No trains are currently running.");
+			return;
+		}
+
+		const selected = selectedServiceId
+			? activeTrains.find((t) => t.service.id === selectedServiceId)
+			: null;
+		if (selected) {
+			setLiveMessage(
+				`${selected.service.serviceNumber} ${selected.service.name} ${
+					selected.isDwelling
+						? `is at ${selected.currentStopName}`
+						: `is heading to ${selected.nextStopName ?? "its destination"}`
+				}.`,
+			);
+			return;
+		}
+
+		const names = activeTrains
+			.slice(0, 6)
+			.map((t) => `${t.service.serviceNumber} ${t.service.name}`);
+		const more =
+			activeTrains.length > names.length
+				? `, plus ${activeTrains.length - names.length} more`
+				: "";
+		setLiveMessage(
+			`${activeTrains.length} trains running: ${names.join("; ")}${more}.`,
+		);
+	}, [activeTrains, selectedServiceId]);
 
 	// Reset zoom and pan when preset changes
 	useEffect(() => {
@@ -167,11 +219,14 @@ export const ReplayCanvas = () => {
 		const targetPanX = rect.width / 2 - trainScreen.x;
 		const targetPanY = rect.height / 2 - trainScreen.y;
 
-		// Smooth ease toward train
-		setPan((prev) => ({
-			x: prev.x + (targetPanX - prev.x) * 0.15,
-			y: prev.y + (targetPanY - prev.y) * 0.15,
-		}));
+		// Smooth ease toward the train, but bail out once converged. Returning
+		// `prev` avoids an allocation and a re-render on every idle frame.
+		setPan((prev) => {
+			const dx = (targetPanX - prev.x) * 0.15;
+			const dy = (targetPanY - prev.y) * 0.15;
+			if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return prev;
+			return { x: prev.x + dx, y: prev.y + dy };
+		});
 	}, [
 		selectedServiceId,
 		activeTrains,
@@ -209,7 +264,9 @@ export const ReplayCanvas = () => {
 		return () => ro.disconnect();
 	}, []);
 
-	// Cache static layer whenever viewPreset, zoom, pan, settings, or quantized time of day changes
+	// Bake the static layer only when the transform/settings actually change.
+	// `pan` is deliberately absent from the deps: panning just translates the
+	// cached bitmap in the draw effect below.
 	useEffect(() => {
 		const canvas = canvasRef.current;
 		if (!canvas) return;
@@ -218,30 +275,41 @@ export const ReplayCanvas = () => {
 		const height = dimensions.height;
 		const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-		canvas.width = width * dpr;
-		canvas.height = height * dpr;
+		// Assigning `canvas.width` clears the canvas and reallocates the backing
+		// store, so only do it when the size genuinely changed.
+		const backingWidth = Math.round(width * dpr);
+		const backingHeight = Math.round(height * dpr);
+		if (canvas.width !== backingWidth) canvas.width = backingWidth;
+		if (canvas.height !== backingHeight) canvas.height = backingHeight;
 
 		if (!staticCanvasRef.current) {
 			staticCanvasRef.current = document.createElement("canvas");
 		}
 		const staticCanvas = staticCanvasRef.current;
-		staticCanvas.width = width * dpr;
-		staticCanvas.height = height * dpr;
+		// One extra grid cell of slack on every side so translating the bitmap
+		// to follow the live pan never exposes an unpainted edge.
+		const bakeWidth = width + STATIC_MARGIN * 2;
+		const bakeHeight = height + STATIC_MARGIN * 2;
+		staticCanvas.width = Math.round(bakeWidth * dpr);
+		staticCanvas.height = Math.round(bakeHeight * dpr);
 
 		const sCtx = staticCanvas.getContext("2d");
 		if (!sCtx) return;
 
-		sCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-		sCtx.clearRect(0, 0, width, height);
+		sCtx.setTransform(dpr, 0, 0, dpr, STATIC_MARGIN * dpr, STATIC_MARGIN * dpr);
+		sCtx.clearRect(-STATIC_MARGIN, -STATIC_MARGIN, bakeWidth, bakeHeight);
 
 		const atmo = getDayNightAtmosphere(quantizedTime, settings.dayNightCycle);
 
 		// Background
 		sCtx.fillStyle = atmo.bgColor;
-		sCtx.fillRect(0, 0, width, height);
+		sCtx.fillRect(-STATIC_MARGIN, -STATIC_MARGIN, bakeWidth, bakeHeight);
 
 		const bounds = VIEW_BOUNDS[viewPreset];
-		const proj = createProjection(bounds, width, height, 32, zoom, pan);
+		const proj = createProjection(bounds, width, height, 32, zoom, {
+			x: bakeX,
+			y: bakeY,
+		});
 
 		// 1. Coastlines
 		sCtx.fillStyle = atmo.landColor;
@@ -356,7 +424,12 @@ export const ReplayCanvas = () => {
 		if (settings.showLandmarks) {
 			for (const lm of LANDMARKS) {
 				const { x, y } = proj.project(lm.coordinate);
-				if (x < -20 || x > width + 20 || y < -20 || y > height + 20) {
+				if (
+					x < -STATIC_MARGIN - 20 ||
+					x > width + STATIC_MARGIN + 20 ||
+					y < -STATIC_MARGIN - 20 ||
+					y > height + STATIC_MARGIN + 20
+				) {
 					continue;
 				}
 
@@ -376,7 +449,12 @@ export const ReplayCanvas = () => {
 		// 6. Stations & Labels
 		for (const st of STATIONS) {
 			const { x, y } = proj.project(st.coordinate);
-			if (x < -30 || x > width + 30 || y < -30 || y > height + 30) {
+			if (
+				x < -STATIC_MARGIN - 30 ||
+				x > width + STATIC_MARGIN + 30 ||
+				y < -STATIC_MARGIN - 30 ||
+				y > height + STATIC_MARGIN + 30
+			) {
 				continue;
 			}
 
@@ -410,7 +488,7 @@ export const ReplayCanvas = () => {
 				sCtx.shadowBlur = 0;
 			}
 		}
-	}, [viewPreset, zoom, pan, quantizedTime, settings, dimensions]);
+	}, [viewPreset, zoom, bakeX, bakeY, quantizedTime, settings, dimensions]);
 
 	// Render dynamic frame
 	useEffect(() => {
@@ -427,10 +505,20 @@ export const ReplayCanvas = () => {
 
 		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 		ctx.clearRect(0, 0, width, height);
-		ctx.drawImage(staticCanvas, 0, 0, width, height);
+
+		// Static layer: the bitmap was baked for `bakeX/bakeY`, so translating
+		// it by the residual pan tracks the live camera without re-projecting.
+		ctx.drawImage(
+			staticCanvas,
+			pan.x - bakeX - STATIC_MARGIN,
+			pan.y - bakeY - STATIC_MARGIN,
+			width + STATIC_MARGIN * 2,
+			height + STATIC_MARGIN * 2,
+		);
 
 		const bounds = VIEW_BOUNDS[viewPreset];
 		const proj = createProjection(bounds, width, height, 32, zoom, pan);
+		const atmo = getDayNightAtmosphere(timeOffset, settings.dayNightCycle);
 
 		// 1. Highland Weather / Rain Effect
 		if (settings.weatherEffects && !reducedMotion) {
@@ -505,8 +593,7 @@ export const ReplayCanvas = () => {
 				ctx.restore();
 			}
 
-			// Headlight beam
-			const atmo = getDayNightAtmosphere(timeOffset, settings.dayNightCycle);
+			// Headlight beam (atmosphere is hoisted above the train loop)
 			if (
 				settings.trainHeadlights &&
 				atmo.isNight &&
@@ -618,6 +705,9 @@ export const ReplayCanvas = () => {
 		filteredServices,
 		zoom,
 		pan,
+		bakeX,
+		bakeY,
+		dimensions,
 		timeOffset,
 		settings,
 		reducedMotion,
@@ -802,6 +892,20 @@ export const ReplayCanvas = () => {
 		setPan({ x: 0, y: 0 });
 	};
 
+	// Keyboard equivalent of clicking a train: cycle the selection through the
+	// currently running services (N = next, P = previous).
+	const cycleSelectedService = (direction: 1 | -1) => {
+		if (activeTrains.length === 0) return;
+		const ids = activeTrains.map((t) => t.service.id);
+		const currentIndex = selectedServiceId
+			? ids.indexOf(selectedServiceId)
+			: -1;
+		const nextIndex =
+			(((currentIndex + direction) % ids.length) + ids.length) % ids.length;
+		const next = activeTrains[nextIndex];
+		if (next) railActions.setSelectedService(next.service as TrainService);
+	};
+
 	return (
 		<div
 			style={{
@@ -814,7 +918,18 @@ export const ReplayCanvas = () => {
 			<canvas
 				ref={canvasRef}
 				role="img"
-				aria-label="Map of Scotland showing live train positions and rail network"
+				tabIndex={0}
+				aria-label="Map of Scotland showing live train positions and rail network. Press N or P to select the next or previous running train."
+				aria-keyshortcuts="N P"
+				onKeyDown={(e) => {
+					if (e.key === "n" || e.key === "N") {
+						e.preventDefault();
+						cycleSelectedService(1);
+					} else if (e.key === "p" || e.key === "P") {
+						e.preventDefault();
+						cycleSelectedService(-1);
+					}
+				}}
 				onMouseDown={handleMouseDown}
 				onMouseMove={handleMouseMove}
 				onMouseUp={handleMouseUp}
@@ -836,9 +951,10 @@ export const ReplayCanvas = () => {
 				}}
 			/>
 
-			{/* Non-visual equivalent of the map, kept in sync with the active trains. */}
-			<p className="sr-only" aria-live="polite">
-				{activeTrainsSummary}
+			{/* Non-visual equivalent of the map. Throttled so high-speed playback
+			    does not flood the live region. */}
+			<p className="sr-only" aria-live="polite" aria-atomic="true">
+				{liveMessage}
 			</p>
 
 			{/* Boot overlay: covers the canvas until the first frame is painted. */}
@@ -890,6 +1006,7 @@ export const ReplayCanvas = () => {
 					type="button"
 					className="sr-press"
 					onClick={() => setZoom((prev) => Math.min(8, prev * 1.25))}
+					aria-label="Zoom in"
 					title="Zoom in"
 					style={{
 						background: "var(--app-surface-2)",
@@ -910,6 +1027,7 @@ export const ReplayCanvas = () => {
 					type="button"
 					className="sr-press"
 					onClick={() => setZoom((prev) => Math.max(0.6, prev * 0.8))}
+					aria-label="Zoom out"
 					title="Zoom out"
 					style={{
 						background: "var(--app-surface-2)",
@@ -930,6 +1048,7 @@ export const ReplayCanvas = () => {
 					type="button"
 					className="sr-press"
 					onClick={handleResetView}
+					aria-label="Reset view"
 					title="Reset view"
 					style={{
 						background: palette.accentSoft,

@@ -41,6 +41,7 @@
 	--app-accent-ink: var(--accent-strong);
 }
 
+html[data-mantine-color-scheme="dark"],
 html[data-theme="dark"] {
 	--accent: #45bd93;
 	--accent-strong: #6ad0aa;
@@ -888,6 +889,21 @@ a:hover .cv-ext {
 		animation-iteration-count: 1;
 		transition-duration: 0.001ms;
 	}
+
+	/* A `*` reset has specificity (0,0,0), so it loses to any author rule with
+	   a selector - here `[data-reveal]` (0,1,0) and `.cv-status-dot::after`
+	   (0,1,1). Without this, the 0.7s entrance and the INFINITE 2.6s status
+	   ping both keep running for users who asked for reduced motion. */
+	[data-reveal],
+	[data-reveal]::before,
+	[data-reveal]::after,
+	.cv-status-dot,
+	.cv-status-dot::before,
+	.cv-status-dot::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+	}
 }
 
 /* ------------------------------------------------------------------ print -- */
@@ -899,6 +915,7 @@ a:hover .cv-ext {
 	}
 
 	:root,
+	html[data-mantine-color-scheme="dark"],
 	html[data-theme="dark"] {
 		--bg: #ffffff;
 		--surface: #ffffff;
@@ -929,6 +946,11 @@ a:hover .cv-ext {
 	.no-print,
 	.cv-copy,
 	.cv-hero::before {
+		display: none;
+	}
+
+	/* The skip link is fixed and would otherwise print on every page. */
+	.app-skip-link {
 		display: none;
 	}
 
@@ -1017,6 +1039,14 @@ a:hover .cv-ext {
 		box-shadow: none;
 	}
 
+	/* Keep the paper CV self-contained: show where external links point. */
+	a[href^="http"]:not(.cv-tag)::after {
+		content: " (" attr(href) ")";
+		font-size: 0.78em;
+		color: var(--text-muted);
+		word-break: break-all;
+	}
+
 	*,
 	*::before,
 	*::after {
@@ -1024,5 +1054,22 @@ a:hover .cv-ext {
 		transition: none;
 		-webkit-print-color-adjust: exact;
 		print-color-adjust: exact;
+	}
+
+	/* Same specificity trap as the reduced-motion block above. `[data-reveal]`
+	   is `animation: cv-rise ... both`, and `both` means the element holds
+	   opacity:0 until the animation runs. Because `*` (0,0,0) cannot beat
+	   `[data-reveal]` (0,1,0), printing within the first ~1.2s produced a page
+	   with a name and nothing else - the whole body still at opacity 0. */
+	[data-reveal],
+	[data-reveal]::before,
+	[data-reveal]::after,
+	.cv-status-dot,
+	.cv-status-dot::before,
+	.cv-status-dot::after {
+		animation: none !important;
+		opacity: 1 !important;
+		transform: none !important;
+		transition: none !important;
 	}
 }

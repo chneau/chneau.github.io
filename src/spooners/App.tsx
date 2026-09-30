@@ -394,7 +394,16 @@ export const App = () => {
 
 	if (loading) {
 		return (
-			<Stack align="center" justify="center" h="100vh" gap="sm">
+			<Stack
+				role="status"
+				aria-live="polite"
+				aria-busy="true"
+				align="center"
+				justify="center"
+				h="100vh"
+				gap="sm"
+			>
+				<h1 className="sr-only">Spooners — pub prices on a map</h1>
 				<Loader />
 				<Text c="dimmed">Loading pub prices…</Text>
 			</Stack>
@@ -403,7 +412,8 @@ export const App = () => {
 
 	if (error || !data) {
 		return (
-			<Stack align="center" justify="center" h="100vh" m="md">
+			<Stack role="alert" align="center" justify="center" h="100vh" m="md">
+				<h1 className="sr-only">Spooners — pub prices on a map</h1>
 				<EmptyState
 					title="We couldn't load the pub prices"
 					body={
@@ -450,6 +460,7 @@ export const App = () => {
 					minHeight: 0,
 				}}
 			>
+				<h1 className="sr-only">Spooners — pub prices on a map</h1>
 				<Box
 					className="spooners-scroll"
 					style={{
@@ -465,6 +476,13 @@ export const App = () => {
 					}}
 				>
 					<Stack gap="sm">
+						<Text className="sr-only" role="status" aria-live="polite">
+							{withDistance.length === 0
+								? "No pubs match the current round and filters."
+								: `${withDistance.length} ${
+										withDistance.length === 1 ? "pub" : "pubs"
+									} match the current round and filters.`}
+						</Text>
 						<Box hiddenFrom="md">
 							<PubSearch venues={data.venueList} onSelect={setVenueRef} />
 						</Box>
@@ -539,18 +557,20 @@ export const App = () => {
 									: null
 							}
 						/>
-						<Section title="Prices">
-							<StatsBar
-								pubs={withDistance.length}
-								cheapest={money(scale.min, displayCurrency)}
-								median={money(medianPrice, displayCurrency)}
-								dearest={money(scale.max, displayCurrency)}
-								portion={
-									singleName ? (completeVenues[0]?.portion ?? null) : null
-								}
-								premium={premium}
-							/>
-						</Section>
+						{withDistance.length > 0 ? (
+							<Section title="Prices">
+								<StatsBar
+									pubs={withDistance.length}
+									cheapest={money(scale.min, displayCurrency)}
+									median={money(medianPrice, displayCurrency)}
+									dearest={money(scale.max, displayCurrency)}
+									portion={
+										singleName ? (completeVenues[0]?.portion ?? null) : null
+									}
+									premium={premium}
+								/>
+							</Section>
+						) : null}
 						{withDistance.length === 0 ? (
 							<EmptyState
 								title="No pubs match"

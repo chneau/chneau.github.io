@@ -61,7 +61,31 @@ export const findInventoryRecord = (
 	return defined(matches[0], "inventory record");
 };
 
-export const readInventory = (raw: Uint8Array): InventoryRecord[] => {
+/**
+ * A record the reader could see but not safely identify.
+ *
+ * `readInventory` refuses to emit a record missing an identity field rather
+ * than inventing a zero and letting an edit match the wrong row, but a refusal
+ * that silently disappears leaves the user with a count that cannot be
+ * explained. The diagnostic keeps the reason and the raw values so both the
+ * parse result and a test can account for it.
+ */
+export type SkippedInventoryRecord = {
+	/** The identity fields that were absent, e.g. `_slotNo`. */
+	missing: string[];
+	recordStart: number;
+	recordEnd: number;
+	values: Record<string, unknown>;
+};
+
+export type InventoryReadResult = {
+	records: InventoryRecord[];
+	skipped: SkippedInventoryRecord[];
+};
+
+export const readInventoryWithDiagnostics = (
+	raw: Uint8Array,
+): InventoryReadResult => {
 	const parc = parseParcBlob(raw);
 	const parser = new BlockParser(parc);
 	const rootEntry = parc.tocEntries.find(
@@ -86,6 +110,7 @@ export const readInventory = (raw: Uint8Array): InventoryRecord[] => {
 		inventoryField.end,
 	);
 	const records: InventoryRecord[] = [];
+	const skipped: SkippedInventoryRecord[] = [];
 	let cursor = inventoryCursor;
 
 	for (let index = 0; index < inventoryCount; index++) {
@@ -193,7 +218,8 @@ export const readInventory = (raw: Uint8Array): InventoryRecord[] => {
 						"ItemSocketSaveData",
 					);
 				}
-				if ([...wanted].every((name) => name in values)) {
+				const missing = [...wanted].filter((name) => !(name in values));
+				if (missing.length === 0) {
 					records.push({
 						inventoryKey,
 						itemNo: Number(values._itemNo),
@@ -206,11 +232,29 @@ export const readInventory = (raw: Uint8Array): InventoryRecord[] => {
 						values,
 						sockets,
 					});
+				} else {
+					skipped.push({
+						missing,
+						recordStart: itemCursor,
+						recordEnd: itemEnd,
+						values,
+					});
 				}
 				itemCursor = itemEnd;
 			}
 		}
 		cursor = elementEnd;
 	}
-	return records;
+	return { records, skipped };
 };
+
+/**
+ * The identified records of a payload.
+ *
+ * Records missing an identity field are omitted here and reported through
+ * `readInventoryWithDiagnostics`; callers that mutate records still use this
+ * shape, while the parse path reads the diagnostics to surface what was left
+ * out.
+ */
+export const readInventory = (raw: Uint8Array): InventoryRecord[] =>
+	readInventoryWithDiagnostics(raw).records;

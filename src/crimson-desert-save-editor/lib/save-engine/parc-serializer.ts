@@ -21,6 +21,7 @@ import {
 	readU16,
 	readU32,
 	readU64,
+	requireBytes,
 	utf8DecodeBytes,
 	writeU32,
 } from "./bytes";
@@ -75,48 +76,88 @@ const fieldPresent = (maskBytes: Uint8Array, fieldIndex: number): boolean => {
 };
 
 export const parseParcBlob = (data: Uint8Array): ParcBlob => {
-	if (data.length < 14) throw new Error("Blob too small");
+	if (data.length < 14)
+		throw new Error("Invalid PARC blob: shorter than header");
 	const magic = readU16(data, 0);
 	if (magic !== 0xffff) {
 		throw new Error(
 			`Bad inner magic: 0x${magic.toString(16).toUpperCase().padStart(4, "0")}`,
 		);
 	}
+	// Every length in the blob is attacker-controlled: a corrupt or edited
+	// payload is exactly what this parser sees. `need` fails the parse the
+	// moment a read would leave the buffer, and the per-length caps below
+	// reject counts that cannot fit the remaining bytes, so a random blob
+	// throws instead of walking off the end into a plausible-looking schema.
+	const fail = (detail: string): never => {
+		throw new Error(`Invalid PARC blob: ${detail}`);
+	};
+	const need = (offset: number, size: number, what: string): void => {
+		try {
+			requireBytes(data, offset, size, what);
+		} catch (error) {
+			fail(error instanceof Error ? error.message : String(error));
+		}
+	};
+	/** A length prefix must not claim more bytes than the blob still holds. */
+	const bounded = (offset: number, length: number, what: string): void => {
+		need(offset, length, what);
+	};
+
 	// Views, not copies: the parsed sections alias `data` and every consumer
 	// either reads them or copies before writing (patchScalars, concatBytes),
 	// so the multi-megabyte payload is never duplicated per parse.
 	const header = data.subarray(0, 14);
 
+	// A schema with millions of types cannot exist in a real save; the cap
+	// stops a corrupt count from driving a multi-gigabyte loop before the
+	// bounds checks below would notice.
+	const MAX_TYPES = 4096;
+	const MAX_FIELDS = 4096;
+
 	const schemaOffset = 14;
 	let pos = schemaOffset;
+	need(pos, 6, "schema header");
 	const numRootEntries = readU32(data, pos);
 	const numTypes = readU16(data, pos + 4);
 	pos += 6;
+	if (numTypes > MAX_TYPES) fail(`implausible type count ${numTypes}`);
 
 	const types: TypeDef[] = [];
 	const typeByIndex = new Map<number, TypeDef>();
 	for (let index = 0; index < numTypes; index++) {
+		need(pos, 4, `type ${index} name length`);
 		const nameLength = readU32(data, pos);
 		pos += 4;
+		bounded(pos, nameLength, `type ${index} name`);
 		const name = utf8DecodeBytes(data.subarray(pos, pos + nameLength));
 		pos += nameLength;
+		need(pos, 2, `type ${index} field count`);
 		const fieldCount = readU16(data, pos);
 		pos += 2;
+		if (fieldCount > MAX_FIELDS) {
+			fail(`type ${index} has implausible field count ${fieldCount}`);
+		}
 
 		const fields: FieldDef[] = [];
 		for (let fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++) {
+			need(pos, 4, `field ${fieldIndex} name length`);
 			const fieldNameLength = readU32(data, pos);
 			pos += 4;
+			bounded(pos, fieldNameLength, `field ${fieldIndex} name`);
 			const fieldName = utf8DecodeBytes(
 				data.subarray(pos, pos + fieldNameLength),
 			);
 			pos += fieldNameLength;
+			need(pos, 4, `field ${fieldIndex} type-name length`);
 			const typeNameLength = readU32(data, pos);
 			pos += 4;
+			bounded(pos, typeNameLength, `field ${fieldIndex} type name`);
 			const typeName = utf8DecodeBytes(
 				data.subarray(pos, pos + typeNameLength),
 			);
 			pos += typeNameLength;
+			need(pos, 8, `field ${fieldIndex} meta`);
 			const metaKind = readU16(data, pos);
 			const metaSize = readU16(data, pos + 2);
 			const metaAux = readU32(data, pos + 4);
@@ -133,10 +174,16 @@ export const parseParcBlob = (data: Uint8Array): ParcBlob => {
 	const schemaBytes = data.subarray(schemaOffset, schemaEnd);
 
 	const tocOffset = schemaEnd;
+	need(pos, 12, "TOC header");
 	const entryCount = readU32(data, pos + 4);
 	const streamSize = readU32(data, pos + 8);
 	const tocHeaderBytes = data.subarray(pos, pos + 12);
 	pos += 12;
+	if (entryCount > (data.length - pos) / 20) {
+		fail(
+			`TOC entry count ${entryCount} overruns the ${data.length - pos} remaining bytes`,
+		);
+	}
 
 	const tocEntries: TOCEntry[] = [];
 	for (let index = 0; index < entryCount; index++) {
@@ -155,6 +202,17 @@ export const parseParcBlob = (data: Uint8Array): ParcBlob => {
 
 	const blockRaw = new Map<number, Uint8Array>();
 	for (const entry of tocEntries) {
+		// Blocks live after the TOC and must fit the blob. Without this a
+		// bogus offset is clamped by `subarray` and the block silently reads
+		// the wrong bytes (or none), which edit proofs would then trust.
+		if (
+			entry.dataOffset < dataStart ||
+			entry.dataSize > data.length - entry.dataOffset
+		) {
+			fail(
+				`TOC entry ${entry.index} data range ${entry.dataOffset}+${entry.dataSize} is outside the blob`,
+			);
+		}
 		blockRaw.set(
 			entry.index,
 			data.subarray(entry.dataOffset, entry.dataOffset + entry.dataSize),

@@ -1,16 +1,39 @@
 {
+	"id": "/scotland-rail/",
 	"name": "A Day in Scottish Rail",
 	"short_name": "Scottish Rail",
 	"description": "Interactive 24-hour time-lapse train replay across Scotland's rail network.",
-	"start_url": ".",
+	"start_url": "/scotland-rail/",
+	"scope": "/scotland-rail/",
 	"display": "standalone",
+	"display_override": ["standalone", "minimal-ui"],
 	"background_color": "#0a141b",
 	"theme_color": "#5aa9c9",
+	"lang": "en",
 	"icons": [
 		{
-			"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚆</text></svg>",
+			"src": "/icons/scotland-rail-32.png",
+			"sizes": "32x32",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/scotland-rail-192.png",
 			"sizes": "192x192",
-			"type": "image/svg+xml"
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/scotland-rail-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/scotland-rail-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
 		}
 	]
 }

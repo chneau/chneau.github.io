@@ -1,16 +1,39 @@
 {
+	"id": "/crimson-desert-save-editor/",
 	"name": "Crimson Desert Save Editor",
 	"short_name": "Save Editor",
 	"description": "Edit Crimson Desert save files — inventory, gear, skills, quests and companions — entirely on your device.",
-	"start_url": ".",
+	"start_url": "/crimson-desert-save-editor/",
+	"scope": "/crimson-desert-save-editor/",
 	"display": "standalone",
+	"display_override": ["standalone", "minimal-ui"],
 	"background_color": "#0e0e11",
 	"theme_color": "#9d5062",
+	"lang": "en",
 	"icons": [
 		{
-			"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='rgb(20,20,24)'/><path d='M32 12l16 6v12c0 11-7 18-16 22-9-4-16-11-16-22V18z' fill='none' stroke='rgb(157,80,98)' stroke-width='4' stroke-linejoin='round'/></svg>",
+			"src": "/icons/crimson-desert-save-editor-32.png",
+			"sizes": "32x32",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/crimson-desert-save-editor-192.png",
 			"sizes": "192x192",
-			"type": "image/svg+xml"
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/crimson-desert-save-editor-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/crimson-desert-save-editor-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
 		}
 	]
 }

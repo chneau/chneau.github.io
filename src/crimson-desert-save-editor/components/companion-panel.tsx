@@ -293,7 +293,7 @@ export const CompanionPanel = (props: PanelProps) => {
 	const remaining = remainingWorkers(summary?.roboWorkers ?? 0, edits);
 	const queued = queuedWorkers(edits);
 	return (
-		<Stack component="main" gap="lg" p="md" style={{ flex: 1 }}>
+		<Stack component="section" gap="lg" p="md" style={{ flex: 1 }}>
 			{(error || summary?.error) && (
 				<Alert
 					color="red"

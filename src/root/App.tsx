@@ -1,41 +1,70 @@
 import {
-	Badge,
 	Box,
-	Card,
+	Button,
+	CloseButton,
 	type MantineColorsTuple,
 	MantineProvider,
-	Stack,
 	Text,
+	TextInput,
 	Title,
 } from "@mantine/core";
-import { ArrowRight, Keyboard, Moon, Rocket, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import Fuse from "fuse.js";
 import {
+	Clock,
+	Command,
+	Keyboard,
+	Moon,
+	Rocket,
+	Search,
+	Shield,
+	Shuffle,
+	Sun,
+	X,
+} from "lucide-react";
+import {
+	type KeyboardEvent as ReactKeyboardEvent,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import {
+	APP_CATEGORIES,
 	APP_SWITCH_SHORTCUTS,
 	APPS,
+	AppCard,
 	type AppEntry,
 	AppHeader,
 	AppSwitcher,
 	Brand,
-	type Command,
 	CommandPalette,
 	CommandPaletteButton,
 	createAppTheme,
+	EmptyState,
 	Footer,
+	getAnalyticsConsent,
 	HeaderAction,
+	type Command as PaletteCommand,
+	ROOT_THEME_KEY,
 	SchemeToggle,
 	ShortcutsHelp,
 	ShortcutsHelpButton,
 	SkipLink,
+	Stat,
+	StatusDot,
+	setAnalyticsConsent,
+	track,
 	useCommandPalette,
+	usePinnedApps,
+	useRecents,
 	useShortcutsHelp,
+	useThemeMode,
 } from "../shared";
 
 declare const BUILD_DATE: string;
 
-type AppItem = AppEntry;
-
-/** A blue accent (#1677ff), expanded to Mantine's 10-shade tuple (main shade at index 6). */
+/** A blue accent (#1677ff), expanded to Mantine's 10-shade tuple (shade 6). */
 const brand: MantineColorsTuple = [
 	"#e6f4ff",
 	"#bae0ff",
@@ -70,189 +99,189 @@ const GithubIcon = ({ size = 18 }: { size?: number }) => (
 	</svg>
 );
 
-const AppCard = ({ item }: { item: AppItem }) => {
-	const [hovered, setHovered] = useState(false);
-	const Icon = item.icon;
+const GREETINGS = ["Good morning", "Good afternoon", "Good evening"] as const;
 
-	return (
-		<a
-			href={item.href}
-			style={{
-				textDecoration: "none",
-				display: "block",
-				borderRadius: 8,
-			}}
-		>
-			<Card
-				withBorder
-				onMouseEnter={() => setHovered(true)}
-				onMouseLeave={() => setHovered(false)}
-				style={{
-					transition:
-						"transform 0.3s var(--app-ease), box-shadow 0.3s var(--app-ease), border-color 0.3s ease, background-color 0.3s ease",
-					transform: hovered ? "translateY(-3px)" : "none",
-					boxShadow: hovered ? "var(--app-shadow-lg)" : undefined,
-					background: "var(--app-surface)",
-					borderColor: hovered
-						? "var(--mantine-primary-color-filled)"
-						: "var(--app-border)",
-				}}
-			>
-				<div
-					style={{
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "space-between",
-						gap: 16,
-					}}
-				>
-					<div
-						style={{
-							display: "flex",
-							alignItems: "flex-start",
-							gap: 16,
-							flex: 1,
-							minWidth: 0,
-						}}
-					>
-						<span
-							style={{
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-								width: 40,
-								height: 40,
-								borderRadius: 10,
-								flexShrink: 0,
-								marginTop: 2,
-								color: "var(--mantine-primary-color-filled)",
-								background: "var(--mantine-primary-color-light)",
-							}}
-						>
-							<Icon size={26} strokeWidth={1.5} />
-						</span>
-						<div style={{ flex: 1, minWidth: 0 }}>
-							<div
-								style={{
-									display: "flex",
-									alignItems: "center",
-									gap: 8,
-									flexWrap: "wrap",
-									marginBottom: 4,
-								}}
-							>
-								<Text fw={600} style={{ fontSize: "1.05rem" }}>
-									{item.title}
-								</Text>
-								<Badge
-									variant="light"
-									color={item.tagColor}
-									tt="none"
-									fw="normal"
-									style={{ margin: 0, fontSize: "0.75rem", borderRadius: 4 }}
-								>
-									{item.tag}
-								</Badge>
-							</div>
-							<Text
-								c="dimmed"
-								style={{ margin: 0, fontSize: "0.9rem", lineHeight: 1.5 }}
-							>
-								{item.description}
-							</Text>
-						</div>
-					</div>
-					<div
-						style={{
-							display: "flex",
-							flexDirection: "column",
-							alignItems: "flex-end",
-							gap: 6,
-							flexShrink: 0,
-						}}
-					>
-						<ArrowRight
-							size={18}
-							strokeWidth={1.5}
-							style={{
-								color: hovered
-									? "var(--mantine-primary-color-filled)"
-									: "var(--app-text-faint)",
-								transform: hovered ? "translateX(4px)" : "none",
-								transition: "transform 0.25s var(--app-ease), color 0.25s ease",
-							}}
-						/>
-						<kbd
-							className="app-kbd"
-							title={item.shortcutKey}
-							aria-label={item.shortcutKey}
-						>
-							{item.hotkey}
-						</kbd>
-					</div>
-				</div>
-			</Card>
-		</a>
-	);
+const greetingFor = (date: Date) => {
+	const hour = date.getHours();
+	if (hour < 12) return GREETINGS[0];
+	if (hour < 18) return GREETINGS[1];
+	return GREETINGS[2];
+};
+
+const FUSE_OPTIONS: ConstructorParameters<typeof Fuse<AppEntry>>[1] = {
+	keys: [
+		{ name: "title", weight: 2 },
+		{ name: "tag", weight: 1.4 },
+		{ name: "category", weight: 1 },
+		{ name: "description", weight: 1 },
+	],
+	threshold: 0.4,
+	ignoreLocation: true,
 };
 
 export const App = () => {
 	const shortcuts = useShortcutsHelp();
 	const palette = useCommandPalette();
-	const [darkMode, setDarkMode] = useState<boolean>(() => {
-		try {
-			const saved = localStorage.getItem("root_dark_mode");
-			if (saved !== null) {
-				return saved === "true";
-			}
-		} catch {
-			// Ignore storage access errors (private mode, blocked cookies, etc.).
-		}
-		return window.matchMedia("(prefers-color-scheme: dark)").matches;
-	});
+	const theme = useThemeMode(ROOT_THEME_KEY);
+	const { recents, visit, clear: clearRecents } = useRecents();
+	const { pinned, toggle: togglePin, isPinned } = usePinnedApps();
 
-	useEffect(() => {
-		try {
-			localStorage.setItem("root_dark_mode", String(darkMode));
-		} catch {
-			// Ignore storage access errors.
-		}
-	}, [darkMode]);
+	const [analyticsOn, setAnalyticsOn] = useState(
+		() => getAnalyticsConsent() !== "denied",
+	);
+	const toggleAnalytics = () => {
+		const next = !analyticsOn;
+		setAnalyticsConsent(next);
+		setAnalyticsOn(next);
+	};
+	const handleVisit = useCallback(
+		(href: string) => {
+			visit(href);
+			track("app_open", { href });
+		},
+		[visit],
+	);
 
-	// Global keyboard navigation: 1–6 to launch apps, T for theme
+	const [query, setQuery] = useState("");
+	const [category, setCategory] = useState<string>("All");
+	const [now, setNow] = useState(() => new Date());
+	const searchRef = useRef<HTMLInputElement>(null);
+
+	// Keep the greeting and clock current without re-rendering every second.
 	useEffect(() => {
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) {
+		const timer = setInterval(() => setNow(new Date()), 30_000);
+		return () => clearInterval(timer);
+	}, []);
+
+	const fuse = useMemo(() => new Fuse(APPS, FUSE_OPTIONS), []);
+
+	const visitedAt = useMemo(
+		() => new Map(recents.map((entry) => [entry.href, entry.at])),
+		[recents],
+	);
+
+	const filtered = useMemo(() => {
+		const byCategory =
+			category === "All"
+				? APPS
+				: APPS.filter((app) => app.category === category);
+		const trimmed = query.trim();
+		return trimmed
+			? fuse
+					.search(trimmed)
+					.map((result) => result.item)
+					.filter((app) => byCategory.includes(app))
+			: byCategory;
+	}, [category, fuse, query]);
+
+	const isSearching = query.trim().length > 0 || category !== "All";
+	const pinnedApps = useMemo(
+		() => APPS.filter((app) => pinned.includes(app.href)),
+		[pinned],
+	);
+	const recentApps = useMemo(
+		() =>
+			recents
+				.map((entry) => APPS.find((app) => app.href === entry.href))
+				.filter((app): app is AppEntry => Boolean(app)),
+		[recents],
+	);
+
+	const openRandom = () => {
+		const app = APPS[Math.floor(Math.random() * APPS.length)];
+		if (!app) return;
+		handleVisit(app.href);
+		window.location.href = app.href;
+	};
+
+	// Global shortcuts: digits launch apps, T toggles theme, / focuses search.
+	const themeRef = useRef(theme);
+	themeRef.current = theme;
+	useEffect(() => {
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.metaKey || event.ctrlKey || event.altKey || event.repeat)
 				return;
-			}
+			const target = event.target;
 			if (
-				e.target instanceof HTMLInputElement ||
-				e.target instanceof HTMLTextAreaElement
+				target instanceof HTMLInputElement ||
+				target instanceof HTMLTextAreaElement ||
+				(target instanceof HTMLElement && target.isContentEditable)
 			) {
 				return;
 			}
-			if (e.target instanceof HTMLElement && e.target.isContentEditable) {
+			if (event.key === "/") {
+				event.preventDefault();
+				searchRef.current?.focus();
 				return;
 			}
-			const targetApp = APPS.find((app) => app.hotkey === e.key);
+			const targetApp = APPS.find((app) => app.hotkey === event.key);
 			if (targetApp) {
+				handleVisit(targetApp.href);
 				window.location.href = targetApp.href;
-			} else if (e.key.toLowerCase() === "t") {
-				setDarkMode((prev) => !prev);
+			} else if (event.key.toLowerCase() === "t") {
+				themeRef.current.toggle();
 			}
 		};
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, []);
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [handleVisit]);
 
-	const commands: Command[] = [
+	/** Arrow-key roving focus across the visible card grid. */
+	const onGridKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+		const keys = [
+			"ArrowRight",
+			"ArrowLeft",
+			"ArrowDown",
+			"ArrowUp",
+			"Home",
+			"End",
+		];
+		if (!keys.includes(event.key)) return;
+		const links = Array.from(
+			event.currentTarget.querySelectorAll<HTMLAnchorElement>(
+				".app-card__link",
+			),
+		);
+		const index = links.indexOf(document.activeElement as HTMLAnchorElement);
+		if (index === -1) return;
+		event.preventDefault();
+		const last = links.length - 1;
+		let next = index;
+		if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+			next = index === last ? 0 : index + 1;
+		} else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+			next = index === 0 ? last : index - 1;
+		} else if (event.key === "Home") {
+			next = 0;
+		} else if (event.key === "End") {
+			next = last;
+		}
+		links[next]?.focus();
+	};
+
+	const commands: PaletteCommand[] = [
+		{
+			id: "focus-search",
+			label: "Search apps",
+			hint: "/",
+			keywords: "find filter jump",
+			icon: <Search size={16} />,
+			run: () => searchRef.current?.focus(),
+		},
+		{
+			id: "surprise",
+			label: "Surprise me — open a random app",
+			keywords: "random shuffle discover",
+			icon: <Shuffle size={16} />,
+			run: openRandom,
+		},
 		{
 			id: "toggle-theme",
-			label: "Toggle light / dark theme",
+			label: theme.dark ? "Switch to light theme" : "Switch to dark theme",
 			hint: "T",
 			keywords: "theme dark light mode appearance",
-			icon: darkMode ? <Sun size={16} /> : <Moon size={16} />,
-			run: () => setDarkMode((value) => !value),
+			icon: theme.dark ? <Sun size={16} /> : <Moon size={16} />,
+			run: () => theme.toggle(),
 		},
 		{
 			id: "keyboard-shortcuts",
@@ -262,16 +291,57 @@ export const App = () => {
 			icon: <Keyboard size={16} />,
 			run: () => shortcuts.open(),
 		},
+		{
+			id: "github",
+			label: "Open GitHub profile",
+			keywords: "source code repository",
+			icon: <GithubIcon size={16} />,
+			run: () =>
+				window.open("https://github.com/chneau", "_blank", "noreferrer"),
+		},
+		{
+			id: "analytics",
+			label: analyticsOn ? "Turn analytics off" : "Turn analytics on",
+			keywords: "privacy consent tracking telemetry cookies",
+			icon: <Shield size={16} />,
+			run: toggleAnalytics,
+		},
 	];
+	if (recents.length > 0) {
+		commands.push({
+			id: "clear-recents",
+			label: "Clear recently opened",
+			keywords: "history reset recents",
+			icon: <X size={16} />,
+			run: clearRecents,
+		});
+	}
+
+	const renderGrid = (items: AppEntry[]) => (
+		// biome-ignore lint/a11y/noStaticElementInteractions: keyboard roving focus over the card links (links stay focusable; this only adds arrow-key movement)
+		<div className="app-grid" onKeyDown={onGridKeyDown}>
+			{items.map((item, index) => (
+				<AppCard
+					key={item.href}
+					item={item}
+					index={index}
+					pinned={isPinned(item.href)}
+					lastVisitedAt={visitedAt.get(item.href)}
+					onTogglePin={togglePin}
+					onVisit={handleVisit}
+				/>
+			))}
+		</div>
+	);
 
 	return (
 		<MantineProvider
 			theme={appTheme}
-			forceColorScheme={darkMode ? "dark" : "light"}
+			forceColorScheme={theme.dark ? "dark" : "light"}
 		>
 			<Box
 				style={{
-					minHeight: "100vh",
+					minHeight: "100dvh",
 					display: "flex",
 					flexDirection: "column",
 					background: "var(--app-bg)",
@@ -302,41 +372,206 @@ export const App = () => {
 								expanded={shortcuts.opened}
 							/>
 							<CommandPaletteButton onClick={palette.open} />
-							<SchemeToggle
-								dark={darkMode}
-								onToggle={() => setDarkMode((value) => !value)}
-							/>
+							<SchemeToggle dark={theme.dark} onToggle={theme.toggle} />
 						</>
 					}
 				/>
 
-				<Box
-					component="main"
-					id="main"
-					style={{
-						flex: 1,
-						display: "flex",
-						justifyContent: "center",
-						alignItems: "center",
-						padding: "48px 24px",
-					}}
-				>
-					<div style={{ maxWidth: 640, width: "100%" }}>
-						<Stack gap="lg" style={{ width: "100%" }}>
-							<div style={{ textAlign: "center" }}>
-								<Title order={1}>Welcome</Title>
+				<Box component="main" id="main" tabIndex={-1} style={{ flex: 1 }}>
+					<div className="app-page">
+						<section className="app-hero">
+							<span className="app-hero__eyebrow">
+								<StatusDot label="All systems client-side" />
+								{greetingFor(now)} ·{" "}
+								{now.toLocaleDateString(undefined, {
+									weekday: "long",
+									day: "numeric",
+									month: "long",
+								})}
+							</span>
+							<Title order={1}>Small tools, thoughtfully built.</Title>
+							<Text className="app-hero__lede">
+								A collection of interactive web apps, data visualisations and
+								client-side tools. Everything runs in your browser — nothing is
+								uploaded.
+							</Text>
+							<div className="app-hero__stats">
+								<Stat label="Apps" value={APPS.length} hint="and counting" />
+								<Stat
+									label="Privacy"
+									value="100% client-side"
+									icon={<Command size={13} />}
+								/>
+								<Stat
+									label="Last build"
+									value={BUILD_DATE}
+									icon={<Clock size={13} />}
+								/>
 							</div>
+						</section>
 
-							{APPS.map((item) => (
-								<AppCard key={item.href} item={item} />
-							))}
-						</Stack>
+						<div className="app-toolbar">
+							<TextInput
+								ref={searchRef}
+								className="app-toolbar__search"
+								value={query}
+								onChange={(event) => setQuery(event.currentTarget.value)}
+								onKeyDown={(event) => {
+									if (event.key === "Escape") {
+										event.preventDefault();
+										setQuery("");
+										event.currentTarget.blur();
+									} else if (event.key === "Enter" && filtered[0]) {
+										event.preventDefault();
+										handleVisit(filtered[0].href);
+										window.location.href = filtered[0].href;
+									}
+								}}
+								placeholder="Search apps, tags and categories…"
+								aria-label="Search apps"
+								leftSection={<Search size={16} />}
+								rightSection={
+									query ? (
+										<CloseButton
+											size="sm"
+											aria-label="Clear search"
+											onClick={() => setQuery("")}
+										/>
+									) : (
+										<kbd className="app-kbd">/</kbd>
+									)
+								}
+								rightSectionPointerEvents={query ? "auto" : "none"}
+								size="md"
+							/>
+							{/* biome-ignore lint/a11y/useSemanticElements: a labelled group of toggle buttons is a valid role="group" composition */}
+							<div
+								className="app-chips"
+								role="group"
+								aria-label="Filter by category"
+							>
+								<button
+									type="button"
+									className={`app-chip${category === "All" ? " app-chip--on" : ""}`}
+									aria-pressed={category === "All"}
+									onClick={() => setCategory("All")}
+								>
+									All
+								</button>
+								{APP_CATEGORIES.map((name) => (
+									<button
+										key={name}
+										type="button"
+										className={`app-chip${category === name ? " app-chip--on" : ""}`}
+										aria-pressed={category === name}
+										onClick={() => setCategory(name)}
+									>
+										{name}
+									</button>
+								))}
+							</div>
+							<Button
+								variant="light"
+								leftSection={<Shuffle size={15} />}
+								onClick={openRandom}
+								visibleFrom="sm"
+							>
+								Surprise me
+							</Button>
+						</div>
+
+						{isSearching ? (
+							<>
+								<h2 className="app-section-title">
+									Results
+									<span className="app-section-title__count">
+										{filtered.length}
+									</span>
+								</h2>
+								{filtered.length > 0 ? (
+									renderGrid(filtered)
+								) : (
+									<EmptyState
+										icon={<Search size={22} />}
+										title="No apps match that"
+										body="Try a shorter query, or clear the filters to see everything."
+										action={
+											<Button
+												variant="light"
+												onClick={() => {
+													setQuery("");
+													setCategory("All");
+												}}
+											>
+												Reset filters
+											</Button>
+										}
+									/>
+								)}
+							</>
+						) : (
+							<>
+								{pinnedApps.length > 0 ? (
+									<>
+										<h2 className="app-section-title">
+											Pinned
+											<span className="app-section-title__count">
+												{pinnedApps.length}
+											</span>
+										</h2>
+										{renderGrid(pinnedApps)}
+									</>
+								) : null}
+
+								{recentApps.length > 0 ? (
+									<>
+										<h2 className="app-section-title">Recently opened</h2>
+										<div className="app-recents">
+											{recentApps.map((app) => {
+												const Icon = app.icon;
+												return (
+													<a
+														key={app.href}
+														className="app-recent-chip"
+														href={app.href}
+														onClick={() => handleVisit(app.href)}
+													>
+														<Icon size={14} />
+														{app.title}
+													</a>
+												);
+											})}
+										</div>
+									</>
+								) : null}
+
+								<h2 className="app-section-title">
+									All apps
+									<span className="app-section-title__count">
+										{APPS.length}
+									</span>
+								</h2>
+								{renderGrid(APPS)}
+							</>
+						)}
 					</div>
 				</Box>
 
 				<Footer
-					left={`chneau © ${new Date().getFullYear()}`}
-					right={`Built ${BUILD_DATE}`}
+					left={`chneau © ${now.getFullYear()}`}
+					right={
+						<>
+							<button
+								type="button"
+								className="app-footer__consent"
+								aria-pressed={analyticsOn}
+								onClick={toggleAnalytics}
+							>
+								Analytics {analyticsOn ? "on" : "off"}
+							</button>
+							<span>Built {BUILD_DATE}</span>
+						</>
+					}
 				/>
 			</Box>
 
@@ -344,7 +579,11 @@ export const App = () => {
 				opened={shortcuts.opened}
 				onClose={shortcuts.close}
 				groups={[]}
-				globalShortcuts={APP_SWITCH_SHORTCUTS}
+				globalShortcuts={[
+					...APP_SWITCH_SHORTCUTS,
+					{ keys: ["/"], description: "Focus the app search" },
+					{ keys: ["Enter"], description: "Open the first search result" },
+				]}
 			/>
 
 			<CommandPalette

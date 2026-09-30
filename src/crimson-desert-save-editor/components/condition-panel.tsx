@@ -153,7 +153,7 @@ export const ConditionPanel = ({
 
 	if (description?.error) {
 		return (
-			<Stack component="main" gap="lg" p="md" style={{ flex: 1 }}>
+			<Stack component="section" gap="lg" p="md" style={{ flex: 1 }}>
 				<Alert color="yellow" title="Item wear editing unavailable">
 					{description.error}
 				</Alert>
@@ -165,7 +165,7 @@ export const ConditionPanel = ({
 
 	return (
 		<Stack
-			component="main"
+			component="section"
 			gap="lg"
 			p="md"
 			style={{ flex: 1, minHeight: 0, overflow: "auto" }}

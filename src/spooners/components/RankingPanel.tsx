@@ -8,6 +8,7 @@ import {
 	Stack,
 	Text,
 	Tooltip,
+	UnstyledButton,
 } from "@mantine/core";
 import { Ban, Info } from "lucide-react";
 import { useState } from "react";
@@ -77,136 +78,139 @@ const Row = ({
 	const change = changeText(venue);
 	const temporarilyClosed = isTemporarilyClosed(venue.status);
 	return (
-		<Box
-			role="button"
-			tabIndex={0}
-			onClick={() => onFocus(venue)}
-			onKeyDown={(event) => {
-				if (event.key === "Enter" || event.key === " ") {
-					event.preventDefault();
-					onFocus(venue);
-				}
-			}}
-			style={{
-				display: "block",
-				width: "100%",
-				cursor: "pointer",
-				padding: "6px 8px",
-				borderRadius: 6,
-				background: active ? "var(--mantine-color-default-hover)" : undefined,
-			}}
-		>
-			<Group justify="space-between" gap={8} wrap="nowrap" align="baseline">
-				<Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
-					<Text size="xs" c="dimmed" w={16} ta="right">
-						{rank}
-					</Text>
-					<VenueImage
-						src={venue.images[0]}
-						alt={venue.name}
-						width={32}
-						height={32}
-					/>
-					<Box style={{ minWidth: 0 }}>
-						<Group gap={6} wrap="nowrap" align="center" style={{ minWidth: 0 }}>
-							<StatusDot
-								on={venue.isOpenNow}
-								label={venue.isOpenNow ? "Open now" : "Closed now"}
-							/>
-							<Text size="xs" fw={600} c={venue.isOpenNow ? "teal" : "red"}>
-								{venue.isOpenNow ? "Open" : "Closed"}
-							</Text>
-							<Text size="sm" lineClamp={1}>
-								{venue.name}
-							</Text>
-							{venue.spot !== "high-street" ? (
-								<Badge size="xs" variant="light" color="grape">
-									<SpotLabel spot={venue.spot} />
-								</Badge>
-							) : null}
-							{temporarilyClosed ? (
-								<Badge
-									size="xs"
-									variant="light"
-									color="red"
-									leftSection={<Ban size={11} />}
-								>
-									{venue.status?.replace("_", " ")}
-								</Badge>
-							) : null}
-							{venue.missing.length ? (
-								<Badge size="xs" variant="light" color="orange">
-									partial
-								</Badge>
-							) : null}
-						</Group>
-						<Text size="xs" c="dimmed" lineClamp={1}>
-							{[venue.town, venue.postcode].filter(Boolean).join(", ")}
-							{venue.distance != null ? ` · ${miles(venue.distance)}` : ""}
-							{venue.canOrder ? "" : " · no ordering"}
-							{venue.missing.length
-								? ` · missing ${venue.missing.join(", ")}`
-								: ""}
-							{venue.metricValue != null && venue.metricKind && !value
-								? ` · ${metricText(
-										{ kind: venue.metricKind, value: venue.metricValue },
-										currency,
-									)}`
-								: ""}
-							{change
-								? ` · was ${currencySymbol(currency)}${amount(
-										venue.previousPrice ?? 0,
-										currency,
-									)}, ${change}`
-								: ""}
+		<Box style={{ position: "relative" }}>
+			<UnstyledButton
+				onClick={() => onFocus(venue)}
+				style={{
+					display: "block",
+					width: "100%",
+					cursor: "pointer",
+					textAlign: "left",
+					padding: "6px 30px 6px 8px",
+					borderRadius: 6,
+					background: active ? "var(--mantine-color-default-hover)" : undefined,
+				}}
+			>
+				<Group justify="space-between" gap={8} wrap="nowrap" align="baseline">
+					<Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
+						<Text size="xs" c="dimmed" w={16} ta="right">
+							{rank}
 						</Text>
-					</Box>
-				</Group>
-				<Group gap={4} wrap="nowrap" align="baseline">
-					{value && venue.metricKind && venue.metricValue != null ? (
-						<Text size="sm" fw={700}>
-							{metricText(
-								{ kind: venue.metricKind, value: venue.metricValue },
-								currency,
-							)}
-						</Text>
-					) : null}
-					<Text
-						size="xs"
-						fw={600}
-						style={{ color: priceColor(venue.price, scale) }}
-					>
-						{currencySymbol(currency)}
-					</Text>
-					<Text
-						size="sm"
-						fw={700}
-						style={{ color: priceColor(venue.price, scale) }}
-					>
-						{amount(venue.price, currency)}
-					</Text>
-					<Tooltip label="Pub details">
-						<ActionIcon
-							size="sm"
-							variant="subtle"
-							aria-label={`Details for ${venue.name}`}
-							onClick={(event) => {
-								event.stopPropagation();
-								onDetails(venue);
-							}}
+						<VenueImage
+							src={venue.images[0]}
+							alt={venue.name}
+							width={32}
+							height={32}
+						/>
+						<Box style={{ minWidth: 0 }}>
+							<Group
+								gap={6}
+								wrap="nowrap"
+								align="center"
+								style={{ minWidth: 0 }}
+							>
+								<StatusDot
+									on={venue.isOpenNow}
+									label={venue.isOpenNow ? "Open now" : "Closed now"}
+								/>
+								<Text size="xs" fw={600} c={venue.isOpenNow ? "teal" : "red"}>
+									{venue.isOpenNow ? "Open" : "Closed"}
+								</Text>
+								<Text size="sm" lineClamp={1}>
+									{venue.name}
+								</Text>
+								{venue.spot !== "high-street" ? (
+									<Badge size="xs" variant="light" color="grape">
+										<SpotLabel spot={venue.spot} />
+									</Badge>
+								) : null}
+								{temporarilyClosed ? (
+									<Badge
+										size="xs"
+										variant="light"
+										color="red"
+										leftSection={<Ban size={11} />}
+									>
+										{venue.status?.replace("_", " ")}
+									</Badge>
+								) : null}
+								{venue.missing.length ? (
+									<Badge size="xs" variant="light" color="orange">
+										partial
+									</Badge>
+								) : null}
+							</Group>
+							<Text size="xs" c="dimmed" lineClamp={1}>
+								{[venue.town, venue.postcode].filter(Boolean).join(", ")}
+								{venue.distance != null ? ` · ${miles(venue.distance)}` : ""}
+								{venue.canOrder ? "" : " · no ordering"}
+								{venue.missing.length
+									? ` · missing ${venue.missing.join(", ")}`
+									: ""}
+								{venue.metricValue != null && venue.metricKind && !value
+									? ` · ${metricText(
+											{ kind: venue.metricKind, value: venue.metricValue },
+											currency,
+										)}`
+									: ""}
+								{change
+									? ` · was ${currencySymbol(currency)}${amount(
+											venue.previousPrice ?? 0,
+											currency,
+										)}, ${change}`
+									: ""}
+							</Text>
+						</Box>
+					</Group>
+					<Group gap={4} wrap="nowrap" align="baseline">
+						{value && venue.metricKind && venue.metricValue != null ? (
+							<Text size="sm" fw={700}>
+								{metricText(
+									{ kind: venue.metricKind, value: venue.metricValue },
+									currency,
+								)}
+							</Text>
+						) : null}
+						<Text
+							size="xs"
+							fw={600}
+							style={{ color: priceColor(venue.price, scale) }}
 						>
-							<Info size={13} />
-						</ActionIcon>
-					</Tooltip>
+							{currencySymbol(currency)}
+						</Text>
+						<Text
+							size="sm"
+							fw={700}
+							style={{ color: priceColor(venue.price, scale) }}
+						>
+							{amount(venue.price, currency)}
+						</Text>
+					</Group>
 				</Group>
-			</Group>
-			<Progress
-				value={Math.max(3, normalize(venue.price, scale) * 100)}
-				color={priceColor(venue.price, scale)}
-				size={4}
-				mt={4}
-				radius="xl"
-			/>
+				<Progress
+					value={Math.max(3, normalize(venue.price, scale) * 100)}
+					color={priceColor(venue.price, scale)}
+					size={4}
+					mt={4}
+					radius="xl"
+				/>
+			</UnstyledButton>
+			<Tooltip label="Pub details">
+				<ActionIcon
+					size="sm"
+					variant="subtle"
+					aria-label={`Details for ${venue.name}`}
+					onClick={() => onDetails(venue)}
+					style={{
+						position: "absolute",
+						top: "50%",
+						right: 4,
+						transform: "translateY(-50%)",
+					}}
+				>
+					<Info size={13} />
+				</ActionIcon>
+			</Tooltip>
 		</Box>
 	);
 };

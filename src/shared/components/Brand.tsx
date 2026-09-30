@@ -29,5 +29,12 @@ export const Brand = ({ icon, title, subtitle, href, onClick }: BrandProps) => {
 			</a>
 		);
 	}
+	if (onClick) {
+		return (
+			<button type="button" className="app-brand" onClick={onClick}>
+				{inner}
+			</button>
+		);
+	}
 	return <span className="app-brand">{inner}</span>;
 };

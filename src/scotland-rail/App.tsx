@@ -14,7 +14,6 @@ import {
 	X,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { useSnapshot } from "valtio";
 import {
 	AppHeader,
 	AppSwitcher,
@@ -38,10 +37,11 @@ import { SettingsModal } from "./components/SettingsModal";
 import { SourcesModal } from "./components/SourcesModal";
 import { StatsPanel } from "./components/StatsPanel";
 import { CATEGORIES } from "./data/types";
+import { useThrottledSnapshots } from "./hooks";
 import {
-	derivedStore,
 	railActions,
 	railStore,
+	railUiStores,
 	recomputeActiveTrains,
 } from "./store";
 import { palette } from "./theme";
@@ -58,6 +58,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
 			{ keys: ["Shift", "←/→"], description: "Scrub in 15-minute steps" },
 			{ keys: ["↑", "↓"], description: "Increase / decrease playback speed" },
 			{ keys: ["M"], description: "Toggle ambient audio" },
+			{ keys: ["N", "P"], description: "Select the next / previous train" },
 			{
 				keys: ["Esc"],
 				description: "Close the open panel or deselect a train",
@@ -75,13 +76,18 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
 ];
 
 export const App = () => {
-	const snap = useSnapshot(railStore);
-	const derivedSnap = useSnapshot(derivedStore);
+	// Throttled snapshots: the store is written every animation frame, but the
+	// HUD only needs to re-render at ~15 Hz. ReplayCanvas keeps its own raw
+	// subscription so the map itself still animates at 60 fps.
+	const [snap, derivedSnap] = useThrottledSnapshots(railUiStores);
 	const { colorScheme, setColorScheme } = useMantineColorScheme();
 	const dark = colorScheme === "dark";
 	const shortcuts = useShortcutsHelp();
 	const commandPalette = useCommandPalette();
-	const shortcutsOpenRef = useRef(shortcuts.opened);
+	// Keep the always-bound keydown handler's view of the help dialog current
+	// without putting `shortcuts.close` (a fresh closure each render) in deps.
+	const shortcutsRef = useRef(shortcuts);
+	shortcutsRef.current = shortcuts;
 	const {
 		isInfoOpen,
 		isPlaying,
@@ -101,14 +107,11 @@ export const App = () => {
 	const categoryLabel =
 		selectedCategory !== "all" ? CATEGORIES[selectedCategory].label : "";
 
-	// Keep the Escape handler's view of the help dialog current without rebinding.
-	useEffect(() => {
-		shortcutsOpenRef.current = shortcuts.opened;
-	}, [shortcuts.opened]);
-
-	// Global Keyboard Shortcuts
+	// Global Keyboard Shortcuts. Bound once: the handler reads live state from
+	// the store and a ref, and ignores key auto-repeat and already-handled keys.
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.repeat || e.defaultPrevented) return;
 			const activeEl = document.activeElement;
 			const activeTag = activeEl?.tagName.toLowerCase();
 			// Let native controls handle their own keys (space/arrows/enter/Escape).
@@ -166,8 +169,8 @@ export const App = () => {
 				}
 				railActions.updateSetting("soundEffects", nextSound);
 			} else if (e.code === "Escape") {
-				if (shortcutsOpenRef.current) {
-					shortcuts.close();
+				if (shortcutsRef.current.opened) {
+					shortcutsRef.current.close();
 				} else if (railStore.isSettingsOpen) {
 					railActions.setIsSettingsOpen(false);
 				} else if (railStore.isInfoOpen) {
@@ -180,7 +183,7 @@ export const App = () => {
 
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [shortcuts.close]);
+	}, []);
 
 	// Animation frame loop directly updating store
 	useEffect(() => {

@@ -1,16 +1,39 @@
 {
+	"id": "/",
 	"name": "chneau.github.io",
 	"short_name": "chneau",
 	"description": "Personal hub and web apps by chneau.",
-	"start_url": ".",
+	"start_url": "/",
+	"scope": "/",
 	"display": "standalone",
+	"display_override": ["standalone", "minimal-ui"],
 	"background_color": "#09090b",
 	"theme_color": "#1677ff",
+	"lang": "en",
 	"icons": [
 		{
-			"src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>",
+			"src": "/icons/root-32.png",
+			"sizes": "32x32",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/root-192.png",
 			"sizes": "192x192",
-			"type": "image/svg+xml"
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/root-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/root-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
 		}
 	]
 }

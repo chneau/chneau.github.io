@@ -1,4 +1,5 @@
 import {
+	Alert,
 	Badge,
 	Box,
 	Burger,
@@ -27,6 +28,7 @@ import {
 	Plus,
 	Sun,
 	Trash2,
+	TriangleAlert,
 	Undo2,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -70,6 +72,7 @@ import {
 	itemCatalogTable,
 	itemKnowledgeTable,
 } from "@/lib/save-engine/data";
+import { describeError } from "@/lib/save-engine/errors";
 import { type SaveEngineEvent, SaveSession } from "@/lib/save-engine/session";
 import type { SkillEdit } from "@/lib/skills";
 import * as stagedList from "@/lib/staged-edit-list";
@@ -203,6 +206,9 @@ export const Home = () => {
 	}, [downloading]);
 	const [error, setError] = useState("");
 	const [discardModalOpen, setDiscardModalOpen] = useState(false);
+	const [replaceModalOpen, setReplaceModalOpen] = useState(false);
+	/** A file the user picked while staged edits still need confirmation. */
+	const pendingFileRef = useRef<File | null>(null);
 	const [reviewOpen, setReviewOpen] = useState(false);
 	const [stagedMenuOpen, setStagedMenuOpen] = useState(false);
 	const [activeStorage, setActiveStorage] = useState<number | null>(
@@ -236,6 +242,20 @@ export const Home = () => {
 		};
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [edits.length]);
+
+	// Staged edits only exist in this tab's memory: a reload or a closed tab
+	// loses them with no download. The browser's own confirmation is the only
+	// guard for those paths, so raise it whenever work is pending.
+	useEffect(() => {
+		if (edits.length === 0) return;
+		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+			event.preventDefault();
+			// Legacy browsers need a truthy returnValue for the prompt to show.
+			event.returnValue = "";
+		};
+		window.addEventListener("beforeunload", handleBeforeUnload);
+		return () => window.removeEventListener("beforeunload", handleBeforeUnload);
 	}, [edits.length]);
 
 	// Keep the active view (and, in the inventory, the selected storage) in the
@@ -352,10 +372,39 @@ export const Home = () => {
 			setError("");
 			setStatus("Reading file locally…");
 
-			const buffer = await file.arrayBuffer();
+			let buffer: ArrayBuffer;
+			try {
+				buffer = await file.arrayBuffer();
+			} catch (readError) {
+				setStatus("");
+				setError(
+					`The selected file could not be read: ${describeError(readError)}`,
+				);
+				return;
+			}
 			void session.parse(buffer, handleEngineEvent);
 		},
 		[handleEngineEvent, session],
+	);
+
+	/**
+	 * Ask for confirmation before a file pick replaces staged work.
+	 *
+	 * `parseFile` clears the staged list and the open session as soon as it
+	 * starts, so an unguarded pick would silently discard every staged change.
+	 * The file is held until the user confirms; cancelling leaves the current
+	 * save and its edits untouched.
+	 */
+	const requestParseFile = useCallback(
+		(file: File) => {
+			if (edits.length === 0) {
+				void parseFile(file);
+				return;
+			}
+			pendingFileRef.current = file;
+			setReplaceModalOpen(true);
+		},
+		[edits.length, parseFile],
 	);
 
 	// Staged edits are folded into the records the views display, so a change
@@ -660,6 +709,24 @@ export const Home = () => {
 				direction="column"
 				style={{ flex: 1, minWidth: 0, minHeight: 0 }}
 			>
+				{result ? (
+					// The visible brand is a span, so give each open save a real
+					// level-one heading for the panels' h2s to sit under. It is
+					// clipped, not removed, so assistive tech still announces it.
+					<Box
+						component="h1"
+						style={{
+							position: "absolute",
+							width: 1,
+							height: 1,
+							overflow: "hidden",
+							clip: "rect(0 0 0 0)",
+							whiteSpace: "nowrap",
+						}}
+					>
+						{pageTitle}
+					</Box>
+				) : null}
 				<AppHeader
 					staticPosition
 					brand={
@@ -809,6 +876,7 @@ export const Home = () => {
 					ref={inputRef}
 					type="file"
 					accept=".save"
+					aria-label="Open a Crimson Desert save file"
 					style={{
 						position: "absolute",
 						width: 1,
@@ -821,7 +889,7 @@ export const Home = () => {
 						const file = event.target.files?.[0];
 						// Clear the input so choosing the same file again still fires.
 						event.target.value = "";
-						if (file) void parseFile(file);
+						if (file) requestParseFile(file);
 					}}
 				/>
 
@@ -854,9 +922,8 @@ export const Home = () => {
 							aria-label="Save preparation progress"
 						/>
 						<Text mt="xs" size="xs" c="dimmed">
-							{elapsed}s elapsed. Large saves can take several minutes. Keep
-							this tab open; the download starts automatically when validation
-							finishes.
+							{elapsed}s elapsed. Large saves can take several minutes; keep
+							this tab open.
 						</Text>
 					</Box>
 				)}
@@ -867,10 +934,27 @@ export const Home = () => {
 						status={status}
 						error={error}
 						onOpenFile={() => inputRef.current?.click()}
-						onSelectFile={(file) => void parseFile(file)}
+						onSelectFile={(file) => requestParseFile(file)}
 					/>
 				) : (
 					<>
+						{result.skippedRecords > 0 && (
+							<Alert
+								color="yellow"
+								role="status"
+								icon={<TriangleAlert size={16} strokeWidth={2} />}
+								title={`${result.skippedRecords} inventory record${
+									result.skippedRecords === 1 ? "" : "s"
+								} could not be read`}
+								mx="md"
+								mt="md"
+								style={{ flexShrink: 0 }}
+							>
+								These records are withheld rather than shown with guessed
+								values, so the editor cannot change them. The rest of the save
+								is unaffected: {result.skippedDetails.join("; ")}.
+							</Alert>
+						)}
 						{view === "skills" ? (
 							<SkillsPanel
 								key="skills"
@@ -1085,6 +1169,47 @@ export const Home = () => {
 							}}
 						>
 							Discard all
+						</Button>
+					</Group>
+				</Stack>
+			</Modal>
+
+			<Modal
+				opened={replaceModalOpen}
+				onClose={() => {
+					pendingFileRef.current = null;
+					setReplaceModalOpen(false);
+				}}
+				title="Open another save?"
+				centered
+				size="sm"
+			>
+				<Stack gap="md">
+					<Text size="sm">
+						Opening a save replaces the current one and discards all{" "}
+						{edits.length} staged change{edits.length === 1 ? "" : "s"}.
+						Download the rebuilt save first if you want to keep them.
+					</Text>
+					<Group justify="flex-end" gap="sm">
+						<Button
+							variant="default"
+							onClick={() => {
+								pendingFileRef.current = null;
+								setReplaceModalOpen(false);
+							}}
+						>
+							Cancel
+						</Button>
+						<Button
+							color="red"
+							onClick={() => {
+								const file = pendingFileRef.current;
+								pendingFileRef.current = null;
+								setReplaceModalOpen(false);
+								if (file) void parseFile(file);
+							}}
+						>
+							Discard and open
 						</Button>
 					</Group>
 				</Stack>

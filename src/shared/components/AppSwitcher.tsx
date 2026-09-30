@@ -11,7 +11,7 @@ type AppSwitcherProps = {
 /** A dropdown in the navbar that jumps between every app. */
 export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 	const [open, setOpen] = useState(false);
-	const container = useRef<HTMLDivElement>(null);
+	const container = useRef<HTMLElement>(null);
 	const trigger = useRef<HTMLButtonElement | HTMLAnchorElement>(null);
 	const menu = useRef<HTMLDivElement>(null);
 	const menuId = useId();
@@ -68,7 +68,7 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 	};
 
 	return (
-		<div className="app-switcher" ref={container}>
+		<nav className="app-switcher" aria-label="Apps" ref={container}>
 			<HeaderAction
 				ref={trigger}
 				iconOnly
@@ -76,6 +76,7 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 				label="Switch app"
 				ariaHaspopup="menu"
 				ariaExpanded={open}
+				ariaControls={menuId}
 				icon={<LayoutGrid size={16} />}
 				onClick={() => setOpen((value) => !value)}
 			/>
@@ -115,6 +116,6 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 					})}
 				</div>
 			)}
-		</div>
+		</nav>
 	);
 };

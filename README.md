@@ -13,8 +13,28 @@ navigation.
 
 ### 🏠 [Dashboard](https://chneau.github.io/)
 
-The hub that links every app, with launch hotkeys (`1`–`6`), `T` to toggle the
-theme, and `?` for the shortcut reference.
+The hub that links every app, rebuilt around fast discovery and personalisation.
+
+- **Inline Search**: Press `/` to focus the search field; fuzzy matching
+  (Fuse.js) covers titles, tags, categories, and descriptions. `Enter` opens the
+  first result and `Esc` clears the query.
+- **Category Filters**: Chips filter the grid by app category (`All`, plus the
+  `Personal`, `Play`, and `Build` groups).
+- **Pinned Apps**: Pin or unpin any card to keep favourites in a dedicated
+  section at the top.
+- **Recently Opened**: The last few apps you visited appear in a compact chip
+  strip, persisted per browser.
+- **"Surprise me"**: A shuffle button (and command-palette action) that opens a
+  random app.
+- **Live Greeting & Clock**: A time-aware greeting with the current date, plus
+  app-count, privacy, and last-build stats.
+- **Shared `AppCard`**: One card component renders every grid — pinned, recent,
+  search results, and all apps — with roving arrow-key focus.
+- **Privacy Control**: A footer switch (and palette action) opts analytics in or
+  out at any time; Do Not Track and Global Privacy Control are honoured.
+
+Launch hotkeys (`1`–`6`), `T` to toggle the theme, and `?` for the shortcut
+reference all still work.
 
 ### 1. 📄 [Curriculum Vitae](https://chneau.github.io/cv/)
 
@@ -90,7 +110,12 @@ The shared tokens, components, and patterns behind every app on this site.
   [Fuse.js](https://www.fusejs.io/), [es-toolkit](https://es-toolkit.dev/)
 - **Shared design system**: `src/shared/` holds the tokens, theme factory,
   header/app-switcher, and reusable primitives (buttons, stats, empty states,
-  footer, keyboard-shortcut dialog, …)
+  footer, keyboard-shortcut dialog, the `AppCard` tile, …)
+- **Shared State Layer**: `src/shared/hooks/` provides `usePersistentState`
+  (localStorage-backed with cross-tab sync and SSR/blocked-storage fallbacks)
+  and `useThemeMode` + `initTheme` (light/dark/auto modes applied before the
+  first paint). The dashboard's recents and pinned apps (`useRecents`,
+  `usePinnedApps` in `src/shared/recent.ts`) are built on it.
 - **Code Quality**: [Biome](https://biomejs.dev/), [Oxlint](https://oxc.rs/),
   [Deno fmt](https://deno.land/), [TypeScript](https://www.typescriptlang.org/)
 
@@ -148,10 +173,19 @@ bun run deploy   # Builds and publishes to GitHub Pages (master branch)
 
 ## ⌨️ Keyboard Shortcuts
 
-Press `?` anywhere to see the shortcuts for the current app. Press `⌘/Ctrl + K`
-to open the command palette and jump to any app or run a quick action. Globally,
-`1`–`6` launch apps from the dashboard, `T` toggles the theme, and `Esc` closes
-the top panel or returns to the dashboard.
+Press `?` anywhere to see the shortcuts for the current app.
+
+| Shortcut | Action |
+| --- | --- |
+| `/` | Focus the dashboard search |
+| `Enter` | Open the first search result |
+| `1`–`6` | Launch an app from the dashboard |
+| `T` | Toggle light / dark theme |
+| `?` | Open the shortcut reference |
+| `⌘/Ctrl + K` | Open the command palette to jump to any app or run a quick action |
+
+`Esc` closes the command palette or shortcut dialog, or clears the dashboard
+search; arrow keys move focus across the dashboard card grid.
 
 ---
 
