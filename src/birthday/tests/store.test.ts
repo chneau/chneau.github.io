@@ -16,6 +16,7 @@ import {
 	recomputeBirthdays,
 	subscribeBirthdays,
 } from "../birthdays";
+import { WEATHER_CACHE_TTL } from "../wttr";
 
 /**
  * Tests for the search + persistence layer in `store.ts`.
@@ -104,7 +105,9 @@ const intervalCallbacks: (() => void)[] = [];
 const createDocument = () => ({
 	hidden: false,
 	addEventListener: (type: string, cb: () => void) => {
-		(documentListeners[type] ??= []).push(cb);
+		const existing = documentListeners[type] ?? [];
+		existing.push(cb);
+		documentListeners[type] = existing;
 	},
 	removeEventListener: (type: string, cb: () => void) => {
 		documentListeners[type] = (documentListeners[type] ?? []).filter(
@@ -427,24 +430,47 @@ describe("store / Filter.tsx shortcut chips", () => {
 		expect(sorted(await search("Gen Z"))).toEqual(sorted(expected));
 	});
 
-	test("BUG: the month chips match records from other months", async () => {
-		// `monthName` holds a 3-letter abbreviation, and `name`, `sign`,
-		// `birthgem` and `element` are short strings too, so a 3-character query
-		// under threshold 0.4 fuzzy-matches all of them ("apr" hits "Martin",
-		// "capricorn", "garnet", "earth"). This Month / Next Month therefore
-		// return a large part of the whole list.
-		const chips = chipQueries();
-		for (const query of [chips.thisMonth, chips.nextMonth]) {
-			const got = await search(query);
-			const expected = visible(birthdays.filter((x) => x.monthName === query));
+	test("a month chip matches exactly that month and nothing else", async () => {
+		// This replaces a test that asserted the OPPOSITE, documenting a real
+		// bug: the chips used to write a 3-letter month abbreviation into the
+		// free-text search, where Fuse's `threshold: 0.4` permits two bitap
+		// substitutions on a 3-character query. "apr" therefore matched
+		// "Martin", "capricorn" and "garnet", and April showed 24 of the 27
+		// visible people.
+		//
+		// Chips are exact facets now, so the contract is exactness: for every
+		// month, the facet must return that month's records and no others.
+		for (let month = 0; month < 12; month += 1) {
+			const { mod } = await loadStore();
+			mod.store.facets.month = month + 1;
+			mod.store.facets.monthDay = dayjs().format("YYYY-MM-DD");
+			await settle();
 
+			const expected = visible(
+				birthdays.filter((x) => x.monthName === monthNames[month]),
+			);
 			expect(expected.length).toBeGreaterThan(0);
-			for (const x of expected) expect(names(got)).toContain(x.name);
-
-			const wrong = got.filter((x) => x.monthName !== query);
-			expect(`${query} wrong=${wrong.length}`).not.toBe(`${query} wrong=0`);
-			expect(got.length).toBeGreaterThan(expected.length);
+			expect(names([...mod.dataStore.filtered])).toEqual(names(expected));
 		}
+	});
+
+	test("a month facet is not stale after midnight", async () => {
+		// `monthDay` is what stops "This month" silently pinning last month's
+		// number once the day rolls over.
+		const { mod } = await loadStore();
+		mod.store.facets.month = 8;
+		mod.store.facets.monthDay = dayjs().format("YYYY-MM-DD");
+		await settle();
+		expect(mod.dataStore.filtered.length).toBeGreaterThan(0);
+
+		mod.store.facets.monthDay = dayjs().subtract(1, "day").format("YYYY-MM-DD");
+		await settle();
+		// The facet was picked yesterday, so it is released and the full
+		// visible set comes back. No watcher is involved: `isMonthFacetActive`
+		// compares `monthDay` against the current day on every read, so simply
+		// mutating the field releases it.
+		expect(mod.isMonthFacetActive()).toBe(false);
+		expect(mod.dataStore.filtered.length).toBe(visible(birthdays).length);
 	});
 });
 
@@ -636,20 +662,40 @@ describe("store / getInitialState from localStorage", () => {
 	});
 
 	test("a valid weatherCache entry round-trips", async () => {
-		const entry = wttrEntry();
+		// A fresh timestamp: the cache is TTL-bounded on read, so the old
+		// `timestamp: 1` fixture (1970) is now correctly aged out at load.
+		const entry = wttrEntry(Date.now());
 		const { mod } = await loadStore(
 			JSON.stringify({ weatherCache: { Edinburgh: entry } }),
 		);
 		expect(Object.keys(mod.store.weatherCache)).toEqual(["Edinburgh"]);
-		expect(mod.store.weatherCache.Edinburgh?.timestamp).toBe(1);
+		expect(mod.store.weatherCache.Edinburgh?.timestamp).toBe(entry.timestamp);
 		expect(
 			mod.store.weatherCache.Edinburgh?.data.current_condition[0]?.temp_C,
 		).toBe(7);
 	});
+
+	test("an expired weatherCache entry is dropped on load, not on the whole store", async () => {
+		// The defect: one bad entry must not cost the theme, the filters and the
+		// saved locations. Only the cache entry goes.
+		const stale = wttrEntry(Date.now() - WEATHER_CACHE_TTL - 1000);
+		const { mod } = await loadStore(
+			JSON.stringify({
+				darkMode: false,
+				search: "kept",
+				weatherCache: { Edinburgh: stale, Madrid: wttrEntry(Date.now()) },
+			}),
+		);
+		expect(Object.keys(mod.store.weatherCache)).toEqual(["Madrid"]);
+		// the rest of the store survived
+		expect(mod.store.search).toBe("kept");
+		expect(mod.store.darkMode).toBe(false);
+		expect(mod.store.weatherLocations).toEqual(defaultLocations);
+	});
 });
 
 /** A minimal payload that satisfies `WttrResponseSchema`. */
-const wttrEntry = () => {
+const wttrEntry = (timestamp: number) => {
 	const value = (v: string) => ({ value: v });
 	const numeric = <T extends Record<string, unknown>>(base: T) =>
 		Object.fromEntries(Object.keys(base).map((k) => [k, k === "time" ? 0 : 1]));
@@ -720,7 +766,7 @@ const wttrEntry = () => {
 		winddir16Point: 0,
 	});
 	return {
-		timestamp: 1,
+		timestamp,
 		data: {
 			current_condition: [
 				{

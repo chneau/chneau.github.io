@@ -45,7 +45,13 @@ import {
 	recomputeActiveTrains,
 } from "./store";
 import { palette } from "./theme";
-import { formatTime } from "./utils";
+import {
+	formatTime,
+	MAX_REPLAY_TIME,
+	MIN_REPLAY_TIME,
+	resolveRailShortcut,
+	stepSpeed,
+} from "./utils";
 
 declare const BUILD_DATE: string;
 
@@ -132,52 +138,50 @@ export const App = () => {
 				return;
 			}
 
-			if (e.code === "Space") {
-				e.preventDefault();
-				railActions.togglePlay();
-			} else if (e.code === "ArrowLeft") {
-				e.preventDefault();
-				const step = e.shiftKey ? 15 : 5;
-				railStore.timeOffset = Math.max(300, railStore.timeOffset - step);
-				recomputeActiveTrains();
-			} else if (e.code === "ArrowRight") {
-				e.preventDefault();
-				const step = e.shiftKey ? 15 : 5;
-				railStore.timeOffset = Math.min(1440, railStore.timeOffset + step);
-				recomputeActiveTrains();
-			} else if (e.code === "ArrowUp") {
-				e.preventDefault();
-				const speeds = [0.5, 1, 2, 5, 15];
-				const currIdx = speeds.indexOf(railStore.speed);
-				if (currIdx < speeds.length - 1) {
-					railActions.setSpeed(speeds[currIdx + 1] ?? 1);
-				}
-			} else if (e.code === "ArrowDown") {
-				e.preventDefault();
-				const speeds = [0.5, 1, 2, 5, 15];
-				const currIdx = speeds.indexOf(railStore.speed);
-				if (currIdx > 0) {
-					railActions.setSpeed(speeds[currIdx - 1] ?? 1);
-				}
-			} else if (e.key === "m" || e.key === "M") {
-				e.preventDefault();
-				const nextSound = !railStore.settings.soundEffects;
-				if (nextSound) {
-					import("./engine/audio").then(({ railAudio }) =>
-						railAudio.unlockAudio(),
+			const shortcut = resolveRailShortcut(e);
+			if (!shortcut) return;
+
+			switch (shortcut.kind) {
+				case "toggle-play":
+					e.preventDefault();
+					railActions.togglePlay();
+					break;
+				case "scrub":
+					e.preventDefault();
+					// `setTimeOffset` clamps to the replay window, so holding an
+					// arrow key stops at the ends instead of leaving it.
+					railActions.setTimeOffset(
+						railStore.timeOffset + shortcut.deltaMinutes,
 					);
+					break;
+				case "speed": {
+					e.preventDefault();
+					const speed = stepSpeed(railStore.speed, shortcut.direction);
+					if (speed !== null) railActions.setSpeed(speed);
+					break;
 				}
-				railActions.updateSetting("soundEffects", nextSound);
-			} else if (e.code === "Escape") {
-				if (shortcutsRef.current.opened) {
-					shortcutsRef.current.close();
-				} else if (railStore.isSettingsOpen) {
-					railActions.setIsSettingsOpen(false);
-				} else if (railStore.isInfoOpen) {
-					railActions.setIsInfoOpen(false);
-				} else if (railStore.selectedService) {
-					railActions.setSelectedService(null);
+				case "toggle-sound": {
+					e.preventDefault();
+					const nextSound = !railStore.settings.soundEffects;
+					if (nextSound) {
+						import("./engine/audio").then(({ railAudio }) =>
+							railAudio.unlockAudio(),
+						);
+					}
+					railActions.updateSetting("soundEffects", nextSound);
+					break;
 				}
+				case "escape":
+					if (shortcutsRef.current.opened) {
+						shortcutsRef.current.close();
+					} else if (railStore.isSettingsOpen) {
+						railActions.setIsSettingsOpen(false);
+					} else if (railStore.isInfoOpen) {
+						railActions.setIsInfoOpen(false);
+					} else if (railStore.selectedService) {
+						railActions.setSelectedService(null);
+					}
+					break;
 			}
 		};
 
@@ -196,10 +200,13 @@ export const App = () => {
 			const deltaMs = timestamp - lastTimestamp;
 			lastTimestamp = timestamp;
 
-			// Advance time: speed 1x = 1 minute per real second
+			// Advance time: speed 1x = 1 minute per real second.
+			// Written straight to the store (not through `setTimeOffset`) so
+			// playback keeps sub-minute resolution; the window bound is still
+			// enforced here, and only here, by looping back to 05:00.
 			const minutesToAdd = (deltaMs / 1000) * speed;
 			let next = railStore.timeOffset + minutesToAdd;
-			if (next >= 1440) next = 300; // loop back to 05:00
+			if (next >= MAX_REPLAY_TIME) next = MIN_REPLAY_TIME;
 
 			railStore.timeOffset = next;
 			recomputeActiveTrains();

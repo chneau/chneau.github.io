@@ -36,11 +36,30 @@ const getStore = (key: string): Store => {
 	return store;
 };
 
+/**
+ * The raw storage handle, or `undefined` when there is no DOM or the browser
+ * refuses to hand one over (sandboxed iframes, blocked third-party storage).
+ * Touching the property itself can throw, hence the try.
+ */
 const storage = (): Storage | undefined => {
 	try {
 		return typeof window === "undefined" ? undefined : window.localStorage;
 	} catch {
 		return undefined;
+	}
+};
+
+/**
+ * `getItem` is itself allowed to throw — a browser that exposes
+ * `window.localStorage` can still reject reads when storage is disabled or the
+ * origin is opaque. Treat any failure as "nothing stored" and fall back to
+ * memory rather than letting it reach a render.
+ */
+const readItem = (key: string): string | null => {
+	try {
+		return storage()?.getItem(key) ?? null;
+	} catch {
+		return null;
 	}
 };
 
@@ -63,9 +82,9 @@ export const readPersisted = <T>(
 	const store = getStore(key);
 	if (store.value === UNINITIALIZED) {
 		if (options) store.options = options as PersistOptions<unknown>;
-		const raw = storage()?.getItem(key);
+		const raw = readItem(key);
 		let value: T = fallback;
-		if (raw != null) {
+		if (raw !== null) {
 			try {
 				value = deserialize(raw, options);
 			} catch {

@@ -9,7 +9,10 @@ import {
 import {
 	getCompatibilityScore,
 	getCompatibleElements,
+	getDuplicateRecords,
+	getSameNamedRecords,
 	getScoreColor,
+	isSameRecord,
 } from "../compatibility";
 
 /**
@@ -264,7 +267,7 @@ describe("milestones - birthday table", () => {
 		for (let age = 0; age <= 120; age++) {
 			for (const date of [onToday(age), justBefore(age)]) {
 				const b = only([{ name: "S", date, kind: BIRTHDAY_KIND }]);
-				const diff = b.milestoneStatus?.params?.["diff"];
+				const diff = b.milestoneStatus?.params?.diff;
 				if (diff !== undefined) expect(diff).toBeGreaterThan(0);
 			}
 		}
@@ -334,7 +337,7 @@ describe("milestones - wedding table", () => {
 		// 50 is in both tables. Same day, different kind.
 		const w = only([{ name: "W", date: onToday(50), kind: "💒" }]);
 		expect(w.milestone?.key).toBe("data.milestone.wedding");
-		expect(w.milestone?.params?.["material"]).toBe("gold");
+		expect(w.milestone?.params?.material).toBe("gold");
 
 		const g = only([{ name: "G", date: onToday(50), kind: "♂️" }]);
 		expect(g.milestone?.key).toBe("data.milestone.birthday");
@@ -365,7 +368,7 @@ describe("milestones - wedding table", () => {
 		for (let year = 0; year <= 80; year++) {
 			for (const date of [onToday(year), justBefore(year)]) {
 				const b = only([{ name: "W", date, kind: "💒" }]);
-				const diff = b.milestoneStatus?.params?.["diff"];
+				const diff = b.milestoneStatus?.params?.diff;
 				if (diff !== undefined) expect(diff).toBeGreaterThan(0);
 			}
 		}
@@ -377,11 +380,14 @@ describe("zodiac Element assignment", () => {
 		// `getSign` uses a 0-based month, so the declared points land on the
 		// conventional boundaries: aries 221 -> 21 March, capricorn 1122 -> 22 Dec.
 		//
-		// DEFECT (documented, not endorsed): 1-19 January resolves to
-		// *capricorn*. The table's trailing `{ point: 0, name: "capricorn" }`
-		// acts as a catch-all for every point below Aquarius' 20. See below.
-		{ date: "1990-01-01", sign: "capricorn", element: "earth" },
-		{ date: "1990-01-19", sign: "capricorn", element: "earth" },
+		// The table's trailing catch-all entry is `{ point: 0, name:
+		// "sagittarius" }`, not Capricorn: 1-19 January belongs to Sagittarius,
+		// which the table already covers from 22 November and must wrap back
+		// into January. Naming it Capricorn reported 19 days a year with the
+		// wrong sign AND the wrong element (earth instead of fire), and that
+		// element feeds straight into getCompatibilityScore.
+		{ date: "1990-01-01", sign: "sagittarius", element: "fire" },
+		{ date: "1990-01-19", sign: "sagittarius", element: "fire" },
 		{ date: "1990-01-20", sign: "aquarius", element: "air" },
 		{ date: "1990-02-19", sign: "pisces", element: "water" },
 		{ date: "1990-03-20", sign: "pisces", element: "water" },
@@ -406,21 +412,17 @@ describe("zodiac Element assignment", () => {
 		});
 	}
 
-	test("DEFECT: 1-19 January is reported as capricorn, not sagittarius", () => {
-		// The `signs` table's last entry is a duplicate `{ point: 0, name:
-		// "capricorn" }`. Because `getSign` returns the first entry with
-		// `point <= point`, every January date before Aquarius' 20 (points
-		// 1..19) falls through to that duplicate and is reported as Capricorn.
-		// The conventional answer for Jan 1-19 is Sagittarius, which the table
-		// covers from 22 November (point 1022) but never wraps around into
-		// January.
-		//
-		// Consequence: 19 days a year get the wrong sign AND the wrong element
-		// (earth instead of fire), which then feeds getCompatibilityScore.
+	test("1-19 January is reported as sagittarius, not capricorn", () => {
+		// Regression guard. The `signs` table's last entry used to be a
+		// duplicate `{ point: 0, name: "capricorn" }`. Because `getSign` returns
+		// the first entry with `point <= point`, every January date before
+		// Aquarius' 20 (points 1..19) fell through to that duplicate and was
+		// reported as Capricorn - the wrong sign and the wrong element, which
+		// then feeds getCompatibilityScore.
 		for (const day of [1, 5, 10, 19]) {
 			const date = `1990-01-${String(day).padStart(2, "0")}`;
 			const b = only([{ name: "J", date, kind: BIRTHDAY_KIND }]);
-			expect(`${date}:${b.sign}/${b.element}`).toBe(`${date}:capricorn/earth`);
+			expect(`${date}:${b.sign}/${b.element}`).toBe(`${date}:sagittarius/fire`);
 		}
 	});
 
@@ -429,7 +431,9 @@ describe("zodiac Element assignment", () => {
 		const elements = new Set<Element>();
 		for (let month = 1; month <= 12; month++) {
 			for (const day of [1, 10, 19, 20, 21, 22, 23, 24, 28]) {
-				const date = `1990-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+				const date = `1990-${String(month).padStart(2, "0")}-${String(
+					day,
+				).padStart(2, "0")}`;
 				const b = only([{ name: "Z", date, kind: BIRTHDAY_KIND }]);
 				seen.add(b.sign);
 				elements.add(b.element);
@@ -529,14 +533,16 @@ describe("getCompatibilityScore", () => {
 		expect(getCompatibilityScore(r.earth, r.air)).toBe(40);
 	});
 
-	test("a record compared with itself returns 100 via the name short-circuit", () => {
+	test("a record compared with itself returns 100", () => {
 		const r = four();
-		// Not 80: `a.name === b.name` wins before the element check.
+		// Not 80: identity wins before the element check.
 		expect(getCompatibilityScore(r.fire, r.fire)).toBe(100);
 	});
 
-	test("two distinct people sharing a name also return 100", () => {
-		// fire vs water should be 40, but the name check fires first.
+	test("two distinct people sharing a name are scored on their elements", () => {
+		// DEFECT (fixed): the identity check used to be `a.name === b.name`, so
+		// two different people called "Alex" scored 100 — a fabricated perfect
+		// match — even though fire vs water is the worst pairing (40).
 		const list = withRecords(
 			[
 				{ name: "Alex", date: "1990-03-21", kind: BIRTHDAY_KIND },
@@ -547,7 +553,9 @@ describe("getCompatibilityScore", () => {
 		expect(list.map((b) => b.element).sort()).toEqual(["fire", "water"]);
 		const [a, b] = list;
 		if (!a || !b) throw new Error("missing");
-		expect(getCompatibilityScore(a, b)).toBe(100);
+		expect(isSameRecord(a, b)).toBe(false);
+		expect(getCompatibilityScore(a, b)).toBe(40);
+		expect(getCompatibilityScore(b, a)).toBe(40);
 	});
 
 	test("name comparison is case-sensitive", () => {
@@ -560,7 +568,119 @@ describe("getCompatibilityScore", () => {
 		);
 		const [a, b] = list;
 		if (!a || !b) throw new Error("missing");
+		expect(isSameRecord(a, b)).toBe(false);
 		expect(getCompatibilityScore(a, b)).toBe(40);
+	});
+});
+
+describe("record identity", () => {
+	/**
+	 * Two same-named people on different dates, plus a same-name/same-date
+	 * duplicate. `recomputeBirthdays` re-sorts by upcoming birthday, so the
+	 * tests below select by (name, date) rather than by index.
+	 */
+	const twoAlexesAndADuplicate = (): Birthday[] =>
+		withRecords(
+			[
+				{ name: "Alex", date: "1990-03-21", kind: BIRTHDAY_KIND },
+				{ name: "Alex", date: "1990-10-23", kind: BIRTHDAY_KIND },
+				{ name: "Alex", date: "1990-03-21", kind: BIRTHDAY_KIND },
+				{ name: "Bo", date: "1990-05-21", kind: BIRTHDAY_KIND },
+			],
+			(l) => l,
+		);
+
+	const pick = (list: Birthday[], name: string, date: string): Birthday => {
+		const hit = list.find((b) => b.name === name && b.birthdayString === date);
+		if (!hit) throw new Error(`no record for ${name} ${date}`);
+		return hit;
+	};
+
+	const dates = (list: Birthday[]): string[] =>
+		list.map((b) => b.birthdayString).sort();
+
+	test("identity is the exact (name, birthdayString) pair", () => {
+		const list = twoAlexesAndADuplicate();
+		const aries = pick(list, "Alex", "1990-03-21");
+		// Same name, different date -> two people.
+		expect(isSameRecord(aries, pick(list, "Alex", "1990-10-23"))).toBe(false);
+		// Same name, same date -> the data model cannot tell them apart.
+		expect(isSameRecord(aries, pick(list, "Alex", "1990-03-21"))).toBe(true);
+		// Different name -> different people.
+		expect(isSameRecord(aries, pick(list, "Bo", "1990-05-21"))).toBe(false);
+		// Reflexive.
+		expect(isSameRecord(aries, aries)).toBe(true);
+	});
+
+	test("isSameRecord ignores kind", () => {
+		// A person's kind is a user-editable classification, not part of who
+		// they are: re-filing an entry must not fork their identity.
+		const [a, b] = withRecords(
+			[
+				{ name: "Alex", date: "1990-03-21", kind: "♀️" },
+				{ name: "Alex", date: "1990-03-21", kind: "💒" },
+			],
+			(l) => l,
+		);
+		if (!a || !b) throw new Error("missing");
+		expect(a.kind).not.toBe(b.kind);
+		expect(isSameRecord(a, b)).toBe(true);
+	});
+
+	test("a true duplicate row is not reported as a perfect match", () => {
+		// Two distinct rows sharing name AND date. The data model has no id,
+		// so this pair is ambiguous: one person entered twice, or two people
+		// the data does not distinguish. Neither 100 ("same person") nor 40
+		// ("incompatible") is supportable, so the pair falls through to the
+		// element matrix, which claims only what the rows literally share.
+		const list = withRecords(
+			[
+				{ name: "Alex", date: "1990-03-21", kind: BIRTHDAY_KIND },
+				{ name: "Alex", date: "1990-03-21", kind: BIRTHDAY_KIND },
+			],
+			(l) => l,
+		);
+		const [a, b] = list;
+		if (!a || !b) throw new Error("missing");
+		expect(a).not.toBe(b);
+		expect(isSameRecord(a, b)).toBe(true);
+		expect(getCompatibilityScore(a, b)).not.toBe(100);
+		expect(getCompatibilityScore(a, b)).toBe(80);
+		// Symmetric: the ambiguity does not depend on argument order.
+		expect(getCompatibilityScore(b, a)).toBe(getCompatibilityScore(a, b));
+	});
+
+	test("getSameNamedRecords finds the other people, not the record or its duplicates", () => {
+		const list = twoAlexesAndADuplicate();
+		const aries = pick(list, "Alex", "1990-03-21");
+		// The Scorpio "Alex" only: the record itself and the exact duplicate
+		// are excluded, otherwise the UI would call a row its own namesake.
+		expect(dates(getSameNamedRecords(list, aries))).toEqual(["1990-10-23"]);
+		// A uniquely-named record has no namesakes.
+		expect(getSameNamedRecords(list, pick(list, "Bo", "1990-05-21"))).toEqual(
+			[],
+		);
+	});
+
+	test("getDuplicateRecords finds rows indistinguishable from the record", () => {
+		const list = twoAlexesAndADuplicate();
+		const aries = pick(list, "Alex", "1990-03-21");
+		expect(dates(getDuplicateRecords(list, aries))).toEqual(["1990-03-21"]);
+		// The Scorpio "Alex" is a namesake, not a duplicate of anything.
+		expect(getDuplicateRecords(list, pick(list, "Alex", "1990-10-23"))).toEqual(
+			[],
+		);
+		expect(getDuplicateRecords(list, pick(list, "Bo", "1990-05-21"))).toEqual(
+			[],
+		);
+	});
+
+	test("getDuplicateRecords never reports the record as its own duplicate", () => {
+		for (const record of twoAlexesAndADuplicate()) {
+			expect(
+				getDuplicateRecords(twoAlexesAndADuplicate(), record),
+			).not.toContain(record);
+		}
 	});
 });
 

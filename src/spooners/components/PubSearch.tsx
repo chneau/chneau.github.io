@@ -39,7 +39,6 @@ export const PubSearch = ({ venues, onSelect, label }: Props) => {
 	const truncated = filtered.length > results.length;
 
 	// reset the highlight whenever the result set changes
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reset on any query change
 	useEffect(() => {
 		setHighlight(0);
 		if (viewportRef.current) {

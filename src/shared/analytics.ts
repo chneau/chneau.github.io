@@ -1,4 +1,4 @@
-import type { CaptureResult, PostHog } from "posthog-js";
+import type { CaptureResult, PostHog } from "posthog-js/dist/module.slim";
 
 /** Shared PostHog project key; the same across every app. */
 const POSTHOG_KEY = "phc_y32qC29aZS8xjNez6YBKH6r1EdaV6mQHDJd38j9Eiun";
@@ -9,8 +9,29 @@ const CONSENT_KEY = "analytics:consent";
 /** Cap on events buffered while the PostHog SDK is still loading. */
 const MAX_QUEUED_EVENTS = 20;
 
+/**
+ * PostHog hosts. The collector is self-hosted, so capture traffic never touches
+ * the default `us.i.posthog.com`; the UI host is only used by the toolbar, which
+ * we never load.
+ */
+const POSTHOG_API_HOST = "https://ph.celerum.online";
+const POSTHOG_UI_HOST = "https://eu.posthog.com";
+
 /** A stored consent decision, or `unset` when the visitor never chose. */
 export type AnalyticsConsent = "granted" | "denied" | "unset";
+
+/**
+ * Every app that reports events, so the six apps can be segmented instead of
+ * landing in one undifferentiated stream. Also sent as the `app` property.
+ */
+type AnalyticsApp =
+	| "root"
+	| "cv"
+	| "birthday"
+	| "scotland-rail"
+	| "spooners"
+	| "design"
+	| "crimson-desert-save-editor";
 
 /**
  * Flat, JSON-serialisable event properties. `null` / `undefined` values are
@@ -20,6 +41,9 @@ export type AnalyticsProperties = Record<
 	string,
 	string | number | boolean | null | undefined
 >;
+
+/** Listener signature for {@link onConsentChange}. */
+type AnalyticsConsentListener = (granted: boolean) => void;
 
 type QueuedEvent = {
 	event: string;
@@ -40,6 +64,12 @@ const env = import.meta.env as AnalyticsEnv | undefined;
 let client: PostHog | null = null;
 let loading: Promise<void> | null = null;
 let queue: QueuedEvent[] = [];
+let loadScheduled = false;
+
+/** Which app is reporting; every event is tagged with it. */
+let app: AnalyticsApp = "root";
+
+const listeners = new Set<AnalyticsConsentListener>();
 
 /**
  * Keys that look like personal data. Tracked values are dropped when the key
@@ -90,7 +120,13 @@ type PrivacyNavigator = Navigator & {
 	msDoNotTrack?: string;
 };
 
-/** Do Not Track / Global Privacy Control are treated as an opt-out request. */
+/**
+ * Do Not Track and Global Privacy Control are treated as an opt-out request.
+ *
+ * These are hard signals rather than preferences: a browser exporting GPC is
+ * asserting an opt-out under ePrivacy art. 5(3) and CCPA/CPRA §702(g), so we
+ * honour it without asking and without loading a single byte of the SDK.
+ */
 const hasPrivacyOptOutSignal = (): boolean => {
 	if (typeof navigator === "undefined") return false;
 	const nav = navigator as PrivacyNavigator;
@@ -105,7 +141,7 @@ const hasPrivacyOptOutSignal = (): boolean => {
 
 /**
  * Analytics may only run on a real, production, http(s) page. Development
- * servers, tests, previews over LAN and SSR render an empty hostname all bail.
+ * servers, tests, previews over LAN and SSR (empty hostname) all bail.
  */
 const analyticsAllowed = (): boolean => {
 	if (typeof window === "undefined") return false;
@@ -134,13 +170,11 @@ const writeConsent = (granted: boolean): void => {
 	}
 };
 
-/** Stored consent wins; without one, DNT / GPC act as an opt-out. */
-const isOptedOut = (): boolean => {
-	const consent = readConsent();
-	if (consent === "denied") return true;
-	if (consent === "granted") return false;
-	return hasPrivacyOptOutSignal();
-};
+/**
+ * `true` only on an explicit opt-in. There is deliberately no "unset means yes"
+ * default: an unanswered consent prompt must never lead to a network call.
+ */
+const hasAnalyticsConsent = (): boolean => readConsent() === "granted";
 
 const getPostHogKey = (): string => {
 	const fromEnv = env?.PUBLIC_POSTHOG_KEY;
@@ -149,26 +183,79 @@ const getPostHogKey = (): string => {
 		: POSTHOG_KEY;
 };
 
-/** Deliberately conservative config: no replay, masked text, scrubbed URLs. */
+/**
+ * Last line of defence for anything that could carry identity. `person_profiles`
+ * is already `"never"`; if a future caller reaches for `identify()` we would
+ * rather drop the `$set` payload than ship a profile we never intended to build.
+ */
+const beforeSend = (event: CaptureResult | null): CaptureResult | null => {
+	if (!event?.properties) return event;
+	const url: unknown = event.properties.$current_url;
+	if (typeof url === "string") {
+		event.properties.$current_url = url.split(/[?#]/)[0];
+	}
+	delete event.properties.$el_text;
+	delete event.$set;
+	delete event.$set_once;
+	delete event.$unset;
+	return event;
+};
+
+/**
+ * Deliberately conservative config.
+ *
+ * The `defaults: "2025-11-30"` preset expands to `autocapture: true` and a
+ * `session_recording` block that is resolved from PostHog's server-side remote
+ * config, so every behaviour below is written out explicitly and overrides the
+ * preset rather than relying on it:
+ *
+ * - `autocapture: false` — no click/change/form listeners. The CV and birthday
+ *   apps render real personal data, so an autocaptured click would ship element
+ *   text and the CSS selectors describing it.
+ * - `disable_session_recording: true` with an empty `session_recording: {}` — no
+ *   rrweb DOM snapshot stream, and no remote-config block to resolve one from.
+ *   This is what put ~200 kB of recorder code in the vendor chunk of every app.
+ * - `advanced_disable_decide` + `advanced_disable_feature_flags: true` — no
+ *   `/decide` round trip at all. Remote config is the documented way for
+ *   session replay to be switched on server-side for every visitor with no code
+ *   review; removing the endpoint removes the switch.
+ * - `capture_exceptions`, `capture_dead_clicks`, `capture_performance` and
+ *   `capture_heatmaps` all `false` — stack traces leak file paths and, in these
+ *   apps, the exact values being parsed (a person's name, a save slot).
+ * - `person_profiles: "never"` — anonymous event counters only. Nothing calls
+ *   `identify()`, so a person profile is pure additional personal data.
+ * - `opt_out_capturing_by_default: true` — the SDK itself defaults to capturing
+ *   nothing; we opt in explicitly once consent is confirmed.
+ * - `capture_pageview: true` is the one genuinely useful signal (which app, which
+ *   page), with query strings and fragments stripped in `beforeSend`.
+ * - `mask_all_text`, `mask_all_element_attributes` and `save_referrer: false` —
+ *   no DOM text, no attributes, no referrer chain.
+ */
 const createConfig = () => ({
-	api_host: "https://ph.celerum.online/@",
-	ui_host: "https://eu.posthog.com",
+	api_host: POSTHOG_API_HOST,
+	ui_host: POSTHOG_UI_HOST,
 	defaults: "2025-11-30" as const,
 	respect_dnt: true,
+	opt_out_capturing_by_default: true,
+	autocapture: false,
 	disable_session_recording: true,
+	session_recording: {},
+	capture_exceptions: false,
+	capture_dead_clicks: false,
+	capture_performance: false,
+	capture_heatmaps: false,
+	capture_pageview: true,
+	capture_pageleave: false,
+	advanced_disable_decide: true,
+	advanced_disable_feature_flags: true,
+	person_profiles: "never" as const,
 	disable_surveys: true,
 	disable_capture_url_hashes: true,
+	save_referrer: false,
+	save_campaign_params: false,
 	mask_all_text: true,
 	mask_all_element_attributes: true,
-	before_send: (event: CaptureResult | null): CaptureResult | null => {
-		if (!event?.properties) return event;
-		if (typeof event.properties.$current_url === "string") {
-			event.properties.$current_url =
-				event.properties.$current_url.split(/[?#]/)[0];
-		}
-		delete event.properties.$el_text;
-		return event;
-	},
+	before_send: beforeSend,
 });
 
 const flush = (): void => {
@@ -185,23 +272,33 @@ const flush = (): void => {
 };
 
 /**
- * Load the SDK on demand and initialise it with privacy-preserving defaults.
+ * Load the SDK on demand and initialise it with the config above.
+ *
+ * `posthog-js/dist/module.slim` is the lean build: autocapture, session replay
+ * (rrweb), surveys, logs, web-vitals and the heatmap recorder are not compiled
+ * into it at all — ~51 kB gzipped versus ~100 kB for `module` and ~202 kB for
+ * `module.full`. Nothing configured above can switch those features back on
+ * because the code never reaches the browser.
+ *
  * Never throws: analytics is best-effort and must not break app bootstrap.
  */
 const activate = (): void => {
 	if (client || loading) return;
+	// Consent may have been withdrawn while the lazy load was queued.
+	if (!hasAnalyticsConsent()) return;
 	loading = (async () => {
 		try {
-			const { default: posthog } = await import("posthog-js");
+			const { default: posthog } = await import("posthog-js/dist/module.slim");
 			posthog.init(getPostHogKey(), createConfig());
 			client = posthog;
-			// Consent may have been withdrawn while the import was in flight.
-			if (isOptedOut()) {
-				posthog.reset();
-				posthog.opt_out_capturing();
-				queue = [];
-			} else {
+			if (hasAnalyticsConsent()) {
+				client.opt_in_capturing({ captureEventName: false });
+				client.capture("$pageview");
 				flush();
+			} else {
+				client.reset();
+				client.opt_out_capturing();
+				queue = [];
 			}
 		} catch {
 			client = null;
@@ -211,39 +308,112 @@ const activate = (): void => {
 	})();
 };
 
+/** Run `fn` in a free slot so the import never competes with first paint. */
+const whenIdle = (fn: () => void): void => {
+	if (typeof window === "undefined") return;
+	const idle = window.requestIdleCallback;
+	if (typeof idle === "function") {
+		idle(() => fn(), { timeout: 2000 });
+		return;
+	}
+	window.setTimeout(fn, 1);
+};
+
 /**
- * Initialise product analytics once per page. Skipped in development, tests
- * and on local/LAN hosts, and skipped entirely when the visitor opted out
- * (stored consent, Do Not Track or Global Privacy Control).
+ * Defer the SDK off the critical path: only after `load` has fired (or straight
+ * away if the document already finished) and inside an idle callback. Nothing is
+ * fetched while the page is still competing for bandwidth with its own content.
  */
-export const initAnalytics = (): void => {
+const schedule = (): void => {
+	if (loadScheduled || typeof window === "undefined") return;
+	loadScheduled = true;
+	if (document.readyState === "complete") {
+		whenIdle(activate);
+		return;
+	}
+	window.addEventListener("load", () => whenIdle(activate), { once: true });
+};
+
+/**
+ * Initialise product analytics once per page.
+ *
+ * Nothing happens at all unless the visitor has already opted in: this is a
+ * prior-consent gate, so on a first visit (or after a denial) no code is
+ * downloaded and no request leaves the browser. The consent banner calls
+ * {@link setAnalyticsConsent}, which starts the SDK on acceptance.
+ *
+ * Also skipped in development, tests, on local/LAN hosts, and whenever the
+ * browser exports Do Not Track or Global Privacy Control.
+ *
+ * @param name the app reporting, so the stream can be segmented per app.
+ *   Optional, so existing `initAnalytics()` call sites keep working; it then
+ *   falls back to the first path segment of `location.pathname`.
+ */
+export const initAnalytics = (name?: AnalyticsApp): void => {
 	try {
 		if (typeof window === "undefined") return;
+		app = name ?? appFromPath(window.location.pathname);
 		if (!analyticsAllowed()) return;
-		if (isOptedOut()) return;
-		activate();
+		if (hasPrivacyOptOutSignal()) return;
+		if (!hasAnalyticsConsent()) return;
+		schedule();
 	} catch {
 		// Analytics is best-effort; never break the entry point.
 	}
 };
 
+const KNOWN_APPS = new Set<string>([
+	"root",
+	"cv",
+	"birthday",
+	"scotland-rail",
+	"spooners",
+	"design",
+	"crimson-desert-save-editor",
+]);
+
+/**
+ * Derive the app id from the first path segment, so a call site that forgets to
+ * pass one is still tagged (`/cv/` → `cv`, `/` → `root`).
+ */
+const appFromPath = (pathname: string): AnalyticsApp => {
+	const segment = pathname.split("/").find((part) => part !== "");
+	return segment !== undefined && KNOWN_APPS.has(segment)
+		? (segment as AnalyticsApp)
+		: "root";
+};
+
+/** The app currently reporting events; also used as an event property. */
+export const getAnalyticsApp = (): AnalyticsApp => app;
+
+/** The stored consent decision (`unset` until the visitor chooses). */
+export const getAnalyticsConsent = (): AnalyticsConsent => readConsent();
+
+export { hasAnalyticsConsent };
+
+/** `true` when the browser exports Do Not Track or Global Privacy Control. */
+export const hasDoNotTrack = (): boolean => hasPrivacyOptOutSignal();
+
 /**
  * Record an explicit consent choice and apply it at runtime. Safe to call
- * before `initAnalytics()` or when the SDK never loaded (e.g. dev/SSR).
+ * before `initAnalytics()`, or when the SDK will never load (dev/SSR/tests).
  */
 export const setAnalyticsConsent = (granted: boolean): void => {
 	try {
 		writeConsent(granted);
+		for (const listener of listeners) listener(granted);
+		if (!analyticsAllowed()) return;
 		if (granted) {
 			if (client) {
-				client.opt_in_capturing();
-			} else if (analyticsAllowed()) {
+				client.opt_in_capturing({ captureEventName: false });
+				flush();
+			} else {
 				activate();
 			}
 			return;
 		}
+		// `reset()` clears consent state, so opt out *after* resetting.
 		if (client) {
-			// `reset()` clears consent state, so opt out *after* resetting.
 			client.reset();
 			client.opt_out_capturing();
 		}
@@ -253,17 +423,25 @@ export const setAnalyticsConsent = (granted: boolean): void => {
 	}
 };
 
-/** Explicit "Do Not Sell/Share" / opt-out hook for a consent control. */
-export const optOutAnalytics = (): void => {
-	setAnalyticsConsent(false);
+/**
+ * Subscribe to consent changes. Returns an unsubscribe function, so it can be
+ * returned straight out of a `useEffect` cleanup.
+ */
+export const onConsentChange = (
+	listener: AnalyticsConsentListener,
+): (() => void) => {
+	listeners.add(listener);
+	return () => {
+		listeners.delete(listener);
+	};
 };
 
-/** The currently stored consent decision (`unset` until the visitor chooses). */
-export const getAnalyticsConsent = (): AnalyticsConsent => readConsent();
+/** Explicit "Do Not Sell/Share" hook; an alias for a consent denial. */
+export const optOutAnalytics = (): void => setAnalyticsConsent(false);
 
 /**
- * Typed, no-op-safe custom event helper. Drops while the SDK is loading or
- * when analytics is disabled, and never throws.
+ * Typed, no-op-safe custom event helper. Drops silently when analytics is off,
+ * and never throws.
  */
 export const track = (
 	event: string,
@@ -271,13 +449,14 @@ export const track = (
 ): void => {
 	try {
 		if (!event) return;
-		const clean = sanitize(properties);
+		if (!analyticsAllowed()) return;
+		if (!hasAnalyticsConsent()) return;
 		if (client) {
-			client.capture(event, clean);
+			client.capture(event, sanitize({ ...properties, app }));
 			return;
 		}
-		if (loading) {
-			queue.push({ event, properties: clean });
+		if (loading || loadScheduled) {
+			queue.push({ event, properties: sanitize({ ...properties, app }) });
 			if (queue.length > MAX_QUEUED_EVENTS) queue.shift();
 		}
 	} catch {

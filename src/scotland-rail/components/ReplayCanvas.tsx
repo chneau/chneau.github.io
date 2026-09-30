@@ -707,7 +707,6 @@ export const ReplayCanvas = () => {
 		pan,
 		bakeX,
 		bakeY,
-		dimensions,
 		timeOffset,
 		settings,
 		reducedMotion,

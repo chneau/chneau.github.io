@@ -1,34 +1,75 @@
 import { Accordion, Flex, Skeleton, Stack, Text } from "@mantine/core";
 import dayjs from "dayjs";
 import { TriangleAlert } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { z } from "zod";
 import { dataStore, type WikiEvent } from "./store";
+import { WikiEventSchema, WikiEventsSchema } from "./wikiCache";
 
 type OnThisDayProps = {
 	month: number;
 	day: number;
 };
 
+/**
+ * The `onthisday/selected` payload.
+ *
+ * `WikiEventSchema` (from `wikiCache.ts`) already describes an item exactly —
+ * `{ text, year, pages? }` — so it is reused rather than restated here, which
+ * keeps the cached shape and the fetched shape from drifting apart.
+ *
+ * A missing `selected` key is a legitimate "nothing happened on this day"
+ * answer, not a malformed payload, so it defaults to an empty list. Anything
+ * present but of the wrong shape still fails the parse and surfaces through the
+ * error path instead of a silently empty panel.
+ */
+const OnThisDayResponseSchema = z.object({
+	selected: z.array(WikiEventSchema).default([]),
+});
+
+/** The API is only maintained for these Wikipedias. */
+const SUPPORTED_LANGUAGES = ["en", "fr", "es", "de", "zh"];
+
+const MAX_EVENTS = 5;
+
+const resolveLanguage = (language: string): string => {
+	const lang = language.slice(0, 2);
+	return SUPPORTED_LANGUAGES.includes(lang) ? lang : "en";
+};
+
 export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 	const { t, i18n } = useTranslation();
+	// `i18next.d.ts` derives the key union from `locales/en.json`, so keys that
+	// are not in the bundle yet cannot type-check through `t` directly. Same
+	// escape hatch as `BirthdayDetails.tsx`; re-narrow once the strings land.
+	const tKey = t as unknown as (key: string) => string;
 	const [events, setEvents] = useState<WikiEvent[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(false);
+
+	// Resolved once and used for both the request URL and the attribution link,
+	// so the credit always names the edition actually rendered.
+	const finalLang = useMemo(
+		() => resolveLanguage(i18n.language),
+		[i18n.language],
+	);
 
 	useEffect(() => {
 		const controller = new AbortController();
 		const fetchEvents = async () => {
 			const mm = month.toString().padStart(2, "0");
 			const dd = day.toString().padStart(2, "0");
-			const lang = i18n.language.slice(0, 2);
-			const finalLang = ["en", "fr", "es", "de", "zh"].includes(lang)
-				? lang
-				: "en";
 			const cacheKey = `${finalLang}-${mm}-${dd}`;
 
-			if (dataStore.wikiCache[cacheKey]) {
-				setEvents(dataStore.wikiCache[cacheKey] as WikiEvent[]);
+			// Re-validate on the way out: the mirror is written by the cache, but
+			// a stale or hand-edited entry must degrade to a fresh fetch rather
+			// than render junk.
+			const cached = WikiEventsSchema.safeParse(dataStore.wikiCache[cacheKey]);
+			if (cached.success) {
+				setEvents(cached.data);
+				setLoading(false);
+				setError(false);
 				return;
 			}
 
@@ -40,13 +81,26 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 					{ signal: controller.signal },
 				);
 				if (!res.ok) throw new Error("Failed to fetch");
-				const data = await res.json();
-				const selectedEvents: WikiEvent[] = data.selected
-					.slice(0, 5)
-					.map((e: WikiEvent) => ({
-						year: e.year,
-						text: e.text,
-					}));
+				const data: unknown = await res.json();
+				const { selected } = OnThisDayResponseSchema.parse(data);
+
+				// Two entries can share a year and a summary, so dedupe on the
+				// pair used as the React key: without this the duplicate-key
+				// warning fires and one row is dropped.
+				const seen = new Set<string>();
+				const selectedEvents: WikiEvent[] = [];
+				for (const event of selected) {
+					if (selectedEvents.length >= MAX_EVENTS) break;
+					const text = event.text.trim();
+					if (text.length === 0) continue;
+					const key = `${event.year}:${text}`;
+					if (seen.has(key)) continue;
+					seen.add(key);
+					selectedEvents.push({ year: event.year, text, pages: event.pages });
+				}
+
+				// Goes through the cache, which is what validates, bounds, ages
+				// out and persists it. A payload it refuses is not cached.
 				dataStore.wikiCache[cacheKey] = selectedEvents;
 				setEvents(selectedEvents);
 			} catch (err) {
@@ -60,7 +114,7 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 
 		fetchEvents();
 		return () => controller.abort();
-	}, [month, day, i18n.language]);
+	}, [month, day, finalLang]);
 
 	if (error) {
 		return (
@@ -98,16 +152,58 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 							<Skeleton height={12} />
 							<Skeleton height={12} />
 						</Stack>
+					) : events.length === 0 ? (
+						<Text c="dimmed" size="sm">
+							{tKey("app.on_this_day_empty")}
+						</Text>
 					) : (
 						<Flex direction="column" gap="md">
-							{events.map((item) => (
-								<Flex key={item.text} direction="column">
-									<Text fw={600}>{item.year}</Text>
-									<Text c="dimmed">{item.text}</Text>
-								</Flex>
-							))}
+							{events.map((item) => {
+								const source = item.pages?.[0];
+								return (
+									<Flex
+										key={`${item.year}:${item.text}`}
+										direction="column"
+										gap={2}
+									>
+										<Text fw={600}>{item.year}</Text>
+										<Text c="dimmed">{item.text}</Text>
+										{source ? (
+											<a
+												href={source.url}
+												target="_blank"
+												rel="noreferrer noopener"
+												style={{ fontSize: "12px", opacity: 0.8 }}
+											>
+												{tKey("app.on_this_day_source")}: {source.title}
+											</a>
+										) : null}
+									</Flex>
+								);
+							})}
 						</Flex>
 					)}
+
+					{/* The Wikimedia API terms and CC BY-SA 4.0 both require visible
+					    attribution, so this is deliberately outside the loading and
+					    empty branches: it shows whenever the panel is open. */}
+					<Text size="xs" c="dimmed" mt="sm">
+						{tKey("app.on_this_day_attribution")}{" "}
+						<a
+							href={`https://${finalLang}.wikipedia.org/`}
+							target="_blank"
+							rel="noreferrer noopener"
+						>
+							{tKey("app.on_this_day_attribution_wikipedia")}
+						</a>{" "}
+						<a
+							href="https://creativecommons.org/licenses/by-sa/4.0/"
+							target="_blank"
+							rel="noreferrer noopener"
+						>
+							{tKey("app.on_this_day_attribution_license")}
+						</a>
+					</Text>
 				</Accordion.Panel>
 			</Accordion.Item>
 		</Accordion>

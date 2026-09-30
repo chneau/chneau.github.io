@@ -43,7 +43,6 @@ import {
 	createAppTheme,
 	EmptyState,
 	Footer,
-	getAnalyticsConsent,
 	HeaderAction,
 	type Command as PaletteCommand,
 	ROOT_THEME_KEY,
@@ -53,14 +52,16 @@ import {
 	SkipLink,
 	Stat,
 	StatusDot,
-	setAnalyticsConsent,
-	track,
 	useCommandPalette,
 	usePinnedApps,
 	useRecents,
 	useShortcutsHelp,
 	useThemeMode,
 } from "../shared";
+// By path, not via the barrel: analytics is a side-effectful module and must
+// not be dragged onto every app that imports a single shared component.
+import { track } from "../shared/analytics";
+import { ConsentBanner, useAnalyticsConsent } from "../shared/consent";
 
 declare const BUILD_DATE: string;
 
@@ -99,6 +100,13 @@ const GithubIcon = ({ size = 18 }: { size?: number }) => (
 	</svg>
 );
 
+/**
+ * The dashboard's own hotkey, as advertised by the command palette and the
+ * shared `APP_SWITCH_SHORTCUTS` sheet. Kept as a local literal because
+ * `src/shared/apps.tsx` owns the registry and is not ours to change.
+ */
+const HUB_HOTKEY = "0";
+
 const GREETINGS = ["Good morning", "Good afternoon", "Good evening"] as const;
 
 const greetingFor = (date: Date) => {
@@ -126,14 +134,15 @@ export const App = () => {
 	const { recents, visit, clear: clearRecents } = useRecents();
 	const { pinned, toggle: togglePin, isPinned } = usePinnedApps();
 
-	const [analyticsOn, setAnalyticsOn] = useState(
-		() => getAnalyticsConsent() !== "denied",
+	// Analytics is strictly opt-in: `granted` is false until the visitor
+	// accepts the banner, and stays false when Do Not Track / Global Privacy
+	// Control is set.
+	const { granted: analyticsOn, decide: setAnalyticsConsent } =
+		useAnalyticsConsent();
+	const toggleAnalytics = useCallback(
+		() => setAnalyticsConsent(!analyticsOn),
+		[analyticsOn, setAnalyticsConsent],
 	);
-	const toggleAnalytics = () => {
-		const next = !analyticsOn;
-		setAnalyticsConsent(next);
-		setAnalyticsOn(next);
-	};
 	const handleVisit = useCallback(
 		(href: string) => {
 			visit(href);
@@ -141,6 +150,35 @@ export const App = () => {
 		},
 		[visit],
 	);
+
+	// The shared `AppSwitcher` and the palette's built-in navigation commands
+	// set `location.href` themselves, so they never reach `handleVisit`. Watch
+	// the document for any in-app link so every route into an app is recorded
+	// once, whichever control the visitor used.
+	const isAppHref = useCallback(
+		(href: string) => APPS.some((app) => app.href === href),
+		[],
+	);
+	useEffect(() => {
+		const onClick = (event: MouseEvent) => {
+			if (
+				event.defaultPrevented ||
+				event.button !== 0 ||
+				event.metaKey ||
+				event.ctrlKey ||
+				event.shiftKey ||
+				event.altKey
+			) {
+				return;
+			}
+			const target = event.target;
+			if (!(target instanceof Element)) return;
+			const href = target.closest("a")?.getAttribute("href");
+			if (href && isAppHref(href)) handleVisit(href);
+		};
+		document.addEventListener("click", onClick);
+		return () => document.removeEventListener("click", onClick);
+	}, [handleVisit, isAppHref]);
 
 	const [query, setQuery] = useState("");
 	const [category, setCategory] = useState<string>("All");
@@ -187,20 +225,27 @@ export const App = () => {
 		[recents],
 	);
 
-	const openRandom = () => {
+	const openRandom = useCallback(() => {
 		const app = APPS[Math.floor(Math.random() * APPS.length)];
 		if (!app) return;
 		handleVisit(app.href);
 		window.location.href = app.href;
-	};
+	}, [handleVisit]);
 
 	// Global shortcuts: digits launch apps, T toggles theme, / focuses search.
+	// The dialogs own the keyboard while they are open — otherwise a digit typed
+	// in the shortcuts sheet would navigate away mid-dialog.
 	const themeRef = useRef(theme);
 	themeRef.current = theme;
+	const dialogsOpen = shortcuts.opened || palette.opened;
+	const dialogsOpenRef = useRef(dialogsOpen);
+	dialogsOpenRef.current = dialogsOpen;
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.metaKey || event.ctrlKey || event.altKey || event.repeat)
+			if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) {
 				return;
+			}
+			if (dialogsOpenRef.current) return;
 			const target = event.target;
 			if (
 				target instanceof HTMLInputElement ||
@@ -211,6 +256,15 @@ export const App = () => {
 			}
 			if (event.key === "/") {
 				event.preventDefault();
+				searchRef.current?.focus();
+				return;
+			}
+			// The palette and the app switcher both advertise `0` for the hub
+			// itself. Navigating to the page you are already on would be a
+			// pointless reload, so make the key do the useful thing instead.
+			if (event.key === HUB_HOTKEY) {
+				event.preventDefault();
+				window.scrollTo({ top: 0, behavior: "smooth" });
 				searchRef.current?.focus();
 				return;
 			}
@@ -328,7 +382,6 @@ export const App = () => {
 					pinned={isPinned(item.href)}
 					lastVisitedAt={visitedAt.get(item.href)}
 					onTogglePin={togglePin}
-					onVisit={handleVisit}
 				/>
 			))}
 		</div>
@@ -381,7 +434,7 @@ export const App = () => {
 					<div className="app-page">
 						<section className="app-hero">
 							<span className="app-hero__eyebrow">
-								<StatusDot label="All systems client-side" />
+								<StatusDot label="Everything runs in your browser" />
 								{greetingFor(now)} ·{" "}
 								{now.toLocaleDateString(undefined, {
 									weekday: "long",
@@ -399,7 +452,7 @@ export const App = () => {
 								<Stat label="Apps" value={APPS.length} hint="and counting" />
 								<Stat
 									label="Privacy"
-									value="100% client-side"
+									value="Opt-in analytics"
 									icon={<Command size={13} />}
 								/>
 								<Stat
@@ -452,7 +505,9 @@ export const App = () => {
 							>
 								<button
 									type="button"
-									className={`app-chip${category === "All" ? " app-chip--on" : ""}`}
+									className={`app-chip${
+										category === "All" ? " app-chip--on" : ""
+									}`}
 									aria-pressed={category === "All"}
 									onClick={() => setCategory("All")}
 								>
@@ -462,7 +517,9 @@ export const App = () => {
 									<button
 										key={name}
 										type="button"
-										className={`app-chip${category === name ? " app-chip--on" : ""}`}
+										className={`app-chip${
+											category === name ? " app-chip--on" : ""
+										}`}
 										aria-pressed={category === name}
 										onClick={() => setCategory(name)}
 									>
@@ -484,7 +541,13 @@ export const App = () => {
 							<>
 								<h2 className="app-section-title">
 									Results
-									<span className="app-section-title__count">
+									{/* The count is the only feedback a screen-reader user
+										    gets while typing, so announce it politely. */}
+									<span
+										className="app-section-title__count"
+										role="status"
+										aria-live="polite"
+									>
 										{filtered.length}
 									</span>
 								</h2>
@@ -525,7 +588,12 @@ export const App = () => {
 
 								{recentApps.length > 0 ? (
 									<>
-										<h2 className="app-section-title">Recently opened</h2>
+										<h2 className="app-section-title">
+											Recently opened
+											<span className="app-section-title__count">
+												{recentApps.length}
+											</span>
+										</h2>
 										<div className="app-recents">
 											{recentApps.map((app) => {
 												const Icon = app.icon;
@@ -534,7 +602,6 @@ export const App = () => {
 														key={app.href}
 														className="app-recent-chip"
 														href={app.href}
-														onClick={() => handleVisit(app.href)}
 													>
 														<Icon size={14} />
 														{app.title}
@@ -561,10 +628,18 @@ export const App = () => {
 					left={`chneau © ${now.getFullYear()}`}
 					right={
 						<>
+							{/* Stable accessible name plus `aria-pressed`: the visible
+							    state word changes, so putting it in the name too would
+							    make the button announce as two different buttons. */}
 							<button
 								type="button"
 								className="app-footer__consent"
 								aria-pressed={analyticsOn}
+								title={
+									analyticsOn
+										? "Anonymous usage analytics are on. Activate to turn them off."
+										: "Analytics are off. Activate to allow anonymous usage analytics."
+								}
 								onClick={toggleAnalytics}
 							>
 								Analytics {analyticsOn ? "on" : "off"}
@@ -574,6 +649,10 @@ export const App = () => {
 					}
 				/>
 			</Box>
+
+			{/* Renders only until the visitor answers, and never when the
+			    browser exports Do Not Track or Global Privacy Control. */}
+			<ConsentBanner />
 
 			<ShortcutsHelp
 				opened={shortcuts.opened}

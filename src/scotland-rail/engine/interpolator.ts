@@ -302,8 +302,18 @@ export const resolveServiceAtTime = (
 			}
 		}
 
-		// Check if moving between fromCall and toCall
-		if (timeOffset >= depTime && timeOffset <= arrTime) {
+		// Check if moving between fromCall and toCall.
+		//
+		// The upper bound is EXCLUSIVE. The arrival minute belongs to the
+		// station, not to the track: with `timeOffset <= arrTime` this test
+		// always won the race against the dwell test on the next iteration
+		// (which needs `timeOffset >= arrivalOffset`), so every train reported
+		// "In transit to <dest>" at the very minute it arrived, the arrival
+		// chime and the dwelling pulse were suppressed, and the terminus
+		// fallback below was dead code (0 of 325 services could reach it).
+		// A zero-length dwell (departure === arrival) still falls through to
+		// the next leg at fraction 0, so no minute is dropped.
+		if (timeOffset >= depTime && timeOffset < arrTime) {
 			const rawLegFrac =
 				(timeOffset - depTime) / Math.max(1, arrTime - depTime);
 			const legFrac = smoothLegProgress(rawLegFrac);
@@ -339,7 +349,10 @@ export const resolveServiceAtTime = (
 		}
 	}
 
-	// Terminus arrival check (if dwelling at destination before service ends)
+	// Terminus arrival: the train has arrived at its final call and its recorded
+	// dwell there has run out (terminus calls carry no `departureOffset`, so
+	// the dwell test above cannot match them). Reachable precisely because the
+	// moving test no longer swallows the arrival minute.
 	if (lastCall.arrivalOffset !== null && timeOffset >= lastCall.arrivalOffset) {
 		const lastStation = STATIONS_BY_ID.get(lastCall.stationId);
 		const destPos: Coordinate = lastStation

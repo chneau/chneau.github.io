@@ -76,6 +76,13 @@ export const AppHeader = ({
 	shortcutsButton,
 }: AppHeaderProps) => {
 	const { t, i18n } = useTranslation();
+	// TEMPORARY: the keys below are not in `locales/en.json` yet, so the typed
+	// `t()` (whose key union is derived from that file) rejects them. Delete this
+	// helper once the locale JSONs gain the keys.
+	const tr = t as unknown as (
+		key: string,
+		opts?: Record<string, unknown>,
+	) => string;
 	const storeSnap = useSnapshot(store);
 	const [installPrompt, setInstallPrompt] =
 		useState<BeforeInstallPromptEvent>();
@@ -100,43 +107,41 @@ export const AppHeader = ({
 
 	const handleToggleNotifications = async () => {
 		if (typeof window === "undefined" || !("Notification" in window)) {
-			notify.warning("Notifications are not supported in this browser");
+			notify.warning(t("app.notifications.no_support"));
 			return;
 		}
 		if (notificationState === "denied") {
-			notify.warning(
-				"Notifications are blocked in your browser settings. Enable them to receive alerts.",
-			);
+			notify.warning(tr("app.header.notify_blocked"));
 			return;
 		}
 		const granted = await requestNotificationPermission();
 		setNotificationState(Notification.permission);
 		if (granted) {
-			notify.success("Notifications enabled");
+			notify.success(tr("app.header.notify_enabled"));
 			checkAndNotify(data);
 		} else {
-			notify.info("Notifications not enabled");
+			notify.info(tr("app.header.notify_not_enabled"));
 		}
 	};
 
 	const demoToolsMenu = [
 		{
 			key: "test_notif",
-			label: "Send test notification",
+			label: t("app.header.test_notification"),
 			icon: <Bell size={14} />,
 			onClick: () => {
 				sendTestNotification();
-				notify.info("Sent test notification");
+				notify.info(tr("app.header.notify_test_sent"));
 			},
 		},
 		{
 			key: "simulate_bday",
-			label: "Simulate celebration",
+			label: t("app.header.simulate"),
 			icon: <Cake size={14} />,
 			onClick: () => {
 				sendTestNotification();
 				triggerConfetti();
-				notify.success("Simulated a celebration");
+				notify.success(tr("app.header.notify_simulated"));
 			},
 		},
 	];
@@ -157,7 +162,7 @@ export const AppHeader = ({
 					href="/"
 					icon={<Cake size={18} strokeWidth={1.9} />}
 					title={t("app.title")}
-					subtitle={`build ${BUILD_DATE}`}
+					subtitle={tr("app.header.build", { date: BUILD_DATE })}
 				/>
 			}
 			actions={
@@ -180,10 +185,10 @@ export const AppHeader = ({
 					<Tooltip
 						label={
 							notificationsOn
-								? "Alerts are active. Click to verify."
+								? tr("app.header.alerts_active")
 								: notificationsBlocked
-									? "Alerts are blocked in your browser settings."
-									: "Enable birthday alerts"
+									? tr("app.header.alerts_blocked")
+									: tr("app.header.alerts_enable")
 						}
 					>
 						<HeaderAction
@@ -202,17 +207,17 @@ export const AppHeader = ({
 							}
 						>
 							{notificationsOn
-								? "Alerts on"
+								? tr("app.header.alerts_on")
 								: notificationsBlocked
-									? "Alerts blocked"
-									: "Enable alerts"}
+									? tr("app.header.alerts_blocked_short")
+									: tr("app.header.alerts_enable_short")}
 						</HeaderAction>
 					</Tooltip>
 
 					<Menu position="bottom-end" shadow="md" withinPortal>
 						<Menu.Target>
 							<HeaderAction icon={<FlaskConical size={15} />}>
-								Demo
+								{tr("app.header.demo")}
 							</HeaderAction>
 						</Menu.Target>
 						<Menu.Dropdown>
@@ -231,7 +236,7 @@ export const AppHeader = ({
 					<Menu position="bottom-end" shadow="md" withinPortal>
 						<Menu.Target>
 							<HeaderAction
-								label="Change language"
+								label={tr("app.header.change_language")}
 								icon={<Languages size={15} />}
 							>
 								{current.short}

@@ -36,7 +36,15 @@
 	--app-border-strong: rgba(24, 24, 27, 0.18);
 	--app-text: #18181b;
 	--app-text-muted: #52525b;
-	--app-text-faint: #71717a;
+	/**
+	 * Darkened from #71717a, which measured 4.40:1 on `--app-bg` and 3.99:1 on
+	 * `--app-surface-3` - a WCAG AA failure for normal text (4.5:1), and this
+	 * token is used as `color:` in nine places, so it is real text rather than
+	 * decoration. #65656c measures 5.03:1 and 4.77:1 respectively, while
+	 * staying clearly lighter than `--app-text-muted` so the three-step text
+	 * hierarchy still reads. The dark-scheme value already passed (5.81:1).
+	 */
+	--app-text-faint: #65656c;
 	--app-danger: #c2443d;
 	--app-warn: #b7801f;
 	--app-glass: rgba(255, 255, 255, 0.72);

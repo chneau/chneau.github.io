@@ -359,7 +359,7 @@ button.app-brand {
 .app-header-action--accent:hover {
 	background: var(
 		--mantine-primary-color-filled-hover,
-		var(--app-accent-hover, var(--app-accent))
+		var(--app-accent-hover, var(--app-accent, var(--app-text)))
 	);
 	border-color: transparent;
 	color: var(--mantine-primary-color-contrast, #ffffff);
@@ -522,6 +522,37 @@ button.app-brand {
 	border-radius: var(--app-radius-pill);
 	background: var(--mantine-primary-color-filled, var(--app-text));
 	vertical-align: middle;
+}
+
+/* Analytics consent prompt. Deliberately a corner card, not a modal: it must
+   never block the page it is asking about. */
+.app-consent {
+	position: fixed;
+	inset-block-end: clamp(12px, 3vw, 24px);
+	inset-inline-end: clamp(12px, 3vw, 24px);
+	z-index: 300;
+	max-inline-size: min(380px, calc(100vw - 24px));
+	background: var(--app-surface);
+	border-color: var(--app-border-strong);
+}
+
+/**
+ * The consent prompt is `position: fixed`, so it covers whatever happens to be
+ * in the bottom corner - on the hub that was the last app card, which the
+ * visitor then had no way to reach or read.
+ *
+ * `:has()` reserves the space only while the prompt actually exists, so the
+ * padding costs nothing once the visitor has answered and it cannot drift out
+ * of sync with the component. The block-end padding is sized for the tallest
+ * plausible rendering (longest translation, two buttons wrapped) rather than
+ * measured, because a fixed reserve that is occasionally a little too small is
+ * better than a measurement that has to be recomputed on every resize.
+ */
+body:has(.app-consent) {
+	padding-block-end: clamp(9rem, 24vh, 13rem);
+}
+.app-consent__body {
+	min-inline-size: 0;
 }
 
 /* Stat block */
@@ -970,12 +1001,28 @@ button.app-brand {
 	}
 }
 
+/**
+ * Global reduced-motion guard.
+ *
+ * `!important` is load-bearing here, not decorative. The `*` selector has
+ * specificity (0,0,0) and a media query contributes none, so without it EVERY
+ * class rule that declares its own duration wins outright - which is to say the
+ * guard protected nothing at all. Measured before this change: 12 selectors
+ * still animated under `reduce`, including `.app-header-action`, `.app-card`,
+ * `.app-skip-link` and `.app-statusdot`.
+ *
+ * `!important` inverts specificity, so the override beats class rules while
+ * still yielding to a more specific `!important` further down the cascade -
+ * which is what `cv/cv.css` and `shared/components/Section.css` rely on for
+ * their own reduced-motion handling.
+ */
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
 	*::after {
-		animation-duration: 0.001ms;
-		animation-iteration-count: 1;
-		transition-duration: 0.001ms;
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
+		scroll-behavior: auto !important;
 	}
 }

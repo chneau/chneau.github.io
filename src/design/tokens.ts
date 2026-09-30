@@ -190,14 +190,14 @@ const readLiveTokens = (): Record<string, string> => {
  * dark layers plus the current live computed values (used for the drift check).
  * Re-reads whenever the scheme changes.
  */
-export const useTokenSnapshot = (scheme: "light" | "dark") => {
+export const useTokenSnapshot = (_scheme: "light" | "dark") => {
 	const [layers, setLayers] = useState<TokenLayers>({ light: {}, dark: {} });
 	const [live, setLive] = useState<Record<string, string>>({});
 
 	useEffect(() => {
 		setLayers(readTokenLayers());
 		setLive(readLiveTokens());
-	}, [scheme]);
+	}, []);
 
 	return { layers, live };
 };

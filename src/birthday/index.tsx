@@ -8,7 +8,10 @@ import "./taste.css";
 import "./i18n";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoot } from "react-dom/client";
-import { initAnalytics, registerServiceWorker } from "../shared";
+import { registerServiceWorker } from "../shared";
+// By path, not via the barrel: analytics is a side-effectful module and must
+// not be dragged onto every app that imports a single shared component.
+import { initAnalytics } from "../shared/analytics";
 import { App } from "./App";
 
 // Patch getContext to set willReadFrequently: true for 2D contexts
@@ -29,7 +32,7 @@ HTMLCanvasElement.prototype.getContext = function (
 
 const queryClient = new QueryClient();
 
-initAnalytics();
+initAnalytics("birthday");
 registerServiceWorker();
 
 const container = document.getElementById("root");

@@ -9,7 +9,14 @@
 			"title": "Terera’a tau",
 			"anniversary": "Fānaura’a",
 			"turns": "E {{age}} matahiti tōna",
-			"in_days": "i roto i te {{days}} mahana ({{day}})"
+			"in_days": "i roto i te {{days}} mahana ({{day}})",
+			"legend": {
+				"today": "I teie mahana",
+				"week": "I tenei hepetoma",
+				"month": "I tenei marama",
+				"later": "I muri"
+			},
+			"today": "ʻAnei"
 		},
 		"compatibility": {
 			"title": "Tū’atira’a",
@@ -17,7 +24,10 @@
 			"excellent": "Maita’i roa (100%)",
 			"great": "Maita’i (80%)",
 			"neutral": "Tano maita’i (50%)",
-			"challenging": "Fifī (40%)"
+			"challenging": "Fifī (40%)",
+			"shared_birthday": "E pau te hō mālie: {{names}}",
+			"duplicate_row": "Ua faʻaitehia ʻo ia ioa a me ia pō i {{count}} faa hou — e tē mā teVehivahi nā rīkara, ʻaʻole no laʻi e pūpai ai.",
+			"same_name_note": "Ua hāʻi atu nā {{count}} huaʻi hou o ke inoa ioa {{name}} he kanaka okina kekahi, a pē he mea kahi lakou i ʻai i ʻna kumu zodiacal o lakou ia kekahi."
 		},
 		"statistics": {
 			"title": "Nūmera",
@@ -36,7 +46,9 @@
 			"day_of_week": "Mahana o te hepetoma",
 			"decades": "Matahiti",
 			"pyramid": "Ti’ara’a matahiti",
-			"count": "Nūmera"
+			"count": "Nūmera",
+			"heatmap_less": "Maiti",
+			"heatmap_more": "Maiti ake"
 		},
 		"milestones": {
 			"title": "Taime faufa’a",
@@ -58,7 +70,12 @@
 			"rookie_tooltip": "O {{name}} te mea ’āpī roa a’e.",
 			"socialite_tooltip": "E {{count}} tū’atira’a maita’i tō {{name}} !",
 			"twins_tooltip": "Fānaura’a hō’ē : {{pairs}}",
-			"no_twins": "Aita e māha’a i ’itehia !"
+			"no_twins": "Aita e māha’a i ’itehia !",
+			"years": "tau",
+			"perfect_matches": "{{count}} hārau e hā roto",
+			"no_socialite": "ʻAʻole i hā roto i kekahi",
+			"same_sign_line": "Ua hānoere tahi {{names}} i te hō‘oapa‘a {{sign}}",
+			"same_generation_line": "Ua hānoere katoa {{names}} i {{generation}}"
 		},
 		"search": "Pāmi...",
 		"filters": {
@@ -77,7 +94,13 @@
 			"export": "Hāpono i te tāpūta",
 			"subscribe": "Tāpa’o",
 			"copy": "Tāpiti i te tū’ati",
-			"copied": "Ua tāpitihia !"
+			"copied": "Ua tāpitihia !",
+			"exported": "Ua hoʻokuina ʻo birthdays.ics",
+			"calendar_name": "Nā hō mālie",
+			"ics_birthday": "Te hō mālie o {{name}}",
+			"ics_wedding": "{{name}} — tau mālie",
+			"export_one": "E hoʻokuina i ke kanaka okina",
+			"hosted_hint": "Ua hoʻokomo nā hoʻokuina i nā mea āu i hoʻokui a hoʻolola ai. Hoʻohana nā kau hoʻokuina i ka faila i hoʻokauʻia ʻia, ʻaʻole e pana hou ʻole inā e hoʻopuildia hou ke pūna."
 		},
 		"header": {
 			"install": "Tāmi",
@@ -92,8 +115,8 @@
 			"next_celebration": "Fa'ahanahana i muri nei : {{name}} ({{kind}})",
 			"days": "Mahana",
 			"hours": "Hora",
-			"mins": "Mins",
-			"secs": "Secs"
+			"mins": "Min",
+			"secs": "Sec"
 		},
 		"weather": {
 			"title": "Te huru o te reva",
@@ -110,6 +133,19 @@
 			"hourly": "I te mau hora",
 			"daily": "I te mau mahana",
 			"no_locations": "'Aita e vāhi.",
+			"drag_reorder": "Tāpō i te hōkohoko",
+			"move_up": "Hippi",
+			"move_down": "Haka",
+			"error": "Te hapa i te toru i te revā no {{location}}",
+			"retry": "Nono tō",
+			"remove_title": "E mālō '{{location}} i te rārangi revā?",
+			"remove_location_title": "E mālō '{{location}} i nga vahi revā?",
+			"remove_confirm": "Mālō",
+			"remove_aria": "Mālō i {{location}}",
+			"enter_location": "Maa te parahi to te nui o te paari ai te vāhi",
+			"already_added": "Ua hea '{{location}} i to'na rārangi revā",
+			"added": "Ua tāpō i {{location}}",
+			"refreshed": "Ua hōu te revā",
 			"codes": {
 				"113": "Mahana maita'i",
 				"116": "Ata parari",
@@ -159,7 +195,10 @@
 				"389": "Ua pūai e patiri",
 				"392": "Hiona e patiri",
 				"395": "Hiona pūai e patiri"
-			}
+			},
+			"persistence_failed": "ʻAʻole i hoʻokuina ʻau i kou mau mea hoʻoponopono — ua piha a i hoʻokau ʻia ʻo ke ʻāhu hoʻokawa ʻo kēia polokalema, a i hoʻi ʻaʻole i loa. ʻE hiki ʻana ka hana a pau, ʻaʻole na hoʻokuina ʻia nā mea i ka hoʻopōʻa hou.",
+			"cache_capped": "Ua hoʻopUNI ʻia ke ʻea ʻāina no nā wahi {{count}} i nānā ʻia ma muli, no laʻa, ʻe hōʻoli hou ʻia nā wahi ʻē.",
+			"removed": "Ua hoʻ removal ʻia ʻo {{location}}"
 		},
 		"notifications": {
 			"today_title": "🎂 ’Ōro’a fānaura’a maita’i !",
@@ -170,41 +209,105 @@
 			"test_title": "🎉 Parau tāmatara’a",
 			"test_body": "E parau tāmatara’a teie nō roto mai i te Birthday Tracker !",
 			"no_support": "’Aita teie pāpūira’a e fari’i nei i te mau parau nō te i’a",
-			"no_permission": "’Aita i fari’ihia te parau. Tāmi i ni’a i te tū’ere."
+			"no_permission": "’Aita i fari’ihia te parau. Tāmi i ni’a i te tū’ere.",
+			"today_body_many": "ʻĀ pō nei ko hō mālie o {{names}}!",
+			"upcoming_body_many": "E po nā pō e pē nei te hō mālie o {{names}}!",
+			"both_body_many": "Ua po nā pō e pē nei nō te hō mālie o {{names}}!"
 		},
 		"card": "Pe’ape’a",
 		"events": "’Ōro’a",
 		"no_data": "’Aita",
 		"hero": {
-			"eyebrow": "Next celebration",
-			"today": "Happening today",
-			"turning": "Turning {{age}}",
-			"cycle": "{{percent}}% of the cycle elapsed",
-			"closest": "Closest",
-			"people": "People tracked",
-			"this_month": "Celebrations this month",
-			"weddings": "Anniversaries",
-			"milestone": "Next milestone",
-			"none": "None on record",
-			"no_title": "No dates on the horizon",
-			"no_body": "Add a birthday or widen the filters to bring the calendar back to life.",
-			"manage": "Manage birthdays",
-			"add": "Add birthday",
-			"details": "View details"
+			"eyebrow": "Te fānaura'a i muri",
+			"today": "I teie mahana",
+			"turning": "E {{age}} matahiti tō",
+			"cycle": "{{percent}}% o te huringa i ritihia",
+			"closest": "Pito",
+			"people": "Nga taata i raro",
+			"this_month": "Nga fānaura'a i tenei marama",
+			"weddings": "Nga tau fifeau",
+			"milestone": "Te taime faufa'a i muri",
+			"none": "Aita e parahi",
+			"no_title": "Aita e raa i te tuara",
+			"no_body": "Tuu i te fānaura'a, hoki rā i te laha, kia ora ai te tāpura.",
+			"manage": "Tiara i nga fānaura'a",
+			"add": "Tuu i te fānaura'a",
+			"details": "Titau i nga taotira"
 		},
 		"list": {
-			"showing": "{{shown}} of {{total}} shown",
-			"reset": "Reset filters",
-			"empty_title": "Nothing matches",
-			"empty_body": "No records match the current search and filters."
+			"showing": "{{shown}} e {{total}} i te fare",
+			"reset": "Hoki i te laha",
+			"empty_title": "Aita e tautohi",
+			"empty_body": "Aita e parahi i te pāmi e te laha o teie."
 		},
-		"loading": "Loading insights"
+		"on_this_day_error": "Ua fa'āpō te toru i nga tapao",
+		"loading": "E uta'a ana te nūmera",
+		"on_this_day_source": "Puna",
+		"on_this_day_attribution": "Nā teiepara",
+		"on_this_day_attribution_wikipedia": "Wikipēdia",
+		"on_this_day_attribution_license": "CC BY-SA 4.0",
+		"on_this_day_empty": "ʻAha hoʻ polyno i ka pō iho.",
+		"card_error": "ʻAʻole i hiki ʻia ia hoʻopuni ʻo ka pepa hō mālie. ʻE hoʻā hou aku."
+	},
+	"common": {
+		"confirm": "Ta'oma",
+		"cancel": "Fa'aho'oma"
+	},
+	"manage": {
+		"title": "🎂 Te tiara i nga fānaura'a",
+		"add": "Tuu i te fānaura'a",
+		"export_json": "E hāpono i te JSON",
+		"import_json": "E import i te JSON",
+		"reset_defaults": "Te hoki i teie",
+		"reset_title": "E hoki i nga fānaura'a katoa i nga parahi tauira o teie?",
+		"reset_confirm": "Hoki",
+		"search_placeholder": "Te pāmi i nga parahi...",
+		"col_name": "Ioa",
+		"col_date": "Raa",
+		"col_actions": "Nga hohoko",
+		"no_results": "Ua titea te fānaura'a.",
+		"edit_aria": "Whakawhakaohi i {{name}}",
+		"delete_title": "E hoko ai i {{name}}?",
+		"delete_confirm": "Hoko",
+		"delete_aria": "Hoko i {{name}}",
+		"add_title": "Tuu i te fānaura'a",
+		"edit_title": "Whakawhakaohi i te fānaura'a",
+		"name_label": "Ioa / Nga tokona",
+		"name_placeholder": "e.g. Jean Dupont",
+		"date_label": "Raa o te pupu / te fifeau",
+		"category": "Waehere",
+		"boy": "♂️ Tamaiti",
+		"girl": "♀️ Tamahine",
+		"wedding": "💒 Fifeau",
+		"save": "Tiaki",
+		"discard_title": "E hia i nga huringa kore i te rii?",
+		"discard_confirm": "Hia",
+		"name_required": "Maa te parahi to te ioa",
+		"date_required": "Maa te vahi i te raa",
+		"kind_required": "Maa te vahi i te waehere",
+		"added": "Ua tāpō i {{name}}",
+		"updated": "Ua hōu i {{name}}",
+		"deleted": "Ua hoko i {{name}}",
+		"reset_notify": "Ua hoki i nga fānaura'a o teie",
+		"exported": "Ua hāpono i te birthdays.json",
+		"imported_one": "Ua import i {{count}} fānaura'a !",
+		"imported_other": "Ua import i {{count}} fānaura'a !",
+		"import_invalid": "JSON te noho: ua rapohia te auta o nga parahi fānaura'a tika",
+		"import_parse_error": "Ua fa'aau i te failu JSON",
+		"import_title_one": "E pau i nga fānaura'a katoa i {{count}} parahi i kenei i importa?",
+		"import_title_other": "E pau i nga fānaura'a katoa i {{count}} parahi i kenei i importa?",
+		"import_confirm": "Pau",
+		"duplicate_entry": "Ua hea te fānaura'a o {{name}} i te {{date}}.",
+		"record_missing": "Ua titea teie parahi i te rārangi.",
+		"import_duplicates_skipped_one": "Ua hia i {{count}} parahi i te repo (te ioa e te raa e tātau).",
+		"import_duplicates_skipped_other": "Ua hia i {{count}} parahi i te repo (te ioa e te raa e tātau)."
 	},
 	"table": {
 		"name": "I’oa",
 		"birthday": "Fānaura’a",
 		"age": "Matahiti",
 		"progress": "Terera’a",
+		"rows_per_page": "Nga parahi i te ao",
 		"in": "I roto i te",
 		"sign": "Tāpa’o",
 		"birthgem": "Po’e",
@@ -238,10 +341,17 @@
 	},
 	"on_this_day": "I teie mahana i roto i te tuatāpapa",
 	"biorhythms": {
-		"title": "Terera’a tino (30 mahana i mua)",
+		"title": "Nā rima ioa (ʻaʻole he fuaʻau)",
 		"physical": "Tino",
 		"emotional": "Mana’o",
-		"intellectual": "Māramarama"
+		"intellectual": "Māramarama",
+		"disclaimer": "ʻO nā rima ioa he manaʻo i nā kānaka, ʻaʻole he fuaʻau ʻe ia ʻe hoʻokele ʻia e ka ʻike ʻike. ʻE hana ʻia nā polupolu e lalo mai i ka lā hānau me ka hana hoʻokumu. ʻAʻole e fuaʻau ʻia ʻoe, ʻo kou puʻa, a i hoʻi ʻo kou huʻalua.",
+		"axis_label": "polupolu i hana ʻia",
+		"cycle_belief": "manaʻo {{days}} anā",
+		"range": "Te Awara",
+		"range_days": "{{days}} pō",
+		"formula_note": "Pehea e hana ʻia ai: he ʻakua = sin(2*PI * nā pō mahi i ka hānau / te manawa) * 100, ʻo nā manawa 23, 28 a me 33 pō. ʻO nā-axis ka puka o ka polupolu iho, ʻaʻole he fuaʻau naʻau.",
+		"unknown_birth": "ʻAʻole he lā hānau faʻaʻea ʻia mō kēia hānau, no laʻi ʻaʻole he pō zero e hoʻi ai nā polupolu. ʻAʻole e hana ʻia he mea."
 	},
 	"data": {
 		"planets": {
@@ -439,5 +549,11 @@
 			"Vaimoana": "Tahitien : 'Vai nō te moana'",
 			"Victor": "Latin : 'Re'"
 		}
+	},
+	"consent": {
+		"title": "ʻŌlapu i nā pūlanu hoʻohana ʻole?",
+		"body": "E helu i na pol/software i whakatuwherahia. ʻAʻole he faʻatanu taʻu, ʻaʻole he hopu ʻā automation, ʻaʻole he cookie, ʻaʻole he ʻōhumuhumu ʻo ke kanaka. ʻAʻole e hoʻokuina ʻoe.",
+		"accept": "ʻAe",
+		"decline": "ʻAʻole, mahalo"
 	}
 }

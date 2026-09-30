@@ -885,9 +885,9 @@ a:hover .cv-ext {
 	*,
 	*::before,
 	*::after {
-		animation-duration: 0.001ms;
-		animation-iteration-count: 1;
-		transition-duration: 0.001ms;
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.001ms !important;
 	}
 
 	/* A `*` reset has specificity (0,0,0), so it loses to any author rule with
@@ -1050,8 +1050,8 @@ a:hover .cv-ext {
 	*,
 	*::before,
 	*::after {
-		animation: none;
-		transition: none;
+		animation: none !important;
+		transition: none !important;
 		-webkit-print-color-adjust: exact;
 		print-color-adjust: exact;
 	}
@@ -1070,6 +1070,6 @@ a:hover .cv-ext {
 		animation: none !important;
 		opacity: 1 !important;
 		transform: none !important;
-		transition: none !important;
+		transition: none;
 	}
 }

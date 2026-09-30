@@ -19,8 +19,15 @@ export type RecentApp = {
 const RECENTS_KEY = "app_recents";
 const PINNED_KEY = "app_pinned";
 
-/** How many recently-opened apps the dashboard surfaces. */
-const MAX_RECENTS = 4;
+/** How many recently-opened apps are stored and surfaced. */
+export const MAX_RECENTS = 4;
+
+/**
+ * Upper bound on stored pins. The registry only has seven entries, so this is
+ * generous; it exists so a hand-edited or hostile payload cannot grow without
+ * limit.
+ */
+export const MAX_PINS = 8;
 
 /** Move `href` to the front of the recency list, capping its length. */
 export const addRecent = (
@@ -38,7 +45,7 @@ export const addRecent = (
 export const togglePinned = (list: string[], href: string): string[] =>
 	list.includes(href)
 		? list.filter((entry) => entry !== href)
-		: [href, ...list];
+		: [href, ...list].slice(0, MAX_PINS);
 
 /**
  * Human-friendly "time ago" for a past timestamp, e.g. `just now`, `5m`,
@@ -64,22 +71,59 @@ export const formatRelativeTime = (
 	});
 };
 
+/**
+ * `JSON.parse` that yields `undefined` instead of throwing, so a truncated or
+ * hand-edited value degrades to "nothing stored" at the call site instead of
+ * having to be wrapped in a try/catch at every reader.
+ */
+const parseJson = (raw: string): unknown => {
+	try {
+		return JSON.parse(raw);
+	} catch {
+		return undefined;
+	}
+};
+
+/**
+ * A stored href must be a same-origin absolute path. This is not paranoia
+ * about `javascript:` URLs so much as keeping the rendered list honest: a
+ * stored entry that no longer matches the registry is dropped by the callers
+ * anyway, and a malformed one should not reach an `href` attribute.
+ */
+const isAppHref = (value: unknown): value is string =>
+	typeof value === "string" && value.startsWith("/") && !value.startsWith("//");
+
 const isRecentApp = (value: unknown): value is RecentApp => {
 	if (typeof value !== "object" || value === null) return false;
 	const candidate = value as Partial<RecentApp>;
-	return typeof candidate.href === "string" && typeof candidate.at === "number";
+	return (
+		isAppHref(candidate.href) &&
+		typeof candidate.at === "number" &&
+		Number.isFinite(candidate.at)
+	);
 };
 
-const parseRecents = (raw: string): RecentApp[] => {
-	const parsed: unknown = JSON.parse(raw);
+/**
+ * Decode a stored recents payload. Anything that is not a well-formed array of
+ * `{ href, at }` entries is discarded, and the result is always bounded — a
+ * corrupt, truncated or hand-edited value degrades to a shorter list, never to
+ * a throw.
+ */
+export const parseRecents = (raw: string): RecentApp[] => {
+	const parsed: unknown = parseJson(raw);
 	if (!Array.isArray(parsed)) return [];
 	return parsed.filter(isRecentApp).slice(0, MAX_RECENTS);
 };
 
-const parsePinned = (raw: string): string[] => {
-	const parsed: unknown = JSON.parse(raw);
+/** Decode a stored pins payload, with the same tolerance and bound. */
+export const parsePinned = (raw: string): string[] => {
+	const parsed: unknown = parseJson(raw);
 	if (!Array.isArray(parsed)) return [];
-	return parsed.filter((entry): entry is string => typeof entry === "string");
+	// De-duplicate as well as filter: a payload repeated by an old buggy build
+	// would otherwise pin the same app several times over.
+	return [
+		...new Set(parsed.filter((entry): entry is string => isAppHref(entry))),
+	].slice(0, MAX_PINS);
 };
 
 // Module-stable option objects so the hook callbacks keep a stable identity.

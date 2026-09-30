@@ -14,6 +14,7 @@ import {
 	resolveServiceAtTime,
 } from "./engine/interpolator";
 import { readUrlState, writeUrlState } from "./url";
+import { clampReplayTime, MIN_REPLAY_TIME } from "./utils";
 
 type RailStore = {
 	timeOffset: number; // minutes from 00:00 (default 480 = 08:00)
@@ -195,7 +196,11 @@ export const recomputeActiveTrains = () => {
 // Actions helper for clean mutation anywhere
 export const railActions = {
 	setTimeOffset: (val: number) => {
-		railStore.timeOffset = val;
+		// Clamp to the replay window. Without this the store could hold a
+		// clock outside the scrubber's range (timetable calls run up to 24:35),
+		// while `url.ts` clamped what it wrote - so the share link disagreed
+		// with the live view and reloading it silently moved the replay.
+		railStore.timeOffset = clampReplayTime(val);
 		recomputeActiveTrains();
 	},
 	togglePlay: () => {
@@ -241,8 +246,8 @@ export const railActions = {
 		railStore.settings = { ...DEFAULT_SETTINGS };
 	},
 	restart: () => {
-		railStore.timeOffset = 300; // 05:00
-		recomputeActiveTrains();
+		// 05:00, the first minute of the replay window.
+		railActions.setTimeOffset(MIN_REPLAY_TIME);
 	},
 };
 

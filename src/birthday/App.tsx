@@ -42,7 +42,7 @@ import { ErrorBoundary } from "./ErrorBoundary";
 import { FilterButtons, FilterSearch } from "./Filter";
 import { ManageBirthdaysModal } from "./ManageBirthdaysModal";
 import { MilestonesWidget } from "./MilestonesWidget";
-import { checkAndNotify } from "./notifications";
+import { checkAndNotify, subscribeDayRollNotification } from "./notifications";
 import { RecordsWidget } from "./RecordsWidget";
 import { dataStore, store } from "./store";
 import { TimelineView } from "./TimelineView";
@@ -91,27 +91,30 @@ const readInitialTab = (): TabKey => {
 	return isTabKey(tab) ? tab : "table";
 };
 
-const StatisticsSkeleton = () => (
-	<div
-		className="tk-surface"
-		role="status"
-		aria-label="Loading insights"
-		aria-busy="true"
-	>
-		<Skeleton height={18} width={160} style={{ marginBottom: 20 }} />
+const StatisticsSkeleton = () => {
+	const { t } = useTranslation();
+	return (
 		<div
-			style={{
-				display: "grid",
-				gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-				gap: 16,
-			}}
+			className="tk-surface"
+			role="status"
+			aria-label={t("app.loading")}
+			aria-busy="true"
 		>
-			{["a", "b", "c", "d", "e", "f"].map((id) => (
-				<Skeleton key={id} height={220} radius={18} />
-			))}
+			<Skeleton height={18} width={160} style={{ marginBottom: 20 }} />
+			<div
+				style={{
+					display: "grid",
+					gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+					gap: 16,
+				}}
+			>
+				{["a", "b", "c", "d", "e", "f"].map((id) => (
+					<Skeleton key={id} height={220} radius={18} />
+				))}
+			</div>
 		</div>
-	</div>
-);
+	);
+};
 
 export const App = () => {
 	const dataSnap = useSnapshot(dataStore);
@@ -137,10 +140,15 @@ export const App = () => {
 	}, [activeTab]);
 
 	useEffect(() => {
-		checkAndNotify(birthdays);
+		void checkAndNotify(birthdays);
 		if (birthdays.some((b) => b.daysBeforeBirthday === 0)) {
 			triggerConfetti();
 		}
+		// The date-roll watcher recomputes `birthdays` when the calendar day
+		// advances, so subscribing here is what makes a birthday arriving while
+		// the tab sits open announce itself. `checkAndNotify`'s once-per-day
+		// latch keeps the re-check quiet on every other recompute (and on remount).
+		return subscribeDayRollNotification(() => birthdays);
 	}, []);
 
 	const nextBirthdays = useMemo(
@@ -171,13 +179,21 @@ export const App = () => {
 		},
 	];
 
+	// TEMPORARY: the keys below are not in `locales/en.json` yet, so the typed
+	// `t()` (whose key union is derived from that file) rejects them. Delete this
+	// helper once the locale JSONs gain the keys.
+	const tr = t as unknown as (
+		key: string,
+		opts?: Record<string, unknown>,
+	) => string;
+
 	const commands: Command[] = [
 		{
 			id: "toggle-theme",
 			label: storeSnap.darkMode
-				? "Switch to light theme"
-				: "Switch to dark theme",
-			hint: "Appearance",
+				? tr("app.command.switch_light")
+				: tr("app.command.switch_dark"),
+			hint: tr("app.command.appearance"),
 			keywords: "theme dark light appearance mode toggle",
 			icon: storeSnap.darkMode ? <Sun size={16} /> : <Moon size={16} />,
 			run: () => {
@@ -186,16 +202,16 @@ export const App = () => {
 		},
 		{
 			id: "keyboard-shortcuts",
-			label: "Keyboard shortcuts",
-			hint: "Help",
+			label: tr("app.command.keyboard_shortcuts"),
+			hint: tr("app.command.help"),
 			keywords: "keyboard shortcuts keys help",
 			icon: <Keyboard size={16} />,
 			run: () => shortcuts.open(),
 		},
 		...tabItems.map((item) => ({
 			id: `tab-${item.key}`,
-			label: `Go to ${item.label}`,
-			hint: "Tab",
+			label: tr("app.command.go_to", { tab: item.label }),
+			hint: tr("app.command.tab"),
 			keywords: `tab ${item.key}`,
 			icon: <LayoutGrid size={16} />,
 			run: () => setActiveTab(item.key),
@@ -211,7 +227,11 @@ export const App = () => {
 			<Notifications position="top-right" />
 			<div className="tk-shell">
 				<AppHeader
-					data={data}
+					// Unfiltered on purpose: `data` only feeds `checkAndNotify`, and
+					// the filtered list hides weddings (off by default) plus
+					// anything the search box excluded, which would silence the
+					// very birthdays the alert exists to announce.
+					data={birthdays}
 					onOpenManage={() => setManageOpen(true)}
 					shortcutsButton={
 						<ShortcutsHelpButton
@@ -272,15 +292,15 @@ export const App = () => {
 							</Tabs>
 						</section>
 
-						<ErrorBoundary label="Milestones">
+						<ErrorBoundary label={t("app.milestones.title")}>
 							<MilestonesWidget />
 						</ErrorBoundary>
 
-						<ErrorBoundary label="Records">
+						<ErrorBoundary label={t("app.records.title")}>
 							<RecordsWidget data={data} />
 						</ErrorBoundary>
 
-						<ErrorBoundary label="Statistics">
+						<ErrorBoundary label={t("app.statistics.title")}>
 							<Suspense fallback={<StatisticsSkeleton />}>
 								<Statistics />
 							</Suspense>
@@ -322,8 +342,10 @@ export const App = () => {
 				onClose={shortcuts.close}
 				groups={[
 					{
-						title: "Search & filters",
-						shortcuts: [{ keys: ["/"], description: "Focus the search field" }],
+						title: tr("app.command.search_filters"),
+						shortcuts: [
+							{ keys: ["/"], description: tr("app.command.focus_search") },
+						],
 					},
 				]}
 			/>

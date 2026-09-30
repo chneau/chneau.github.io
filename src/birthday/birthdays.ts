@@ -139,16 +139,19 @@ const signs: {
 	{ point: 823, name: "libra", symbol: "♎", element: "air" },
 	{ point: 723, name: "virgo", symbol: "♍", element: "earth" },
 	{ point: 623, name: "leo", symbol: "♌", element: "fire" },
-	{ point: 522, name: "cancer", symbol: "♋", element: "water" },
+	{ point: 521, name: "cancer", symbol: "♋", element: "water" },
 	{ point: 421, name: "gemini", symbol: "♊", element: "air" },
 	{ point: 320, name: "taurus", symbol: "♉", element: "earth" },
 	{ point: 221, name: "aries", symbol: "♈", element: "fire" },
 	{ point: 119, name: "pisces", symbol: "♓", element: "water" },
 	{ point: 20, name: "aquarius", symbol: "♒", element: "air" },
-	{ point: 0, name: "capricorn", symbol: "♑", element: "earth" },
+	// Wrap-around for 1-19 January, which belongs to Sagittarius. Capricorn
+	// begins on 22 December (point 1122 above), so a point-0 entry naming
+	// Capricorn would misreport the whole first third of January.
+	{ point: 0, name: "sagittarius", symbol: "♐", element: "fire" },
 ];
 
-const getSign = (
+export const getSign = (
 	date: Date,
 ): {
 	name: ZodiacSign;
@@ -163,11 +166,33 @@ const getSign = (
 
 // --- Birthday Logic ---
 
+/**
+ * A date that is real, not merely parseable.
+ *
+ * `dayjs("1990-02-30").isValid()` is `true` — dayjs rolls the overflow forward
+ * to 2 March — so a validity check alone silently accepts dates that do not
+ * exist. `2001-13-01` is rejected by dayjs but `"1990-1-1"` is accepted and
+ * breaks any code that assumes the zero-padded ISO shape. The round-trip below
+ * is the real test: reformatting the parsed value must reproduce the input
+ * exactly, which only holds for a genuine `YYYY-MM-DD` calendar date.
+ */
+const isCalendarDate = (value: string): boolean => {
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+	const parsed = dayjs(value);
+	return parsed.isValid() && parsed.format("YYYY-MM-DD") === value;
+};
+
 export const birthdaySchema = z.object({
 	name: z.string().min(1),
-	date: z.string().refine((val) => dayjs(val).isValid(), {
-		message: "Invalid date format",
-	}),
+	date: z
+		.string()
+		.refine(isCalendarDate, { message: "Invalid date format" })
+		// Nobody is born in the future. Without this, a mistyped year produces a
+		// record whose age, countdown and zodiac are all silently nonsense.
+		// Today itself is allowed - that is a newborn's actual birth date.
+		.refine((value) => !dayjs(value).isAfter(dayjs(), "day"), {
+			message: "Date cannot be in the future",
+		}),
 	kind: z.enum(["♂️", "♀️", "💒"]),
 });
 
@@ -469,28 +494,17 @@ export const addRawBirthday = (item: RawBirthday) => {
 	saveRawBirthdays([...current, item]);
 };
 
-export const updateRawBirthday = (
-	oldKey: { name: string; date: string },
-	updated: RawBirthday,
-) => {
-	const current = getRawBirthdays();
-	const index = current.findIndex(
-		(b) => b.name === oldKey.name && b.date === oldKey.date,
-	);
-	if (index >= 0) {
-		const next = [...current];
-		next[index] = updated;
-		saveRawBirthdays(next);
-	}
-};
-
-export const deleteRawBirthday = (key: { name: string; date: string }) => {
-	const current = getRawBirthdays();
-	const next = current.filter(
-		(b) => !(b.name === key.name && b.date === key.date),
-	);
-	saveRawBirthdays(next);
-};
+/*
+ * `updateRawBirthday` and `deleteRawBirthday` were removed here.
+ *
+ * Both keyed on value equality — `findIndex` for the first match, `filter` for
+ * every match — so with two records sharing a name and date they were actively
+ * wrong: editing the second row rewrote the first, and deleting one row removed
+ * both. `ManageBirthdaysModal` now resolves the record by occurrence index and
+ * writes the list directly, which is correct for duplicates. These two are
+ * genuinely dangerous to keep around precisely because they look like the right
+ * abstraction; leaving them exported invited the bug back in.
+ */
 
 const listeners = new Set<() => void>();
 export const subscribeBirthdays = (fn: () => void) => {

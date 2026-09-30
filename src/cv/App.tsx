@@ -148,7 +148,7 @@ const CopyButton = ({ text, label }: { text: string; label: string }) => {
 };
 
 /** Announces that a `target="_blank"` link opens in a new tab. */
-const NewTabHint = () => <span className="sr-only"> (opens in new tab)</span>;
+const NewTabHint = () => <span className="sr-only">(opens in new tab)</span>;
 
 const LONDON_TIME = new Intl.DateTimeFormat("en-GB", {
 	timeZone: "Europe/London",

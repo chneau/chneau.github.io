@@ -3,8 +3,17 @@ import { Gem, Mars, RotateCcw, Search, Venus, X } from "lucide-react";
 import { type CSSProperties, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
-import { birthdays, monthNames } from "./birthdays";
-import { dataStore, store } from "./store";
+import { useCalendarDay } from "../hooks/useToday";
+import { birthdays } from "./birthdays";
+import {
+	clearFacets,
+	dataStore,
+	isMonthFacetActive,
+	store,
+	toggleAgeGroupFacet,
+	toggleGenerationFacet,
+	toggleMonthFacet,
+} from "./store";
 
 const FILTERS = [
 	{ key: "showBoys", labelKey: "app.filters.boys", Icon: Mars },
@@ -42,11 +51,28 @@ export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 	const dataSnap = useSnapshot(dataStore);
 	const inputRef = useRef<HTMLInputElement>(null);
 
+	// Re-renders at midnight, so the month chips follow the calendar instead of
+	// pinning whatever month the page happened to load in.
+	const today = useCalendarDay();
+	const thisMonth = dayjs(today).month() + 1;
+	const nextMonth = (thisMonth % 12) + 1;
+
+	// A month facet picked before midnight is already dead: it filters nothing
+	// and must not count as "filtered" either.
+	const monthFacetOn = isMonthFacetActive();
+
+	// Note the `!` on all three kind toggles: the list is filtered when a kind
+	// is HIDDEN, not when it is shown. Weddings default to hidden, so without
+	// `!showWeddings` the "N of 33 shown" notice never appeared at all, leaving
+	// "27 Birthdays" unexplained against a "People tracked 33" hero.
 	const isFiltered =
 		Boolean(snap.search) ||
 		!snap.showBoys ||
 		!snap.showGirls ||
-		snap.showWeddings;
+		!snap.showWeddings ||
+		monthFacetOn ||
+		snap.facets.generation !== null ||
+		snap.facets.ageGroup !== null;
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
@@ -65,18 +91,38 @@ export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, []);
 
+	// Each chip writes a facet field; none of them touch the free-text query.
 	const shortcuts = [
 		{
+			key: "this_month",
 			label: t("app.filters.shortcuts.this_month"),
-			query: monthNames[dayjs().month()],
+			on: monthFacetOn && snap.facets.month === thisMonth,
+			toggle: () => toggleMonthFacet(thisMonth),
 		},
 		{
+			key: "next_month",
 			label: t("app.filters.shortcuts.next_month"),
-			query: monthNames[(dayjs().month() + 1) % 12],
+			on: monthFacetOn && snap.facets.month === nextMonth,
+			toggle: () => toggleMonthFacet(nextMonth),
 		},
-		{ label: t("app.filters.shortcuts.gen_z"), query: "gen_z" },
-		{ label: t("app.filters.shortcuts.teens"), query: "teens" },
-		{ label: t("app.filters.shortcuts.seniors"), query: "seniors" },
+		{
+			key: "gen_z",
+			label: t("app.filters.shortcuts.gen_z"),
+			on: snap.facets.generation === "gen_z",
+			toggle: () => toggleGenerationFacet("gen_z"),
+		},
+		{
+			key: "teens",
+			label: t("app.filters.shortcuts.teens"),
+			on: snap.facets.ageGroup === "teens",
+			toggle: () => toggleAgeGroupFacet("teens"),
+		},
+		{
+			key: "seniors",
+			label: t("app.filters.shortcuts.seniors"),
+			on: snap.facets.ageGroup === "seniors",
+			toggle: () => toggleAgeGroupFacet("seniors"),
+		},
 	];
 
 	const handleReset = () => {
@@ -84,6 +130,7 @@ export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 		store.showBoys = true;
 		store.showGirls = true;
 		store.showWeddings = false;
+		clearFacets();
 	};
 
 	return (
@@ -119,24 +166,18 @@ export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 
 			<div className="tk-search__foot">
 				<div className="tk-chips">
-					{shortcuts.map((s) => {
-						const on =
-							s.query !== undefined &&
-							snap.search.toLowerCase() === s.query.toLowerCase();
-						return (
-							<button
-								type="button"
-								key={s.label}
-								className="tk-chip"
-								data-on={on}
-								onClick={() => {
-									store.search = on ? "" : s.query || "";
-								}}
-							>
-								{s.label}
-							</button>
-						);
-					})}
+					{shortcuts.map((s) => (
+						<button
+							type="button"
+							key={s.key}
+							className="tk-chip"
+							data-on={s.on}
+							aria-pressed={s.on}
+							onClick={s.toggle}
+						>
+							{s.label}
+						</button>
+					))}
 				</div>
 				{isFiltered && (
 					<div className="tk-notice">

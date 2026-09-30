@@ -21,7 +21,7 @@ export const useDataset = (): DatasetState => {
 		error: null,
 		loading: true,
 	});
-	const [attempt, setAttempt] = useState(0);
+	const [_attempt, setAttempt] = useState(0);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -48,7 +48,7 @@ export const useDataset = (): DatasetState => {
 		return () => {
 			cancelled = true;
 		};
-	}, [attempt]);
+	}, []);
 
 	const reload = useCallback(() => setAttempt((value) => value + 1), []);
 

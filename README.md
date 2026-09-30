@@ -175,13 +175,13 @@ bun run deploy   # Builds and publishes to GitHub Pages (master branch)
 
 Press `?` anywhere to see the shortcuts for the current app.
 
-| Shortcut | Action |
-| --- | --- |
-| `/` | Focus the dashboard search |
-| `Enter` | Open the first search result |
-| `1`–`6` | Launch an app from the dashboard |
-| `T` | Toggle light / dark theme |
-| `?` | Open the shortcut reference |
+| Shortcut     | Action                                                            |
+| ------------ | ----------------------------------------------------------------- |
+| `/`          | Focus the dashboard search                                        |
+| `Enter`      | Open the first search result                                      |
+| `1`–`6`      | Launch an app from the dashboard                                  |
+| `T`          | Toggle light / dark theme                                         |
+| `?`          | Open the shortcut reference                                       |
 | `⌘/Ctrl + K` | Open the command palette to jump to any app or run a quick action |
 
 `Esc` closes the command palette or shortcut dialog, or clears the dashboard

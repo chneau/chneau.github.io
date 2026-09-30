@@ -41,7 +41,6 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 	}, [items, query]);
 
 	// keep the highlight in range as the results shrink
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reset when the query changes
 	useEffect(() => {
 		setHighlight(0);
 		setScrollTop(0);
