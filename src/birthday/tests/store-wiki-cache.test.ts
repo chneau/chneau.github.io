@@ -62,6 +62,32 @@ const loadStore = async (seed?: Record<string, string>) => {
 /** Valtio batches its notifications into a microtask. */
 const settle = () => new Promise<void>((r) => setTimeout(r, 0));
 
+/**
+ * Wait for a condition rather than for a fixed delay.
+ *
+ * The mirror -> cache bridge is several steps: a Valtio notification, the
+ * `syncWikiCache` subscriber, `sync()`, `#admit`, then a persist. How long
+ * that takes depends on what else the process is doing, so any fixed sleep is
+ * either slow in the best case or flaky in the worst - and this test was
+ * demonstrably both: it passed in isolation and failed in the full suite, with
+ * instrumentation showing `sync()` correctly receiving the changed value
+ * *after* the assertion had already run.
+ *
+ * Polling asserts the behaviour and stays fast when the machine is idle.
+ */
+const waitFor = async (
+	condition: () => boolean,
+	timeoutMs = 750,
+): Promise<void> => {
+	const deadline = Date.now() + timeoutMs;
+	while (!condition()) {
+		if (Date.now() > deadline) {
+			throw new Error(`waitFor: condition not met within ${timeoutMs}ms`);
+		}
+		await Bun.sleep(5);
+	}
+};
+
 const events = (year: number, text = `event ${year}`): WikiEvents => [
 	{ text, year },
 ];
@@ -221,30 +247,20 @@ describe("store / wikiCache wiring", () => {
 		// an earlier test - so the timestamp comparison could pass without ever
 		// touching the entry under test.
 		const entry = () =>
-			persisted()?.entries.find((e) => e.key === "en-09-01")?.storedAt;
-		const first = entry();
+			persisted()?.entries.find((e) => e.key === "en-09-01");
+		const first = entry()?.storedAt;
 
-		// `storedAt` comes from `Date.now()`, which has millisecond resolution,
-		// and `settle()` is a 0ms timeout - so two writes can easily land in the
-		// same millisecond and produce an identical timestamp. That made this
-		// test pass in a full-file run and fail in isolation, purely on timing.
-		// Guarantee a tick so the assertion measures the cache rather than the
-		// clock's granularity.
+		// `storedAt` has millisecond resolution, so guarantee the clock has moved
+		// before the second write, or the two writes can legitimately share a
+		// timestamp and the assertion below would be measuring the clock.
 		await Bun.sleep(5);
 
 		mirror["en-09-01"] = events(1969, "revised");
-		// The mirror -> cache bridge is asynchronous: the Valtio subscription
-		// calls `sync()`, which persists in a later turn. A 0ms timeout can win
-		// that race when the event loop is busy - which is why this test passed
-		// alone and failed in the full suite. Wait for real time to pass rather
-		// than for one timer tick.
-		await Bun.sleep(5);
+		await waitFor(() => entry()?.storedAt !== first);
 
 		expect(mirror["en-09-01"]?.[0]?.text).toBe("revised");
-		expect(entry()).toBeGreaterThan(first ?? 0);
-		expect(
-			persisted()?.entries.find((e) => e.key === "en-09-01") !== undefined,
-		).toBe(true);
+		expect(entry()?.storedAt).toBeGreaterThan(first ?? 0);
+		expect(entry()?.value).toEqual(events(1969, "revised"));
 	});
 
 	test("hydration keeps a 29-day-old entry and drops a 31-day-old one", async () => {
