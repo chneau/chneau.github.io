@@ -22,14 +22,7 @@ import {
 	Sparkles,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import {
-	AppHeader,
-	BackHome,
-	Brand,
-	SchemeToggle,
-	SkipLink,
-	useThemeMode,
-} from "../../index";
+import { AppNav, SkipLink, useThemeMode } from "../../index";
 import type { Bytes } from "../bytes";
 import { applyEdits, stageEdits, withoutPath } from "../edits";
 import {
@@ -202,14 +195,10 @@ export const SaveWorkbench = ({
 				}}
 			>
 				<SkipLink />
-				<AppHeader
-					brand={<Brand href="/" title={codec.game} subtitle="Save editor" />}
-					actions={
-						<Group gap="xs">
-							<BackHome />
-							<SchemeToggle dark={theme.dark} onToggle={theme.toggle} />
-						</Group>
-					}
+				<AppNav
+					title={codec.game}
+					subtitle="Save editor"
+					theme={{ dark: theme.dark, onToggle: theme.toggle }}
 				/>
 				{/*
 				 * The hero carries the page's only `<h1>`. Without it the landing
@@ -277,8 +266,10 @@ export const SaveWorkbench = ({
 				background: "var(--app-bg)",
 			}}
 		>
-			<AppHeader
-				brand={<Brand href="/" title={codec.game} subtitle="Save editor" />}
+			<AppNav
+				title={codec.game}
+				subtitle="Save editor"
+				theme={{ dark: theme.dark, onToggle: theme.toggle }}
 				center={
 					<Group gap="xs" wrap="nowrap">
 						<Text size="sm" fw={600} truncate>
@@ -296,7 +287,6 @@ export const SaveWorkbench = ({
 				}
 				actions={
 					<Group gap="xs">
-						<BackHome />
 						<Tooltip label="Open a different save" withArrow>
 							<Button
 								variant="default"
@@ -307,7 +297,6 @@ export const SaveWorkbench = ({
 								Change file
 							</Button>
 						</Tooltip>
-						<SchemeToggle dark={theme.dark} onToggle={theme.toggle} />
 						<Button
 							size="compact-sm"
 							leftSection={

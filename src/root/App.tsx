@@ -35,21 +35,15 @@ import {
 	APPS,
 	AppCard,
 	type AppEntry,
-	AppHeader,
-	AppSwitcher,
-	Brand,
+	AppNav,
 	CommandPalette,
 	CommandPaletteButton,
 	createAppTheme,
 	EmptyState,
 	Footer,
 	HeaderAction,
-	HeaderOverflow,
 	type Command as PaletteCommand,
 	ROOT_THEME_KEY,
-	SchemeToggle,
-	ShortcutsHelp,
-	ShortcutsHelpButton,
 	SkipLink,
 	Stat,
 	StatusDot,
@@ -402,39 +396,33 @@ export const App = () => {
 				}}
 			>
 				<SkipLink />
-				<AppHeader
-					brand={
-						<Brand
-							href="/"
-							icon={<Rocket size={18} />}
-							title="chneau.github.io"
-							subtitle="Personal hub and web apps"
-						/>
-					}
+				<AppNav
+					// This app binds the command palette, so the shared help dialog
+					// may advertise it.
+					hasCommandPalette
+					icon={<Rocket size={18} />}
+					title="chneau.github.io"
+					subtitle="Personal hub and web apps"
+					showBackHome={false}
 					actions={
 						<>
-							<AppSwitcher />
-							{/* On a phone only the switcher stays inline and the rest
-							    move behind "More"; above the breakpoint the overflow
-							    renders its children inline, so the wide bar is
-							    unchanged. */}
-							<HeaderOverflow>
-								<HeaderAction
-									href="https://github.com/chneau"
-									target="_blank"
-									iconOnly
-									label="GitHub profile"
-									icon={<GithubIcon size={18} />}
-								/>
-								<ShortcutsHelpButton
-									onClick={shortcuts.open}
-									expanded={shortcuts.opened}
-								/>
-								<CommandPaletteButton onClick={palette.open} />
-								<SchemeToggle dark={theme.dark} onToggle={theme.toggle} />
-							</HeaderOverflow>
+							<HeaderAction
+								href="https://github.com/chneau"
+								target="_blank"
+								iconOnly
+								label="GitHub profile"
+								icon={<GithubIcon size={18} />}
+							/>
+							<CommandPaletteButton onClick={palette.open} />
 						</>
 					}
+					shortcuts={[]}
+					globalShortcuts={[
+						...APP_SWITCH_SHORTCUTS,
+						{ keys: ["/"], description: "Focus the app search" },
+						{ keys: ["Enter"], description: "Open the first search result" },
+					]}
+					theme={{ dark: theme.dark, onToggle: theme.toggle }}
 				/>
 
 				<Box component="main" id="main" tabIndex={-1} style={{ flex: 1 }}>
@@ -660,17 +648,6 @@ export const App = () => {
 			{/* Renders only until the visitor answers, and never when the
 			    browser exports Do Not Track or Global Privacy Control. */}
 			<ConsentBanner />
-
-			<ShortcutsHelp
-				opened={shortcuts.opened}
-				onClose={shortcuts.close}
-				groups={[]}
-				globalShortcuts={[
-					...APP_SWITCH_SHORTCUTS,
-					{ keys: ["/"], description: "Focus the app search" },
-					{ keys: ["Enter"], description: "Open the first search result" },
-				]}
-			/>
 
 			<CommandPalette
 				opened={palette.opened}

@@ -9,19 +9,10 @@ import {
 	Languages,
 	Settings,
 } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
-import {
-	AppHeader as AppHeaderShell,
-	AppSwitcher,
-	BackHome,
-	Brand,
-	HeaderAction,
-	HeaderOverflow,
-	SchemeToggle,
-	StatusDot,
-} from "../shared";
+import { AppNav, HeaderAction, type ShortcutGroup, StatusDot } from "../shared";
 import type { Birthday } from "./birthdays";
 import { triggerConfetti } from "./celebration";
 import {
@@ -37,7 +28,11 @@ declare const BUILD_DATE: string;
 type AppHeaderProps = {
 	data: readonly Birthday[];
 	onOpenManage?: () => void;
-	shortcutsButton?: ReactNode;
+	/**
+	 * Shortcut groups for the help dialog `AppNav` owns. They arrive from the
+	 * app, which also holds the translated strings.
+	 */
+	shortcuts: ShortcutGroup[];
 };
 
 type BeforeInstallPromptEvent = Event & {
@@ -74,7 +69,7 @@ const LANGUAGES = [
 export const AppHeader = ({
 	data,
 	onOpenManage,
-	shortcutsButton,
+	shortcuts,
 }: AppHeaderProps) => {
 	const { t, i18n } = useTranslation();
 	// TEMPORARY: the keys below are not in `locales/en.json` yet, so the typed
@@ -157,148 +152,140 @@ export const AppHeader = ({
 	const notificationsBlocked = notificationState === "denied";
 
 	return (
-		<AppHeaderShell
-			brand={
-				<Brand
-					href="/"
-					icon={<Cake size={18} strokeWidth={1.9} />}
-					title={t("app.title")}
-					subtitle={tr("app.header.build", { date: BUILD_DATE })}
-				/>
-			}
+		<AppNav
+			// This app binds the command palette, so the shared help dialog
+			// may advertise it.
+			hasCommandPalette
+			icon={<Cake size={18} strokeWidth={1.9} />}
+			title={t("app.title")}
+			subtitle={tr("app.header.build", { date: BUILD_DATE })}
+			shortcuts={shortcuts}
+			theme={{
+				dark: storeSnap.darkMode,
+				onToggle: () => {
+					store.darkMode = !store.darkMode;
+				},
+			}}
+			// Ten controls is 494px in a 360px bar, so on a phone only
+			// BackHome and the switcher stay inline and the rest move behind
+			// "More" (`AppNav` wraps this slot in `HeaderOverflow`). Above the
+			// breakpoint they render inline, so a wide bar is unchanged. The two
+			// Mantine `Menu` triggers are inside deliberately: their dropdowns
+			// render in a portal, which is what makes them safe to nest there.
 			actions={
 				<>
-					<BackHome />
-					<AppSwitcher />
-					{/* Ten controls is 494px in a 360px bar, so on a phone only
-					    these two stay inline and the rest move behind "More".
-					    Above the breakpoint `HeaderOverflow` renders its children
-					    inline, so a wide bar is unchanged. The two Mantine `Menu`
-					    triggers are inside it deliberately: their dropdowns render
-					    in a portal, which is what makes them safe to nest here. */}
-					<HeaderOverflow>
-						<Menu position="bottom-end" shadow="md" withinPortal>
-							<Menu.Target>
-								<HeaderAction icon={<FlaskConical size={15} />}>
-									{tr("app.header.demo")}
-								</HeaderAction>
-							</Menu.Target>
-							<Menu.Dropdown>
-								{demoToolsMenu.map((item) => (
-									<Menu.Item
-										key={item.key}
-										leftSection={item.icon}
-										onClick={item.onClick}
-									>
-										{item.label}
-									</Menu.Item>
-								))}
-							</Menu.Dropdown>
-						</Menu>
-
-						<Menu position="bottom-end" shadow="md" withinPortal>
-							<Menu.Target>
-								<HeaderAction
-									label={tr("app.header.change_language")}
-									icon={<Languages size={15} />}
-								>
-									{current.short}
-								</HeaderAction>
-							</Menu.Target>
-							<Menu.Dropdown>
-								{LANGUAGES.map((x) => {
-									const isCurrent = i18n.language.startsWith(x.key);
-									return (
-										<Menu.Item
-											key={x.key}
-											c={isCurrent ? "teal" : undefined}
-											fw={isCurrent ? 600 : undefined}
-											rightSection={isCurrent ? <Check size={14} /> : undefined}
-											onClick={() => {
-												i18n.changeLanguage(x.key);
-												dayjs.locale(x.key);
-											}}
-										>
-											{x.label}
-										</Menu.Item>
-									);
-								})}
-							</Menu.Dropdown>
-						</Menu>
-
-						{installPrompt && (
-							<HeaderAction
-								icon={<Download size={15} />}
-								onClick={async () => {
-									installPrompt.prompt();
-									const { outcome } = await installPrompt.userChoice;
-									if (outcome === "accepted") setInstallPrompt(undefined);
-								}}
-							>
-								{t("app.header.install")}
+					<Menu position="bottom-end" shadow="md" withinPortal>
+						<Menu.Target>
+							<HeaderAction icon={<FlaskConical size={15} />}>
+								{tr("app.header.demo")}
 							</HeaderAction>
-						)}
+						</Menu.Target>
+						<Menu.Dropdown>
+							{demoToolsMenu.map((item) => (
+								<Menu.Item
+									key={item.key}
+									leftSection={item.icon}
+									onClick={item.onClick}
+								>
+									{item.label}
+								</Menu.Item>
+							))}
+						</Menu.Dropdown>
+					</Menu>
 
-						<Tooltip
-							label={
-								notificationsOn
-									? tr("app.header.alerts_active")
-									: notificationsBlocked
-										? tr("app.header.alerts_blocked")
-										: tr("app.header.alerts_enable")
+					<Menu position="bottom-end" shadow="md" withinPortal>
+						<Menu.Target>
+							<HeaderAction
+								label={tr("app.header.change_language")}
+								icon={<Languages size={15} />}
+							>
+								{current.short}
+							</HeaderAction>
+						</Menu.Target>
+						<Menu.Dropdown>
+							{LANGUAGES.map((x) => {
+								const isCurrent = i18n.language.startsWith(x.key);
+								return (
+									<Menu.Item
+										key={x.key}
+										c={isCurrent ? "teal" : undefined}
+										fw={isCurrent ? 600 : undefined}
+										rightSection={isCurrent ? <Check size={14} /> : undefined}
+										onClick={() => {
+											i18n.changeLanguage(x.key);
+											dayjs.locale(x.key);
+										}}
+									>
+										{x.label}
+									</Menu.Item>
+								);
+							})}
+						</Menu.Dropdown>
+					</Menu>
+
+					{installPrompt && (
+						<HeaderAction
+							icon={<Download size={15} />}
+							onClick={async () => {
+								installPrompt.prompt();
+								const { outcome } = await installPrompt.userChoice;
+								if (outcome === "accepted") setInstallPrompt(undefined);
+							}}
+						>
+							{t("app.header.install")}
+						</HeaderAction>
+					)}
+
+					<Tooltip
+						label={
+							notificationsOn
+								? tr("app.header.alerts_active")
+								: notificationsBlocked
+									? tr("app.header.alerts_blocked")
+									: tr("app.header.alerts_enable")
+						}
+					>
+						<HeaderAction
+							label={t("app.header.enable_notifications")}
+							active={notificationsOn}
+							onClick={handleToggleNotifications}
+							icon={
+								<>
+									{notificationState === "default" ? (
+										<span className="app-statusdot" aria-hidden="true" />
+									) : (
+										<StatusDot on={notificationsOn} />
+									)}
+									<Bell size={15} />
+								</>
 							}
 						>
-							<HeaderAction
-								label={t("app.header.enable_notifications")}
-								active={notificationsOn}
-								onClick={handleToggleNotifications}
-								icon={
-									<>
-										{notificationState === "default" ? (
-											<span className="app-statusdot" aria-hidden="true" />
-										) : (
-											<StatusDot on={notificationsOn} />
-										)}
-										<Bell size={15} />
-									</>
-								}
-							>
-								{notificationsOn
-									? tr("app.header.alerts_on")
-									: notificationsBlocked
-										? tr("app.header.alerts_blocked_short")
-										: tr("app.header.alerts_enable_short")}
-							</HeaderAction>
-						</Tooltip>
+							{notificationsOn
+								? tr("app.header.alerts_on")
+								: notificationsBlocked
+									? tr("app.header.alerts_blocked_short")
+									: tr("app.header.alerts_enable_short")}
+						</HeaderAction>
+					</Tooltip>
 
+					<HeaderAction
+						href="https://github.com/chneau/chneau.github.io"
+						target="_blank"
+						iconOnly
+						label={t("app.header.github")}
+						icon={<GitHubMark size={16} />}
+					/>
+
+					{onOpenManage && (
 						<HeaderAction
-							href="https://github.com/chneau/chneau.github.io"
-							target="_blank"
-							iconOnly
-							label={t("app.header.github")}
-							icon={<GitHubMark size={16} />}
-						/>
-
-						{onOpenManage && (
-							<HeaderAction
-								accent
-								label={t("app.hero.manage")}
-								onClick={onOpenManage}
-								icon={<Settings size={15} />}
-							>
-								{t("app.hero.manage")}
-							</HeaderAction>
-						)}
-
-						{shortcutsButton}
-
-						<SchemeToggle
-							dark={storeSnap.darkMode}
-							onToggle={() => {
-								store.darkMode = !store.darkMode;
-							}}
-						/>
-					</HeaderOverflow>
+							accent
+							label={t("app.hero.manage")}
+							onClick={onOpenManage}
+							icon={<Settings size={15} />}
+						>
+							{t("app.hero.manage")}
+						</HeaderAction>
+					)}
 				</>
 			}
 		/>

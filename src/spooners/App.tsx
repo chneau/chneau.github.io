@@ -16,7 +16,6 @@ import {
 	EmptyState,
 	Section,
 	type ShortcutGroup,
-	ShortcutsHelp,
 	SkipLink,
 	useCommandPalette,
 	useShortcutsHelp,
@@ -447,8 +446,7 @@ export const App = () => {
 				onShare={copyShare}
 				onValueOpen={() => setValueOpen(true)}
 				onSettingsOpen={() => setSettingsOpen(true)}
-				shortcutsOpened={shortcuts.opened}
-				onShortcutsOpen={shortcuts.open}
+				shortcuts={SHORTCUT_GROUPS}
 			/>
 
 			<main
@@ -792,12 +790,6 @@ export const App = () => {
 				opened={palette.opened}
 				onClose={palette.close}
 				commands={commands}
-			/>
-
-			<ShortcutsHelp
-				opened={shortcuts.opened}
-				onClose={shortcuts.close}
-				groups={SHORTCUT_GROUPS}
 			/>
 		</Box>
 	);

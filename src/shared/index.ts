@@ -1,8 +1,7 @@
 export { APP_CATEGORIES, APPS, type AppEntry } from "./apps";
 export { AppCard } from "./components/AppCard";
-export { AppHeader } from "./components/AppHeader";
+export { AppNav } from "./components/AppNav";
 export { AppSwitcher } from "./components/AppSwitcher";
-export { BackHome } from "./components/BackHome";
 export { Brand } from "./components/Brand";
 export type { Command } from "./components/CommandPalette";
 export {

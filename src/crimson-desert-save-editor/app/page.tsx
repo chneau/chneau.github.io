@@ -90,17 +90,10 @@ import {
 	storageSummaries,
 } from "@/lib/staged-projection";
 import {
-	AppHeader,
-	AppSwitcher,
-	BackHome,
-	Brand,
+	AppNav,
 	type Command,
 	CommandPalette,
 	HeaderAction,
-	HeaderOverflow,
-	SchemeToggle,
-	ShortcutsHelp,
-	ShortcutsHelpButton,
 	SkipLink,
 	useCommandPalette,
 	useShortcutsHelp,
@@ -217,6 +210,8 @@ export const Home = () => {
 	);
 	const [addOpen, setAddOpen] = useState(false);
 	const [edits, setEdits] = useState<SaveEdit[]>([]);
+	// The palette's own "Keyboard shortcuts" command opens this dialog; the
+	// navbar's is mounted by `AppNav`, which keeps its instance to itself.
 	const shortcuts = useShortcutsHelp();
 	const palette = useCommandPalette();
 
@@ -728,25 +723,42 @@ export const Home = () => {
 						{pageTitle}
 					</Box>
 				) : null}
-				<AppHeader
+				<AppNav
+					// This app binds the command palette, so the shared help dialog
+					// may advertise it.
+					hasCommandPalette
 					staticPosition
-					brand={
-						<>
-							{!isDesktop && (
-								<Burger
-									opened={navOpened}
-									onClick={navHandlers.toggle}
-									size="sm"
-									aria-label="Toggle navigation"
-								/>
-							)}
-							<Brand title={pageTitle} subtitle={pageSubtitle} />
-						</>
+					title={pageTitle}
+					subtitle={pageSubtitle}
+					brandHref={null}
+					brandExtra={
+						!isDesktop && (
+							<Burger
+								opened={navOpened}
+								onClick={navHandlers.toggle}
+								size="sm"
+								aria-label="Toggle navigation"
+							/>
+						)
 					}
+					theme={{
+						dark,
+						onToggle: () => setColorScheme(dark ? "light" : "dark"),
+					}}
+					shortcuts={[
+						{
+							title: "Editing",
+							shortcuts: [
+								{
+									keys: ["Ctrl/⌘", "Z"],
+									description: "Undo the last staged change",
+								},
+								{ keys: ["Esc"], description: "Close the open panel" },
+							],
+						},
+					]}
 					actions={
 						<>
-							<BackHome />
-							<AppSwitcher />
 							{result && (
 								<>
 									{fileName && (
@@ -771,109 +783,98 @@ export const Home = () => {
 									</Badge>
 								</>
 							)}
-							<HeaderOverflow>
-								<HeaderAction
-									label={result ? "Open another save" : "Open save"}
-									icon={<FileUp size={16} />}
-									onClick={() => inputRef.current?.click()}
-								>
-									{result ? "Open another" : "Open save"}
-								</HeaderAction>
+							<HeaderAction
+								label={result ? "Open another save" : "Open save"}
+								icon={<FileUp size={16} />}
+								onClick={() => inputRef.current?.click()}
+							>
+								{result ? "Open another" : "Open save"}
+							</HeaderAction>
 
-								{result && (
-									<>
-										{edits.length > 0 && (
-											<Menu
-												position="bottom-end"
-												withinPortal
-												opened={stagedMenuOpen}
-												onChange={setStagedMenuOpen}
-											>
-												<Menu.Target>
-													<HeaderAction
-														label={`Staged changes (${edits.length})`}
-														icon={<CheckCircle2 size={16} />}
-														ariaExpanded={stagedMenuOpen}
-														ariaHaspopup="menu"
-													>
-														Staged ({edits.length})
-													</HeaderAction>
-												</Menu.Target>
-												<Menu.Dropdown>
-													<Menu.Item
-														leftSection={<CheckCircle2 size={15} />}
-														onClick={() => setReviewOpen(true)}
-													>
-														Review staged changes
-													</Menu.Item>
-													<Menu.Item
-														leftSection={<Undo2 size={15} />}
-														onClick={() =>
-															setEdits((current) => current.slice(0, -1))
-														}
-													>
-														Undo last change
-													</Menu.Item>
-													<Menu.Divider />
-													<Menu.Item
-														color="red"
-														leftSection={<Trash2 size={15} />}
-														onClick={() => setDiscardModalOpen(true)}
-													>
-														Discard all
-													</Menu.Item>
-												</Menu.Dropdown>
-											</Menu>
-										)}
-										{view === "inventory" && (
-											<>
-												<EquipmentCatalogPanel
-													catalog={equipmentCatalog}
-													itemCatalog={catalog}
-													storages={storages.map((entry) => ({
-														key: entry.key,
-														name: storageName(entry.key),
-													}))}
-													defaultStorage={activeStorage}
-													records={result.records}
-													edits={edits}
-													busy={loading}
-													onStage={stageEquipment}
-												/>
-												<HeaderAction
-													label="Add item"
-													icon={<Plus size={16} />}
-													onClick={() => setAddOpen(true)}
-												>
-													Add item
-												</HeaderAction>
-											</>
-										)}
-										<HeaderAction
-											accent
-											disabled={edits.length === 0}
-											loading={loading}
-											label="Download save"
-											icon={
-												loading ? <Loader size={16} /> : <Download size={16} />
-											}
-											onClick={downloadEditedSave}
+							{result && (
+								<>
+									{edits.length > 0 && (
+										<Menu
+											position="bottom-end"
+											withinPortal
+											opened={stagedMenuOpen}
+											onChange={setStagedMenuOpen}
 										>
-											Download save
-											{edits.length > 0 ? ` (${edits.length})` : ""}
-										</HeaderAction>
-									</>
-								)}
-
-								<ShortcutsHelpButton
-									onClick={shortcuts.open}
-									expanded={shortcuts.opened}
-								/>
-								<SchemeToggle
-									dark={dark}
-									onToggle={() => setColorScheme(dark ? "light" : "dark")}
-								/>
-							</HeaderOverflow>
+											<Menu.Target>
+												<HeaderAction
+													label={`Staged changes (${edits.length})`}
+													icon={<CheckCircle2 size={16} />}
+													ariaExpanded={stagedMenuOpen}
+													ariaHaspopup="menu"
+												>
+													Staged ({edits.length})
+												</HeaderAction>
+											</Menu.Target>
+											<Menu.Dropdown>
+												<Menu.Item
+													leftSection={<CheckCircle2 size={15} />}
+													onClick={() => setReviewOpen(true)}
+												>
+													Review staged changes
+												</Menu.Item>
+												<Menu.Item
+													leftSection={<Undo2 size={15} />}
+													onClick={() =>
+														setEdits((current) => current.slice(0, -1))
+													}
+												>
+													Undo last change
+												</Menu.Item>
+												<Menu.Divider />
+												<Menu.Item
+													color="red"
+													leftSection={<Trash2 size={15} />}
+													onClick={() => setDiscardModalOpen(true)}
+												>
+													Discard all
+												</Menu.Item>
+											</Menu.Dropdown>
+										</Menu>
+									)}
+									{view === "inventory" && (
+										<>
+											<EquipmentCatalogPanel
+												catalog={equipmentCatalog}
+												itemCatalog={catalog}
+												storages={storages.map((entry) => ({
+													key: entry.key,
+													name: storageName(entry.key),
+												}))}
+												defaultStorage={activeStorage}
+												records={result.records}
+												edits={edits}
+												busy={loading}
+												onStage={stageEquipment}
+											/>
+											<HeaderAction
+												label="Add item"
+												icon={<Plus size={16} />}
+												onClick={() => setAddOpen(true)}
+											>
+												Add item
+											</HeaderAction>
+										</>
+									)}
+									<HeaderAction
+										accent
+										disabled={edits.length === 0}
+										loading={loading}
+										label="Download save"
+										icon={
+											loading ? <Loader size={16} /> : <Download size={16} />
+										}
+										onClick={downloadEditedSave}
+									>
+										Download save
+										{edits.length > 0 ? ` (${edits.length})` : ""}
+									</HeaderAction>
+								</>
+							)}
 						</>
 					}
 				/>
@@ -1122,23 +1123,6 @@ export const Home = () => {
 				onDiscardAll={() => setDiscardModalOpen(true)}
 				onDownload={downloadEditedSave}
 				busy={loading}
-			/>
-
-			<ShortcutsHelp
-				opened={shortcuts.opened}
-				onClose={shortcuts.close}
-				groups={[
-					{
-						title: "Editing",
-						shortcuts: [
-							{
-								keys: ["Ctrl/⌘", "Z"],
-								description: "Undo the last staged change",
-							},
-							{ keys: ["Esc"], description: "Close the open panel" },
-						],
-					},
-				]}
 			/>
 
 			<CommandPalette

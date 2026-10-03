@@ -17,21 +17,14 @@ import {
 import type { CSSProperties, RefObject } from "react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
-	AppHeader,
-	AppSwitcher,
-	BackHome,
-	Brand,
+	AppNav,
 	type Command,
 	CommandPalette,
 	createAppTheme,
 	Footer,
 	Grain,
 	HeaderAction,
-	HeaderOverflow,
 	prefersReducedMotion,
-	SchemeToggle,
-	ShortcutsHelp,
-	ShortcutsHelpButton,
 	SkipLink,
 	useCommandPalette,
 	useShortcutsHelp,
@@ -311,20 +304,43 @@ export const App = () => {
 					<Grain />
 				</div>
 
-				<AppHeader
+				{/* The bar holds eight controls here, which is 394px at
+				    360px wide — so on a phone the secondary ones collapse
+				    into the overflow menu `AppNav` wraps them in. */}
+				<AppNav
+					// This app binds the command palette, so the shared help dialog
+					// may advertise it.
+					hasCommandPalette
 					className="no-print"
-					brand={
-						<Brand
-							href="/"
-							icon={<span style={{ fontSize: 13, fontWeight: 700 }}>CN</span>}
-							title="Charles Neau"
-							subtitle="Curriculum Vitae"
-						/>
-					}
+					icon={<span style={{ fontSize: 13, fontWeight: 700 }}>CN</span>}
+					title="Charles Neau"
+					subtitle="Curriculum Vitae"
+					theme={{ dark: theme.dark, onToggle: theme.toggle }}
+					shortcuts={[
+						{
+							title: "Page",
+							shortcuts: [
+								{ keys: ["Esc"], description: "Return to the dashboard" },
+							],
+						},
+					]}
 					actions={
 						<>
-							<BackHome label="Back to dashboard (Esc)" />
-							<AppSwitcher />
+							<HeaderAction
+								iconOnly
+								active={linkCopy.state === "ok"}
+								label={linkCopy.title}
+								onClick={linkCopy.copy}
+								icon={
+									linkCopy.state === "ok" ? (
+										<Check size={16} />
+									) : linkCopy.state === "error" ? (
+										<TriangleAlert size={16} />
+									) : (
+										<Link2 size={16} />
+									)
+								}
+							/>
 							{linkCopy.feedback ? (
 								<span
 									className="cv-copy-feedback cv-copy-feedback--header"
@@ -334,54 +350,29 @@ export const App = () => {
 									{linkCopy.feedback}
 								</span>
 							) : null}
-							{/* The bar holds eight controls here, which is 394px at
-							    360px wide — so on a phone the secondary ones collapse
-							    into the overflow menu. */}
-							<HeaderOverflow>
-								<HeaderAction
-									iconOnly
-									active={linkCopy.state === "ok"}
-									label={linkCopy.title}
-									onClick={linkCopy.copy}
-									icon={
-										linkCopy.state === "ok" ? (
-											<Check size={16} />
-										) : linkCopy.state === "error" ? (
-											<TriangleAlert size={16} />
-										) : (
-											<Link2 size={16} />
-										)
-									}
-								/>
-								<HeaderAction
-									accent
-									href={PDF_URL}
-									target="_blank"
-									label="View or download the raw PDF from GitHub"
-									icon={<FileText size={15} />}
-								>
-									PDF
-								</HeaderAction>
-								<HeaderAction
-									href={DOCX_URL}
-									target="_blank"
-									label="View or download the raw DOCX from GitHub"
-									icon={<FileType size={15} />}
-								>
-									DOCX
-								</HeaderAction>
-								<HeaderAction
-									iconOnly
-									label="Print or save as PDF (Ctrl+P)"
-									onClick={() => window.print()}
-									icon={<Printer size={16} />}
-								/>
-								<ShortcutsHelpButton
-									onClick={shortcuts.open}
-									expanded={shortcuts.opened}
-								/>
-								<SchemeToggle dark={theme.dark} onToggle={theme.toggle} />
-							</HeaderOverflow>
+							<HeaderAction
+								accent
+								href={PDF_URL}
+								target="_blank"
+								label="View or download the raw PDF from GitHub"
+								icon={<FileText size={15} />}
+							>
+								PDF
+							</HeaderAction>
+							<HeaderAction
+								href={DOCX_URL}
+								target="_blank"
+								label="View or download the raw DOCX from GitHub"
+								icon={<FileType size={15} />}
+							>
+								DOCX
+							</HeaderAction>
+							<HeaderAction
+								iconOnly
+								label="Print or save as PDF (Ctrl+P)"
+								onClick={() => window.print()}
+								icon={<Printer size={16} />}
+							/>
 						</>
 					}
 				/>
@@ -635,18 +626,6 @@ export const App = () => {
 					<ArrowUp aria-hidden />
 				</button>
 			</div>
-			<ShortcutsHelp
-				opened={shortcuts.opened}
-				onClose={shortcuts.close}
-				groups={[
-					{
-						title: "Page",
-						shortcuts: [
-							{ keys: ["Esc"], description: "Return to the dashboard" },
-						],
-					},
-				]}
-			/>
 			<CommandPalette
 				opened={palette.opened}
 				onClose={palette.close}
