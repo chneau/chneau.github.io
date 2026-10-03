@@ -3,16 +3,8 @@ import { useMediaQuery } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { Beer, Copy, Settings, TriangleAlert, Trophy } from "lucide-react";
 import { useEffect } from "react";
-import {
-	AppSwitcher,
-	BackHome,
-	Brand,
-	AppHeader as Header,
-	HeaderAction,
-	HeaderOverflow,
-	SchemeToggle,
-	ShortcutsHelpButton,
-} from "../../shared";
+import type { ShortcutGroup } from "../../shared";
+import { AppNav, HeaderAction } from "../../shared";
 import type { CacheStats, VenueInfo } from "../types";
 import { PubSearch } from "./PubSearch";
 
@@ -29,8 +21,8 @@ type Props = {
 	onShare: () => void;
 	onValueOpen: () => void;
 	onSettingsOpen: () => void;
-	shortcutsOpened: boolean;
-	onShortcutsOpen: () => void;
+	/** Shortcut groups for the help dialog `AppNav` owns. */
+	shortcuts: ShortcutGroup[];
 };
 
 /** The top bar: branding, live counts, pub search, value charts and app actions. */
@@ -46,8 +38,7 @@ export const AppHeader = ({
 	onShare,
 	onValueOpen,
 	onSettingsOpen,
-	shortcutsOpened,
-	onShortcutsOpen,
+	shortcuts,
 }: Props) => {
 	const { colorScheme, setColorScheme } = useMantineColorScheme();
 	const isNarrow = useMediaQuery("(max-width: 30em)");
@@ -64,15 +55,18 @@ export const AppHeader = ({
 	}, [copied]);
 
 	return (
-		<Header
-			brand={
-				<Brand
-					href="/"
-					icon={<Beer size={22} />}
-					title="Spooners"
-					subtitle="Pub prices on a map — build a round, see what every pub charges"
-				/>
-			}
+		<AppNav
+			// This app binds the command palette, so the shared help dialog
+			// may advertise it.
+			hasCommandPalette
+			icon={<Beer size={22} />}
+			title="Spooners"
+			subtitle="Pub prices on a map — build a round, see what every pub charges"
+			theme={{
+				dark,
+				onToggle: () => setColorScheme(dark ? "light" : "dark"),
+			}}
+			shortcuts={shortcuts}
 			center={
 				<>
 					{converting ? (
@@ -111,41 +105,28 @@ export const AppHeader = ({
 			}
 			actions={
 				<>
-					<BackHome />
-					<AppSwitcher />
-					{/* Seven controls here is 344px at 360px wide, which squeezes
-					    the brand to nothing, so on a phone only these two stay
-					    inline. Above the breakpoint the overflow renders its
-					    children inline, so a wide bar is unchanged. */}
-					<HeaderOverflow>
-						<HeaderAction
-							iconOnly
-							label="Settings"
-							icon={<Settings size={16} />}
-							onClick={onSettingsOpen}
-						/>
-						<HeaderAction
-							iconOnly
-							label="Value charts"
-							icon={<Trophy size={16} />}
-							onClick={onValueOpen}
-						/>
-						<HeaderAction
-							iconOnly
-							label={copied ? "Link copied" : "Copy a link to this view"}
-							icon={<Copy size={16} />}
-							active={copied}
-							onClick={onShare}
-						/>
-						<ShortcutsHelpButton
-							onClick={onShortcutsOpen}
-							expanded={shortcutsOpened}
-						/>
-						<SchemeToggle
-							dark={dark}
-							onToggle={() => setColorScheme(dark ? "light" : "dark")}
-						/>
-					</HeaderOverflow>
+					{/* `AppNav` wraps these in its own `HeaderOverflow` beside the
+					    shared help and theme controls, so the narrow-bar budget is
+					    the whole set rather than these three alone. */}
+					<HeaderAction
+						iconOnly
+						label="Settings"
+						icon={<Settings size={16} />}
+						onClick={onSettingsOpen}
+					/>
+					<HeaderAction
+						iconOnly
+						label="Value charts"
+						icon={<Trophy size={16} />}
+						onClick={onValueOpen}
+					/>
+					<HeaderAction
+						iconOnly
+						label={copied ? "Link copied" : "Copy a link to this view"}
+						icon={<Copy size={16} />}
+						active={copied}
+						onClick={onShare}
+					/>
 				</>
 			}
 		/>

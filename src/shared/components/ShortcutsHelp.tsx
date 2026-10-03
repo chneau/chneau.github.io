@@ -3,7 +3,7 @@ import { Keyboard } from "lucide-react";
 import { useEffect, useState } from "react";
 import { HeaderAction } from "./HeaderAction";
 
-type ShortcutItem = {
+export type ShortcutItem = {
 	/** Individual keycaps, e.g. `["Shift", "←/→"]`. */
 	keys: string[];
 	description: string;
@@ -71,6 +71,15 @@ type ShortcutsHelpProps = {
 	groups: ShortcutGroup[];
 	/** Extra site-wide keys for apps that support them (see `APP_SWITCH_SHORTCUTS`). */
 	globalShortcuts?: ShortcutItem[];
+	/**
+	 * Whether this app actually binds the command palette.
+	 *
+	 * The ⌘/Ctrl+K row used to be listed unconditionally, which is a claim the
+	 * dialog cannot check. Six save editors have no palette, so opening help
+	 * there advertised a key that does nothing — previously invisible only
+	 * because those apps had no help dialog at all.
+	 */
+	hasCommandPalette?: boolean;
 };
 
 /**
@@ -82,10 +91,13 @@ export const ShortcutsHelp = ({
 	onClose,
 	groups,
 	globalShortcuts,
+	hasCommandPalette = false,
 }: ShortcutsHelpProps) => {
 	const global = [
 		...(globalShortcuts ?? []),
-		{ keys: ["⌘/Ctrl", "K"], description: "Open the command palette" },
+		...(hasCommandPalette
+			? [{ keys: ["⌘/Ctrl", "K"], description: "Open the command palette" }]
+			: []),
 		{ keys: ["?"], description: "Show this help" },
 	];
 	return (
@@ -153,37 +165,70 @@ export const ShortcutsHelpButton = ({
 	/>
 );
 
+/**
+ * The open state is shared by every caller, not per-hook.
+ *
+ * `useShortcutsHelp` is called both by `AppNav`, which renders the dialog, and
+ * by apps that need the same state for their own handlers — the dashboard's
+ * palette command, cv's Escape guard. Per-instance state made those two
+ * disagree: the palette would set `opened` on an instance whose dialog nothing
+ * rendered, so "Keyboard shortcuts" silently did nothing, and every caller
+ * registered its own `?` listener. A module-level store makes the hook
+ * idempotent, so a second caller is free and cannot drift from the first.
+ */
+let sharedOpened = false;
+const subscribers = new Set<() => void>();
+
+const setSharedOpened = (next: boolean | ((prev: boolean) => boolean)) => {
+	sharedOpened = typeof next === "function" ? next(sharedOpened) : next;
+	for (const notify of subscribers) notify();
+};
+
+/** Install the `?` binding exactly once, however many hooks ask for it. */
+let keyBound = false;
+const bindQuestionKey = () => {
+	if (keyBound || typeof window === "undefined") return;
+	keyBound = true;
+	window.addEventListener("keydown", (event) => {
+		if (event.key !== "?" || event.metaKey || event.ctrlKey || event.altKey) {
+			return;
+		}
+		const el = document.activeElement;
+		if (
+			el instanceof HTMLInputElement ||
+			el instanceof HTMLTextAreaElement ||
+			el instanceof HTMLSelectElement
+		) {
+			return;
+		}
+		if (el instanceof HTMLElement && el.isContentEditable) {
+			return;
+		}
+		event.preventDefault();
+		setSharedOpened((prev) => !prev);
+	});
+};
+
 /** Open state for `ShortcutsHelp`, bound to the `?` key (ignored while typing). */
 export const useShortcutsHelp = () => {
-	const [opened, setOpened] = useState(false);
+	const [opened, setOpened] = useState(sharedOpened);
 
 	useEffect(() => {
-		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key !== "?" || event.metaKey || event.ctrlKey || event.altKey) {
-				return;
-			}
-			const el = document.activeElement;
-			if (
-				el instanceof HTMLInputElement ||
-				el instanceof HTMLTextAreaElement ||
-				el instanceof HTMLSelectElement
-			) {
-				return;
-			}
-			if (el instanceof HTMLElement && el.isContentEditable) {
-				return;
-			}
-			event.preventDefault();
-			setOpened((prev) => !prev);
+		// Adopt whatever the shared store already holds, so a hook mounted after
+		// the dialog was opened does not render a stale `false`.
+		setOpened(sharedOpened);
+		const notify = () => setOpened(sharedOpened);
+		subscribers.add(notify);
+		bindQuestionKey();
+		return () => {
+			subscribers.delete(notify);
 		};
-		window.addEventListener("keydown", onKeyDown);
-		return () => window.removeEventListener("keydown", onKeyDown);
 	}, []);
 
 	return {
 		opened,
-		open: () => setOpened(true),
-		close: () => setOpened(false),
-		toggle: () => setOpened((prev) => !prev),
+		open: () => setSharedOpened(true),
+		close: () => setSharedOpened(false),
+		toggle: () => setSharedOpened((prev) => !prev),
 	};
 };

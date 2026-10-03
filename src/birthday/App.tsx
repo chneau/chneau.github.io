@@ -22,8 +22,6 @@ import {
 	CommandPalette,
 	createAppTheme,
 	Grain,
-	ShortcutsHelp,
-	ShortcutsHelpButton,
 	Skeleton,
 	SkipLink,
 	useCommandPalette,
@@ -233,12 +231,14 @@ export const App = () => {
 					// very birthdays the alert exists to announce.
 					data={birthdays}
 					onOpenManage={() => setManageOpen(true)}
-					shortcutsButton={
-						<ShortcutsHelpButton
-							onClick={shortcuts.open}
-							expanded={shortcuts.opened}
-						/>
-					}
+					shortcuts={[
+						{
+							title: tr("app.command.search_filters"),
+							shortcuts: [
+								{ keys: ["/"], description: tr("app.command.focus_search") },
+							],
+						},
+					]}
 				/>
 
 				<main className="tk-main" id="main">
@@ -336,19 +336,6 @@ export const App = () => {
 			</Modal>
 
 			<Grain />
-
-			<ShortcutsHelp
-				opened={shortcuts.opened}
-				onClose={shortcuts.close}
-				groups={[
-					{
-						title: tr("app.command.search_filters"),
-						shortcuts: [
-							{ keys: ["/"], description: tr("app.command.focus_search") },
-						],
-					},
-				]}
-			/>
 
 			<CommandPalette
 				opened={palette.opened}

@@ -38,9 +38,7 @@ import {
 	APP_SWITCH_SHORTCUTS,
 	APPS,
 	AppCard,
-	AppHeader,
-	AppSwitcher,
-	BackHome,
+	AppNav,
 	Brand,
 	type Command,
 	CommandPalette,
@@ -50,11 +48,9 @@ import {
 	Footer,
 	Grain,
 	HeaderAction,
-	HeaderOverflow,
 	prefersReducedMotion,
 	SchemeToggle,
 	Section,
-	ShortcutsHelp,
 	ShortcutsHelpButton,
 	Skeleton,
 	SkipLink,
@@ -1491,29 +1487,17 @@ export const App = () => {
 					background: "var(--app-bg)",
 				}}
 			>
-				<AppHeader
-					brand={
-						<Brand
-							href="/"
-							icon={<Layers size={18} />}
-							title="Design System"
-							subtitle="Shared foundation"
-						/>
-					}
-					actions={
-						<>
-							<AppSwitcher />
-							<BackHome />
-							<HeaderOverflow>
-								<ShortcutsHelpButton
-									onClick={shortcuts.open}
-									expanded={shortcuts.opened}
-								/>
-								<CommandPaletteButton onClick={palette.open} />
-								<SchemeToggle dark={dark} onToggle={theme.toggle} />
-							</HeaderOverflow>
-						</>
-					}
+				<AppNav
+					// This app binds the command palette, so the shared help dialog
+					// may advertise it.
+					hasCommandPalette
+					icon={<Layers size={18} />}
+					title="Design System"
+					subtitle="Shared foundation"
+					actions={<CommandPaletteButton onClick={palette.open} />}
+					shortcuts={[]}
+					globalShortcuts={APP_SWITCH_SHORTCUTS}
+					theme={{ dark, onToggle: theme.toggle }}
 				/>
 
 				<main id="main" className="design-main">
@@ -2198,12 +2182,6 @@ export const App = () => {
 				/>
 			</div>
 			<Grain />
-			<ShortcutsHelp
-				opened={shortcuts.opened}
-				onClose={shortcuts.close}
-				groups={[]}
-				globalShortcuts={APP_SWITCH_SHORTCUTS}
-			/>
 			<CommandPalette
 				opened={palette.opened}
 				onClose={palette.close}
