@@ -109,7 +109,20 @@
 			"enable_notifications": "Fari’i i te parau",
 			"light": "Māramarama",
 			"dark": "Po’iri",
-			"github": "GitHub"
+			"github": "GitHub",
+			"demo": "Taputapu demo",
+			"change_language": "Huri i te reo",
+			"alerts_enable": "E fa’ohi i te parau",
+			"alerts_active": "Ua fa’ohi te parau",
+			"alerts_blocked": "Ua parahi te parau i nga tauira te hurihuri",
+			"alerts_enable_short": "Parau",
+			"alerts_on": "Parau",
+			"alerts_blocked_short": "Parahi",
+			"notify_enabled": "Ua fa’ohi te parau",
+			"notify_not_enabled": "Ua ore te fa’ohi i te parau",
+			"notify_blocked": "Ua parahi te parau i nga tauira te hurihuri",
+			"notify_simulated": "Ua fa’ahō’ē te tiara",
+			"notify_test_sent": "Ua hapa te parau o te"
 		},
 		"countdown": {
 			"next_celebration": "Fa'ahanahana i muri nei : {{name}} ({{kind}})",

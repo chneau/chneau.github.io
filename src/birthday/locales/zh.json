@@ -109,7 +109,20 @@
 			"enable_notifications": "开启通知",
 			"light": "浅色",
 			"dark": "深色",
-			"github": "GitHub"
+			"github": "GitHub",
+			"demo": "演示工具",
+			"change_language": "更改语言",
+			"alerts_enable": "开启提醒",
+			"alerts_active": "提醒已开启",
+			"alerts_blocked": "提醒已在浏览器设置中被阻止",
+			"alerts_enable_short": "提醒",
+			"alerts_on": "提醒已开",
+			"alerts_blocked_short": "已阻止",
+			"notify_enabled": "通知已开启",
+			"notify_not_enabled": "通知未开启",
+			"notify_blocked": "通知已在浏览器设置中被阻止",
+			"notify_simulated": "已模拟生日",
+			"notify_test_sent": "测试通知已发送"
 		},
 		"countdown": {
 			"next_celebration": "下一次庆祝：{{name}} ({{kind}})",

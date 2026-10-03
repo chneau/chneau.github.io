@@ -109,7 +109,20 @@
 			"enable_notifications": "Activer Notifications",
 			"light": "Clair",
 			"dark": "Sombre",
-			"github": "GitHub"
+			"github": "GitHub",
+			"demo": "Outils de démo",
+			"change_language": "Changer de langue",
+			"alerts_enable": "Activer les alertes",
+			"alerts_active": "Alertes activées",
+			"alerts_blocked": "Alertes bloquées dans les paramètres du navigateur",
+			"alerts_enable_short": "Alertes",
+			"alerts_on": "Alertes activées",
+			"alerts_blocked_short": "Alertes bloquées",
+			"notify_enabled": "Notifications activées",
+			"notify_not_enabled": "Les notifications n’ont pas été activées",
+			"notify_blocked": "Les notifications sont bloquées dans les paramètres du navigateur",
+			"notify_simulated": "Anniversaire simulé",
+			"notify_test_sent": "Notification de test envoyée"
 		},
 		"countdown": {
 			"next_celebration": "Prochaine célébration : {{name}} ({{kind}})",

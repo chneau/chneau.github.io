@@ -109,7 +109,20 @@
 			"enable_notifications": "Cuir sanasan an comas",
 			"light": "Solas",
 			"dark": "Dorcha",
-			"github": "GitHub"
+			"github": "GitHub",
+			"demo": "Inneiramaidean demo",
+			"change_language": "Atharraich an cànan",
+			"alerts_enable": "Cuir sanasan air",
+			"alerts_active": "Tha sanasan air",
+			"alerts_blocked": "Tha sanasan air a bhacadh ann an roghdanach an brabhsair",
+			"alerts_enable_short": "Sanasan",
+			"alerts_on": "Sanasan air",
+			"alerts_blocked_short": "Bacadh",
+			"notify_enabled": "Chuir na sanasan an comas",
+			"notify_not_enabled": "Cha chuir na sanasan an comas",
+			"notify_blocked": "Tha na sanasan air a bhacadh ann an roghdanach an brabhsair",
+			"notify_simulated": "Co-là-breith air a chruthachadh",
+			"notify_test_sent": "Chuir sanas deuchainn"
 		},
 		"countdown": {
 			"next_celebration": "An ath chomharrachadh: {{name}} ({{kind}})",
