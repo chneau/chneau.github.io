@@ -7,8 +7,12 @@
  * the origin is not a secure production origin (local dev / LAN previews).
  */
 
-/** Injected by Rsbuild at build time (the `define` block in rsbuild.config.ts). */
-declare const BUILD_DATE: string;
+/**
+ * Injected by Rsbuild at build time into every environment (the top-level
+ * `source.define` block in rsbuild.config.ts). It identifies the deploy, not
+ * the app: see the comment there for why a per-app token breaks navigation.
+ */
+declare const SW_BUILD_ID: string;
 
 /**
  * The base path of the app this bundle belongs to, e.g. "/" or "/cv/".
@@ -32,14 +36,20 @@ const appBasePath = (): string => {
  * browser install a new worker, which in turn evicts the previous deploy's
  * caches — without it, unhashed assets such as `/spooners/data.json` stay
  * pinned for the lifetime of the browser profile.
+ *
+ * The token MUST be stable for the lifetime of a deploy.
+ *
+ * It is part of the worker script URL, so any change to it is read by the
+ * browser as a *different worker*: it installs it, the worker calls
+ * skipWaiting() and clients.claim(), `controllerchange` fires and the page
+ * reloads — which computes the token again. A per-load component therefore
+ * builds a reload loop that only ends when the tab is closed. Two deploys
+ * inside the same clock minute are the trade-off here, and losing a cache
+ * eviction is far cheaper than an unreloadable page.
  */
 const buildToken = (): string => {
-	const stamp = typeof BUILD_DATE === "string" ? BUILD_DATE.trim() : "";
-	// A same-minute rebuild is indistinguishable on the clock alone, so the
-	// token always carries a millisecond component: the worker is reinstalled
-	// at least once per deploy either way.
-	const token = `${stamp || "dev"}-${Date.now()}`;
-	return token.replace(/[^a-zA-Z0-9._-]/g, "");
+	const stamp = typeof SW_BUILD_ID === "string" ? SW_BUILD_ID.trim() : "";
+	return (stamp || "dev").replace(/[^a-zA-Z0-9._-]/g, "");
 };
 
 /** Tell the worker which app we are so its fallbacks stay per-app. */
@@ -74,6 +84,17 @@ export const registerServiceWorker = () => {
 	}
 
 	window.addEventListener("load", () => {
+		// Sampled BEFORE `register()`, not inside its `then`: the worker calls
+		// clients.claim(), so by the time the promise resolves the controller is
+		// already set even on a first-ever visit, and a first visit needs no
+		// reload — it has just fetched the new assets from the network anyway.
+		const wasControlled = Boolean(navigator.serviceWorker.controller);
+		// The worker this page is running under. Its script URL carries the build
+		// token, so comparing it against the controller we are handed tells a new
+		// deploy apart from a re-claim of the worker we already have — the latter
+		// must not reload, or the page spins.
+		const runningScript = navigator.serviceWorker.controller?.scriptURL ?? "";
+
 		navigator.serviceWorker
 			// `scope: "/"` is the default and is what makes this one worker cover
 			// every app on the origin; the query string only varies the script.
@@ -93,8 +114,14 @@ export const registerServiceWorker = () => {
 					});
 				});
 				announceScope(registration);
-				if (!navigator.serviceWorker.controller) return;
+				if (!wasControlled) return;
 				navigator.serviceWorker.addEventListener("controllerchange", () => {
+					// Belt and braces alongside the stable `buildToken`: reload only
+					// onto a genuinely different worker, and at most once per page
+					// load. Without this, any path that installs a new worker while
+					// the token is unchanged reloads the page into the same loop.
+					const next = navigator.serviceWorker.controller?.scriptURL ?? "";
+					if (!next || next === runningScript) return;
 					window.location.reload();
 				});
 			})

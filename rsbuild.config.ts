@@ -147,6 +147,22 @@ const crimsonIcon =
 
 export default defineConfig({
 	plugins: [pluginReact()],
+	source: {
+		define: {
+			// Site-wide, and deliberately NOT the per-environment `BUILD_DATE`
+			// below: every app registers one shared service worker at scope "/",
+			// and the token becomes the query string of its script URL. If two apps
+			// asked for different tokens, moving between them would install a new
+			// worker, take control of the page, and reload it. One value for the
+			// whole origin, injected into every environment, is the only thing
+			// that keeps a cross-app navigation from reloading.
+			//
+			// Second resolution (unlike the `BUILD_DATE` stamp, which is only ever
+			// shown in a UI): this value is what evicts the previous deploy's
+			// caches, so two deploys inside the same minute must still differ.
+			SW_BUILD_ID: JSON.stringify(dayjs().format("YYYYMMDD-HHmmss-SSS")),
+		},
+	},
 	server: {
 		host: "localhost",
 	},
