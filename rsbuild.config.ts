@@ -45,6 +45,38 @@ type Meta = {
 	type?: "website" | "profile";
 };
 
+/**
+ * The static shell every app paints before its JavaScript runs.
+ *
+ * Each app is its own document, so changing page is a full navigation, and
+ * measured from a real tap the gap between the document arriving and the app
+ * rendering its first pixel is 400ms on most apps and 850ms on spooners, which
+ * also pulls a 24MB dataset. `#root` is empty for all of it, so the user gets a
+ * blank white screen — and a blank screen reads as "my tap was ignored", which
+ * is worse than being slow, because tapping a blank page cannot do anything.
+ *
+ * This is markup in the HTML rather than a React component on purpose: it is
+ * painted as soon as the render-blocking CSS lands, hundreds of milliseconds
+ * before the bundle has parsed. Nothing here needs to know which app it is on.
+ *
+ * `head: false` puts it in `<body>` and `append` leaves it after `#root`, which
+ * is what lets `base.css` retire it with a pure CSS sibling rule the moment
+ * React renders — no mount hook in thirteen entry files, and no window in which
+ * the shell and the app are both on screen.
+ */
+const bootShell = [
+	{
+		tag: "div",
+		attrs: { class: "app-boot", "aria-hidden": "true" },
+		head: false,
+		children:
+			'<div class="app-boot__bar"><span class="app-boot__mark"></span>' +
+			'<span class="app-boot__title"></span></div>' +
+			'<div class="app-boot__body"><span class="app-boot__line"></span>' +
+			'<span class="app-boot__line app-boot__line--short"></span></div>',
+	},
+];
+
 /** Shared canonical / description / social tags for every app. */
 const metaTags = ({
 	title,
@@ -185,6 +217,7 @@ export default defineConfig({
 					jsonLd(websiteLd),
 					jsonLd(personLd),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("root"),
 					shortcutIcon(emojiIcon("🚀")),
 				],
@@ -218,6 +251,7 @@ export default defineConfig({
 					}),
 					jsonLd(personLd),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("cv"),
 					shortcutIcon(emojiIcon("📄")),
 				],
@@ -257,6 +291,7 @@ export default defineConfig({
 						],
 					}),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("birthday"),
 					shortcutIcon(emojiIcon("🎂")),
 				],
@@ -288,6 +323,7 @@ export default defineConfig({
 						themeColor: "#5aa9c9",
 					}),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("scotland-rail"),
 					shortcutIcon(emojiIcon("🚆")),
 				],
@@ -320,6 +356,7 @@ export default defineConfig({
 						themeColor: "#9d5062",
 					}),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("crimson-desert-save-editor"),
 					shortcutIcon(crimsonIcon),
 				],
@@ -356,6 +393,7 @@ export default defineConfig({
 						themeColor: "#e6ad00",
 					}),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("spooners"),
 					shortcutIcon(emojiIcon("🍺")),
 				],
@@ -394,6 +432,7 @@ export default defineConfig({
 						themeColor: "#4577a7",
 					}),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("tails-of-iron-2-save-editor"),
 					shortcutIcon(emojiIcon("🐈")),
 				],
@@ -424,6 +463,7 @@ export default defineConfig({
 						themeColor: "#d44a63",
 					}),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("power-fantasy-save-editor"),
 					shortcutIcon(emojiIcon("💎")),
 				],
@@ -456,6 +496,7 @@ export default defineConfig({
 						themeColor: "#c8654c",
 					}),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("no-rest-for-the-wicked-save-editor"),
 					shortcutIcon(emojiIcon("🌙")),
 				],
@@ -486,6 +527,7 @@ export default defineConfig({
 						themeColor: "#7f7d47",
 					}),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("dysmantle-save-editor"),
 					shortcutIcon(emojiIcon("⛑️")),
 				],
@@ -516,6 +558,7 @@ export default defineConfig({
 						themeColor: "#e3ad00",
 					}),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("cyberpunk-2077-save-editor"),
 					shortcutIcon(emojiIcon("⚡")),
 				],
@@ -546,6 +589,7 @@ export default defineConfig({
 						themeColor: "#de8a2f",
 					}),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("deadly-days-roadtrip-save-editor"),
 					shortcutIcon(emojiIcon("🚗")),
 				],
@@ -576,6 +620,7 @@ export default defineConfig({
 						themeColor: "#6366f1",
 					}),
 					manifestLink,
+					...bootShell,
 					appleTouchIcon("design"),
 					shortcutIcon(emojiIcon("🧩")),
 				],
