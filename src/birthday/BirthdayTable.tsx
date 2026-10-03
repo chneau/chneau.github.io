@@ -309,97 +309,108 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 
 	return (
 		<>
-			<Table className="tk-table" highlightOnHover verticalSpacing="sm">
-				<Table.Thead>
-					<Table.Tr>
-						<Table.Th style={{ width: 32 }} />
-						{columns.map((column) => (
-							<Table.Th
-								key={column.key}
-								visibleFrom={column.visibleFrom}
-								aria-sort={
-									sortKey === column.key
-										? sortDir === "asc"
-											? "ascending"
-											: "descending"
-										: "none"
-								}
-							>
-								<button
-									type="button"
-									onClick={() => toggleSort(column.key)}
-									style={{
-										display: "inline-flex",
-										alignItems: "center",
-										gap: 4,
-										background: "none",
-										border: "none",
-										padding: 0,
-										margin: 0,
-										font: "inherit",
-										color: "inherit",
-										cursor: "pointer",
-										userSelect: "none",
-										textAlign: "left",
-									}}
-								>
-									{column.title}
-									{sortKey === column.key &&
-										(sortDir === "asc" ? (
-											<ArrowUp size={12} />
-										) : (
-											<ArrowDown size={12} />
-										))}
-								</button>
-							</Table.Th>
-						))}
-					</Table.Tr>
-				</Table.Thead>
-				<Table.Tbody>
-					{pageRows.map(({ record, key: rowKey }) => {
-						// A collision-free key means two rows that happen to share
-						// name and date can no longer drive each other's panel.
-						const expanded = expandedKey === rowKey;
-						return (
-							<Fragment key={rowKey}>
-								<Table.Tr
-									className={
-										record.daysBeforeBirthday === 0 ? "tk-row-today" : undefined
+			<Table.ScrollContainer
+				minWidth={520}
+				type="native"
+				style={{ overflowX: "auto" }}
+			>
+				<Table className="tk-table" highlightOnHover verticalSpacing="sm">
+					<Table.Thead>
+						<Table.Tr>
+							<Table.Th style={{ width: 32 }} />
+							{columns.map((column) => (
+								<Table.Th
+									key={column.key}
+									visibleFrom={column.visibleFrom}
+									aria-sort={
+										sortKey === column.key
+											? sortDir === "asc"
+												? "ascending"
+												: "descending"
+											: "none"
 									}
 								>
-									<Table.Td>
-										<UnstyledButton
-											onClick={() => setExpandedKey(expanded ? null : rowKey)}
-											aria-label={
-												expanded ? "Collapse details" : "Expand details"
-											}
-											aria-expanded={expanded}
-										>
-											{expanded ? (
-												<ChevronDown size={14} />
+									<button
+										type="button"
+										onClick={() => toggleSort(column.key)}
+										style={{
+											display: "inline-flex",
+											alignItems: "center",
+											gap: 4,
+											background: "none",
+											border: "none",
+											padding: 0,
+											margin: 0,
+											font: "inherit",
+											color: "inherit",
+											cursor: "pointer",
+											userSelect: "none",
+											textAlign: "left",
+										}}
+									>
+										{column.title}
+										{sortKey === column.key &&
+											(sortDir === "asc" ? (
+												<ArrowUp size={12} />
 											) : (
-												<ChevronRight size={14} />
-											)}
-										</UnstyledButton>
-									</Table.Td>
-									{columns.map((column) => (
-										<Table.Td key={column.key} visibleFrom={column.visibleFrom}>
-											{column.render(record)}
+												<ArrowDown size={12} />
+											))}
+									</button>
+								</Table.Th>
+							))}
+						</Table.Tr>
+					</Table.Thead>
+					<Table.Tbody>
+						{pageRows.map(({ record, key: rowKey }) => {
+							// A collision-free key means two rows that happen to share
+							// name and date can no longer drive each other's panel.
+							const expanded = expandedKey === rowKey;
+							return (
+								<Fragment key={rowKey}>
+									<Table.Tr
+										className={
+											record.daysBeforeBirthday === 0
+												? "tk-row-today"
+												: undefined
+										}
+									>
+										<Table.Td>
+											<UnstyledButton
+												onClick={() => setExpandedKey(expanded ? null : rowKey)}
+												aria-label={
+													expanded ? "Collapse details" : "Expand details"
+												}
+												aria-expanded={expanded}
+											>
+												{expanded ? (
+													<ChevronDown size={14} />
+												) : (
+													<ChevronRight size={14} />
+												)}
+											</UnstyledButton>
 										</Table.Td>
-									))}
-								</Table.Tr>
-								{expanded && (
-									<Table.Tr className="tk-expanded-row">
-										<Table.Td colSpan={columns.length + 1}>
-											<BirthdayDetails record={record} />
-										</Table.Td>
+										{columns.map((column) => (
+											<Table.Td
+												key={column.key}
+												visibleFrom={column.visibleFrom}
+											>
+												{column.render(record)}
+											</Table.Td>
+										))}
 									</Table.Tr>
-								)}
-							</Fragment>
-						);
-					})}
-				</Table.Tbody>
-			</Table>
+									{expanded && (
+										<Table.Tr className="tk-expanded-row">
+											<Table.Td colSpan={columns.length + 1}>
+												<BirthdayDetails record={record} />
+											</Table.Td>
+										</Table.Tr>
+									)}
+								</Fragment>
+							);
+						})}
+					</Table.Tbody>
+				</Table>
+			</Table.ScrollContainer>
 
 			<Group justify="space-between" mt="md">
 				<Text size="xs" c="dimmed">

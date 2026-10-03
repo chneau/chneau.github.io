@@ -29,6 +29,13 @@ type HeaderActionProps = {
 	/** Optional DOM id, useful when something references this control. */
 	id?: string;
 	className?: string;
+	/**
+	 * ARIA role override, used when the control is rendered inside a
+	 * `role="menu"` as one of its items. Stated explicitly rather than spread
+	 * from a clone, so the role a control ends up with is always visible at the
+	 * point it is set.
+	 */
+	role?: string;
 };
 
 /** A 36px navbar control. Use `iconOnly`, otherwise text sits beside the icon. */
@@ -55,6 +62,7 @@ export const HeaderAction = forwardRef<
 			ariaPressed,
 			id,
 			className,
+			role,
 		},
 		ref,
 	) => {
@@ -85,6 +93,7 @@ export const HeaderAction = forwardRef<
 					ref={ref as Ref<HTMLAnchorElement>}
 					id={id}
 					className={classes}
+					role={role}
 					href={inert ? undefined : href}
 					target={target}
 					rel={target === "_blank" ? "noreferrer" : undefined}
@@ -108,6 +117,7 @@ export const HeaderAction = forwardRef<
 				type="button"
 				id={id}
 				className={classes}
+				role={role}
 				aria-label={label}
 				title={label}
 				aria-expanded={ariaExpanded}

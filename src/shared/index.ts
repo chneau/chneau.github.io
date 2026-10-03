@@ -14,6 +14,7 @@ export { EmptyState } from "./components/EmptyState";
 export { Footer } from "./components/Footer";
 export { Grain } from "./components/Grain";
 export { HeaderAction } from "./components/HeaderAction";
+export { HeaderOverflow } from "./components/HeaderOverflow";
 export { SchemeToggle } from "./components/SchemeToggle";
 export { Section } from "./components/Section";
 export type { ShortcutGroup } from "./components/ShortcutsHelp";

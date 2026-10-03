@@ -381,6 +381,47 @@ button.app-brand {
 }
 
 /* App switcher dropdown */
+/* Overflow ("More") menu.
+   On a phone the apps carry more controls than a 56px row can hold, and
+   `.app-header__actions` is `flex: none` — so the actions win and the brand
+   collapses to zero width. The overflow goes in a menu rather than a
+   horizontally scrollable strip, because AppSwitcher's own dropdown lives
+   inside that row and a scroll container would clip it. */
+.app-header-overflow {
+	position: relative;
+	display: inline-flex;
+}
+.app-header-overflow__menu {
+	right: 0;
+	left: auto;
+	/* The container is a `fieldset` so the group is semantic, which brings UA
+	   border/margin/padding that must not show. */
+	border: 1px solid var(--app-border);
+	margin: 0;
+	padding: 6px;
+}
+/* The row wrapper carries the switcher's item styling; the control inside keeps
+   whatever it is (a link or a button) and fills the row. */
+.app-header-overflow__row {
+	display: flex;
+}
+.app-header-overflow__row > .app-header-action,
+.app-header-overflow__row > a {
+	flex: 1;
+	justify-content: center;
+	background: var(--app-surface-2);
+	color: var(--app-text-muted);
+}
+.app-header-overflow__row > .app-header-action:hover,
+.app-header-overflow__row > a:hover {
+	background: var(--app-surface-3);
+	color: var(--app-text);
+}
+.app-header-overflow__row > .app-header-action {
+	justify-content: flex-start;
+	padding: 0 10px;
+}
+
 .app-switcher {
 	position: relative;
 	display: inline-flex;
@@ -409,6 +450,18 @@ button.app-brand {
 	border-radius: var(--app-radius-sm);
 	color: inherit;
 	text-decoration: none;
+}
+/* One row is the app link plus its pin toggle, side by side. The class was in
+   the markup from the start but had no rule, so the two were block-level and
+   the pin stacked under its own link — which doubled every row's height. */
+.app-switcher__row {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+.app-switcher__row > .app-switcher__item {
+	flex: 1;
+	min-width: 0;
 }
 .app-switcher__item--current {
 	background: var(
@@ -648,17 +701,78 @@ body:has(.app-consent) {
 	}
 }
 
-@media (max-width: 640px) {
+/* Shared with the `max-width: 1100px` breakpoint in `HeaderOverflow`: this is
+   the width at which the apps stop fitting their controls inline and start
+   collapsing them behind the "More" menu. Birthday's ten controls need ~1000px,
+   so the constraint is "do they fit", not "is this a phone" — a 768px tablet
+   overflowed exactly as badly as a 360px one. */
+@media (max-width: 1100px) {
 	.app-header__actions .app-header-action__label {
 		display: none;
 	}
 	.app-header__actions .app-header-action {
 		padding: 0;
 	}
+	/* Both dropdowns become viewport-anchored sheets. Anchoring them to their
+	   trigger runs them off the side — the switcher's trigger sits ~60px from the
+	   right edge, so a 344px menu started 46px off the left. Thirteen apps at a
+	   44px hit area is also taller than the screen, so the list scrolls inside
+	   the sheet instead of hanging off the bottom. */
 	.app-switcher__menu {
-		left: auto;
-		right: 0;
+		position: fixed;
+		top: 60px;
+		left: 8px;
+		right: 8px;
+		width: auto;
+		max-width: none;
+		max-height: calc(100dvh - 76px);
+		overflow-y: auto;
+		overscroll-behavior: contain;
 	}
+	/* The brand is what names the app, so it wins the space contest: the
+	   actions row is allowed to shrink, and the brand is not allowed to
+	   disappear. Before this the row was `flex: none` and the brand was
+	   `min-width: 0`, so with 5-10 controls the brand measured 0px wide.
+	   `overflow: hidden` is what stops the row's children pushing the whole
+	   document sideways. */
+	.app-header__actions {
+		flex: 0 1 auto;
+		min-width: 0;
+		overflow: hidden;
+	}
+	.app-brand {
+		flex: 0 0 auto;
+	}
+	/* Cap the title here too, not just on phones: crimson-desert's title is long
+	   enough to eat a 768px tablet's bar on its own. It ellipsizes, so the mark
+	   and the beginning of the name always survive. The subtitle needs the same
+	   cap — it is a separate line, and on that app it is the wider of the two. */
+	.app-brand__title,
+	.app-brand__subtitle {
+		max-width: 30vw;
+	}
+}
+
+@media (max-width: 640px) {
+	/* On a phone the subtitle is the first thing to go: it is secondary detail
+	   (a build stamp, a category) and the title alone still names the app. This
+	   is what buys the row room for a third control at a 44px hit area. */
+	.app-brand__subtitle {
+		display: none;
+	}
+	/* 320px is the narrowest phone still in use, and three 44px controls plus a
+	   36px mark and the gutters leave under 90px for the name. */
+	.app-brand__title {
+		max-width: 24vw;
+	}
+}
+
+/* Deliberately after the rules above, at the same specificity rather than a
+   higher one: inside the menu every row is a full-width list item, so the label
+   comes back. Hiding labels is a bar-width economy, and in the menu there is
+   width to spare — without this the menu is a column of unlabelled icons. */
+.app-header-overflow__menu .app-header-action__label {
+	display: inline;
 }
 
 /* Fixed, non-interactive film grain. */

@@ -44,6 +44,7 @@ import {
 	EmptyState,
 	Footer,
 	HeaderAction,
+	HeaderOverflow,
 	type Command as PaletteCommand,
 	ROOT_THEME_KEY,
 	SchemeToggle,
@@ -413,19 +414,25 @@ export const App = () => {
 					actions={
 						<>
 							<AppSwitcher />
-							<HeaderAction
-								href="https://github.com/chneau"
-								target="_blank"
-								iconOnly
-								label="GitHub profile"
-								icon={<GithubIcon size={18} />}
-							/>
-							<ShortcutsHelpButton
-								onClick={shortcuts.open}
-								expanded={shortcuts.opened}
-							/>
-							<CommandPaletteButton onClick={palette.open} />
-							<SchemeToggle dark={theme.dark} onToggle={theme.toggle} />
+							{/* On a phone only the switcher stays inline and the rest
+							    move behind "More"; above the breakpoint the overflow
+							    renders its children inline, so the wide bar is
+							    unchanged. */}
+							<HeaderOverflow>
+								<HeaderAction
+									href="https://github.com/chneau"
+									target="_blank"
+									iconOnly
+									label="GitHub profile"
+									icon={<GithubIcon size={18} />}
+								/>
+								<ShortcutsHelpButton
+									onClick={shortcuts.open}
+									expanded={shortcuts.opened}
+								/>
+								<CommandPaletteButton onClick={palette.open} />
+								<SchemeToggle dark={theme.dark} onToggle={theme.toggle} />
+							</HeaderOverflow>
 						</>
 					}
 				/>

@@ -97,6 +97,7 @@ import {
 	type Command,
 	CommandPalette,
 	HeaderAction,
+	HeaderOverflow,
 	SchemeToggle,
 	ShortcutsHelp,
 	ShortcutsHelpButton,
@@ -770,105 +771,109 @@ export const Home = () => {
 									</Badge>
 								</>
 							)}
-							<HeaderAction
-								label={result ? "Open another save" : "Open save"}
-								icon={<FileUp size={16} />}
-								onClick={() => inputRef.current?.click()}
-							>
-								{result ? "Open another" : "Open save"}
-							</HeaderAction>
-							{result && (
-								<>
-									{edits.length > 0 && (
-										<Menu
-											position="bottom-end"
-											withinPortal
-											opened={stagedMenuOpen}
-											onChange={setStagedMenuOpen}
-										>
-											<Menu.Target>
-												<HeaderAction
-													label={`Staged changes (${edits.length})`}
-													icon={<CheckCircle2 size={16} />}
-													ariaExpanded={stagedMenuOpen}
-													ariaHaspopup="menu"
-												>
-													Staged ({edits.length})
-												</HeaderAction>
-											</Menu.Target>
-											<Menu.Dropdown>
-												<Menu.Item
-													leftSection={<CheckCircle2 size={15} />}
-													onClick={() => setReviewOpen(true)}
-												>
-													Review staged changes
-												</Menu.Item>
-												<Menu.Item
-													leftSection={<Undo2 size={15} />}
-													onClick={() =>
-														setEdits((current) => current.slice(0, -1))
-													}
-												>
-													Undo last change
-												</Menu.Item>
-												<Menu.Divider />
-												<Menu.Item
-													color="red"
-													leftSection={<Trash2 size={15} />}
-													onClick={() => setDiscardModalOpen(true)}
-												>
-													Discard all
-												</Menu.Item>
-											</Menu.Dropdown>
-										</Menu>
-									)}
-									{view === "inventory" && (
-										<>
-											<EquipmentCatalogPanel
-												catalog={equipmentCatalog}
-												itemCatalog={catalog}
-												storages={storages.map((entry) => ({
-													key: entry.key,
-													name: storageName(entry.key),
-												}))}
-												defaultStorage={activeStorage}
-												records={result.records}
-												edits={edits}
-												busy={loading}
-												onStage={stageEquipment}
-											/>
-											<HeaderAction
-												label="Add item"
-												icon={<Plus size={16} />}
-												onClick={() => setAddOpen(true)}
+							<HeaderOverflow>
+								<HeaderAction
+									label={result ? "Open another save" : "Open save"}
+									icon={<FileUp size={16} />}
+									onClick={() => inputRef.current?.click()}
+								>
+									{result ? "Open another" : "Open save"}
+								</HeaderAction>
+
+								{result && (
+									<>
+										{edits.length > 0 && (
+											<Menu
+												position="bottom-end"
+												withinPortal
+												opened={stagedMenuOpen}
+												onChange={setStagedMenuOpen}
 											>
-												Add item
-											</HeaderAction>
-										</>
-									)}
-									<HeaderAction
-										accent
-										disabled={edits.length === 0}
-										loading={loading}
-										label="Download save"
-										icon={
-											loading ? <Loader size={16} /> : <Download size={16} />
-										}
-										onClick={downloadEditedSave}
-									>
-										Download save
-										{edits.length > 0 ? ` (${edits.length})` : ""}
-									</HeaderAction>
-								</>
-							)}
-							<ShortcutsHelpButton
-								onClick={shortcuts.open}
-								expanded={shortcuts.opened}
-							/>
-							<SchemeToggle
-								dark={dark}
-								onToggle={() => setColorScheme(dark ? "light" : "dark")}
-							/>
+												<Menu.Target>
+													<HeaderAction
+														label={`Staged changes (${edits.length})`}
+														icon={<CheckCircle2 size={16} />}
+														ariaExpanded={stagedMenuOpen}
+														ariaHaspopup="menu"
+													>
+														Staged ({edits.length})
+													</HeaderAction>
+												</Menu.Target>
+												<Menu.Dropdown>
+													<Menu.Item
+														leftSection={<CheckCircle2 size={15} />}
+														onClick={() => setReviewOpen(true)}
+													>
+														Review staged changes
+													</Menu.Item>
+													<Menu.Item
+														leftSection={<Undo2 size={15} />}
+														onClick={() =>
+															setEdits((current) => current.slice(0, -1))
+														}
+													>
+														Undo last change
+													</Menu.Item>
+													<Menu.Divider />
+													<Menu.Item
+														color="red"
+														leftSection={<Trash2 size={15} />}
+														onClick={() => setDiscardModalOpen(true)}
+													>
+														Discard all
+													</Menu.Item>
+												</Menu.Dropdown>
+											</Menu>
+										)}
+										{view === "inventory" && (
+											<>
+												<EquipmentCatalogPanel
+													catalog={equipmentCatalog}
+													itemCatalog={catalog}
+													storages={storages.map((entry) => ({
+														key: entry.key,
+														name: storageName(entry.key),
+													}))}
+													defaultStorage={activeStorage}
+													records={result.records}
+													edits={edits}
+													busy={loading}
+													onStage={stageEquipment}
+												/>
+												<HeaderAction
+													label="Add item"
+													icon={<Plus size={16} />}
+													onClick={() => setAddOpen(true)}
+												>
+													Add item
+												</HeaderAction>
+											</>
+										)}
+										<HeaderAction
+											accent
+											disabled={edits.length === 0}
+											loading={loading}
+											label="Download save"
+											icon={
+												loading ? <Loader size={16} /> : <Download size={16} />
+											}
+											onClick={downloadEditedSave}
+										>
+											Download save
+											{edits.length > 0 ? ` (${edits.length})` : ""}
+										</HeaderAction>
+									</>
+								)}
+
+								<ShortcutsHelpButton
+									onClick={shortcuts.open}
+									expanded={shortcuts.opened}
+								/>
+								<SchemeToggle
+									dark={dark}
+									onToggle={() => setColorScheme(dark ? "light" : "dark")}
+								/>
+							</HeaderOverflow>
 						</>
 					}
 				/>

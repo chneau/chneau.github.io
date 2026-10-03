@@ -22,6 +22,7 @@ import {
 	type Command,
 	CommandPalette,
 	HeaderAction,
+	HeaderOverflow,
 	SchemeToggle,
 	type ShortcutGroup,
 	ShortcutsHelp,
@@ -300,53 +301,59 @@ export const App = () => {
 					<>
 						<BackHome />
 						<AppSwitcher />
-						<HeaderAction
-							iconOnly
-							active={settings.soundEffects}
-							label={
-								settings.soundEffects
-									? "Sound effects active (Press M to mute)"
-									: "Sound effects muted (Press M to unmute)"
-							}
-							icon={
-								settings.soundEffects ? (
-									<Volume2 size={16} />
-								) : (
-									<VolumeX size={16} />
-								)
-							}
-							onClick={() => {
-								const nextSound = !settings.soundEffects;
-								if (nextSound) {
-									import("./engine/audio").then(({ railAudio }) =>
-										railAudio.unlockAudio(),
-									);
+						{/* Seven controls is 344px at 360px wide, which squeezes the
+						    brand to nothing, so on a phone only these two stay
+						    inline. Above the breakpoint the overflow renders its
+						    children inline, so a wide bar is unchanged. */}
+						<HeaderOverflow>
+							<HeaderAction
+								iconOnly
+								active={settings.soundEffects}
+								label={
+									settings.soundEffects
+										? "Sound effects active (Press M to mute)"
+										: "Sound effects muted (Press M to unmute)"
 								}
-								railActions.updateSetting("soundEffects", nextSound);
-							}}
-						/>
-						<HeaderAction
-							label="Data sources"
-							icon={<Info size={15} />}
-							onClick={() => railActions.setIsInfoOpen(true)}
-						>
-							Sources
-						</HeaderAction>
-						<HeaderAction
-							label="Map and simulation settings"
-							icon={<Settings size={15} />}
-							onClick={() => railActions.setIsSettingsOpen(true)}
-						>
-							Settings
-						</HeaderAction>
-						<ShortcutsHelpButton
-							onClick={shortcuts.open}
-							expanded={shortcuts.opened}
-						/>
-						<SchemeToggle
-							dark={dark}
-							onToggle={() => setColorScheme(dark ? "light" : "dark")}
-						/>
+								icon={
+									settings.soundEffects ? (
+										<Volume2 size={16} />
+									) : (
+										<VolumeX size={16} />
+									)
+								}
+								onClick={() => {
+									const nextSound = !settings.soundEffects;
+									if (nextSound) {
+										import("./engine/audio").then(({ railAudio }) =>
+											railAudio.unlockAudio(),
+										);
+									}
+									railActions.updateSetting("soundEffects", nextSound);
+								}}
+							/>
+							<HeaderAction
+								label="Data sources"
+								icon={<Info size={15} />}
+								onClick={() => railActions.setIsInfoOpen(true)}
+							>
+								Sources
+							</HeaderAction>
+							<HeaderAction
+								label="Map and simulation settings"
+								icon={<Settings size={15} />}
+								onClick={() => railActions.setIsSettingsOpen(true)}
+							>
+								Settings
+							</HeaderAction>
+							<ShortcutsHelpButton
+								onClick={shortcuts.open}
+								expanded={shortcuts.opened}
+							/>
+							<SchemeToggle
+								dark={dark}
+								onToggle={() => setColorScheme(dark ? "light" : "dark")}
+							/>
+						</HeaderOverflow>
 					</>
 				}
 			/>
