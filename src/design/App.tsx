@@ -50,6 +50,7 @@ import {
 	Footer,
 	Grain,
 	HeaderAction,
+	HeaderOverflow,
 	prefersReducedMotion,
 	SchemeToggle,
 	Section,
@@ -1503,12 +1504,14 @@ export const App = () => {
 						<>
 							<AppSwitcher />
 							<BackHome />
-							<ShortcutsHelpButton
-								onClick={shortcuts.open}
-								expanded={shortcuts.opened}
-							/>
-							<CommandPaletteButton onClick={palette.open} />
-							<SchemeToggle dark={dark} onToggle={theme.toggle} />
+							<HeaderOverflow>
+								<ShortcutsHelpButton
+									onClick={shortcuts.open}
+									expanded={shortcuts.opened}
+								/>
+								<CommandPaletteButton onClick={palette.open} />
+								<SchemeToggle dark={dark} onToggle={theme.toggle} />
+							</HeaderOverflow>
 						</>
 					}
 				/>

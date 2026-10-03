@@ -27,6 +27,7 @@ import {
 	Footer,
 	Grain,
 	HeaderAction,
+	HeaderOverflow,
 	prefersReducedMotion,
 	SchemeToggle,
 	ShortcutsHelp,
@@ -324,21 +325,6 @@ export const App = () => {
 						<>
 							<BackHome label="Back to dashboard (Esc)" />
 							<AppSwitcher />
-							<HeaderAction
-								iconOnly
-								active={linkCopy.state === "ok"}
-								label={linkCopy.title}
-								onClick={linkCopy.copy}
-								icon={
-									linkCopy.state === "ok" ? (
-										<Check size={16} />
-									) : linkCopy.state === "error" ? (
-										<TriangleAlert size={16} />
-									) : (
-										<Link2 size={16} />
-									)
-								}
-							/>
 							{linkCopy.feedback ? (
 								<span
 									className="cv-copy-feedback cv-copy-feedback--header"
@@ -348,34 +334,54 @@ export const App = () => {
 									{linkCopy.feedback}
 								</span>
 							) : null}
-							<HeaderAction
-								accent
-								href={PDF_URL}
-								target="_blank"
-								label="View or download the raw PDF from GitHub"
-								icon={<FileText size={15} />}
-							>
-								PDF
-							</HeaderAction>
-							<HeaderAction
-								href={DOCX_URL}
-								target="_blank"
-								label="View or download the raw DOCX from GitHub"
-								icon={<FileType size={15} />}
-							>
-								DOCX
-							</HeaderAction>
-							<HeaderAction
-								iconOnly
-								label="Print or save as PDF (Ctrl+P)"
-								onClick={() => window.print()}
-								icon={<Printer size={16} />}
-							/>
-							<ShortcutsHelpButton
-								onClick={shortcuts.open}
-								expanded={shortcuts.opened}
-							/>
-							<SchemeToggle dark={theme.dark} onToggle={theme.toggle} />
+							{/* The bar holds eight controls here, which is 394px at
+							    360px wide — so on a phone the secondary ones collapse
+							    into the overflow menu. */}
+							<HeaderOverflow>
+								<HeaderAction
+									iconOnly
+									active={linkCopy.state === "ok"}
+									label={linkCopy.title}
+									onClick={linkCopy.copy}
+									icon={
+										linkCopy.state === "ok" ? (
+											<Check size={16} />
+										) : linkCopy.state === "error" ? (
+											<TriangleAlert size={16} />
+										) : (
+											<Link2 size={16} />
+										)
+									}
+								/>
+								<HeaderAction
+									accent
+									href={PDF_URL}
+									target="_blank"
+									label="View or download the raw PDF from GitHub"
+									icon={<FileText size={15} />}
+								>
+									PDF
+								</HeaderAction>
+								<HeaderAction
+									href={DOCX_URL}
+									target="_blank"
+									label="View or download the raw DOCX from GitHub"
+									icon={<FileType size={15} />}
+								>
+									DOCX
+								</HeaderAction>
+								<HeaderAction
+									iconOnly
+									label="Print or save as PDF (Ctrl+P)"
+									onClick={() => window.print()}
+									icon={<Printer size={16} />}
+								/>
+								<ShortcutsHelpButton
+									onClick={shortcuts.open}
+									expanded={shortcuts.opened}
+								/>
+								<SchemeToggle dark={theme.dark} onToggle={theme.toggle} />
+							</HeaderOverflow>
 						</>
 					}
 				/>

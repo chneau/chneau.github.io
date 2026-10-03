@@ -18,6 +18,7 @@ import {
 	BackHome,
 	Brand,
 	HeaderAction,
+	HeaderOverflow,
 	SchemeToggle,
 	StatusDot,
 } from "../shared";
@@ -169,127 +170,135 @@ export const AppHeader = ({
 				<>
 					<BackHome />
 					<AppSwitcher />
-					{installPrompt && (
-						<HeaderAction
-							icon={<Download size={15} />}
-							onClick={async () => {
-								installPrompt.prompt();
-								const { outcome } = await installPrompt.userChoice;
-								if (outcome === "accepted") setInstallPrompt(undefined);
-							}}
-						>
-							{t("app.header.install")}
-						</HeaderAction>
-					)}
+					{/* Ten controls is 494px in a 360px bar, so on a phone only
+					    these two stay inline and the rest move behind "More".
+					    Above the breakpoint `HeaderOverflow` renders its children
+					    inline, so a wide bar is unchanged. The two Mantine `Menu`
+					    triggers are inside it deliberately: their dropdowns render
+					    in a portal, which is what makes them safe to nest here. */}
+					<HeaderOverflow>
+						<Menu position="bottom-end" shadow="md" withinPortal>
+							<Menu.Target>
+								<HeaderAction icon={<FlaskConical size={15} />}>
+									{tr("app.header.demo")}
+								</HeaderAction>
+							</Menu.Target>
+							<Menu.Dropdown>
+								{demoToolsMenu.map((item) => (
+									<Menu.Item
+										key={item.key}
+										leftSection={item.icon}
+										onClick={item.onClick}
+									>
+										{item.label}
+									</Menu.Item>
+								))}
+							</Menu.Dropdown>
+						</Menu>
 
-					<Tooltip
-						label={
-							notificationsOn
-								? tr("app.header.alerts_active")
-								: notificationsBlocked
-									? tr("app.header.alerts_blocked")
-									: tr("app.header.alerts_enable")
-						}
-					>
-						<HeaderAction
-							label={t("app.header.enable_notifications")}
-							active={notificationsOn}
-							onClick={handleToggleNotifications}
-							icon={
-								<>
-									{notificationState === "default" ? (
-										<span className="app-statusdot" aria-hidden="true" />
-									) : (
-										<StatusDot on={notificationsOn} />
-									)}
-									<Bell size={15} />
-								</>
+						<Menu position="bottom-end" shadow="md" withinPortal>
+							<Menu.Target>
+								<HeaderAction
+									label={tr("app.header.change_language")}
+									icon={<Languages size={15} />}
+								>
+									{current.short}
+								</HeaderAction>
+							</Menu.Target>
+							<Menu.Dropdown>
+								{LANGUAGES.map((x) => {
+									const isCurrent = i18n.language.startsWith(x.key);
+									return (
+										<Menu.Item
+											key={x.key}
+											c={isCurrent ? "teal" : undefined}
+											fw={isCurrent ? 600 : undefined}
+											rightSection={isCurrent ? <Check size={14} /> : undefined}
+											onClick={() => {
+												i18n.changeLanguage(x.key);
+												dayjs.locale(x.key);
+											}}
+										>
+											{x.label}
+										</Menu.Item>
+									);
+								})}
+							</Menu.Dropdown>
+						</Menu>
+
+						{installPrompt && (
+							<HeaderAction
+								icon={<Download size={15} />}
+								onClick={async () => {
+									installPrompt.prompt();
+									const { outcome } = await installPrompt.userChoice;
+									if (outcome === "accepted") setInstallPrompt(undefined);
+								}}
+							>
+								{t("app.header.install")}
+							</HeaderAction>
+						)}
+
+						<Tooltip
+							label={
+								notificationsOn
+									? tr("app.header.alerts_active")
+									: notificationsBlocked
+										? tr("app.header.alerts_blocked")
+										: tr("app.header.alerts_enable")
 							}
 						>
-							{notificationsOn
-								? tr("app.header.alerts_on")
-								: notificationsBlocked
-									? tr("app.header.alerts_blocked_short")
-									: tr("app.header.alerts_enable_short")}
-						</HeaderAction>
-					</Tooltip>
-
-					<Menu position="bottom-end" shadow="md" withinPortal>
-						<Menu.Target>
-							<HeaderAction icon={<FlaskConical size={15} />}>
-								{tr("app.header.demo")}
-							</HeaderAction>
-						</Menu.Target>
-						<Menu.Dropdown>
-							{demoToolsMenu.map((item) => (
-								<Menu.Item
-									key={item.key}
-									leftSection={item.icon}
-									onClick={item.onClick}
-								>
-									{item.label}
-								</Menu.Item>
-							))}
-						</Menu.Dropdown>
-					</Menu>
-
-					<Menu position="bottom-end" shadow="md" withinPortal>
-						<Menu.Target>
 							<HeaderAction
-								label={tr("app.header.change_language")}
-								icon={<Languages size={15} />}
+								label={t("app.header.enable_notifications")}
+								active={notificationsOn}
+								onClick={handleToggleNotifications}
+								icon={
+									<>
+										{notificationState === "default" ? (
+											<span className="app-statusdot" aria-hidden="true" />
+										) : (
+											<StatusDot on={notificationsOn} />
+										)}
+										<Bell size={15} />
+									</>
+								}
 							>
-								{current.short}
+								{notificationsOn
+									? tr("app.header.alerts_on")
+									: notificationsBlocked
+										? tr("app.header.alerts_blocked_short")
+										: tr("app.header.alerts_enable_short")}
 							</HeaderAction>
-						</Menu.Target>
-						<Menu.Dropdown>
-							{LANGUAGES.map((x) => {
-								const isCurrent = i18n.language.startsWith(x.key);
-								return (
-									<Menu.Item
-										key={x.key}
-										c={isCurrent ? "teal" : undefined}
-										fw={isCurrent ? 600 : undefined}
-										rightSection={isCurrent ? <Check size={14} /> : undefined}
-										onClick={() => {
-											i18n.changeLanguage(x.key);
-											dayjs.locale(x.key);
-										}}
-									>
-										{x.label}
-									</Menu.Item>
-								);
-							})}
-						</Menu.Dropdown>
-					</Menu>
+						</Tooltip>
 
-					<HeaderAction
-						href="https://github.com/chneau/chneau.github.io"
-						target="_blank"
-						iconOnly
-						label={t("app.header.github")}
-						icon={<GitHubMark size={16} />}
-					/>
-
-					{onOpenManage && (
 						<HeaderAction
-							accent
-							label={t("app.hero.manage")}
-							onClick={onOpenManage}
-							icon={<Settings size={15} />}
-						>
-							{t("app.hero.manage")}
-						</HeaderAction>
-					)}
+							href="https://github.com/chneau/chneau.github.io"
+							target="_blank"
+							iconOnly
+							label={t("app.header.github")}
+							icon={<GitHubMark size={16} />}
+						/>
 
-					{shortcutsButton}
+						{onOpenManage && (
+							<HeaderAction
+								accent
+								label={t("app.hero.manage")}
+								onClick={onOpenManage}
+								icon={<Settings size={15} />}
+							>
+								{t("app.hero.manage")}
+							</HeaderAction>
+						)}
 
-					<SchemeToggle
-						dark={storeSnap.darkMode}
-						onToggle={() => {
-							store.darkMode = !store.darkMode;
-						}}
-					/>
+						{shortcutsButton}
+
+						<SchemeToggle
+							dark={storeSnap.darkMode}
+							onToggle={() => {
+								store.darkMode = !store.darkMode;
+							}}
+						/>
+					</HeaderOverflow>
 				</>
 			}
 		/>
