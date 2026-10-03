@@ -209,6 +209,87 @@ button {
 	line-height: 1.55;
 }
 
+/* ── Boot shell ───────────────────────────────────────────────
+   Painted from the HTML, before any JavaScript runs. Every app is its own
+   document, so changing page is a full navigation with a 400-850ms window in
+   which `#root` is empty; without this the user gets a blank white screen,
+   which reads as a dropped tap. `.app-boot` sits after `#root` in the body (see
+   `bootShell` in rsbuild.config.ts), so this rule retires it the instant React
+   renders — no mount hook, and no moment where both are on screen. */
+.app-boot {
+	position: fixed;
+	inset: 0;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	padding: 0 clamp(12px, 2.5vw, 20px);
+	background: var(--app-surface);
+	/* The skeleton itself must never intercept a tap: the point is to show
+	   progress, not to be a thing the user can press. */
+	pointer-events: none;
+}
+#root:not(:empty) ~ .app-boot {
+	display: none;
+}
+.app-boot__bar {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	height: 56px;
+	border-bottom: 1px solid var(--app-border);
+}
+.app-boot__mark {
+	width: 36px;
+	height: 36px;
+	flex: none;
+	border-radius: 10px;
+	background: var(--app-surface-2);
+}
+.app-boot__title {
+	width: min(34vw, 180px);
+	height: 13px;
+	border-radius: 6px;
+	background: var(--app-surface-2);
+}
+.app-boot__body {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding-top: 28px;
+}
+.app-boot__line {
+	width: 100%;
+	height: 13px;
+	border-radius: 6px;
+	background: var(--app-surface-2);
+}
+.app-boot__line--short {
+	width: 62%;
+}
+@media (prefers-reduced-motion: no-preference) {
+	.app-boot__mark,
+	.app-boot__title,
+	.app-boot__line {
+		animation: app-boot-pulse 1.4s ease-in-out infinite;
+	}
+	.app-boot__title {
+		animation-delay: 0.1s;
+	}
+	.app-boot__line {
+		animation-delay: 0.2s;
+	}
+}
+@keyframes app-boot-pulse {
+	0%,
+	100% {
+		opacity: 0.45;
+	}
+	50% {
+		opacity: 0.9;
+	}
+}
+
 /* ── Top bar ───────────────────────────────────────────────────
    One navbar for every site: 56px tall, solid surface, hairline border,
    brand on the left and 36px action controls on the right. */
