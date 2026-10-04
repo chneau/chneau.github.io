@@ -1,3 +1,4 @@
+import { axeFragmentOptions } from "../../shared/tests/axe-fragment";
 import "../../shared/tests/happy-dom";
 import { afterEach, describe, expect, test } from "bun:test";
 import { cleanup, fireEvent, render } from "@testing-library/react";
@@ -14,23 +15,9 @@ const NATIVE_VALUE = Object.getOwnPropertyDescriptor(
 
 afterEach(cleanup);
 
-/** Page-level rules don't apply to a rendered fragment in a headless DOM. */
-const DISABLED_RULES = [
-	"color-contrast",
-	"page-has-heading-one",
-	"landmark-one-main",
-	"region",
-	"html-has-lang",
-	"document-title",
-	"bypass",
-	"meta-viewport",
-];
-
 const expectNoViolations = async (container: HTMLElement) => {
 	const results = await axe.run(container, {
-		rules: Object.fromEntries(
-			DISABLED_RULES.map((id) => [id, { enabled: false }]),
-		),
+		rules: axeFragmentOptions().rules,
 	});
 	const summary = results.violations.map(
 		(violation) =>

@@ -10,7 +10,7 @@ import {
 } from "@mantine/core";
 import { ChevronRight, Pencil, Search, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import { previewValue } from "../edits";
+import { editId, pathKey, previewValue } from "../edits";
 import {
 	collectLeaves,
 	type JsonValue,
@@ -105,16 +105,16 @@ export const JsonInspector = ({
 						</Text>
 						{results.map((leaf) => (
 							<LeafRow
-								key={pathToString(leaf.path)}
+								key={pathKey(leaf.path)}
 								path={leaf.path}
 								value={leaf.value}
-								staged={staged.has(pathToString(leaf.path))}
-								editing={editing === pathToString(leaf.path)}
-								onEdit={() => setEditing(pathToString(leaf.path))}
+								staged={staged.has(pathKey(leaf.path))}
+								editing={editing === pathKey(leaf.path)}
+								onEdit={() => setEditing(pathKey(leaf.path))}
 								onCancel={() => setEditing(null)}
 								onStage={(after) => {
 									onStage({
-										id: `${pathToString(leaf.path)}=${JSON.stringify(after)}`,
+										id: editId(leaf.path, after),
 										label: pathToString(leaf.path),
 										path: leaf.path,
 										before: leaf.value,
@@ -170,7 +170,10 @@ const Tree = ({
 	onCancel: () => void;
 	onStage: (edit: SaveEdit) => void;
 }) => {
-	const key = pathToString(path);
+	// Identity, not display: this key is compared against `stagedPaths`, which is
+	// built from `pathKey` too. Using the rendered form here is what let a dotted
+	// or bracketed key in a save mark the wrong leaf as staged.
+	const key = pathKey(path);
 	const open = expanded.has(key);
 
 	if (typeof doc !== "object" || doc === null) {
@@ -184,7 +187,7 @@ const Tree = ({
 				onCancel={onCancel}
 				onStage={(after) =>
 					onStage({
-						id: `${key}=${JSON.stringify(after)}`,
+						id: editId(path, after),
 						label: pathToString(path),
 						path,
 						before: doc,

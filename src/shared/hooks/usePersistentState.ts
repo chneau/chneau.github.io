@@ -41,7 +41,7 @@ const getStore = (key: string): Store => {
  * refuses to hand one over (sandboxed iframes, blocked third-party storage).
  * Touching the property itself can throw, hence the try.
  */
-const storage = (): Storage | undefined => {
+export const storage = (): Storage | undefined => {
 	try {
 		return typeof window === "undefined" ? undefined : window.localStorage;
 	} catch {

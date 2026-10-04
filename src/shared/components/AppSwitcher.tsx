@@ -1,6 +1,7 @@
 import { LayoutGrid, Pin } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ALL_APPS, type AppEntry } from "../apps";
+import { useRovingFocus } from "../hooks/useRovingFocus";
 import { formatRelativeTime, usePinnedApps, useRecents } from "../recent";
 import { HeaderAction } from "./HeaderAction";
 
@@ -43,6 +44,10 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 		if (restoreFocus) trigger.current?.focus();
 	};
 
+	// Keyboard contract shared with `HeaderOverflow`, so the two dropdowns cannot
+	// drift: same focusability selector, same arrow maths, same Escape/Tab.
+	const { focusFirst, onKeyDown } = useRovingFocus({ menuRef: menu, close });
+
 	useEffect(() => {
 		if (!open) return;
 		const onPointerDown = (event: PointerEvent) => {
@@ -55,10 +60,8 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 	}, [open]);
 
 	useEffect(() => {
-		if (open) {
-			menu.current?.querySelector<HTMLAnchorElement>("a")?.focus();
-		}
-	}, [open]);
+		if (open) focusFirst();
+	}, [open, focusFirst]);
 
 	const path =
 		current ?? (typeof window === "undefined" ? "/" : window.location.pathname);
@@ -138,33 +141,6 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 	 * buttons alike. Querying by focusability rather than by tag name keeps
 	 * arrows working now that each row can hold a button after its link.
 	 */
-	const onMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-		const items = Array.from(
-			menu.current?.querySelectorAll<HTMLElement>(
-				"a[href], button:not([disabled])",
-			) ?? [],
-		);
-		if (items.length === 0) return;
-		const index = items.indexOf(document.activeElement as HTMLElement);
-		if (event.key === "Escape") {
-			event.preventDefault();
-			close(true);
-		} else if (event.key === "ArrowDown") {
-			event.preventDefault();
-			items[(index + 1) % items.length]?.focus();
-		} else if (event.key === "ArrowUp") {
-			event.preventDefault();
-			items[(index - 1 + items.length) % items.length]?.focus();
-		} else if (event.key === "Home") {
-			event.preventDefault();
-			items[0]?.focus();
-		} else if (event.key === "End") {
-			event.preventDefault();
-			items[items.length - 1]?.focus();
-		} else if (event.key === "Tab") {
-			close();
-		}
-	};
 
 	/**
 	 * One row: the app link plus a pin toggle. The link keeps the
@@ -248,7 +224,7 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 					className="app-switcher__menu"
 					role="menu"
 					aria-label="Switch app"
-					onKeyDown={onMenuKeyDown}
+					onKeyDown={onKeyDown}
 				>
 					{pinnedApps.length > 0 ? (
 						// biome-ignore lint/a11y/useSemanticElements: menu > group > menuitem is the ARIA menu pattern, not a form

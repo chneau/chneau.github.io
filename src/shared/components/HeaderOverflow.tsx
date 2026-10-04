@@ -8,6 +8,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useRovingFocus } from "../hooks/useRovingFocus";
 
 /**
  * Controls that do not fit a phone's navbar, inline on a wide one.
@@ -77,6 +78,13 @@ export const HeaderOverflow = ({ children }: { children: React.ReactNode }) => {
 		if (restoreFocus) trigger.current?.focus();
 	};
 
+	// Shared with `AppSwitcher`. This menu used to query `a, button` where the
+	// switcher queried `a[href], button:not([disabled])`, so the same key press
+	// moved focus differently depending on which menu was open — and an anchor
+	// with no `href`, or a disabled button, counted as focusable here and not
+	// there. One hook, one contract.
+	const { focusFirst, onKeyDown } = useRovingFocus({ menuRef: menu, close });
+
 	useEffect(() => {
 		if (!open) return;
 		const onPointerDown = (event: PointerEvent) => {
@@ -89,10 +97,8 @@ export const HeaderOverflow = ({ children }: { children: React.ReactNode }) => {
 	}, [open]);
 
 	useEffect(() => {
-		if (open) {
-			menu.current?.querySelector<HTMLElement>("a, button")?.focus();
-		}
-	}, [open]);
+		if (open) focusFirst();
+	}, [open, focusFirst]);
 
 	if (isNarrow === false) {
 		return <>{children}</>;
@@ -131,33 +137,6 @@ export const HeaderOverflow = ({ children }: { children: React.ReactNode }) => {
 	 * than by tag name is what lets the list hold an anchor and a button side by
 	 * side, exactly as `AppSwitcher` does.
 	 */
-	const onMenuKeyDown = (event: React.KeyboardEvent<HTMLFieldSetElement>) => {
-		const focusable = Array.from(
-			menu.current?.querySelectorAll<HTMLElement>(
-				"a[href], button:not([disabled])",
-			) ?? [],
-		);
-		if (focusable.length === 0) return;
-		const index = focusable.indexOf(document.activeElement as HTMLElement);
-		if (event.key === "Escape") {
-			event.preventDefault();
-			close(true);
-		} else if (event.key === "ArrowDown") {
-			event.preventDefault();
-			focusable[(index + 1) % focusable.length]?.focus();
-		} else if (event.key === "ArrowUp") {
-			event.preventDefault();
-			focusable[(index - 1 + focusable.length) % focusable.length]?.focus();
-		} else if (event.key === "Home") {
-			event.preventDefault();
-			focusable[0]?.focus();
-		} else if (event.key === "End") {
-			event.preventDefault();
-			focusable[focusable.length - 1]?.focus();
-		} else if (event.key === "Tab") {
-			close();
-		}
-	};
 
 	return (
 		<div className="app-header-overflow" ref={container}>
@@ -179,7 +158,7 @@ export const HeaderOverflow = ({ children }: { children: React.ReactNode }) => {
 					ref={menu}
 					id={menuId}
 					className="app-switcher__menu app-header-overflow__menu"
-					onKeyDown={onMenuKeyDown}
+					onKeyDown={onKeyDown}
 				>
 					<legend className="sr-only">More actions</legend>
 					{items}

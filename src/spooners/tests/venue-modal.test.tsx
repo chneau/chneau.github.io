@@ -1,4 +1,4 @@
-import "./happy-dom";
+import "../../shared/tests/happy-dom";
 import { afterEach, describe, expect, test } from "bun:test";
 import { MantineProvider } from "@mantine/core";
 import {

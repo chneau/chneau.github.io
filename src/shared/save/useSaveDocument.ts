@@ -12,12 +12,14 @@
  * computation is what stops a render reading a document a previous render
  * changed.
  */
+
 import { notifications } from "@mantine/notifications";
 import { useCallback, useMemo, useState } from "react";
 import type { Bytes } from "./bytes";
-import { applyEdits, stageEdits, withoutPath } from "./edits";
+import { applyEdits, pathKey, stageEdits, withoutPath } from "./edits";
 import { downloadBytes, readFileBytes, rebuiltName } from "./file";
-import { formatPath, type JsonValue } from "./json";
+import type { JsonValue } from "./json";
+import { yieldToBrowser } from "./macrotask";
 import {
 	describeVerdict,
 	type RoundTripVerdict,
@@ -78,7 +80,7 @@ export const useSaveDocument = (codec: SaveCodec): SaveDocument => {
 				// Yield once so the loading state paints before a multi-megabyte
 				// parse starts; otherwise the tab freezes on the old screen and
 				// the progress indicator is never seen.
-				await new Promise((resolve) => setTimeout(resolve, 0));
+				await yieldToBrowser();
 				const decoded = await codec.decode(source);
 				setName(fileName);
 				setBytes(source);
@@ -137,8 +139,18 @@ export const useSaveDocument = (codec: SaveCodec): SaveDocument => {
 		[doc, edits],
 	);
 
+	/**
+	 * Which paths have a staged edit, keyed by `pathKey` and not by `formatPath`.
+	 *
+	 * These two were different relations. `stageEdits` and `withoutPath` compare
+	 * paths structurally, while this set keyed on the *rendered* form — and
+	 * `formatPath` is lossy, so `["a.b"]` and `["a", "b"]` share a key, as do
+	 * `["a[0]"]` and `["a", 0]`. A save with a dotted or bracketed key would
+	 * therefore mark the wrong leaf as staged. The inspector now looks these up
+	 * with the same key, so identity is one function.
+	 */
 	const stagedPaths = useMemo(
-		() => new Set(edits.map((edit) => formatPath(edit.path))),
+		() => new Set(edits.map((edit) => pathKey(edit.path))),
 		[edits],
 	);
 

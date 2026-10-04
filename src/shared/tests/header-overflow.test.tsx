@@ -1,3 +1,4 @@
+import { axeFragmentOptions } from "./axe-fragment";
 import "./happy-dom";
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import { join } from "node:path";
@@ -344,16 +345,7 @@ describe("HeaderOverflow on a narrow screen", () => {
 
 		fireEvent.click(view.getByRole("button", { name: "More actions" }));
 		const results = await axe.run(view.baseElement, {
-			rules: {
-				"color-contrast": { enabled: false },
-				"page-has-heading-one": { enabled: false },
-				"landmark-one-main": { enabled: false },
-				region: { enabled: false },
-				"html-has-lang": { enabled: false },
-				"document-title": { enabled: false },
-				bypass: { enabled: false },
-				"meta-viewport": { enabled: false },
-			},
+			rules: axeFragmentOptions().rules,
 		});
 		expect(
 			results.violations.map(

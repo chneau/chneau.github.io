@@ -1,5 +1,9 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { type PersistOptions, usePersistentState } from "./usePersistentState";
+import {
+	type PersistOptions,
+	storage,
+	usePersistentState,
+} from "./usePersistentState";
 
 /** What the user picked; `auto` follows the operating system. */
 export type ColorMode = "light" | "dark" | "auto";
@@ -42,14 +46,6 @@ const LEGACY_THEME_KEYS: readonly string[] = [
 export const ROOT_THEME_KEY = "root_dark_mode";
 
 /** `localStorage`, or `undefined` when it is missing or blocked. */
-const storage = (): Storage | undefined => {
-	try {
-		return typeof window === "undefined" ? undefined : window.localStorage;
-	} catch {
-		// Private mode / sandboxed iframe: callers fall back to the OS.
-		return undefined;
-	}
-};
 
 /** Resolve `auto` against the current OS preference. */
 export const resolveColorMode = (
