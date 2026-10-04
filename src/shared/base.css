@@ -513,13 +513,37 @@ button.app-brand {
 .app-switcher__menu {
 	position: absolute;
 	top: calc(100% + 8px);
-	left: 0;
+	/* Anchored to the trigger's RIGHT edge, growing leftwards into the page.
+	 *
+	 * The switcher lives in `.app-header__actions`, which is `flex: none` at the
+	 * end of a bar whose middle section is `flex: 1` — so the trigger sits near
+	 * the right edge of the viewport. With `left: 0` the menu's left edge lined up
+	 * with the trigger's and its `min-width: 268px` then ran off the right of the
+	 * screen, hiding the tail of the app list on a desktop-width window. The
+	 * `max-width: calc(100vw - 24px)` clamp cannot save it: that caps the width,
+	 * it does not move the box back inside the viewport.
+	 *
+	 * This is the same reasoning, and the same `right: 0; left: auto` pair, that
+	 * `.app-header-overflow__menu` already uses below. Only the narrow-screen
+	 * override had it, so the desktop bar was the one case left anchoring to the
+	 * trigger's left edge.
+	 */
+	right: 0;
+	left: auto;
 	z-index: 80;
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 	min-width: 268px;
 	max-width: calc(100vw - 24px);
+	/* Thirteen apps plus the pinned and recent groups are taller than a short
+	 * laptop viewport once the 56px bar is taken off the top, and an absolutely
+	 * positioned box that overflows the bottom is simply unreachable — there is
+	 * nothing to scroll. The narrow override has always clamped and scrolled; the
+	 * desktop bar had neither. */
+	max-height: calc(100dvh - 76px);
+	overflow-y: auto;
+	overscroll-behavior: contain;
 	padding: 6px;
 	border-radius: var(--app-radius-md);
 	border: 1px solid var(--app-border);

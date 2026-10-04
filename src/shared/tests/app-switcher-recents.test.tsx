@@ -394,3 +394,70 @@ describe("AppSwitcher a11y with recents and pins populated", () => {
 		expect(summary).toEqual([]);
 	});
 });
+
+/**
+ * Where the menu is anchored, read from `base.css` as source.
+ *
+ * This is a cascade outcome, which is the same reason `header-overflow.test.tsx`
+ * reads the stylesheet: the defect is not "the DOM has no menu" but "which edge
+ * of the trigger the box is pinned to", and happy-dom computes no layout, so
+ * `getBoundingClientRect` here would be zeros and would prove nothing.
+ *
+ * What went wrong: the base rule anchored the menu with `left: 0` while the
+ * switcher sits in `.app-header__actions` — `flex: none`, at the end of a bar
+ * whose middle section is `flex: 1`, and the narrow-screen override's own comment
+ * puts the trigger "~60px from the right edge". So the menu's left edge lined up
+ * with the trigger's and its `min-width: 268px` ran roughly 200px off the right
+ * of the screen on a desktop window, hiding the tail of the app list. The
+ * `max-width: calc(100vw - 24px)` clamp did not help: it caps the width, it does
+ * not move the box back inside the viewport.
+ *
+ * Only the narrow override had it right, which is why this was a desktop-only
+ * report.
+ */
+const baseCss = (
+	await Bun.file(new URL("../base.css", import.meta.url)).text()
+).replace(/\/\*[\s\S]*?\*\//g, "");
+
+/** The declarations of the single-class base rule, media queries excluded. */
+const baseMenuRule = (): string => {
+	const rules = [...baseCss.matchAll(/^\.app-switcher__menu\s*\{([^}]*)\}/gm)];
+	const body = rules[0]?.[1];
+	if (body === undefined) {
+		throw new Error("base .app-switcher__menu rule not found");
+	}
+	return body;
+};
+
+describe("the app switcher menu stays inside the viewport", () => {
+	test("the base rule anchors to the trigger's right edge, not its left", () => {
+		const body = baseMenuRule();
+		expect(body).toMatch(/right:\s*0/);
+		// `left` must be released rather than merely overridden, or the box is
+		// pinned to both edges and the width resolves to the gap between them.
+		expect(body).toMatch(/left:\s*auto/);
+		expect(body).not.toMatch(/left:\s*0/);
+	});
+
+	test("a tall app list scrolls instead of hanging off the bottom", () => {
+		// Thirteen apps plus the pinned and recent groups exceed a short laptop
+		// viewport once the 56px bar is deducted, and an absolutely positioned
+		// box that overflows the bottom is unreachable — there is nothing to
+		// scroll. The narrow override has always had this.
+		const body = baseMenuRule();
+		expect(body).toMatch(/max-height:\s*calc\(100dvh - 76px\)/);
+		expect(body).toMatch(/overflow-y:\s*auto/);
+		expect(body).toMatch(/overscroll-behavior:\s*contain/);
+	});
+
+	test("the narrow-screen sheet still overrides both edges", () => {
+		// Guarded explicitly because the base rule now claims `right: 0` too:
+		// the phone sheet must still span the viewport rather than inherit it.
+		const narrow = baseCss.slice(baseCss.indexOf("@media (max-width: 1100px)"));
+		const sheet = /^\t\.app-switcher__menu\s*\{([^}]*)\}/m.exec(narrow)?.[1];
+		expect(sheet).toBeDefined();
+		expect(sheet).toMatch(/position:\s*fixed/);
+		expect(sheet).toMatch(/left:\s*8px/);
+		expect(sheet).toMatch(/right:\s*8px/);
+	});
+});
