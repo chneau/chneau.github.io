@@ -43,10 +43,6 @@ export const groupByBucket = (people: readonly Birthday[]): Bucket[] =>
 
 export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 	const { t, i18n } = useTranslation();
-	// `app.timeline.today` is not in `locales/en.json` yet, so the typed `t()`
-	// (whose key union is derived from that file) rejects it. Delete this
-	// helper once the locale JSONs gain the key.
-	const tr = t as unknown as (key: string) => string;
 
 	// The buckets are relative to today, so a tab left open overnight must not
 	// keep showing yesterday's "Today". Subscribing to the calendar day
@@ -209,7 +205,7 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 												? t("app.timeline.anniversary")
 												: t("app.timeline.turns", { age: x.age + 1 })}{" "}
 											{x.daysBeforeBirthday === 0
-												? tr("app.timeline.today")
+												? t("app.timeline.today")
 												: t("app.timeline.in_days", {
 														days: x.daysBeforeBirthday,
 														day: formatDate(

@@ -21,7 +21,7 @@ export const useDataset = (): DatasetState => {
 		error: null,
 		loading: true,
 	});
-	const [_attempt, setAttempt] = useState(0);
+	const [attempt, setAttempt] = useState(0);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -48,7 +48,11 @@ export const useDataset = (): DatasetState => {
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+		// `attempt` is the retry counter `reload` bumps, so it has to be here or
+		// "Try again" re-renders without refetching. The leading underscore this
+		// used to carry kept `noUnusedLocals` quiet about a value the effect never
+		// read, which is how an inert retry button passed the gate.
+	}, [attempt]);
 
 	const reload = useCallback(() => setAttempt((value) => value + 1), []);
 

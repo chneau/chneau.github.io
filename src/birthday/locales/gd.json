@@ -102,6 +102,17 @@
 			"export_one": "Tha aon neach a thig às a-rìgh",
 			"hosted_hint": "Tha na luchtachaidh nam feadh-athais agus ath-dheasachaidhean agaibh. Tha fo-shiùsheachadh a’ cleachdadh an fhaidhle air a stòradh, nach atharraich ach nuair a thogas an làrach a-rìgh."
 		},
+		"command": {
+			"switch_light": "Fallaidh gu solais",
+			"switch_dark": "Fallaidh gu dorcha",
+			"appearance": "Colista",
+			"keyboard_shortcuts": "Athairtair lànair",
+			"help": "Coimpiadh",
+			"go_to": "Thaigh gu {{tab}}",
+			"tab": "Tabaid",
+			"search_filters": "Rannsachadh agus criathrada",
+			"focus_search": "Cuir an còrach air an rannsachadh"
+		},
 		"header": {
 			"install": "Stàlaich",
 			"test_notification": "Sanas deuchainn",
@@ -122,7 +133,8 @@
 			"notify_not_enabled": "Cha chuir na sanasan an comas",
 			"notify_blocked": "Tha na sanasan air a bhacadh ann an roghdanach an brabhsair",
 			"notify_simulated": "Co-là-breith air a chruthachadh",
-			"notify_test_sent": "Chuir sanas deuchainn"
+			"notify_test_sent": "Chuir sanas deuchainn",
+			"build": "Togail {{date}}"
 		},
 		"countdown": {
 			"next_celebration": "An ath chomharrachadh: {{name}} ({{kind}})",
@@ -252,6 +264,11 @@
 			"reset": "Toraich na criathraichean",
 			"empty_title": "Chan eil gin a' freagairt",
 			"empty_body": "Chan eil clàr sam bith a' freagairt an lorg sgrisidh agus na criathraichean an-dràsta."
+		},
+		"error": {
+			"section": "An ear-aid seo",
+			"could_not_render": "cha b’ ur urrain a thaispeint.",
+			"reload_section": "Ath-chluich"
 		},
 		"on_this_day_error": "Cha b' ur dèidnn luchdadh na h-atharran",
 		"loading": "A' luchdadh nan lèireadh",

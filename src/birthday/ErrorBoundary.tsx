@@ -20,20 +20,12 @@ type FallbackProps = {
 
 const ErrorFallback = ({ label, message, onRetry }: FallbackProps) => {
 	const { t } = useTranslation();
-	// TEMPORARY: the keys below are not in `locales/en.json` yet, so the typed
-	// `t()` (whose key union is derived from that file) rejects them. Delete this
-	// helper once the locale JSONs gain the keys.
-	const tr = t as unknown as (
-		key: string,
-		opts?: Record<string, unknown>,
-	) => string;
-
 	return (
 		<div className="tk-error" role="alert">
 			<TriangleAlert size={17} strokeWidth={1.9} />
 			<div style={{ flex: 1 }}>
-				<strong>{label ?? tr("app.error.section")}</strong>{" "}
-				{tr("app.error.could_not_render")}
+				<strong>{label ?? t("app.error.section")}</strong>{" "}
+				{t("app.error.could_not_render")}
 				<div style={{ opacity: 0.7, marginTop: 4, fontSize: 12 }}>
 					{message}
 				</div>
@@ -44,7 +36,7 @@ const ErrorFallback = ({ label, message, onRetry }: FallbackProps) => {
 					onClick={onRetry}
 				>
 					<RotateCcw size={14} strokeWidth={1.9} />
-					{tr("app.error.reload_section")}
+					{t("app.error.reload_section")}
 				</button>
 			</div>
 		</div>

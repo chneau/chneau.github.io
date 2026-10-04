@@ -5,6 +5,7 @@ import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import axe from "axe-core";
 import type { ReactNode } from "react";
+import { renderToString } from "react-dom/server";
 import { BackHome } from "../components/BackHome";
 import { SchemeToggle } from "../components/SchemeToggle";
 import { ShortcutsHelpButton } from "../components/ShortcutsHelp";
@@ -23,19 +24,44 @@ import { HeaderAction, HeaderOverflow } from "../index";
  */
 const provider = (node: ReactNode) => <MantineProvider>{node}</MantineProvider>;
 
-/** Mantine's `useMediaQuery` reads this; the component branches on `(max-width: 640px)`. */
-const setViewport = (narrow: boolean) => {
-	window.matchMedia = mock((query: string) => ({
-		matches: narrow && query.includes("max-width"),
-		media: query,
-		onchange: null,
-		addListener: () => {},
-		removeListener: () => {},
-		addEventListener: () => {},
-		removeEventListener: () => {},
-		dispatchEvent: () => false,
-	})) as unknown as typeof window.matchMedia;
+/**
+ * The width in pixels `matchMedia` should report, or `undefined` for a viewport
+ * no `max-width` query can match.
+ *
+ * This resolves the query text rather than answering on `includes("max-width")`.
+ * The old stub could not tell 640px from 1100px, so every test passed whatever
+ * breakpoint the component branched on — the one number in this component that
+ * matters was untestable. Parsing the media query is what makes the breakpoint
+ * itself an assertion.
+ */
+const setViewportWidth = (width: number | undefined) => {
+	window.matchMedia = mock((query: string) => {
+		const maxWidth = /\(\s*max-width:\s*(\d+)px\s*\)/.exec(query);
+		const minWidth = /\(\s*min-width:\s*(\d+)px\s*\)/.exec(query);
+		const matches =
+			width === undefined
+				? false
+				: (maxWidth === null || width <= Number(maxWidth[1])) &&
+					(minWidth === null || width >= Number(minWidth[1]));
+		return {
+			matches,
+			media: query,
+			onchange: null,
+			addListener: () => {},
+			removeListener: () => {},
+			addEventListener: () => {},
+			removeEventListener: () => {},
+			dispatchEvent: () => false,
+		};
+	}) as unknown as typeof window.matchMedia;
 };
+
+/** The component's breakpoint is 1100px; a viewport either side of it. */
+const NARROW = 800;
+const WIDE = 1280;
+
+const setNarrow = () => setViewportWidth(NARROW);
+const setWide = () => setViewportWidth(WIDE);
 
 const originalMatchMedia = window.matchMedia;
 
@@ -53,7 +79,7 @@ const baseCss = (
 	await Bun.file(join(import.meta.dir, "..", "base.css")).text()
 ).replace(/\/\*[\s\S]*?\*\//g, "");
 
-beforeEach(() => setViewport(true));
+beforeEach(() => setNarrow());
 afterEach(() => {
 	window.matchMedia = originalMatchMedia;
 	cleanup();
@@ -339,7 +365,7 @@ describe("HeaderOverflow on a narrow screen", () => {
 
 describe("HeaderOverflow on a wide screen", () => {
 	test("renders its children inline with no trigger at all", () => {
-		setViewport(false);
+		setWide();
 		const view = render(
 			provider(
 				<HeaderOverflow>
@@ -354,5 +380,80 @@ describe("HeaderOverflow on a wide screen", () => {
 		expect(view.getByRole("button", { name: "Settings" })).toBeDefined();
 		expect(view.getByRole("button", { name: "Copy a link" })).toBeDefined();
 		expect(view.container.querySelector(".app-header-overflow")).toBeNull();
+	});
+
+	/**
+	 * PROVE IT FAILS WITHOUT `getInitialValueInEffect: false`.
+	 *
+	 * `useMediaQuery` reads `matchMedia` in an effect by default, so it answered
+	 * `false` — "wide" — on the first render at every viewport. A narrow screen
+	 * consequently painted the children inline: the 494px bar this component
+	 * exists to prevent, shoving the document sideways for a frame before the
+	 * listener attached and collapsed it into the trigger.
+	 *
+	 * These two are asserted through `renderToString`, not `render`, because
+	 * `render` is wrapped in `act` and flushes effects — so it observes the state
+	 * *after* the media listener attaches, which is exactly the state in which
+	 * the bug is invisible. `renderToString` never runs an effect, so it
+	 * observes the first paint, which is the paint that was wrong.
+	 */
+	test("a narrow viewport paints the trigger, not the overflowing bar", () => {
+		setNarrow();
+		const html = renderToString(
+			provider(
+				<HeaderOverflow>
+					<HeaderAction label="Settings" icon={<span />} />
+				</HeaderOverflow>,
+			),
+		);
+
+		expect(html).toContain("More actions");
+		// The inline bar is the defect: it is what overflows a narrow viewport.
+		expect(html).not.toContain("Settings");
+	});
+
+	test("a wide viewport paints its children inline, not the trigger", () => {
+		setWide();
+		const html = renderToString(
+			provider(
+				<HeaderOverflow>
+					<HeaderAction label="Settings" icon={<span />} />
+				</HeaderOverflow>,
+			),
+		);
+
+		expect(html).toContain("Settings");
+		expect(html).not.toContain("More actions");
+	});
+
+	/**
+	 * The breakpoint is 1100px and not a phone width, because birthday's ten
+	 * controls need ~1000px and overflow a 768px tablet as badly as a 360px
+	 * phone. This is the test that can finally say so: the old stub answered on
+	 * `includes("max-width")` and so passed at any breakpoint.
+	 */
+	test("the breakpoint is 1100px", () => {
+		setViewportWidth(1101);
+		const wide = render(
+			provider(
+				<HeaderOverflow>
+					<HeaderAction label="Settings" icon={<span />} />
+				</HeaderOverflow>,
+			),
+		);
+		expect(wide.queryByRole("button", { name: "More actions" })).toBeNull();
+		cleanup();
+
+		setViewportWidth(1099);
+		const narrow = render(
+			provider(
+				<HeaderOverflow>
+					<HeaderAction label="Settings" icon={<span />} />
+				</HeaderOverflow>,
+			),
+		);
+		expect(
+			narrow.queryByRole("button", { name: "More actions" }),
+		).toBeDefined();
 	});
 });

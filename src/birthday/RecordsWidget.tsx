@@ -332,13 +332,6 @@ const RecordTile = ({
 
 export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 	const { t } = useTranslation();
-	// The `records.*` keys below are not in `locales/en.json` yet, so the
-	// typed `t()` (whose key union is derived from that file) rejects them.
-	// Delete this helper once the locale JSONs gain the keys.
-	const tr = t as unknown as (
-		key: string,
-		opts?: Record<string, unknown>,
-	) => string;
 	const people = useMemo(() => data.filter((x) => x.kind !== "💒"), [data]);
 
 	const records = useMemo(() => {
@@ -357,7 +350,7 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 	if (records.twins.length === 0) {
 		if (records.sameSign) {
 			secondary.push(
-				tr("app.records.same_sign_line", {
+				t("app.records.same_sign_line", {
 					names: records.sameSign.names.join(", "),
 					sign: t(`data.zodiac.${records.sameSign.sign}`),
 				}),
@@ -365,7 +358,7 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 		}
 		if (records.sameGeneration) {
 			secondary.push(
-				tr("app.records.same_generation_line", {
+				t("app.records.same_generation_line", {
 					names: records.sameGeneration.names.join(", "),
 					generation: t(
 						`data.generations.${records.sameGeneration.generation}`,
@@ -385,7 +378,7 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 					icon={<Crown size={13} strokeWidth={1.9} aria-hidden="true" />}
 					label={t("app.records.elder")}
 					value={records.elder.name}
-					hint={`${records.elder.age} ${tr("app.records.years")}`}
+					hint={`${records.elder.age} ${t("app.records.years")}`}
 					tooltip={t("app.records.elder_tooltip", { name: records.elder.name })}
 					onSelect={() => {
 						dataStore.selectedBirthday = records.elder;
@@ -395,7 +388,7 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 					icon={<Baby size={13} strokeWidth={1.9} aria-hidden="true" />}
 					label={t("app.records.rookie")}
 					value={records.rookie.name}
-					hint={`${records.rookie.age} ${tr("app.records.years")}`}
+					hint={`${records.rookie.age} ${t("app.records.years")}`}
 					tooltip={t("app.records.rookie_tooltip", {
 						name: records.rookie.name,
 					})}
@@ -411,8 +404,8 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 					value={socialite ? socialite.person.name : "—"}
 					hint={
 						socialite
-							? tr("app.records.perfect_matches", { count: socialite.count })
-							: tr("app.records.no_socialite")
+							? t("app.records.perfect_matches", { count: socialite.count })
+							: t("app.records.no_socialite")
 					}
 					tooltip={
 						socialite

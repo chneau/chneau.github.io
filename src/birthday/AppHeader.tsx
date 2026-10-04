@@ -71,13 +71,6 @@ export const AppHeader = ({
 	shortcuts,
 }: AppHeaderProps) => {
 	const { t, i18n } = useTranslation();
-	// TEMPORARY: the keys below are not in `locales/en.json` yet, so the typed
-	// `t()` (whose key union is derived from that file) rejects them. Delete this
-	// helper once the locale JSONs gain the keys.
-	const tr = t as unknown as (
-		key: string,
-		opts?: Record<string, unknown>,
-	) => string;
 	const storeSnap = useSnapshot(store);
 	const [installPrompt, setInstallPrompt] =
 		useState<BeforeInstallPromptEvent>();
@@ -106,16 +99,16 @@ export const AppHeader = ({
 			return;
 		}
 		if (notificationState === "denied") {
-			notify.warning(tr("app.header.notify_blocked"));
+			notify.warning(t("app.header.notify_blocked"));
 			return;
 		}
 		const granted = await requestNotificationPermission();
 		setNotificationState(Notification.permission);
 		if (granted) {
-			notify.success(tr("app.header.notify_enabled"));
+			notify.success(t("app.header.notify_enabled"));
 			checkAndNotify(data);
 		} else {
-			notify.info(tr("app.header.notify_not_enabled"));
+			notify.info(t("app.header.notify_not_enabled"));
 		}
 	};
 
@@ -126,7 +119,7 @@ export const AppHeader = ({
 			icon: <Bell size={14} />,
 			onClick: () => {
 				sendTestNotification();
-				notify.info(tr("app.header.notify_test_sent"));
+				notify.info(t("app.header.notify_test_sent"));
 			},
 		},
 		{
@@ -136,7 +129,7 @@ export const AppHeader = ({
 			onClick: () => {
 				sendTestNotification();
 				triggerConfetti();
-				notify.success(tr("app.header.notify_simulated"));
+				notify.success(t("app.header.notify_simulated"));
 			},
 		},
 	];
@@ -157,7 +150,7 @@ export const AppHeader = ({
 			hasCommandPalette
 			icon={<Cake size={18} strokeWidth={1.9} />}
 			title={t("app.title")}
-			subtitle={tr("app.header.build", { date: BUILD_DATE })}
+			subtitle={t("app.header.build", { date: BUILD_DATE })}
 			shortcuts={shortcuts}
 			theme={{
 				dark: storeSnap.darkMode,
@@ -176,7 +169,7 @@ export const AppHeader = ({
 					<Menu position="bottom-end" shadow="md" withinPortal>
 						<Menu.Target>
 							<HeaderAction icon={<FlaskConical size={15} />}>
-								{tr("app.header.demo")}
+								{t("app.header.demo")}
 							</HeaderAction>
 						</Menu.Target>
 						<Menu.Dropdown>
@@ -195,7 +188,7 @@ export const AppHeader = ({
 					<Menu position="bottom-end" shadow="md" withinPortal>
 						<Menu.Target>
 							<HeaderAction
-								label={tr("app.header.change_language")}
+								label={t("app.header.change_language")}
 								icon={<Languages size={15} />}
 							>
 								{current.short}
@@ -237,10 +230,10 @@ export const AppHeader = ({
 					<Tooltip
 						label={
 							notificationsOn
-								? tr("app.header.alerts_active")
+								? t("app.header.alerts_active")
 								: notificationsBlocked
-									? tr("app.header.alerts_blocked")
-									: tr("app.header.alerts_enable")
+									? t("app.header.alerts_blocked")
+									: t("app.header.alerts_enable")
 						}
 					>
 						<HeaderAction
@@ -259,10 +252,10 @@ export const AppHeader = ({
 							}
 						>
 							{notificationsOn
-								? tr("app.header.alerts_on")
+								? t("app.header.alerts_on")
 								: notificationsBlocked
-									? tr("app.header.alerts_blocked_short")
-									: tr("app.header.alerts_enable_short")}
+									? t("app.header.alerts_blocked_short")
+									: t("app.header.alerts_enable_short")}
 						</HeaderAction>
 					</Tooltip>
 

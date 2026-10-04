@@ -186,6 +186,12 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 						.split(" & ")
 						.map((n) => {
 							const key = `data.names.${n}`;
+							// The key is built from a person's name out of the
+							// dataset, so no key union can cover it — `t()` would
+							// reject it at compile time for being unknown, which is
+							// the normal case here. `i18n.exists` is the guard that
+							// fits: a name with no etymology entry renders the plain
+							// name rather than the key.
 							const hasKey = i18n.exists(key);
 							const ety = hasKey
 								? (i18n.t as unknown as (k: string) => string)(key)

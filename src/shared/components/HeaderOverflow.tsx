@@ -42,7 +42,25 @@ import {
  * all, so a desktop bar is unchanged and pays nothing for this component.
  */
 export const HeaderOverflow = ({ children }: { children: React.ReactNode }) => {
-	const isNarrow = useMediaQuery("(max-width: 1100px)");
+	/**
+	 * `getInitialValueInEffect: false` is load-bearing, not a preference.
+	 *
+	 * `useMediaQuery` reads `window.matchMedia` in an effect by default and
+	 * returns `matches || false` until that effect runs, so the first render
+	 * answered `false` — "wide" — at *every* viewport. On a narrow screen that
+	 * first paint therefore rendered the children inline: the 494px desktop bar
+	 * this component exists to prevent, pushing the document sideways for a
+	 * frame before the listener attached and collapsed it into the "More"
+	 * trigger. This wraps `AppNav`, so it was every app on the site.
+	 *
+	 * Reading synchronously makes the first render correct in both directions,
+	 * and `isNarrow === false` below stays a true answer rather than a
+	 * provisional one. With no `matchMedia` at all (SSR, or a browser lacking it)
+	 * Mantine falls back to `false`, which keeps the wide layout as the default.
+	 */
+	const isNarrow = useMediaQuery("(max-width: 1100px)", undefined, {
+		getInitialValueInEffect: false,
+	});
 	const [open, setOpen] = useState(false);
 	const container = useRef<HTMLDivElement>(null);
 	const trigger = useRef<HTMLButtonElement>(null);

@@ -40,10 +40,6 @@ const resolveLanguage = (language: string): string => {
 
 export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 	const { t, i18n } = useTranslation();
-	// `i18next.d.ts` derives the key union from `locales/en.json`, so keys that
-	// are not in the bundle yet cannot type-check through `t` directly. Same
-	// escape hatch as `BirthdayDetails.tsx`; re-narrow once the strings land.
-	const tKey = t as unknown as (key: string) => string;
 	const [events, setEvents] = useState<WikiEvent[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState(false);
@@ -154,7 +150,7 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 						</Stack>
 					) : events.length === 0 ? (
 						<Text c="dimmed" size="sm">
-							{tKey("app.on_this_day_empty")}
+							{t("app.on_this_day_empty")}
 						</Text>
 					) : (
 						<Flex direction="column" gap="md">
@@ -175,7 +171,7 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 												rel="noreferrer noopener"
 												style={{ fontSize: "12px", opacity: 0.8 }}
 											>
-												{tKey("app.on_this_day_source")}: {source.title}
+												{t("app.on_this_day_source")}: {source.title}
 											</a>
 										) : null}
 									</Flex>
@@ -188,20 +184,20 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 					    attribution, so this is deliberately outside the loading and
 					    empty branches: it shows whenever the panel is open. */}
 					<Text size="xs" c="dimmed" mt="sm">
-						{tKey("app.on_this_day_attribution")}{" "}
+						{t("app.on_this_day_attribution")}{" "}
 						<a
 							href={`https://${finalLang}.wikipedia.org/`}
 							target="_blank"
 							rel="noreferrer noopener"
 						>
-							{tKey("app.on_this_day_attribution_wikipedia")}
+							{t("app.on_this_day_attribution_wikipedia")}
 						</a>{" "}
 						<a
 							href="https://creativecommons.org/licenses/by-sa/4.0/"
 							target="_blank"
 							rel="noreferrer noopener"
 						>
-							{tKey("app.on_this_day_attribution_license")}
+							{t("app.on_this_day_attribution_license")}
 						</a>
 					</Text>
 				</Accordion.Panel>

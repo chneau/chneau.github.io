@@ -102,6 +102,17 @@
 			"export_one": "Exportar una sola persona",
 			"hosted_hint": "Las descargas incluyen tus propias adiciones y ediciones. La suscripción usa el archivo alojado, que solo se actualiza cuando se reconstruye el sitio."
 		},
+		"command": {
+			"switch_light": "Cambiar a modo claro",
+			"switch_dark": "Cambiar a modo oscuro",
+			"appearance": "Apariencia",
+			"keyboard_shortcuts": "Atajos de teclado",
+			"help": "Ayuda",
+			"go_to": "Ir a {{tab}}",
+			"tab": "Pestaña",
+			"search_filters": "Búsqueda y filtros",
+			"focus_search": "Enfocar el cuadro de búsqueda"
+		},
 		"header": {
 			"install": "Instalar",
 			"test_notification": "Prueba de Notificación",
@@ -122,7 +133,8 @@
 			"notify_not_enabled": "Las notificaciones no se activaron",
 			"notify_blocked": "Las notificaciones están bloqueadas en los ajustes del navegador",
 			"notify_simulated": "Cumpleaños simulado",
-			"notify_test_sent": "Notificación de prueba enviada"
+			"notify_test_sent": "Notificación de prueba enviada",
+			"build": "Versión {{date}}"
 		},
 		"countdown": {
 			"next_celebration": "Próxima Celebración: {{name}} ({{kind}})",
@@ -252,6 +264,11 @@
 			"reset": "Restablecer filtros",
 			"empty_title": "Nada coincide",
 			"empty_body": "Ningún registro coincide con la búsqueda y los filtros actuales."
+		},
+		"error": {
+			"section": "Esta sección",
+			"could_not_render": "no se ha podido mostrar.",
+			"reload_section": "Recargar"
 		},
 		"on_this_day_error": "No se pudieron cargar los eventos",
 		"loading": "Cargando análisis",

@@ -102,6 +102,17 @@
 			"export_one": "导出单个人员",
 			"hosted_hint": "下载的文件包含你自己添加和修改的内容。订阅使用的是托管文件，只有在网站重新构建时才会更新。"
 		},
+		"command": {
+			"switch_light": "切换到浅色模式",
+			"switch_dark": "切换到深色模式",
+			"appearance": "外观",
+			"keyboard_shortcuts": "键盘快捷键",
+			"help": "帮助",
+			"go_to": "前往{{tab}}",
+			"tab": "标签页",
+			"search_filters": "搜索与筛选",
+			"focus_search": "聚焦搜索框"
+		},
 		"header": {
 			"install": "安装",
 			"test_notification": "测试通知",
@@ -122,7 +133,8 @@
 			"notify_not_enabled": "通知未开启",
 			"notify_blocked": "通知已在浏览器设置中被阻止",
 			"notify_simulated": "已模拟生日",
-			"notify_test_sent": "测试通知已发送"
+			"notify_test_sent": "测试通知已发送",
+			"build": "构建于 {{date}}"
 		},
 		"countdown": {
 			"next_celebration": "下一次庆祝：{{name}} ({{kind}})",
@@ -252,6 +264,11 @@
 			"reset": "重置筛选",
 			"empty_title": "没有匹配项",
 			"empty_body": "没有记录符合当前的搜索和筛选条件。"
+		},
+		"error": {
+			"section": "此区域",
+			"could_not_render": "无法显示。",
+			"reload_section": "重新加载"
 		},
 		"on_this_day_error": "无法加载事件",
 		"loading": "正在加载洞察",
