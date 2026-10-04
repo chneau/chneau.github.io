@@ -23,57 +23,50 @@ export const useCalendarDay = (): dayjs.Dayjs => {
 
 	useEffect(() => {
 		/**
-		 * Every live timer, cleared wholesale on teardown.
+		 * The one live timer, or `undefined` when none is pending.
 		 *
-		 * A single `timer` slot was wrong here: `sync` has two callers — the
-		 * timer re-arms itself, and `onVisible` calls it on `visibilitychange`
-		 * and `focus` — so focusing before midnight overwrote the slot and
-		 * orphaned the pending handle. At midnight both survivors fired, each
-		 * arming a successor, and cleanup could then only ever clear the one
-		 * handle still in the slot. A chain survived unmount, retained its whole
-		 * closure, and kept calling `setDay` forever. React stopped warning about
-		 * setState-after-unmount in 18, so it failed silently.
+		 * A `timer` slot that could be *orphaned* was the original bug: `sync`
+		 * has two callers — the timer re-arms itself, and `onVisible` calls it
+		 * on `visibilitychange` and `focus` — so focusing before midnight
+		 * overwrote the slot and left the previous handle pending forever. At
+		 * midnight both survivors fired, each arming a successor, and teardown
+		 * could then only ever clear the one handle still in the slot. A chain
+		 * survived unmount, retained its whole closure, and kept calling
+		 * `setDay`. React stopped warning about setState-after-unmount in 18,
+		 * so it failed silently.
 		 *
-		 * A `Set` makes the invariant structural rather than something the code
-		 * has to keep remembering: no matter how many timers are in flight,
-		 * teardown cancels every one of them. `clearArmed()` before each arming
-		 * keeps it at one in the steady state, which is what stops a busy tab
-		 * accumulating a chain per focus.
+		 * The fix is not "more slots", it is that the arm below happens once,
+		 * in the effect body, and `sync` cancels the pending handle before it
+		 * arms a successor. So the focus path cannot orphan anything either —
+		 * it goes through the same cancel-then-arm — and teardown clears
+		 * whatever the last `sync` left behind.
 		 */
-		const timers = new Set<ReturnType<typeof setTimeout>>();
-
-		const arm = (fn: () => void, ms: number) => {
-			const handle = setTimeout(() => {
-				timers.delete(handle);
-				fn();
-			}, ms);
-			timers.add(handle);
-		};
-
-		const clearArmed = () => {
-			for (const handle of timers) clearTimeout(handle);
-			timers.clear();
-		};
+		let timer: ReturnType<typeof setTimeout> | undefined;
 
 		const sync = () => {
-			clearArmed();
+			if (timer !== undefined) clearTimeout(timer);
 			const now = dayjs().startOf("day");
 			setDay((previous) => (previous.isSame(now, "day") ? previous : now));
 			// Re-arm for the following midnight. The 250ms margin avoids firing
 			// fractionally early, which would miss the rollover entirely.
-			arm(sync, now.add(1, "day").diff(dayjs()) + 250);
+			timer = setTimeout(sync, now.add(1, "day").diff(dayjs()) + 250);
 		};
 
 		const onVisible = () => {
 			if (document.visibilityState === "visible") sync();
 		};
 
-		sync();
+		// Armed here, in the effect body, rather than from inside `sync`: that
+		// is what makes "this handle is the one teardown releases" a single
+		// readable fact instead of something spread across a helper.
+		const now = dayjs().startOf("day");
+		setDay((previous) => (previous.isSame(now, "day") ? previous : now));
+		timer = setTimeout(sync, now.add(1, "day").diff(dayjs()) + 250);
 		document.addEventListener("visibilitychange", onVisible);
 		window.addEventListener("focus", onVisible);
 
 		return () => {
-			clearArmed();
+			if (timer !== undefined) clearTimeout(timer);
 			document.removeEventListener("visibilitychange", onVisible);
 			window.removeEventListener("focus", onVisible);
 		};

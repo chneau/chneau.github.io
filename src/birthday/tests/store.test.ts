@@ -877,7 +877,18 @@ describe("store / date roll", () => {
 	});
 
 	test("a day later the derived data is re-computed against the new date", async () => {
-		const subject = birthdays.find((x) => !isWedding(x)) as Birthday;
+		// Deliberately NOT `birthdays.find((x) => !isWedding(x))`. That picks the
+		// first non-wedding record, which is Maximin — born 1978-10-04. On the
+		// 4th of October his `daysBeforeBirthday` is 0 rather than 364, so
+		// advancing the clock by a day leaves it at 364-1 and the assertion below
+		// fails on that one date a year, for no reason connected to this hook.
+		//
+		// The point of the test is the roll, so it needs a subject whose countdown
+		// is not at a boundary: one at least two days out, which no single date
+		// can make ambiguous.
+		const subject = birthdays.find(
+			(x) => !isWedding(x) && x.daysBeforeBirthday >= 2,
+		) as Birthday;
 		const before = {
 			ageInDays: subject.ageInDays,
 			daysBeforeBirthday: subject.daysBeforeBirthday,
