@@ -22,26 +22,37 @@ export const useCalendarDay = (): dayjs.Dayjs => {
 	const [day, setDay] = useState(() => dayjs().startOf("day"));
 
 	useEffect(() => {
-		let timer: ReturnType<typeof setTimeout> | undefined;
-
 		/**
-		 * Cancel any outstanding timer before arming a new one.
+		 * Every live timer, cleared wholesale on teardown.
 		 *
-		 * `sync` has two callers — the timer re-arms itself, and `onVisible`
-		 * calls it on `visibilitychange` and `focus` — but they shared one
-		 * `timer` slot. Focusing before midnight therefore overwrote the slot and
-		 * orphaned the pending handle, so at midnight two chains fired, each
-		 * arming a successor, and cleanup could only ever clear the one handle
-		 * still in the slot. The survivor retained its whole closure and kept
-		 * calling `setDay` after unmount, silently, because React stopped warning
-		 * about that in 18.
+		 * A single `timer` slot was wrong here: `sync` has two callers — the
+		 * timer re-arms itself, and `onVisible` calls it on `visibilitychange`
+		 * and `focus` — so focusing before midnight overwrote the slot and
+		 * orphaned the pending handle. At midnight both survivors fired, each
+		 * arming a successor, and cleanup could then only ever clear the one
+		 * handle still in the slot. A chain survived unmount, retained its whole
+		 * closure, and kept calling `setDay` forever. React stopped warning about
+		 * setState-after-unmount in 18, so it failed silently.
 		 *
-		 * Clearing first restores the invariant the cleanup already assumed: at
-		 * most one timer outstanding, so clearing the slot clears everything.
+		 * A `Set` makes the invariant structural rather than something the code
+		 * has to keep remembering: no matter how many timers are in flight,
+		 * teardown cancels every one of them. `clearArmed()` before each arming
+		 * keeps it at one in the steady state, which is what stops a busy tab
+		 * accumulating a chain per focus.
 		 */
+		const timers = new Set<ReturnType<typeof setTimeout>>();
+
+		const arm = (fn: () => void, ms: number) => {
+			const handle = setTimeout(() => {
+				timers.delete(handle);
+				fn();
+			}, ms);
+			timers.add(handle);
+		};
+
 		const clearArmed = () => {
-			if (timer !== undefined) clearTimeout(timer);
-			timer = undefined;
+			for (const handle of timers) clearTimeout(handle);
+			timers.clear();
 		};
 
 		const sync = () => {
@@ -50,7 +61,7 @@ export const useCalendarDay = (): dayjs.Dayjs => {
 			setDay((previous) => (previous.isSame(now, "day") ? previous : now));
 			// Re-arm for the following midnight. The 250ms margin avoids firing
 			// fractionally early, which would miss the rollover entirely.
-			timer = setTimeout(sync, now.add(1, "day").diff(dayjs()) + 250);
+			arm(sync, now.add(1, "day").diff(dayjs()) + 250);
 		};
 
 		const onVisible = () => {

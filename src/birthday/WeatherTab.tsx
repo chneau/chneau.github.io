@@ -24,7 +24,7 @@ import {
 	RefreshCw,
 	Trash2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnapshot } from "valtio";
 import { ConfirmPopover } from "./ConfirmPopover";
@@ -472,17 +472,19 @@ export const WeatherTab = () => {
 	 * mutation (which fires on every keystroke in the search box) is what keeps
 	 * this from becoming noise the user learns to dismiss.
 	 *
-	 * The translate function is a fresh closure each render, so the ref lets the
-	 * subscription be registered once and still speak the current language.
+	 * The translate function is a fresh closure each render, so an effect event
+	 * lets the subscription be registered once and still speak the current
+	 * language. Writing the closure into a ref during render instead would let a
+	 * discarded (concurrent) render leave the subscription speaking a language
+	 * the user never settled on.
 	 */
 	const warnedRef = useRef(false);
-	const tnRef = useRef(tn);
-	tnRef.current = tn;
+	const translate = useEffectEvent(tn);
 	useEffect(() => {
 		const warn = () => {
 			if (warnedRef.current) return;
 			warnedRef.current = true;
-			notify.warning(tnRef.current("app.weather.persistence_failed"));
+			notify.warning(translate("app.weather.persistence_failed"));
 		};
 		// A failure that happened before this tab mounted still has to be shown.
 		if (getPersistenceError() !== null) warn();

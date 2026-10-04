@@ -13,7 +13,7 @@ import {
 	VolumeX,
 	X,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 import {
 	AppNav,
 	type Command,
@@ -85,9 +85,13 @@ export const App = () => {
 	const shortcuts = useShortcutsHelp();
 	const commandPalette = useCommandPalette();
 	// Keep the always-bound keydown handler's view of the help dialog current
-	// without putting `shortcuts.close` (a fresh closure each render) in deps.
-	const shortcutsRef = useRef(shortcuts);
-	shortcutsRef.current = shortcuts;
+	// without putting `shortcuts.close` (a fresh closure each render) in deps:
+	// an effect event reads the latest committed `shortcuts` when Escape fires.
+	const closeShortcutsIfOpen = useEffectEvent(() => {
+		if (!shortcuts.opened) return false;
+		shortcuts.close();
+		return true;
+	});
 	const {
 		isInfoOpen,
 		isPlaying,
@@ -166,9 +170,8 @@ export const App = () => {
 					break;
 				}
 				case "escape":
-					if (shortcutsRef.current.opened) {
-						shortcutsRef.current.close();
-					} else if (railStore.isSettingsOpen) {
+					if (closeShortcutsIfOpen()) break;
+					if (railStore.isSettingsOpen) {
 						railActions.setIsSettingsOpen(false);
 					} else if (railStore.isInfoOpen) {
 						railActions.setIsInfoOpen(false);

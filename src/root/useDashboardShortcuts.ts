@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef } from "react";
+import { type RefObject, useEffect, useEffectEvent } from "react";
 import { APPS } from "../shared";
 
 /**
@@ -26,16 +26,19 @@ export const useDashboardShortcuts = ({
 	// Global shortcuts: digits launch apps, T toggles theme, / focuses search.
 	// The dialogs own the keyboard while they are open — otherwise a digit typed
 	// in the shortcuts sheet would navigate away mid-dialog.
-	const themeRef = useRef(theme);
-	themeRef.current = theme;
-	const dialogsOpenRef = useRef(dialogsOpen);
-	dialogsOpenRef.current = dialogsOpen;
+	//
+	// `theme` is a fresh object and `dialogsOpen` changes per render, so both
+	// are read through effect events: the listener below is registered once and
+	// still acts on the latest committed values, without a ref written during
+	// render (which a discarded concurrent render could leave stale).
+	const themeToggle = useEffectEvent(() => theme.toggle());
+	const dialogsAreOpen = useEffectEvent(() => dialogsOpen);
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) {
 				return;
 			}
-			if (dialogsOpenRef.current) return;
+			if (dialogsAreOpen()) return;
 			const target = event.target;
 			if (
 				target instanceof HTMLInputElement ||
@@ -63,7 +66,7 @@ export const useDashboardShortcuts = ({
 				handleVisit(targetApp.href);
 				window.location.href = targetApp.href;
 			} else if (event.key.toLowerCase() === "t") {
-				themeRef.current.toggle();
+				themeToggle();
 			}
 		};
 		window.addEventListener("keydown", onKeyDown);
