@@ -1,6 +1,7 @@
-import { defineConfig } from "@rsbuild/core";
+import { defineConfig, type EnvironmentConfig } from "@rsbuild/core";
 import { pluginReact } from "@rsbuild/plugin-react";
 import dayjs from "dayjs";
+import { APP_META, type AppMeta } from "./src/shared/app-meta";
 
 /**
  * Injected into the four environments whose UI surfaces a build stamp:
@@ -177,6 +178,58 @@ const manifestCopy = (name: string) => [
 const crimsonIcon =
 	"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='rgb(20,20,24)'/><path d='M32 12l16 6v12c0 11-7 18-16 22-9-4-16-11-16-22V18z' fill='none' stroke='rgb(157,80,98)' stroke-width='4' stroke-linejoin='round'/></svg>";
 
+/**
+ * One rsbuild environment, derived from a single `APP_META` row.
+ *
+ * Everything the 13 blocks used to restate — the dist path, both asset
+ * prefixes, the manifest copy, the browserslist, the polyfill, the manifest
+ * link, the boot shell, the Apple touch icon — is a function of the app's
+ * slug and path, so adding an app is one table row rather than a copy-paste.
+ * The explicit `EnvironmentConfig` return type keeps the literal unions
+ * (`polyfill: "usage"`, `type: "profile"`) from widening to `string`.
+ */
+const environmentFor = (meta: AppMeta): EnvironmentConfig => ({
+	source: {
+		entry: { index: meta.entry },
+		// Only the environments with a consumer declare BUILD_DATE.
+		...(meta.defineBuildDate
+			? { define: { BUILD_DATE: JSON.stringify(nowStr) } }
+			: {}),
+	},
+	html: {
+		title: meta.title,
+		tags: [
+			...metaTags({
+				title: meta.title,
+				description: meta.description,
+				path: meta.path,
+				themeColor: meta.themeColor,
+				type: meta.metaType,
+				alternateLocales: meta.alternateLocales,
+			}),
+			...meta.jsonLd.map((kind) =>
+				jsonLd(kind === "website" ? websiteLd : personLd),
+			),
+			manifestLink,
+			...bootShell,
+			appleTouchIcon(meta.slug),
+			shortcutIcon(meta.emoji ? emojiIcon(meta.emoji) : crimsonIcon),
+		],
+	},
+	dev: {
+		assetPrefix: meta.path,
+	},
+	output: {
+		distPath: {
+			root: meta.path === "/" ? "dist" : `dist${meta.path.slice(0, -1)}`,
+		},
+		assetPrefix: meta.path,
+		copy: [...manifestCopy(meta.slug), ...meta.copies],
+		overrideBrowserslist: [">0%, defaults"],
+		polyfill: "usage",
+	},
+});
+
 export default defineConfig({
 	plugins: [pluginReact()],
 	source: {
@@ -198,443 +251,7 @@ export default defineConfig({
 	server: {
 		host: "localhost",
 	},
-	environments: {
-		root: {
-			source: {
-				entry: { index: "./src/root/index.tsx" },
-				define: { BUILD_DATE: JSON.stringify(nowStr) },
-			},
-			html: {
-				title: "chneau.github.io",
-				tags: [
-					...metaTags({
-						title: "chneau.github.io",
-						description:
-							"Personal hub and web apps by chneau — CV, birthday tracker, Scottish rail replay, save editor and pub price maps.",
-						path: "/",
-						themeColor: "#1677ff",
-					}),
-					jsonLd(websiteLd),
-					jsonLd(personLd),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("root"),
-					shortcutIcon(emojiIcon("🚀")),
-				],
-			},
-			dev: {
-				assetPrefix: "/",
-			},
-			output: {
-				distPath: { root: "dist" },
-				assetPrefix: "/",
-				copy: manifestCopy("root"),
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-		cv: {
-			source: {
-				entry: { index: "./src/cv/index.tsx" },
-				define: { BUILD_DATE: JSON.stringify(nowStr) },
-			},
-			html: {
-				title: "Charles Neau | Curriculum Vitae",
-				tags: [
-					...metaTags({
-						title: "Charles Neau | Curriculum Vitae",
-						description:
-							"Senior Full-Stack & Systems Engineer — 10+ years experience across Go, TypeScript, React 19, Python, cloud infrastructure & optimization.",
-						path: "/cv/",
-						themeColor: "#127f5f",
-						type: "profile",
-					}),
-					jsonLd(personLd),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("cv"),
-					shortcutIcon(emojiIcon("📄")),
-				],
-			},
-			dev: {
-				assetPrefix: "/cv/",
-			},
-			output: {
-				distPath: { root: "dist/cv" },
-				assetPrefix: "/cv/",
-				copy: manifestCopy("cv"),
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-		birthday: {
-			source: {
-				entry: { index: "./src/birthday/index.tsx" },
-				define: { BUILD_DATE: JSON.stringify(nowStr) },
-			},
-			html: {
-				title: "Birthday Tracker",
-				tags: [
-					...metaTags({
-						title: "Birthday Tracker",
-						description:
-							"Track birthdays, milestones, biorhythms, zodiac signs, and export calendar events.",
-						path: "/birthday/",
-						themeColor: "#34d399",
-						alternateLocales: [
-							"de_DE",
-							"es_ES",
-							"fr_FR",
-							"gd_GB",
-							"ty_PF",
-							"zh_CN",
-						],
-					}),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("birthday"),
-					shortcutIcon(emojiIcon("🎂")),
-				],
-			},
-			dev: {
-				assetPrefix: "/birthday/",
-			},
-			output: {
-				distPath: { root: "dist/birthday" },
-				assetPrefix: "/birthday/",
-				copy: manifestCopy("birthday"),
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-		"scotland-rail": {
-			source: {
-				entry: { index: "./src/scotland-rail/index.tsx" },
-				define: { BUILD_DATE: JSON.stringify(nowStr) },
-			},
-			html: {
-				title: "A Day in Scottish Rail | 24h Replay",
-				tags: [
-					...metaTags({
-						title: "A Day in Scottish Rail | 24h Replay",
-						description:
-							"Interactive 24-hour time-lapse train replay across Scotland's rail network.",
-						path: "/scotland-rail/",
-						themeColor: "#5aa9c9",
-					}),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("scotland-rail"),
-					shortcutIcon(emojiIcon("🚆")),
-				],
-			},
-			dev: {
-				assetPrefix: "/scotland-rail/",
-			},
-			output: {
-				distPath: { root: "dist/scotland-rail" },
-				assetPrefix: "/scotland-rail/",
-				copy: manifestCopy("scotland-rail"),
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-		"crimson-desert-save-editor": {
-			source: {
-				entry: {
-					index: "./src/crimson-desert-save-editor/app/main.tsx",
-				},
-			},
-			html: {
-				title: "Crimson Desert Save Editor",
-				tags: [
-					...metaTags({
-						title: "Crimson Desert Save Editor",
-						description:
-							"Edit Crimson Desert save files — inventory, gear, skills, quests and companions — entirely on your device.",
-						path: "/crimson-desert-save-editor/",
-						themeColor: "#9d5062",
-					}),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("crimson-desert-save-editor"),
-					shortcutIcon(crimsonIcon),
-				],
-			},
-			dev: {
-				assetPrefix: "/crimson-desert-save-editor/",
-			},
-			output: {
-				distPath: { root: "dist/crimson-desert-save-editor" },
-				assetPrefix: "/crimson-desert-save-editor/",
-				copy: [
-					...manifestCopy("crimson-desert-save-editor"),
-					{
-						from: "./src/crimson-desert-save-editor/assets/image-archive",
-						to: "image-archive",
-					},
-				],
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-		spooners: {
-			source: {
-				entry: { index: "./src/spooners/index.tsx" },
-			},
-			html: {
-				title: "Spooners | Pub prices on a map",
-				tags: [
-					...metaTags({
-						title: "Spooners | Pub prices on a map",
-						description:
-							"See what every pub charges for the same drink or dish — searchable map, cheapest-to-dearest rankings and price distribution charts.",
-						path: "/spooners/",
-						themeColor: "#e6ad00",
-					}),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("spooners"),
-					shortcutIcon(emojiIcon("🍺")),
-				],
-			},
-			dev: {
-				assetPrefix: "/spooners/",
-			},
-			output: {
-				distPath: { root: "dist/spooners" },
-				assetPrefix: "/spooners/",
-				copy: [
-					...manifestCopy("spooners"),
-					{
-						from: "./src/spooners/data/data.json",
-						to: "data.json",
-					},
-				],
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-		"tails-of-iron-2-save-editor": {
-			source: {
-				entry: {
-					index: "./src/tails-of-iron-2-save-editor/app/main.tsx",
-				},
-			},
-			html: {
-				title: "Tails of Iron 2 Save Editor",
-				tags: [
-					...metaTags({
-						title: "Tails of Iron 2 Save Editor",
-						description:
-							"Read and edit Tails of Iron 2 save profiles in your browser — decoded, staged and rebuilt on your own device.",
-						path: "/tails-of-iron-2-save-editor/",
-						themeColor: "#4577a7",
-					}),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("tails-of-iron-2-save-editor"),
-					shortcutIcon(emojiIcon("🐈")),
-				],
-			},
-			dev: {
-				assetPrefix: "/tails-of-iron-2-save-editor/",
-			},
-			output: {
-				distPath: { root: "dist/tails-of-iron-2-save-editor" },
-				assetPrefix: "/tails-of-iron-2-save-editor/",
-				copy: manifestCopy("tails-of-iron-2-save-editor"),
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-		"power-fantasy-save-editor": {
-			source: {
-				entry: { index: "./src/power-fantasy-save-editor/app/main.tsx" },
-			},
-			html: {
-				title: "Power Fantasy Save Editor",
-				tags: [
-					...metaTags({
-						title: "Power Fantasy Save Editor",
-						description:
-							"Decrypt and edit Power Fantasy's AES-encrypted Unity save — blood rubies, heroes, passives and infusions, rebuilt and verified in your browser.",
-						path: "/power-fantasy-save-editor/",
-						themeColor: "#d44a63",
-					}),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("power-fantasy-save-editor"),
-					shortcutIcon(emojiIcon("💎")),
-				],
-			},
-			dev: {
-				assetPrefix: "/power-fantasy-save-editor/",
-			},
-			output: {
-				distPath: { root: "dist/power-fantasy-save-editor" },
-				assetPrefix: "/power-fantasy-save-editor/",
-				copy: manifestCopy("power-fantasy-save-editor"),
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-		"no-rest-for-the-wicked-save-editor": {
-			source: {
-				entry: {
-					index: "./src/no-rest-for-the-wicked-save-editor/app/main.tsx",
-				},
-			},
-			html: {
-				title: "No Rest for the Wicked Save Editor",
-				tags: [
-					...metaTags({
-						title: "No Rest for the Wicked Save Editor",
-						description:
-							"Read Moon Studios' CERIMAL format directly — character, realm and account saves decoded and rebuilt byte for byte, on your own device.",
-						path: "/no-rest-for-the-wicked-save-editor/",
-						themeColor: "#c8654c",
-					}),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("no-rest-for-the-wicked-save-editor"),
-					shortcutIcon(emojiIcon("🌙")),
-				],
-			},
-			dev: {
-				assetPrefix: "/no-rest-for-the-wicked-save-editor/",
-			},
-			output: {
-				distPath: { root: "dist/no-rest-for-the-wicked-save-editor" },
-				assetPrefix: "/no-rest-for-the-wicked-save-editor/",
-				copy: manifestCopy("no-rest-for-the-wicked-save-editor"),
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-		"dysmantle-save-editor": {
-			source: {
-				entry: { index: "./src/dysmantle-save-editor/app/main.tsx" },
-			},
-			html: {
-				title: "DYSMANTLE Save Editor",
-				tags: [
-					...metaTags({
-						title: "DYSMANTLE Save Editor",
-						description:
-							"Unpack DYSMANTLE's container, read its XML profile and restage it — materials, skills, recipes and features, rebuilt in your browser.",
-						path: "/dysmantle-save-editor/",
-						themeColor: "#7f7d47",
-					}),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("dysmantle-save-editor"),
-					shortcutIcon(emojiIcon("⛑️")),
-				],
-			},
-			dev: {
-				assetPrefix: "/dysmantle-save-editor/",
-			},
-			output: {
-				distPath: { root: "dist/dysmantle-save-editor" },
-				assetPrefix: "/dysmantle-save-editor/",
-				copy: manifestCopy("dysmantle-save-editor"),
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-		"cyberpunk-2077-save-editor": {
-			source: {
-				entry: { index: "./src/cyberpunk-2077-save-editor/app/main.tsx" },
-			},
-			html: {
-				title: "Cyberpunk 2077 Save Editor",
-				tags: [
-					...metaTags({
-						title: "Cyberpunk 2077 Save Editor",
-						description:
-							"Decode Cyberpunk 2077's VASC container and REDengine node tree — attributes, skills and Street Cred, without WolvenKit or a command line.",
-						path: "/cyberpunk-2077-save-editor/",
-						themeColor: "#e3ad00",
-					}),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("cyberpunk-2077-save-editor"),
-					shortcutIcon(emojiIcon("⚡")),
-				],
-			},
-			dev: {
-				assetPrefix: "/cyberpunk-2077-save-editor/",
-			},
-			output: {
-				distPath: { root: "dist/cyberpunk-2077-save-editor" },
-				assetPrefix: "/cyberpunk-2077-save-editor/",
-				copy: manifestCopy("cyberpunk-2077-save-editor"),
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-		"deadly-days-roadtrip-save-editor": {
-			source: {
-				entry: { index: "./src/deadly-days-roadtrip-save-editor/app/main.tsx" },
-			},
-			html: {
-				title: "Deadly Days Roadtrip Save Editor",
-				tags: [
-					...metaTags({
-						title: "Deadly Days Roadtrip Save Editor",
-						description:
-							"Parse Deadly Days' Unreal Engine 5 GVAS save in the browser — currencies, upgrade levels and character progress, verified before download.",
-						path: "/deadly-days-roadtrip-save-editor/",
-						themeColor: "#de8a2f",
-					}),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("deadly-days-roadtrip-save-editor"),
-					shortcutIcon(emojiIcon("🚗")),
-				],
-			},
-			dev: {
-				assetPrefix: "/deadly-days-roadtrip-save-editor/",
-			},
-			output: {
-				distPath: { root: "dist/deadly-days-roadtrip-save-editor" },
-				assetPrefix: "/deadly-days-roadtrip-save-editor/",
-				copy: manifestCopy("deadly-days-roadtrip-save-editor"),
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-		design: {
-			source: {
-				entry: { index: "./src/design/index.tsx" },
-			},
-			html: {
-				title: "Design System | chneau.github.io",
-				tags: [
-					...metaTags({
-						title: "Design System | chneau.github.io",
-						description:
-							"The shared tokens, components and patterns behind every app on this site.",
-						path: "/design/",
-						themeColor: "#6366f1",
-					}),
-					manifestLink,
-					...bootShell,
-					appleTouchIcon("design"),
-					shortcutIcon(emojiIcon("🧩")),
-				],
-			},
-			dev: {
-				assetPrefix: "/design/",
-			},
-			output: {
-				distPath: { root: "dist/design" },
-				assetPrefix: "/design/",
-				copy: manifestCopy("design"),
-				overrideBrowserslist: [">0%, defaults"],
-				polyfill: "usage",
-			},
-		},
-	},
+	environments: Object.fromEntries(
+		APP_META.map((meta) => [meta.slug, environmentFor(meta)]),
+	),
 });

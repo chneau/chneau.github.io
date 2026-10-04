@@ -48,7 +48,7 @@
  * vocabulary for them and discarding them would corrupt every subsystem it does
  * not understand.
  */
-import type { Bytes } from "../../shared";
+import { type Bytes, yieldToBrowser } from "../../shared";
 import { lz4CompressBlock, lz4DecompressBlock } from "./lz4";
 
 /** How much of the decompressed stream one chunk holds. */
@@ -144,21 +144,6 @@ type NodeDescriptor = {
 	data: Bytes;
 	afterChildren: Bytes;
 };
-
-/**
- * Hands the main thread back to the browser.
- *
- * A late-game save is a few megabytes of node data in 256 KiB chunks, so a pass
- * over them runs for long enough that the tab can be offered for termination
- * if it never yields. The workbench deliberately keeps its engine on the main
- * thread (ADR-0001), which is only defensible if the work is handed back often.
- * A macrotask is what is needed: a microtask would drain before the browser
- * paints.
- */
-const yieldToBrowser = (): Promise<void> =>
-	new Promise((resolve) => {
-		setTimeout(resolve, 0);
-	});
 
 /** Little-endian reader over the whole file. */
 class Cursor {

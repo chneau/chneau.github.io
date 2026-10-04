@@ -28,8 +28,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Typecheck
-        run: bun run lint
+      # The read-only half of the local `bun run check` gate: formatter drift,
+      # lint, dead exports and the typecheck, but with no `--write`/`--fix`, so
+      # CI reports drift instead of silently correcting it. `bun run check`
+      # itself rewrites files and so cannot run here.
+      - name: Check (format, lint, dead exports, types)
+        run: bun run check:ci
 
       - name: Test
         run: bun run test

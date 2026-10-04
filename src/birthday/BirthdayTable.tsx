@@ -26,7 +26,7 @@ import { BirthdayDetails } from "./BirthdayDetails";
 import type { Birthday } from "./birthdays";
 import { Highlight } from "./Highlight";
 import { KindIcon, kindLabelKey } from "./KindIcon";
-import { store } from "./store";
+import { resetFilters, store } from "./store";
 
 type SortKey =
 	| "name"
@@ -254,10 +254,7 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 	const columns = useMemo(() => getColumns(search, t), [search, t]);
 
 	const handleResetFilters = () => {
-		store.search = "";
-		store.showBoys = true;
-		store.showGirls = true;
-		store.showWeddings = false;
+		resetFilters();
 	};
 
 	const toggleSort = (key: SortKey) => {

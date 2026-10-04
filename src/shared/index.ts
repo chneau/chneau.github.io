@@ -49,6 +49,9 @@ export {
 	ByteWriter,
 	bytesEqual,
 	firstDifference,
+	fromHex,
+	indexOfBytes,
+	toHex,
 	utf16leBytes,
 	zlibDeflate,
 	zlibInflate,
@@ -68,13 +71,22 @@ export {
 export { applyEdits, editId, effectiveEdits, withEdits } from "./save/edits";
 export { formatBytes } from "./save/file";
 export {
+	arrayAt,
 	getAtPath,
 	isJsonObject,
 	type JsonValue,
+	numberAt,
+	objectAt,
 	type PathSegment,
+	requireArrayAt,
+	requireNumberAt,
+	requireObjectAt,
+	requireStringAt,
 	type SavePath,
 	setAtPath,
+	stringAt,
 } from "./save/json";
+export { yieldToBrowser } from "./save/macrotask";
 export { verifyRoundTrip } from "./save/roundtrip";
 export type {
 	FormatNote,

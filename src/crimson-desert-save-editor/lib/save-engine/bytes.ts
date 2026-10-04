@@ -164,68 +164,20 @@ export const packU64 = (value: number | bigint): Uint8Array => {
 	return buffer;
 };
 
-export const concatBytes = (...parts: Uint8Array[]): Uint8Array => {
-	let length = 0;
-	for (const part of parts) length += part.length;
-	const output = new Uint8Array(length);
-	let offset = 0;
-	for (const part of parts) {
-		output.set(part, offset);
-		offset += part.length;
-	}
-	return output;
-};
-
-export const bytesEqual = (a: Uint8Array, b: Uint8Array): boolean => {
-	if (a.length !== b.length) return false;
-	for (let index = 0; index < a.length; index++) {
-		if (a[index] !== b[index]) return false;
-	}
-	return true;
-};
-
 /**
- * Python's `bytes.find(needle, start)`. Returns -1 when absent.
- *
- * A save is scanned for the 8-byte sentinel that precedes every inline
- * pointer, once per block per edit, so this search sits on the hot path of
- * every edit. Comparing the whole needle at each position is
- * `O(haystack x needle)`; testing the needle's last byte first rejects a
- * position that cannot match without reading the rest of the needle, and the
- * remaining bytes are compared from the outside in so a mismatch found near
- * an end costs as little as possible.
+ * The generic byte helpers now come from `shared/save/bytes.ts`, so this engine
+ * keeps one implementation rather than its own copy. They are re-exported here
+ * because every consumer in this app imports them from './bytes' alongside the
+ * offset-based readers below, and splitting that import for no behavioural
+ * reason would be churn. `fromHex` is the validating one: an odd-length or
+ * non-hex string throws instead of silently producing `NaN` bytes.
  */
-export const indexOfBytes = (
-	haystack: Uint8Array,
-	needle: Uint8Array,
-	from = 0,
-): number => {
-	if (needle.length === 0) return from <= haystack.length ? from : -1;
-	const first = needle[0] ?? 0;
-	const last = needle.length - 1;
-	const lastByte = needle[last] ?? 0;
-	outer: for (
-		let start = Math.max(0, from);
-		start <= haystack.length - needle.length;
-		start++
-	) {
-		if (haystack[start] !== first) continue;
-		if (haystack[start + last] !== lastByte) continue;
-		for (let index = last - 1; index >= 1; index--) {
-			if (haystack[start + index] !== needle[index]) continue outer;
-		}
-		return start;
-	}
-	return -1;
-};
-
-export const fromHex = (hex: string): Uint8Array => {
-	const output = new Uint8Array(hex.length / 2);
-	for (let index = 0; index < output.length; index++) {
-		output[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
-	}
-	return output;
-};
+export {
+	bytesEqual,
+	concatBytes,
+	fromHex,
+	indexOfBytes,
+} from "../../../shared/save/bytes";
 
 export const utf8DecodeBytes = (data: Uint8Array): string => {
 	return textDecoder.decode(data);

@@ -1,11 +1,11 @@
 import { Avatar, Card, Flex, Text } from "@mantine/core";
-import dayjs from "dayjs";
 import { Cake } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { useCalendarDay } from "../hooks/useToday";
 import { EmptyState } from "../shared";
 import { birthdays } from "./birthdays";
+import { shortDate } from "./dates";
 import { KindIcon } from "./KindIcon";
 import { dataStore } from "./store";
 
@@ -28,21 +28,6 @@ const URGENCY_STYLE: Record<MilestoneUrgency, CSSProperties> = {
 	soon: { color: "var(--tk-text)" },
 	upcoming: { color: "var(--tk-text-dim)" },
 	distant: { color: "var(--tk-text-faint)" },
-};
-
-/**
- * Locale-aware short date. `Intl` follows each language's field order, which
- * `dayjs().format("D MMM")` cannot.
- */
-const shortDate = (date: Date, language: string): string => {
-	try {
-		return new Intl.DateTimeFormat(language, {
-			day: "numeric",
-			month: "short",
-		}).format(date);
-	} catch {
-		return dayjs(date).format("D MMM");
-	}
 };
 
 export const MilestonesWidget = () => {

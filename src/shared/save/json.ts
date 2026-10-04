@@ -40,6 +40,110 @@ export const isJsonObject = (
 	typeof value === "object" && value !== null && !Array.isArray(value);
 
 /**
+ * A field reader, for the codes that walk a decoded document without pretending
+ * it is a typed one.
+ *
+ * `summarise` and `plan` receive a `JsonValue`, because that is all the
+ * workbench contract promises, and a cast to a game's own `GvasSave` would
+ * silence the one thing worth checking — that the document really is the save
+ * this codec decoded. These readers walk it defensively instead: an absent key
+ * and a value of the wrong shape are both `undefined`, because to a decoder
+ * that has lost the document's shape they are the same thing. Each codec had
+ * its own copy of `objectAt` and friends; this is the one they now share.
+ */
+const fieldAt = (
+	value: JsonValue | undefined,
+	key: string,
+): JsonValue | undefined =>
+	value === undefined
+		? undefined
+		: isJsonObject(value)
+			? value[key]
+			: undefined;
+
+/** The object at `key`, or `undefined` when it is absent or not an object. */
+export const objectAt = (
+	value: JsonValue | undefined,
+	key: string,
+): { readonly [key: string]: JsonValue } | undefined => {
+	const found = fieldAt(value, key);
+	return found !== undefined && isJsonObject(found) ? found : undefined;
+};
+
+/** The number at `key`, or `undefined` when it is absent or not a number. */
+export const numberAt = (
+	value: JsonValue | undefined,
+	key: string,
+): number | undefined => {
+	const found = fieldAt(value, key);
+	return typeof found === "number" ? found : undefined;
+};
+
+/** The string at `key`, or `undefined` when it is absent or not a string. */
+export const stringAt = (
+	value: JsonValue | undefined,
+	key: string,
+): string | undefined => {
+	const found = fieldAt(value, key);
+	return typeof found === "string" ? found : undefined;
+};
+
+/** The array at `key`, or `undefined` when it is absent or not an array. */
+export const arrayAt = (
+	value: JsonValue | undefined,
+	key: string,
+): readonly JsonValue[] | undefined => {
+	const found = fieldAt(value, key);
+	return Array.isArray(found) ? found : undefined;
+};
+
+/**
+ * The throwing counterparts, for the encode half of a codec.
+ *
+ * The inspector replaces leaves in place, so every field has to be *checked* on
+ * the way out rather than assumed; a document that has lost one is refused with
+ * a message naming it, which is a better outcome than a cast and a file the game
+ * silently rejects.
+ */
+export const requireNumberAt = (value: JsonValue, key: string): number => {
+	const found = fieldAt(value, key);
+	if (typeof found !== "number" || !Number.isFinite(found)) {
+		throw new Error(`"${key}" must be a finite number.`);
+	}
+	return found;
+};
+
+export const requireStringAt = (value: JsonValue, key: string): string => {
+	const found = fieldAt(value, key);
+	if (typeof found !== "string") {
+		throw new Error(`"${key}" must be a string.`);
+	}
+	return found;
+};
+
+export const requireArrayAt = (
+	value: JsonValue,
+	key: string,
+): readonly JsonValue[] => {
+	const found = fieldAt(value, key);
+	if (!Array.isArray(found)) {
+		throw new Error(`"${key}" must be an array.`);
+	}
+	return found;
+};
+
+export const requireObjectAt = (
+	value: JsonValue,
+	key: string,
+): { readonly [key: string]: JsonValue } => {
+	const found = objectAt(value, key);
+	if (found === undefined) {
+		throw new Error(`"${key}" must be an object.`);
+	}
+	return found;
+};
+
+/**
  * Reads the value at `path`, or `undefined` if any step is missing or is not
  * traversable. Callers get `undefined` rather than a throw because a path
  * naming a field this save does not have is an ordinary outcome, not an error.

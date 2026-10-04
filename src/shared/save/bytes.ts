@@ -7,6 +7,8 @@
  * Web API that does it better and smaller than a bundled library would.
  */
 
+import { describeError } from "./errors";
+
 /**
  * A byte array known to be backed by a plain `ArrayBuffer`.
  *
@@ -20,7 +22,17 @@
  */
 export type Bytes = Uint8Array<ArrayBuffer>;
 
-/** Big-endian is the Unreal default, so the reader and writer are BE. */
+/**
+ * A little-endian reader, because every format these editors read is.
+ *
+ * This class once declared that "big-endian is the Unreal default, so the
+ * reader and writer are BE" — a claim the constructor's own JSDoc below now
+ * corrects. Because no codec could trust the shared reader's byte order, each
+ * of them grew a little-endian reader of its own (`LeReader`, `Cursor`,
+ * `BlobReader`), which is exactly the fork this file exists to close. The
+ * order is little-endian here and a format that genuinely disagrees says so
+ * through the constructor rather than by writing a fourth reader.
+ */
 export class ByteReader {
 	private offset: number;
 
@@ -56,6 +68,23 @@ export class ByteReader {
 
 	get done(): boolean {
 		return this.offset >= this.bytes.length;
+	}
+
+	/**
+	 * Jumps the cursor to `at`, used to honour a length a format declared.
+	 *
+	 * Bounds-checked on both sides for the same reason every read is: a length
+	 * field read out of a file is attacker-adjacent data, and a jump past the
+	 * end of the buffer is a truncation this should name rather than a later
+	 * read returning `undefined`.
+	 */
+	seek(at: number, what = "seek"): void {
+		if (at < 0 || at > this.bytes.length) {
+			throw new Error(
+				`Cannot ${what} to ${at} in a ${this.bytes.length}-byte buffer.`,
+			);
+		}
+		this.offset = at;
 	}
 
 	/**
@@ -99,6 +128,10 @@ export class ByteReader {
 		return this.view().getInt32(this.require(4, what), this.littleEndian);
 	}
 
+	u64(what = "u64"): bigint {
+		return this.view().getBigUint64(this.require(8, what), this.littleEndian);
+	}
+
 	i64(what = "i64"): bigint {
 		return this.view().getBigInt64(this.require(8, what), this.littleEndian);
 	}
@@ -121,6 +154,21 @@ export class ByteReader {
 	raw(length: number, what = "bytes"): Uint8Array {
 		const at = this.require(length, what);
 		return this.bytes.slice(at, at + length);
+	}
+
+	/**
+	 * `length` raw bytes as a *borrowed* view — a `subarray`, not a copy.
+	 *
+	 * The counterpart to `raw`, for the one caller that must not copy: a
+	 * schema's unmodelled tail is handed out so that patching it writes into
+	 * the save's own buffer rather than into a temporary that is then
+	 * discarded. Everything else wants `raw`, because a view outlives the
+	 * reader. Named `borrow` rather than `view` because the private `view()`
+	 * below builds the `DataView` the scalar reads go through.
+	 */
+	borrow(length: number, what = "bytes"): Uint8Array {
+		const at = this.require(length, what);
+		return this.bytes.subarray(at, at + length);
 	}
 
 	/** `length` bytes as Latin-1, which is how FName tables are stored. */
@@ -161,10 +209,6 @@ export class ByteReader {
 	}
 }
 
-/**
- * The mirror of `ByteReader`, growing as it writes and defaulting to the
- * same little-endian order so a codec cannot read one way and write another.
- */
 /**
  * The mirror of `ByteReader`, growing as it writes and defaulting to the
  * same little-endian order so a codec cannot read one way and write another.
@@ -217,6 +261,13 @@ export class ByteWriter {
 		return this;
 	}
 
+	i16(value: number): this {
+		this.ensure(2);
+		this.view.setInt16(this.offset, value, this.littleEndian);
+		this.offset += 2;
+		return this;
+	}
+
 	u32(value: number): this {
 		this.ensure(4);
 		this.view.setUint32(this.offset, value, this.littleEndian);
@@ -234,6 +285,13 @@ export class ByteWriter {
 	i64(value: bigint): this {
 		this.ensure(8);
 		this.view.setBigInt64(this.offset, value, this.littleEndian);
+		this.offset += 8;
+		return this;
+	}
+
+	u64(value: bigint): this {
+		this.ensure(8);
+		this.view.setBigUint64(this.offset, value, this.littleEndian);
 		this.offset += 8;
 		return this;
 	}
@@ -278,6 +336,33 @@ export class ByteWriter {
 		}
 		this.i32(value.length + 1);
 		return this.raw(new TextEncoder().encode(value));
+	}
+
+	/**
+	 * Rewrites a `u32` already written at absolute offset `at`.
+	 *
+	 * The header's lengths and a block's checksum are known only once the block
+	 * they describe has been laid out, so the field is written as a placeholder
+	 * and patched afterwards. `at` is absolute, not relative to the cursor.
+	 */
+	patchU32(at: number, value: number): void {
+		this.view.setUint32(at, value, this.littleEndian);
+	}
+
+	/** Rewrites a `u64` already written, for a checksum computed in place. */
+	patchU64(at: number, value: bigint): void {
+		this.view.setBigUint64(at, value, this.littleEndian);
+	}
+
+	/**
+	 * A borrowed view of everything written from `at` onwards.
+	 *
+	 * Borrowed rather than copied so a checksum can be computed over exactly
+	 * the bytes just laid out without duplicating them — the caller hashes it
+	 * and does not keep it.
+	 */
+	writtenFrom(at: number): Uint8Array {
+		return this.buffer.subarray(at, this.offset);
 	}
 
 	/** A copy of the written bytes, truncated to the length actually used. */
@@ -327,6 +412,81 @@ export const bytesEqual = (a: Uint8Array, b: Uint8Array): boolean => {
 	let diff = 0;
 	for (const [index, byte] of a.entries()) diff |= byte ^ (b[index] ?? 0);
 	return diff === 0;
+};
+
+/**
+ * The first index of `needle` in `haystack` at or after `from`, or −1.
+ *
+ * Python's `bytes.find(needle, start)`. A save is scanned for the 8-byte
+ * sentinel that precedes every inline pointer, once per block per edit, so this
+ * search sits on the hot path of every edit. Comparing the whole needle at each
+ * position is `O(haystack x needle)`; testing the needle's first and last bytes
+ * first rejects a position that cannot match without reading the rest, and the
+ * remaining bytes are compared from the outside in so a mismatch found near an
+ * end costs as little as possible. The result is the same as the naive scan —
+ * this is a constant factor, not a different answer.
+ */
+export const indexOfBytes = (
+	haystack: Uint8Array,
+	needle: Uint8Array,
+	from = 0,
+): number => {
+	if (needle.length === 0) return from <= haystack.length ? from : -1;
+	const first = needle[0] ?? 0;
+	const last = needle.length - 1;
+	const lastByte = needle[last] ?? 0;
+	outer: for (
+		let start = Math.max(0, from);
+		start <= haystack.length - needle.length;
+		start++
+	) {
+		if (haystack[start] !== first) continue;
+		if (haystack[start + last] !== lastByte) continue;
+		for (let index = last - 1; index >= 1; index--) {
+			if (haystack[start + index] !== needle[index]) continue outer;
+		}
+		return start;
+	}
+	return -1;
+};
+
+/** Lower-case hex, the form GUIDs, opaque payloads and trailing bytes use. */
+export const toHex = (bytes: Uint8Array): string => {
+	let out = "";
+	for (const byte of bytes) out += byte.toString(16).padStart(2, "0");
+	return out;
+};
+
+/**
+ * The inverse of `toHex`.
+ *
+ * Validated rather than lenient: a string that is not an even run of hex digits
+ * is a bug in the caller or a corrupted document, and silently truncating it to
+ * `NaN` bytes would write a save that no longer matches its own length fields.
+ * `what` names the field so the message points at it.
+ */
+export const fromHex = (hex: string, what = "hex payload"): Uint8Array => {
+	if (hex.length % 2 !== 0 || !/^[0-9a-fA-F]*$/.test(hex)) {
+		throw new Error(`${what} is not an even-length run of hex digits.`);
+	}
+	const out = new Uint8Array(hex.length / 2);
+	for (let index = 0; index < out.length; index += 1) {
+		out[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
+	}
+	return out;
+};
+
+/** Joins byte runs in order into one fresh array. */
+export const concatBytes = (...parts: Uint8Array[]): Bytes => {
+	let length = 0;
+	for (const part of parts) length += part.length;
+	const output = new Uint8Array(length);
+	let offset = 0;
+	for (const part of parts) {
+		output.set(part, offset);
+		offset += part.length;
+	}
+	return output;
 };
 
 /** First differing byte, for turning a failed round-trip into a usable message. */
@@ -405,9 +565,7 @@ const streamOf = async (
 		// Inflating data that is not deflate rejects here. Reshaping it means
 		// the workbench has a single error path rather than one per codec.
 		throw new Error(
-			`Not in the expected compressed format: ${
-				cause instanceof Error ? cause.message : String(cause)
-			}`,
+			`Not in the expected compressed format: ${describeError(cause)}`,
 		);
 	}
 	const out = new Uint8Array(total);

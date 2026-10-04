@@ -1,15 +1,10 @@
-import { type MantineColorsTuple, MantineProvider } from "@mantine/core";
+import type { MantineColorsTuple } from "@mantine/core";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "../../shared/tokens.css";
 import "../../shared/base.css";
 import "../crimson-desert-save-editor.css";
-import { Notifications } from "@mantine/notifications";
-import { createRoot } from "react-dom/client";
-import { createAppTheme, registerServiceWorker } from "../../shared";
-// By path, not via the barrel: analytics is a side-effectful module and must
-// not be dragged onto every app that imports a single shared component.
-import { initAnalytics } from "../../shared/analytics";
+import { mountApp } from "../../shared/mountApp";
 import { Home } from "./page";
 
 /**
@@ -30,40 +25,4 @@ const brand: MantineColorsTuple = [
 	"#381c23",
 ];
 
-const theme = createAppTheme({
-	accent: brand,
-	accentName: "brand",
-	primaryShade: { light: 6, dark: 5 },
-	defaultRadius: "sm",
-	overrides: {
-		defaultGradient: { from: "brand.6", to: "brand.4", deg: 135 },
-	},
-});
-
-const container = document.getElementById("root");
-
-if (!container) {
-	throw new Error("Root container #root was not found in index.html.");
-}
-
-// Site-wide analytics and offline support. Neither touches save data.
-initAnalytics("crimson-desert-save-editor");
-registerServiceWorker();
-
-// Deliberately not wrapped in StrictMode: it double-invokes every render in
-// development, and this page keeps all of its state in one component, so that
-// doubles the cost of every interaction while developing.
-const app = (
-	<MantineProvider theme={theme} defaultColorScheme="dark">
-		<Notifications />
-		<Home />
-	</MantineProvider>
-);
-
-if (import.meta.hot) {
-	// Reuse the root across hot updates so React state survives HMR.
-	import.meta.hot.data.root ??= createRoot(container);
-	import.meta.hot.data.root.render(app);
-} else {
-	createRoot(container).render(app);
-}
+mountApp({ analyticsId: "crimson-desert-save-editor", brand, app: <Home /> });

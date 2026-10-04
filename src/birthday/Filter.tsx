@@ -6,9 +6,9 @@ import { useSnapshot } from "valtio";
 import { useCalendarDay } from "../hooks/useToday";
 import { birthdays } from "./birthdays";
 import {
-	clearFacets,
 	dataStore,
 	isMonthFacetActive,
+	resetFilters,
 	store,
 	toggleAgeGroupFacet,
 	toggleGenerationFacet,
@@ -126,11 +126,7 @@ export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 	];
 
 	const handleReset = () => {
-		store.search = "";
-		store.showBoys = true;
-		store.showGirls = true;
-		store.showWeddings = false;
-		clearFacets();
+		resetFilters();
 	};
 
 	return (

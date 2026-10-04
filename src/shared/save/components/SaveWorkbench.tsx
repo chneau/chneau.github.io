@@ -1,47 +1,13 @@
-import {
-	Alert,
-	Badge,
-	Box,
-	Button,
-	Card,
-	Divider,
-	Grid,
-	Group,
-	Stack,
-	Tabs,
-	Text,
-	Title,
-	Tooltip,
-} from "@mantine/core";
-import { notifications } from "@mantine/notifications";
-import {
-	CheckCircle2,
-	Download,
-	FileUp,
-	RefreshCw,
-	Sparkles,
-} from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { Box, Grid, Stack } from "@mantine/core";
 import { AppNav, SkipLink, useThemeMode } from "../../index";
 import type { Bytes } from "../bytes";
-import { applyEdits, stageEdits, withoutPath } from "../edits";
-import {
-	downloadBytes,
-	formatBytes,
-	readFileBytes,
-	rebuiltName,
-} from "../file";
-import { formatPath, type JsonValue } from "../json";
-import {
-	describeVerdict,
-	type RoundTripVerdict,
-	verifyRoundTrip,
-} from "../roundtrip";
-import type { SaveCodec, SaveEdit } from "../types";
-import { HexViewer } from "./HexViewer";
-import { JsonInspector } from "./JsonInspector";
+import type { SaveCodec } from "../types";
+import { useSaveDocument } from "../useSaveDocument";
+import { SampleLoaderCard } from "./SampleLoaderCard";
 import { SaveHero, SaveLanding } from "./SaveLanding";
 import { QuickChanges, SaveSummary, StagedEdits } from "./SaveSidebar";
+import { SaveTabs } from "./SaveTabs";
+import { SaveWorkspaceNav } from "./SaveWorkspaceNav";
 
 /** A bundled sample, so the page is explorable before anyone has a save. */
 export type SaveSample = {
@@ -56,7 +22,9 @@ export type SaveSample = {
  * One component for six formats is only defensible because the parts that
  * differ are all data — the notes, the summary, the quick actions — while the
  * parts that are hard (parsing a save, rebuilding it, proving the rebuild is
- * sound, never uploading it) are identical and are written once.
+ * sound, never uploading it) are identical and are written once. Those hard
+ * parts are the state machine in `useSaveDocument`; this component is the two
+ * layouts that read from it and nothing else.
  */
 export const SaveWorkbench = ({
 	codec,
@@ -65,124 +33,32 @@ export const SaveWorkbench = ({
 	codec: SaveCodec;
 	sample?: SaveSample;
 }) => {
-	const [name, setName] = useState<string | null>(null);
-	const [bytes, setBytes] = useState<Bytes | null>(null);
-	const [doc, setDoc] = useState<JsonValue | null>(null);
-	const [edits, setEdits] = useState<readonly SaveEdit[]>([]);
-	const [loading, setLoading] = useState(false);
-	const [status, setStatus] = useState("");
-	const [error, setError] = useState("");
-	const [building, setBuilding] = useState(false);
-	const [search, setSearch] = useState("");
-	const [tab, setTab] = useState<string | null>("inspect");
+	const {
+		name,
+		bytes,
+		doc,
+		edits,
+		loading,
+		status,
+		error,
+		building,
+		search,
+		tab,
+		working,
+		stagedPaths,
+		summary,
+		open,
+		onSelectFile,
+		stage,
+		stageMany,
+		revert,
+		clearEdits,
+		reset,
+		setSearch,
+		setTab,
+		rebuild,
+	} = useSaveDocument(codec);
 	const theme = useThemeMode();
-
-	const open = useCallback(
-		async (fileName: string, source: Bytes) => {
-			setLoading(true);
-			setError("");
-			setStatus(`Reading ${fileName}`);
-			try {
-				// Yield once so the loading state paints before a multi-megabyte
-				// parse starts; otherwise the tab freezes on the old screen and
-				// the progress indicator is never seen.
-				await new Promise((resolve) => setTimeout(resolve, 0));
-				const decoded = await codec.decode(source);
-				setName(fileName);
-				setBytes(source);
-				setDoc(decoded);
-				setEdits([]);
-				setSearch("");
-			} catch (cause) {
-				setError(
-					cause instanceof Error
-						? cause.message
-						: "The file could not be read as this game's save.",
-				);
-			} finally {
-				setLoading(false);
-				setStatus("");
-			}
-		},
-		[codec],
-	);
-
-	const onSelectFile = useCallback(
-		(file: File) => {
-			void readFileBytes(file).then((source) => open(file.name, source));
-		},
-		[open],
-	);
-
-	const stage = useCallback((edit: SaveEdit) => {
-		setEdits((current) => stageEdits(current, [edit]));
-	}, []);
-
-	const reset = useCallback(() => {
-		setName(null);
-		setBytes(null);
-		setDoc(null);
-		setEdits([]);
-		setError("");
-		setSearch("");
-	}, []);
-
-	// Computed during render rather than stored: the working document is a
-	// function of the loaded save and the staged edits, and keeping it derived
-	// is what stops a render reading a document a previous render changed.
-	const working = useMemo(
-		() => (doc === null ? null : applyEdits(doc, edits)),
-		[doc, edits],
-	);
-
-	const stagedPaths = useMemo(
-		() => new Set(edits.map((edit) => formatPath(edit.path))),
-		[edits],
-	);
-
-	const summary = useMemo(
-		() => (doc === null ? [] : codec.summarise(doc)),
-		[codec, doc],
-	);
-
-	const rebuild = useCallback(async () => {
-		if (working === null || bytes === null || name === null) return;
-		setBuilding(true);
-		try {
-			const verdict: RoundTripVerdict = await verifyRoundTrip(
-				codec,
-				bytes,
-				working,
-				edits.length > 0,
-			);
-			if (verdict.kind === "failed") {
-				// A failed verification must not produce a file. Handing over
-				// bytes that do not read back is precisely the outcome these
-				// tools exist to prevent.
-				notifications.show({
-					color: "red",
-					title: "Not handing this one over",
-					message: verdict.reason,
-				});
-				return;
-			}
-			const rebuilt = await codec.encode(working);
-			downloadBytes(rebuilt, rebuiltName(name));
-			notifications.show({
-				color: verdict.kind === "semantic" ? "yellow" : "teal",
-				title: "Rebuilt save downloaded",
-				message: describeVerdict(verdict),
-			});
-		} catch (cause) {
-			notifications.show({
-				color: "red",
-				title: "Could not rebuild the save",
-				message: cause instanceof Error ? cause.message : "Unexpected failure.",
-			});
-		} finally {
-			setBuilding(false);
-		}
-	}, [bytes, codec, edits.length, name, working]);
 
 	if (doc === null || bytes === null || name === null || working === null) {
 		return (
@@ -219,37 +95,14 @@ export const SaveWorkbench = ({
 						onSelectFile={onSelectFile}
 					>
 						{sample ? (
-							<Card
-								mt="md"
-								padding="md"
-								radius="md"
-								style={{
-									border: "1px solid var(--app-border)",
-									background: "var(--app-surface)",
+							<SampleLoaderCard
+								note={sample.note}
+								onLoad={() => {
+									void sample
+										.load()
+										.then((source) => open(sample.name, source));
 								}}
-							>
-								<Group justify="space-between" wrap="nowrap" align="center">
-									<Box style={{ minWidth: 0 }}>
-										<Text size="sm" fw={600}>
-											No save to hand? Load the sample.
-										</Text>
-										<Text size="xs" c="dimmed">
-											{sample.note}
-										</Text>
-									</Box>
-									<Button
-										variant="light"
-										leftSection={<Sparkles size={15} strokeWidth={2} />}
-										onClick={() => {
-											void sample
-												.load()
-												.then((source) => open(sample.name, source));
-										}}
-									>
-										Load sample
-									</Button>
-								</Group>
-							</Card>
+							/>
 						) : null}
 					</SaveLanding>
 				</main>
@@ -266,53 +119,15 @@ export const SaveWorkbench = ({
 				background: "var(--app-bg)",
 			}}
 		>
-			<AppNav
-				title={codec.game}
-				subtitle="Save editor"
+			<SaveWorkspaceNav
+				game={codec.game}
+				name={name}
+				byteLength={bytes.length}
+				stagedCount={edits.length}
+				building={building}
+				onChangeFile={reset}
+				onRebuild={() => void rebuild()}
 				theme={{ dark: theme.dark, onToggle: theme.toggle }}
-				center={
-					<Group gap="xs" wrap="nowrap">
-						<Text size="sm" fw={600} truncate>
-							{name}
-						</Text>
-						<Badge size="xs" variant="light" color="gray">
-							{formatBytes(bytes.length)}
-						</Badge>
-						{edits.length > 0 ? (
-							<Badge size="xs" variant="filled" color="yellow">
-								{edits.length} staged
-							</Badge>
-						) : null}
-					</Group>
-				}
-				actions={
-					<Group gap="xs">
-						<Tooltip label="Open a different save" withArrow>
-							<Button
-								variant="default"
-								size="compact-sm"
-								leftSection={<FileUp size={14} strokeWidth={2} />}
-								onClick={reset}
-							>
-								Change file
-							</Button>
-						</Tooltip>
-						<Button
-							size="compact-sm"
-							leftSection={
-								building ? (
-									<RefreshCw size={14} strokeWidth={2} />
-								) : (
-									<Download size={14} strokeWidth={2} />
-								)
-							}
-							loading={building}
-							onClick={() => void rebuild()}
-						>
-							Rebuild &amp; download
-						</Button>
-					</Group>
-				}
 			/>
 
 			<Box style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
@@ -324,91 +139,28 @@ export const SaveWorkbench = ({
 								<QuickChanges
 									actions={codec.actions}
 									doc={working}
-									onStage={(planned) =>
-										setEdits((current) => stageEdits(current, planned))
-									}
+									onStage={stageMany}
 								/>
 								<StagedEdits
 									edits={edits}
-									onRevert={(path) =>
-										setEdits((current) => withoutPath(current, path))
-									}
-									onClear={() => setEdits([])}
+									onRevert={revert}
+									onClear={clearEdits}
 								/>
 							</Stack>
 						</Grid.Col>
 
 						<Grid.Col span={{ base: 12, lg: 8, xl: 9 }}>
-							<Tabs
-								value={tab}
-								onChange={setTab}
-								keepMounted={false}
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									height: "100%",
-									minHeight: 520,
-								}}
-							>
-								<Tabs.List mb="sm">
-									<Tabs.Tab value="inspect">Inspector</Tabs.Tab>
-									<Tabs.Tab value="raw">Raw bytes</Tabs.Tab>
-									<Tabs.Tab value="format">The format</Tabs.Tab>
-								</Tabs.List>
-
-								<Tabs.Panel value="inspect" style={{ flex: 1, minHeight: 0 }}>
-									<JsonInspector
-										doc={working}
-										staged={stagedPaths}
-										onStage={stage}
-										search={search}
-										onSearchChange={setSearch}
-									/>
-								</Tabs.Panel>
-
-								<Tabs.Panel
-									value="raw"
-									style={{
-										flex: 1,
-										minHeight: 0,
-										maxHeight: 640,
-										border: "1px solid var(--app-border)",
-										borderRadius: "var(--app-radius-md)",
-										background: "var(--app-surface)",
-										padding: "var(--app-radius-md)",
-									}}
-								>
-									<HexViewer bytes={bytes} />
-								</Tabs.Panel>
-
-								<Tabs.Panel value="format">
-									<Stack gap="lg" maw={760}>
-										{codec.notes.map((note) => (
-											<Box key={note.title}>
-												<Title order={4} mb={4}>
-													{note.title}
-												</Title>
-												<Text size="sm" c="dimmed" lh={1.7}>
-													{note.body}
-												</Text>
-											</Box>
-										))}
-										<Divider />
-										<Alert
-											variant="light"
-											color="teal"
-											icon={<CheckCircle2 size={16} strokeWidth={2} />}
-											title="How your file is checked"
-										>
-											<Text size="sm">
-												Before you are given a rebuilt file it is decoded again
-												and compared against the values you set. A file that
-												does not read back is not offered at all.
-											</Text>
-										</Alert>
-									</Stack>
-								</Tabs.Panel>
-							</Tabs>
+							<SaveTabs
+								tab={tab}
+								onTabChange={setTab}
+								doc={working}
+								staged={stagedPaths}
+								onStage={stage}
+								search={search}
+								onSearchChange={setSearch}
+								bytes={bytes}
+								notes={codec.notes}
+							/>
 						</Grid.Col>
 					</Grid>
 				</Box>

@@ -11,6 +11,7 @@
  * comparing, and the result is shown to the user rather than assumed.
  */
 import { type Bytes, bytesEqual, firstDifference } from "./bytes";
+import { describeError } from "./errors";
 import type { JsonValue } from "./json";
 
 export type RoundTripVerdict =
@@ -50,9 +51,7 @@ export const verifyRoundTrip = async (
 	} catch (cause) {
 		return {
 			kind: "failed",
-			reason: `Could not rebuild the save: ${
-				cause instanceof Error ? cause.message : String(cause)
-			}`,
+			reason: `Could not rebuild the save: ${describeError(cause)}`,
 		};
 	}
 
@@ -62,9 +61,7 @@ export const verifyRoundTrip = async (
 	} catch (cause) {
 		return {
 			kind: "failed",
-			reason: `The rebuilt save did not read back: ${
-				cause instanceof Error ? cause.message : String(cause)
-			}`,
+			reason: `The rebuilt save did not read back: ${describeError(cause)}`,
 		};
 	}
 

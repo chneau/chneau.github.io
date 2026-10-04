@@ -75,6 +75,7 @@ import {
 	type SaveEdit,
 	type SavePath,
 	type SummaryRow,
+	stringAt,
 	zlibDeflate,
 	zlibInflate,
 } from "../../shared";
@@ -389,12 +390,7 @@ const nodeById = (
 	return findElement(array.value, NODE_ELEMENT, nodeId, array.path);
 };
 
-/** Reads a string attribute off a node, if it has one. */
-const attributeOf = (node: JsonValue, name: string): string | undefined => {
-	if (!isJsonObject(node)) return undefined;
-	const value = node[name];
-	return typeof value === "string" ? value : undefined;
-};
+/** Reads a string attribute off a node, if it has one: the shared `stringAt`. */
 
 /**
  * Every `<node>` in a named array, as `[id, path, node]` — or `undefined` when
@@ -747,7 +743,7 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 	const scalar = (label: string, arrayId: string, nodeId: string): void => {
 		const node = nodeById(doc, arrayId, nodeId);
 		if (node === undefined) return;
-		const value = attributeOf(node.value, "value");
+		const value = stringAt(node.value, "value");
 		if (value !== undefined) rows.push({ label, value });
 	};
 	const count = (
@@ -777,12 +773,12 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 	count(
 		"Skills",
 		"RECIPES",
-		(node) => attributeOf(node, "id")?.startsWith("SKILL_") === true,
+		(node) => stringAt(node, "id")?.startsWith("SKILL_") === true,
 	);
 	count(
 		"Recipes still locked",
 		"RECIPES",
-		(node) => attributeOf(node, "unlocked") !== "1",
+		(node) => stringAt(node, "unlocked") !== "1",
 	);
 	count("Items tracked", "ITEMS", () => true);
 	count("Features", "FEATURES", () => true);

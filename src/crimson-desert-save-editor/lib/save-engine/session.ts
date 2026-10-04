@@ -6,6 +6,7 @@
  * `progress`, `result`, `edited`, `error`).
  */
 
+import { yieldToBrowser } from "../../../shared";
 import {
 	describeInventory,
 	type InventoryDescription,
@@ -48,20 +49,6 @@ export type SaveEngineEvent =
 	| { type: "error"; message: string };
 
 type EmitSaveEngineEvent = (event: SaveEngineEvent) => void;
-
-/**
- * Hands the main thread back to the browser.
- *
- * The engine runs in the page, and one edit re-serializes, re-encrypts and
- * re-parses the whole save, so a storage's worth of edits can hold the thread
- * for minutes. Without yielding, the tab cannot paint: the progress bar stands
- * still and the browser eventually offers to kill the page. A macrotask is
- * what is needed here — a microtask would drain before the browser renders.
- */
-const yieldToBrowser = (): Promise<void> =>
-	new Promise((resolve) => {
-		setTimeout(resolve, 0);
-	});
 
 export class SaveSession {
 	private sourceBytes: Uint8Array | null = null;

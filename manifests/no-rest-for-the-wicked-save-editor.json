@@ -2,7 +2,7 @@
 	"id": "/no-rest-for-the-wicked-save-editor/",
 	"name": "No Rest for the Wicked Save Editor",
 	"short_name": "NRW Editor",
-	"description": "Read Moon Studios' CERIMAL format directly \u2014 character, realm and account saves decoded and rebuilt byte for byte, on your own device.",
+	"description": "Read Moon Studios' CERIMAL format directly — character, realm and account saves decoded and rebuilt byte for byte, on your own device.",
 	"start_url": "/no-rest-for-the-wicked-save-editor/",
 	"scope": "/no-rest-for-the-wicked-save-editor/",
 	"display": "standalone",
