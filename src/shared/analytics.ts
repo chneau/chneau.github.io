@@ -21,23 +21,34 @@ const POSTHOG_UI_HOST = "https://eu.posthog.com";
 export type AnalyticsConsent = "granted" | "denied" | "unset";
 
 /**
- * Every app that reports events, so the six apps can be segmented instead of
- * landing in one undifferentiated stream. Also sent as the `app` property.
+ * Every app that reports events, so each can be segmented instead of landing in
+ * one undifferentiated stream. Also sent as the `app` property.
+ *
+ * The list is the single source and the union is derived from it. These used to
+ * be two declarations — a thirteen-member union here and a seven-entry
+ * `KNOWN_APPS` set further down — and the set fell behind as save editors were
+ * added: the six newer ones were absent, so `appFromPath` tagged their events
+ * `"root"`. Nothing failed, because `mountApp` passes the id explicitly and the
+ * wrong fallback was rarely reached. Deriving the type means a new app can only
+ * be added in one place, so the two cannot drift apart again.
  */
-type AnalyticsApp =
-	| "root"
-	| "cv"
-	| "birthday"
-	| "scotland-rail"
-	| "spooners"
-	| "design"
-	| "crimson-desert-save-editor"
-	| "cyberpunk-2077-save-editor"
-	| "no-rest-for-the-wicked-save-editor"
-	| "power-fantasy-save-editor"
-	| "dysmantle-save-editor"
-	| "tails-of-iron-2-save-editor"
-	| "deadly-days-roadtrip-save-editor";
+const KNOWN_APPS = [
+	"root",
+	"cv",
+	"birthday",
+	"scotland-rail",
+	"spooners",
+	"design",
+	"crimson-desert-save-editor",
+	"cyberpunk-2077-save-editor",
+	"no-rest-for-the-wicked-save-editor",
+	"power-fantasy-save-editor",
+	"dysmantle-save-editor",
+	"tails-of-iron-2-save-editor",
+	"deadly-days-roadtrip-save-editor",
+] as const;
+
+type AnalyticsApp = (typeof KNOWN_APPS)[number];
 
 /**
  * Flat, JSON-serialisable event properties. `null` / `undefined` values are
@@ -368,15 +379,7 @@ export const initAnalytics = (name?: AnalyticsApp): void => {
 	}
 };
 
-const KNOWN_APPS = new Set<string>([
-	"root",
-	"cv",
-	"birthday",
-	"scotland-rail",
-	"spooners",
-	"design",
-	"crimson-desert-save-editor",
-]);
+const APP_SET: ReadonlySet<string> = new Set(KNOWN_APPS);
 
 /**
  * Derive the app id from the first path segment, so a call site that forgets to
@@ -384,7 +387,7 @@ const KNOWN_APPS = new Set<string>([
  */
 const appFromPath = (pathname: string): AnalyticsApp => {
 	const segment = pathname.split("/").find((part) => part !== "");
-	return segment !== undefined && KNOWN_APPS.has(segment)
+	return segment !== undefined && APP_SET.has(segment)
 		? (segment as AnalyticsApp)
 		: "root";
 };

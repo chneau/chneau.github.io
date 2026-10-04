@@ -137,7 +137,7 @@ export const APP_META: readonly AppMeta[] = [
 		entry: "./src/cv/index.tsx",
 		title: "Charles Neau | Curriculum Vitae",
 		description:
-			"Senior Full-Stack & Systems Engineer — 10+ years experience across Go, TypeScript, React 19, Python, cloud infrastructure & optimization.",
+			"Senior Full-Stack & Systems Engineer — 10+ years experience across Go, TypeScript, React 19, Python, cloud infrastructure & optimisation.",
 		themeColor: "#127f5f",
 		backgroundColor: "#0b0e11",
 		manifestName: "Charles Neau — Curriculum Vitae",
@@ -157,7 +157,7 @@ export const APP_META: readonly AppMeta[] = [
 			shortcutKey: "Press 1",
 			hotkey: "1",
 			description:
-				"Senior Full-Stack & Systems Engineer — 10+ years experience across Go, TypeScript, React 19, Python, cloud infrastructure & optimization.",
+				"Senior Full-Stack & Systems Engineer — 10+ years experience across Go, TypeScript, React 19, Python, cloud infrastructure & optimisation.",
 		},
 	},
 	{

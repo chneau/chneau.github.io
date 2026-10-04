@@ -365,7 +365,7 @@
 		"breaths": "breaths",
 		"breaths_tooltip": "Estimated total breaths since birth (avg. 16 bpm)",
 		"km_orbit": "km orbit",
-		"km_orbit_tooltip": "Estimated distance traveled in Earth's orbit around the Sun",
+		"km_orbit_tooltip": "Estimated distance travelled in Earth's orbit around the Sun",
 		"path": "Path",
 		"path_tooltip": "Numerology Life Path number based on your birth date"
 	},

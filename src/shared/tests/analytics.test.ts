@@ -13,6 +13,7 @@ import {
 	setAnalyticsConsent,
 	track,
 } from "../analytics";
+import { APP_META } from "../app-meta";
 
 const CONSENT_KEY = "analytics:consent";
 
@@ -76,6 +77,42 @@ describe("analytics is a safe no-op", () => {
 	test("tags the reporting app", () => {
 		initAnalytics("spooners");
 		expect(getAnalyticsApp()).toBe("spooners");
+	});
+
+	/**
+	 * Every app's own path must resolve back to that app.
+	 *
+	 * `initAnalytics` with no argument falls back to `appFromPath`, which reads
+	 * the first path segment against a known-app set. That set was a separate
+	 * seven-entry declaration from the thirteen-member app union, and the six
+	 * save editors added later were missing from it — so their events were tagged
+	 * `"root"`. `mountApp` always passes the id explicitly, which is why this
+	 * never showed up as broken.
+	 *
+	 * Driven through `window.location` rather than a direct call, because
+	 * `appFromPath` is private and this is the path that reaches it.
+	 */
+	test("every app's path resolves to that app, not to root", () => {
+		// Driven from `APP_META` rather than a list written out here: this is the
+		// assertion that fails when a new app is added without being taught to the
+		// analytics module, and a hand-copied list would be a fourth place to
+		// forget.
+		for (const meta of APP_META) {
+			window.location.href = `https://chneau.github.io${meta.path}`;
+			initAnalytics();
+			// Widened to `string` on purpose. `getAnalyticsApp()` returns the app
+			// union and `meta.slug` is a plain `string`, so comparing them directly
+			// is a type error — which is itself the invariant: the union and
+			// `APP_META` are not statically linked, and this test is the link.
+			const actual: string = getAnalyticsApp();
+			expect(actual, meta.path).toBe(meta.slug);
+		}
+	});
+
+	test("an unknown path segment falls back to root", () => {
+		window.location.href = "https://chneau.github.io/not-an-app/";
+		initAnalytics();
+		expect(getAnalyticsApp()).toBe("root");
 	});
 
 	test("track never throws, even with sensitive properties", () => {

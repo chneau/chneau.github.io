@@ -220,13 +220,13 @@ export const JOBS: Job[] = [
 						engineered an enterprise cloud-native marine logistics and offshore
 						supply vessel planning platform, unifying fragmented services into a
 						modern Bun, Hono, React 19, and TypeScript web platform with
-						Python/SimPy simulation and C# optimization engines as specialized
+						Python/SimPy simulation and C# optimisation engines as specialised
 						background workers.
 					</>
 				),
 			},
 			{
-				id: "optimization",
+				id: "optimisation",
 				body: (
 					<>
 						<strong>Optimization & Simulation Engines:</strong> Developed
@@ -252,9 +252,9 @@ export const JOBS: Job[] = [
 				id: "database",
 				body: (
 					<>
-						<strong>Database & Query Optimization:</strong> Architected
+						<strong>Database & Query Optimisation:</strong> Architected
 						multi-tenant data tiers across PostgreSQL, SQLite, MongoDB, and
-						Redis; designed optimized schema migrations, spatial indexes, and
+						Redis; designed optimised schema migrations, spatial indexes, and
 						caching strategies delivering sub-millisecond query latencies.
 					</>
 				),
@@ -265,7 +265,7 @@ export const JOBS: Job[] = [
 					<>
 						<strong>Full-Stack Web Applications:</strong> Built responsive,
 						reactive enterprise web portals, dashboards, and scheduling tools
-						utilizing React, Vite, Ant Design, Tailwind CSS, and WebSockets for
+						using React, Vite, Ant Design, Tailwind CSS, and WebSockets for
 						real-time fleet tracking.
 					</>
 				),

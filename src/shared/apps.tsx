@@ -75,7 +75,7 @@ if (!hub) throw new Error("APP_META must define the root app first");
 /** The dashboard itself. */
 const HUB: AppEntry = toEntry(hub);
 
-/** Every sub-app, mirrored by the dashboard cards and its 1–6 hotkeys. */
+/** Every sub-app, mirrored by the dashboard cards and its hotkey. */
 export const APPS: AppEntry[] = subApps.map(toEntry);
 
 /** Distinct categories, in the order they should appear in the filter. */

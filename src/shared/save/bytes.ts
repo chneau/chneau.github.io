@@ -232,8 +232,13 @@ export class ByteWriter {
 
 	private ensure(extra: number): void {
 		if (this.offset + extra <= this.buffer.length) return;
-		let size = this.buffer.length * 2;
-		while (size < this.offset + extra) size *= 2;
+		// The floor is the requested size, not zero. This used to double
+		// `length * 2` in a `while (size < needed)` loop, which for an empty
+		// writer means `size` starts at 0 and `0 * 2` is still 0 — so
+		// `new ByteWriter(0)` hung the tab on its first write rather than
+		// throwing. No codec passes 0 today, which is the only reason it was
+		// latent rather than shipped.
+		const size = Math.max(this.buffer.length * 2, this.offset + extra);
 		const grown = new Uint8Array(size);
 		grown.set(this.buffer);
 		this.buffer = grown;
