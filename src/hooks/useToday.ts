@@ -24,7 +24,28 @@ export const useCalendarDay = (): dayjs.Dayjs => {
 	useEffect(() => {
 		let timer: ReturnType<typeof setTimeout> | undefined;
 
+		/**
+		 * Cancel any outstanding timer before arming a new one.
+		 *
+		 * `sync` has two callers — the timer re-arms itself, and `onVisible`
+		 * calls it on `visibilitychange` and `focus` — but they shared one
+		 * `timer` slot. Focusing before midnight therefore overwrote the slot and
+		 * orphaned the pending handle, so at midnight two chains fired, each
+		 * arming a successor, and cleanup could only ever clear the one handle
+		 * still in the slot. The survivor retained its whole closure and kept
+		 * calling `setDay` after unmount, silently, because React stopped warning
+		 * about that in 18.
+		 *
+		 * Clearing first restores the invariant the cleanup already assumed: at
+		 * most one timer outstanding, so clearing the slot clears everything.
+		 */
+		const clearArmed = () => {
+			if (timer !== undefined) clearTimeout(timer);
+			timer = undefined;
+		};
+
 		const sync = () => {
+			clearArmed();
 			const now = dayjs().startOf("day");
 			setDay((previous) => (previous.isSame(now, "day") ? previous : now));
 			// Re-arm for the following midnight. The 250ms margin avoids firing
@@ -41,7 +62,7 @@ export const useCalendarDay = (): dayjs.Dayjs => {
 		window.addEventListener("focus", onVisible);
 
 		return () => {
-			if (timer !== undefined) clearTimeout(timer);
+			clearArmed();
 			document.removeEventListener("visibilitychange", onVisible);
 			window.removeEventListener("focus", onVisible);
 		};
