@@ -33,9 +33,19 @@
 //   2. `BUILD_ID_PLACEHOLDER` below, substituted at build time (preferred —
 //      see the recommended change in rsbuild.config.ts);
 //   3. `MANUAL_VERSION`.
-// Until (2) is wired up you MUST keep bumping `MANUAL_VERSION` by hand on any
-// deploy that changes sw.js or offline.html. Never publish this file unchanged
-// and expect a stale deploy to be evicted.
+//
+// (1) is what namespaces the caches in practice: `service-worker.ts` always
+// registers `/sw.js?v=<token>` and the token is a per-build timestamp, so each
+// deploy evicts the previous deploy's caches without anyone editing this file.
+// This comment used to insist that `MANUAL_VERSION` be bumped by hand on every
+// deploy that changes sw.js, which is no longer true and would only teach the
+// next person to do unnecessary work.
+//
+// `MANUAL_VERSION` is the fallback for a load with no `?v=` on the script URL —
+// `/sw.js` opened directly, or a registration that predates the query being
+// added. Bump it if you ever find yourself in that path.
+// `sw.test.ts` asserts the fallback resolves to a cache-safe token rather than
+// to the unsubstituted placeholder.
 
 const BUILD_ID_PLACEHOLDER = "__BUILD_ID__"; // substituted at build time
 const UNSUBSTITUTED = "__BUILD_ID__"; // the literal text rsbuild would replace

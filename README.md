@@ -1,6 +1,6 @@
 # 🚀 chneau.github.io
 
-A collection of interactive web applications, data visualizations, and
+A collection of interactive web applications, data visualisations, and
 client-side tools built and hosted on GitHub Pages. Every app shares one Mantine
 design system, a common header/navigation, light & dark themes, and keyboard
 navigation.
@@ -48,7 +48,7 @@ planetary ages, and calendar integration.
 - **Automated Calculations**: Age, upcoming birthdays, days remaining, Western &
   Chinese zodiac signs, birthstones, and numerology life paths.
 - **Life Statistics & Biorhythms**: 30-day biorhythm cycles, heartbeats,
-  breaths, and cosmic distance traveled.
+  breaths, and cosmic distance travelled.
 - **Milestone Tracking**: Milestone birthdays and wedding anniversaries.
 - **Visual Analytics**: Charts for age distribution, gender breakdown, birth
   heatmaps, and generations.
@@ -79,7 +79,7 @@ A 100% client-side, privacy-focused save editor for _Crimson Desert_.
   in the browser using typed arrays and WebCrypto.
 - **Zero Server Uploads**: Your save files never leave your machine.
 - **Inventory & Equipment**: Add catalog items, edit stack counts, tune
-  equipment refinements, unlock sockets, and customize dyes.
+  equipment refinements, unlock sockets, and customise dyes.
 - **Character Progression & Quests**: Manage level, bond experience, skill
   unlocks, quest completions, and companion rosters.
 
@@ -185,14 +185,14 @@ bun run start:tails-of-iron-2-save-editor
 ### Testing & Verification
 
 ```bash
-bun test         # Unit tests (Crimson Desert save engine)
-bun run check    # Deno fmt, Oxlint, Biome, unused-export check, and tsc
+bun test         # The whole suite (~1450 tests). Not run by `bun run check` — CI runs it.
+bun run check    # Deno fmt, Oxlint, Biome, unused-export check, and tsc. Rewrites files.
 ```
 
 ### Production Build & Deployment
 
 ```bash
-bun run build    # Builds all seven apps into dist/
+bun run build    # Builds every environment into dist/ (one per APP_META row)
 bun run deploy   # Builds and publishes to GitHub Pages (master branch)
 ```
 
