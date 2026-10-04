@@ -665,6 +665,7 @@ export const App = () => {
 									<HeaderAction
 										iconOnly
 										label="Icon only"
+										menuLabel="Icon only"
 										icon={<Zap size={16} />}
 									/>
 									<HeaderAction label="With label" icon={<Zap size={16} />}>

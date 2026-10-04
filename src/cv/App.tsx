@@ -330,6 +330,7 @@ export const App = () => {
 								iconOnly
 								active={linkCopy.state === "ok"}
 								label={linkCopy.title}
+								menuLabel="Copy a link to this CV"
 								onClick={linkCopy.copy}
 								icon={
 									linkCopy.state === "ok" ? (
@@ -370,6 +371,7 @@ export const App = () => {
 							<HeaderAction
 								iconOnly
 								label="Print or save as PDF (Ctrl+P)"
+								menuLabel="Print or save as PDF"
 								onClick={() => window.print()}
 								icon={<Printer size={16} />}
 							/>

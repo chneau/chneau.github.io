@@ -217,6 +217,7 @@ export const App = () => {
 								target="_blank"
 								iconOnly
 								label="GitHub profile"
+								menuLabel="GitHub profile"
 								icon={<GithubIcon size={18} />}
 							/>
 							<CommandPaletteButton onClick={palette.open} />

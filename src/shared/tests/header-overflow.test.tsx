@@ -1,9 +1,13 @@
 import "./happy-dom";
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { join } from "node:path";
 import { MantineProvider } from "@mantine/core";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import axe from "axe-core";
 import type { ReactNode } from "react";
+import { BackHome } from "../components/BackHome";
+import { SchemeToggle } from "../components/SchemeToggle";
+import { ShortcutsHelpButton } from "../components/ShortcutsHelp";
 import { HeaderAction, HeaderOverflow } from "../index";
 
 /**
@@ -34,6 +38,20 @@ const setViewport = (narrow: boolean) => {
 };
 
 const originalMatchMedia = window.matchMedia;
+
+/**
+ * `base.css` as text, so the spacing rules can be asserted directly.
+ *
+ * These four declarations are CSS-only and leave no trace in the DOM, which is
+ * the point of this file's existence having stopped short of them until now: the
+ * menu shipped unlabelled and cramped while every behavioural test still passed.
+ * The rules are read as source, the way `tokens-theme.test.ts` does it, because
+ * the defect that matters is a cascade outcome — which rule wins — and that is
+ * not observable without a browser.
+ */
+const baseCss = (
+	await Bun.file(join(import.meta.dir, "..", "base.css")).text()
+).replace(/\/\*[\s\S]*?\*\//g, "");
 
 beforeEach(() => setViewport(true));
 afterEach(() => {
@@ -153,6 +171,104 @@ describe("HeaderOverflow on a narrow screen", () => {
 
 		expect(view.queryByRole("group", { name: "More actions" })).toBeNull();
 		expect(document.activeElement).toBe(trigger);
+	});
+
+	/**
+	 * The defect this pins: `HeaderAction` renders a visible label span only when
+	 * `children` is passed, and every `iconOnly` control — back home, theme,
+	 * shortcuts, palette, the GitHub links — passes only `label`, which becomes
+	 * `aria-label`/`title` and no visible text. The CSS that re-shows labels
+	 * inside the menu had nothing to re-show, so the menu was a column of
+	 * unlabelled icons.
+	 */
+	test("every icon-only control names itself in the menu", () => {
+		const view = render(
+			provider(
+				<HeaderOverflow>
+					<BackHome />
+					<SchemeToggle dark={false} onToggle={() => {}} />
+					<ShortcutsHelpButton onClick={() => {}} />
+				</HeaderOverflow>,
+			),
+		);
+
+		fireEvent.click(view.getByRole("button", { name: "More actions" }));
+		const menu = view.getByRole("group", { name: "More actions" });
+
+		// Read the names off the rows themselves rather than resolving each
+		// control's role: `BackHome` is a link, the other two buttons, and the
+		// row wrapper sits between the control and the menu.
+		const names = Array.from(
+			menu.querySelectorAll(".app-header-overflow__row"),
+		).map(
+			(row) => row.querySelector(".app-header-action__menulabel")?.textContent,
+		);
+
+		expect(names).toEqual([
+			"Back to dashboard",
+			"Dark mode",
+			"Keyboard shortcuts",
+		]);
+	});
+
+	/**
+	 * A control that already carries `children` must not gain a second name from
+	 * `menuLabel` — one row, one name, whichever way it was supplied.
+	 */
+	test("a labelled control does not also render its menu label", () => {
+		const view = render(
+			provider(
+				<HeaderOverflow>
+					<HeaderAction label="Install" icon={<span />}>
+						Install
+					</HeaderAction>
+				</HeaderOverflow>,
+			),
+		);
+
+		fireEvent.click(view.getByRole("button", { name: "More actions" }));
+		const menu = view.getByRole("group", { name: "More actions" });
+		expect(menu.querySelectorAll(".app-header-action__menulabel")).toHaveLength(
+			0,
+		);
+		expect(menu.textContent).toContain("Install");
+	});
+
+	/**
+	 * The spacing defects, both of which were invisible to the DOM and cost the
+	 * menu its rhythm. `.app-switcher__menu` is reused by this menu and declared
+	 * later in the file at equal specificity, so `gap: 2px` beat anything a
+	 * single-class rule here said. `gap: 6px` is the fix, and it has to win on
+	 * specificity rather than on source order.
+	 */
+	test("the menu's spacing wins over the switcher menu it reuses", () => {
+		// Two classes, or the reused `.app-switcher__menu` gap wins on order.
+		expect(baseCss).toMatch(
+			/\.app-switcher__menu\.app-header-overflow__menu\s*\{[^}]*gap:\s*6px/,
+		);
+		// A 44px touch target per row, and room between icon and name.
+		expect(baseCss).toMatch(
+			/\.app-header-overflow__row\s*>\s*\.app-header-action,\s*\.app-header-overflow__row\s*>\s*a\s*\{[^}]*min-height:\s*44px/,
+		);
+		expect(baseCss).toMatch(
+			/\.app-header-overflow__row \.app-header-action[^}]*gap:\s*12px/,
+		);
+		// And the row padding, which the narrow-screen `padding: 0` rule
+		// overrode from a later block at the same specificity.
+		expect(baseCss).toMatch(
+			/\.app-header-overflow__row\s*>\s*\.app-header-action[^}]*padding:\s*0 12px/,
+		);
+	});
+
+	test("the name is hidden in the bar and shown only inside the menu", () => {
+		// Hidden by default, restored by a rule that names the menu — the same
+		// shape as `.app-header-action__label`, which is why one is not enough.
+		expect(baseCss).toMatch(
+			/\.app-header-action__menulabel\s*\{\s*display:\s*none;\s*\}/,
+		);
+		expect(baseCss).toMatch(
+			/\.app-header-overflow__menu\s+\.app-header-action__menulabel\s*\{\s*display:\s*inline;\s*\}/,
+		);
 	});
 
 	test("has no detectable axe violations when open", async () => {

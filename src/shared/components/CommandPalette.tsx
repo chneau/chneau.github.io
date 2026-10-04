@@ -269,6 +269,7 @@ export const CommandPaletteButton = ({ onClick }: { onClick: () => void }) => (
 	<HeaderAction
 		iconOnly
 		label="Search apps and actions"
+		menuLabel="Search apps and actions"
 		onClick={onClick}
 		icon={<Search size={16} />}
 	/>

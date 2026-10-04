@@ -13,6 +13,15 @@ type HeaderActionProps = {
 	accent?: boolean;
 	/** Square control with no text label. */
 	iconOnly?: boolean;
+	/**
+	 * Name shown when this control is collapsed into the narrow-screen overflow
+	 * menu, where a bare icon is not a label. Falls back to `label`.
+	 *
+	 * Override it only where `label` is too long to read as a menu row — a label
+	 * carrying a keyboard hint ("Print or save as PDF (Ctrl+P)") is a fine
+	 * tooltip and a poor list entry.
+	 */
+	menuLabel?: string;
 	/** Toggled-on state. */
 	active?: boolean;
 	/** Disabled controls are dimmed and inert. */
@@ -53,6 +62,7 @@ export const HeaderAction = forwardRef<
 			target,
 			accent,
 			iconOnly,
+			menuLabel,
 			active,
 			disabled,
 			loading,
@@ -83,6 +93,17 @@ export const HeaderAction = forwardRef<
 				{icon}
 				{children ? (
 					<span className="app-header-action__label">{children}</span>
+				) : null}
+				{/*
+				 * An `iconOnly` control carries no `label` span, so the overflow
+				 * menu used to render it as a bare icon: five controls across the
+				 * site (back home, theme, shortcuts, palette, GitHub) with nothing
+				 * to read. This carries the same text, shown only inside the menu —
+				 * `display: none` by default, because the bar has no room for it and
+				 * that is the whole reason the menu exists.
+				 */}
+				{!children && menuLabel !== undefined ? (
+					<span className="app-header-action__menulabel">{menuLabel}</span>
 				) : null}
 			</>
 		);

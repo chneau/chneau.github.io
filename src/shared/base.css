@@ -472,7 +472,20 @@ button.app-brand {
 	position: relative;
 	display: inline-flex;
 }
-.app-header-overflow__menu {
+/* The name an `iconOnly` control shows once it is collapsed into the menu. It is
+   hidden by default and revealed only inside the menu: the bar has no room for
+   it, which is the entire reason the menu exists. Without it the overflow menu
+   was a column of unlabelled icons — five controls across the site (back home,
+   theme, shortcuts, palette, GitHub) with nothing to read. */
+.app-header-action__menulabel {
+	display: none;
+}
+/* Two classes, deliberately. This menu *reuses* `.app-switcher__menu`, which is
+   declared later in the file at the same specificity, so a single-class rule
+   here loses to its `gap: 2px` on source order alone — the rows packed
+   2px apart and the spacing could not be fixed from the one-class rule no
+   matter what it said. */
+.app-switcher__menu.app-header-overflow__menu {
 	right: 0;
 	left: auto;
 	/* The container is a `fieldset` so the group is semantic, which brings UA
@@ -480,6 +493,11 @@ button.app-brand {
 	border: 1px solid var(--app-border);
 	margin: 0;
 	padding: 6px;
+	/* 2px was the switcher's own rhythm, between app rows that are 44px tall
+	   with their own inner padding. Here it read as a clunk: bordered boxes
+	   almost touching. 6px separates them the way the app list's own rows are
+	   meant to read. */
+	gap: 6px;
 }
 /* The row wrapper carries the switcher's item styling; the control inside keeps
    whatever it is (a link or a button) and fills the row. */
@@ -489,6 +507,10 @@ button.app-brand {
 .app-header-overflow__row > .app-header-action,
 .app-header-overflow__row > a {
 	flex: 1;
+	/* `min-height` rather than the bar's fixed 36px: a menu row is a touch
+	   target, and the coarse-pointer rule below only reaches as high as 44px
+	   because this is what sets the base. */
+	min-height: 44px;
 	justify-content: center;
 	background: var(--app-surface-2);
 	color: var(--app-text-muted);
@@ -501,6 +523,12 @@ button.app-brand {
 .app-header-overflow__row > .app-header-action {
 	justify-content: flex-start;
 	padding: 0 10px;
+}
+/* A menu row is a list entry, so its icon and its name sit on one baseline with
+   real space between them rather than the 7px the bar uses. */
+.app-header-overflow__row .app-header-action,
+.app-header-overflow__row a {
+	gap: 12px;
 }
 
 .app-switcher {
@@ -851,9 +879,25 @@ body:has(.app-consent) {
 /* Deliberately after the rules above, at the same specificity rather than a
    higher one: inside the menu every row is a full-width list item, so the label
    comes back. Hiding labels is a bar-width economy, and in the menu there is
-   width to spare — without this the menu is a column of unlabelled icons. */
+   width to spare — without this the menu is a column of unlabelled icons.
+   Both classes are covered because they are two different spans: the one a
+   labelled control renders, and the one an `iconOnly` control renders for this
+   menu alone. */
 .app-header-overflow__menu .app-header-action__label {
 	display: inline;
+}
+.app-header-overflow__menu .app-header-action__menulabel {
+	display: inline;
+}
+/* Restated here for the same source-order reason as the labels above, and this
+   one is a visible defect rather than a missing nicety. The narrow-screen rule
+   `.app-header__actions .app-header-action { padding: 0 }` matches a menu row
+   too — the menu lives inside the actions row — at the same specificity but
+   declared later, so it won and every row's icon and name sat flush against the
+   row's left edge with nothing between them and the border. */
+.app-header-overflow__row > .app-header-action,
+.app-header-overflow__row > a {
+	padding: 0 12px;
 }
 
 /* Fixed, non-interactive film grain. */
