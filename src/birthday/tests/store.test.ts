@@ -119,29 +119,50 @@ const createDocument = () => ({
 let sharedDocument: ReturnType<typeof createDocument> | null = null;
 
 /**
- * Real "now", captured before any test in this file moves the clock.
+ * Two fixed dates, both at midday UTC, one per test that moves the clock.
  *
- * `setSystemTime` cannot be undone — Bun shares one clock across every file in a
- * run — so `new Date()` inside a test returns whatever the last test left behind.
+ * Three separate things had to be pinned down, and each produced a real failure
+ * before it was understood.
+ *
+ * 1. `setSystemTime` cannot be undone. Bun shares one clock across every file in a
+ *    run, so `new Date()` inside a test returns whatever the last test left behind.
+ *    Hence two epochs rather than "now".
+ *
+ * 2. The store's roll guard is module state inside `store.ts` — it remembers the
+ *    last calendar day it saw, and there is no reset for it — so the two tests
+ *    could not both start from "now". Two different epochs give each a forward jump
+ *    from whatever the guard last recorded, so a roll always fires.
+ *
+ * 3. **Midday UTC, specifically.** These tests assert that "one hour later is
+ *    still the same day", which is only true away from midnight — and that is
+ *    exactly what broke overnight. The captured baseline was `23:42Z`, so `+1h`
+ *    was `00:42Z`: a different calendar day to `dayjs`, and the guard correctly
+ *    recomputed where the test asserted it should not. Nothing in the production
+ *    code was wrong; the fixture assumed a time of day it was never guaranteed. Noon
+ *    leaves 23 hours of margin either side.
  */
-const REAL_NOW = Date.now();
+const GUARD_EPOCH = Date.parse("2030-03-15T12:00:00Z");
+const ROLL_EPOCH = Date.parse("2031-06-20T12:00:00Z");
 
 /**
- * Put the shared clock *and* the store's roll guard back on real "today".
+ * Move the shared clock to `epoch` and make both the guard and the data agree.
  *
- * Both halves are needed, and missing either is what made this file's date-roll
- * test fail. The guard is module state inside `store.ts`: it remembers the last
- * calendar day it saw, and there is no reset for it. Re-anchoring only the data
- * (`recomputeBirthdays`) leaves the guard still believing it is days ahead, so
- * the jump this test then makes lands on a day the guard has already seen and no
- * roll fires at all.
+ * All three steps are needed, and the order matters:
  *
- * Dispatching the visibility change is what drives the guard, and it recomputes
- * the dataset as a side effect — so one call does both, in the right order.
+ * - `setSystemTime` moves the clock the store reads;
+ * - the dispatch drives the roll guard, which only recomputes when the calendar day
+ *   it recorded differs from the current one — so on its own it can do nothing at
+ *   all, leaving `birthdays` describing an earlier instant;
+ * - `recomputeBirthdays` then forces the data to match the clock regardless.
+ *
+ * Dispatch alone left the data stale, visible only as `ageInDays` coming out one
+ * out. Recompute alone left the guard convinced it was days ahead, so the forward
+ * jump never fired a roll.
  */
-const reanchor = (): void => {
-	setSystemTime(new Date(REAL_NOW));
+const reanchor = (epoch: number): void => {
+	setSystemTime(new Date(epoch));
 	dispatchVisibilityChange();
+	recomputeBirthdays();
 };
 
 const dispatchVisibilityChange = () => {
@@ -871,7 +892,11 @@ describe("store / date roll", () => {
 	});
 
 	test("checkDateRoll recomputes exactly once per calendar day", () => {
-		const day = new Date();
+		// Re-anchored, and `day` read from the constant rather than the ambient
+		// clock: whatever a previous test left the shared clock at, "same day" and
+		// "next day" here have to mean the same thing every run.
+		reanchor(GUARD_EPOCH);
+		const day = new Date(GUARD_EPOCH);
 		const start = recomputes;
 
 		// same day, tab shown repeatedly: no recompute
@@ -915,7 +940,7 @@ describe("store / date roll", () => {
 		// Before reading any data: the subject's countdown and the assertions below
 		// must both be measured against the same instant, and this file's other date
 		// test leaves the shared clock — and the store's guard — up to a day ahead.
-		reanchor();
+		reanchor(ROLL_EPOCH);
 		const subject = birthdays.find(
 			(x) => !isWedding(x) && x.daysBeforeBirthday >= 2,
 		) as Birthday;
@@ -925,10 +950,9 @@ describe("store / date roll", () => {
 		};
 
 		const start = recomputes;
-		// From `REAL_NOW`, which `reanchor` has just made current. `Date.now()` here
-		// would be measured from whatever the preceding test left behind, so the
-		// 25-hour jump could cross two calendar days instead of one.
-		setSystemTime(new Date(REAL_NOW + 24 * 60 * 60 * 1000 + 60 * 60 * 1000));
+		// From `ROLL_EPOCH`, which `reanchor` has just made current. `Date.now()`
+		// would be measured from whatever the preceding test left behind.
+		setSystemTime(new Date(ROLL_EPOCH + 24 * 60 * 60 * 1000 + 60 * 60 * 1000));
 		dispatchVisibilityChange();
 		expect(recomputes - start).toBe(1);
 
