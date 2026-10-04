@@ -623,13 +623,20 @@ const auditMotion = (): Finding[] => {
 	 * This is where the sweep earns its keep. `base.css` ends with
 	 *
 	 *   @media (prefers-reduced-motion: reduce) { *, *::before, *::after {
-	 *     transition-duration: .001ms; … } }
+	 *     transition-duration: .001ms !important; … } }
 	 *
-	 * and that reset is inert. A `*` selector has specificity (0,0,0) and a
-	 * media query adds none, so every class rule that declares its own
-	 * `transition` — `.app-header-action`, `.app-card`, `.app-statusdot` — wins
-	 * outright, and the reset never applies to any of them. Only elements that
-	 * happen to have no class-based duration are covered.
+	 * and the `!important` is what makes it work. A `*` selector has specificity
+	 * (0,0,0) and a media query contributes none, so without it every class rule
+	 * that declares its own duration — `.app-header-action`, `.app-card`,
+	 * `.app-skip-link`, `.app-statusdot` — wins outright and the guard protects
+	 * nothing. Measured before `!important` was added here: 14 elements still
+	 * animated under `reduce`. The comment in `base.css` records that, and
+	 * `shared/tests/motion.test.ts` plus `tokens-theme.test.ts` hold the
+	 * declarations in place.
+	 *
+	 * This note used to say the reset was inert and described the pre-fix state.
+	 * The sweep below was always right — it measures what actually animates — but
+	 * the prose sent the next reader to look for a non-problem.
 	 */
 	const offenders = new Map<string, { count: number; sample: string }>();
 

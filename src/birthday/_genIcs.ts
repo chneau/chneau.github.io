@@ -53,18 +53,25 @@ const summary = (record: IcsRecord): string =>
  */
 const DTSTAMP_FALLBACK = new Date(0);
 
-const records = getRawBirthdays() as RawBirthday[];
-const newestDate = records.reduce((newest, record) => {
-	const parsed = Date.parse(record.date);
-	if (Number.isNaN(parsed)) return newest;
-	return parsed > newest ? parsed : newest;
-}, 0);
+// Writing is guarded on `import.meta.main` so importing this module has no side
+// effect, matching `_genManifests.ts`. Nothing imports it today — only the
+// `build` and `build:birthday` scripts run it — so this is not fixing a live
+// bug; it is removing the trap where a future test or tool that imports the
+// generator silently rewrites a tracked file.
+if (import.meta.main) {
+	const records = getRawBirthdays() as RawBirthday[];
+	const newestDate = records.reduce((newest, record) => {
+		const parsed = Date.parse(record.date);
+		if (Number.isNaN(parsed)) return newest;
+		return parsed > newest ? parsed : newest;
+	}, 0);
 
-const content = generateIcs(records, {
-	summary,
-	calendarName: "Birthdays",
-	now: newestDate > 0 ? new Date(newestDate) : DTSTAMP_FALLBACK,
-});
+	const content = generateIcs(records, {
+		summary,
+		calendarName: "Birthdays",
+		now: newestDate > 0 ? new Date(newestDate) : DTSTAMP_FALLBACK,
+	});
 
-await Bun.write("public/birthdays.ics", content);
-console.log(`public/birthdays.ics generated (${content.length} bytes)`);
+	await Bun.write("public/birthdays.ics", content);
+	console.log(`public/birthdays.ics generated (${content.length} bytes)`);
+}

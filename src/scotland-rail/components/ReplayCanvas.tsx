@@ -192,11 +192,19 @@ export const ReplayCanvas = () => {
 		);
 	}, [activeTrains, selectedServiceId]);
 
-	// Reset zoom and pan when preset changes
+	// Reset zoom and pan when preset changes.
+	//
+	// The dependency array was `[]`, which ran this once on mount and never again:
+	// the comment described the intent and the code did the opposite, so switching
+	// between the Scotland and Europe view presets left the camera wherever the user
+	// had panned and zoomed it — often off the new bounds entirely.
+	//
+	// `viewPreset` is the input here because it changes `VIEW_BOUNDS`, and the
+	// camera state is only meaningful relative to those bounds.
 	useEffect(() => {
 		setZoom(1);
 		setPan({ x: 0, y: 0 });
-	}, []);
+	}, [viewPreset]);
 
 	// Camera Follow Selected Train
 	useEffect(() => {

@@ -833,10 +833,10 @@ describe("resolveBuildId", () => {
 	});
 
 	test("without ?v= the hand-written constant protects the cache", () => {
-		// The placeholder is still literal in this tree, so MANUAL_VERSION is
-		// what actually namespaces the caches until rsbuild substitutes it.
-		// Asserted against the running worker rather than a hard-coded literal,
-		// because bumping MANUAL_VERSION is an expected, documented edit.
+		// The placeholder is still literal in this tree, so a registration with no `?v=`
+		// on the script URL falls through to MANUAL_VERSION. Asserted against the
+		// running worker rather than a hard-coded literal, because bumping
+		// MANUAL_VERSION is an expected, documented edit.
 		const fallback = sw.resolveBuildId(`${ORIGIN}/sw.js`);
 		expect(fallback).toBe(sw.BUILD_ID);
 		// Not the placeholder, and a token that is safe inside a cache name.
