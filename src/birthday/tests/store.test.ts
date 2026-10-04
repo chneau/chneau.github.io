@@ -118,6 +118,32 @@ const createDocument = () => ({
 
 let sharedDocument: ReturnType<typeof createDocument> | null = null;
 
+/**
+ * Real "now", captured before any test in this file moves the clock.
+ *
+ * `setSystemTime` cannot be undone — Bun shares one clock across every file in a
+ * run — so `new Date()` inside a test returns whatever the last test left behind.
+ */
+const REAL_NOW = Date.now();
+
+/**
+ * Put the shared clock *and* the store's roll guard back on real "today".
+ *
+ * Both halves are needed, and missing either is what made this file's date-roll
+ * test fail. The guard is module state inside `store.ts`: it remembers the last
+ * calendar day it saw, and there is no reset for it. Re-anchoring only the data
+ * (`recomputeBirthdays`) leaves the guard still believing it is days ahead, so
+ * the jump this test then makes lands on a day the guard has already seen and no
+ * roll fires at all.
+ *
+ * Dispatching the visibility change is what drives the guard, and it recomputes
+ * the dataset as a side effect — so one call does both, in the right order.
+ */
+const reanchor = (): void => {
+	setSystemTime(new Date(REAL_NOW));
+	dispatchVisibilityChange();
+};
+
 const dispatchVisibilityChange = () => {
 	for (const cb of documentListeners.visibilitychange ?? []) cb();
 };
@@ -886,6 +912,10 @@ describe("store / date roll", () => {
 		// The point of the test is the roll, so it needs a subject whose countdown
 		// is not at a boundary: one at least two days out, which no single date
 		// can make ambiguous.
+		// Before reading any data: the subject's countdown and the assertions below
+		// must both be measured against the same instant, and this file's other date
+		// test leaves the shared clock — and the store's guard — up to a day ahead.
+		reanchor();
 		const subject = birthdays.find(
 			(x) => !isWedding(x) && x.daysBeforeBirthday >= 2,
 		) as Birthday;
@@ -895,7 +925,10 @@ describe("store / date roll", () => {
 		};
 
 		const start = recomputes;
-		setSystemTime(new Date(Date.now() + 24 * 60 * 60 * 1000 + 60 * 60 * 1000));
+		// From `REAL_NOW`, which `reanchor` has just made current. `Date.now()` here
+		// would be measured from whatever the preceding test left behind, so the
+		// 25-hour jump could cross two calendar days instead of one.
+		setSystemTime(new Date(REAL_NOW + 24 * 60 * 60 * 1000 + 60 * 60 * 1000));
 		dispatchVisibilityChange();
 		expect(recomputes - start).toBe(1);
 
