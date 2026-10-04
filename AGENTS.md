@@ -1,9 +1,12 @@
 # AGENTS.md
 
 Agent guidance for **chneau.github.io** — a Bun + Rsbuild multi-page site: a
-dashboard plus six sub-apps (`cv`, `birthday`, `scotland-rail`,
-`crimson-desert-save-editor`, `spooners`, `design`) sharing one Mantine design
-system.
+dashboard plus twelve sub-apps sharing one Mantine design system. The
+authoritative list is `APP_META` in `src/shared/app-meta.ts` — one row per app,
+which drives the build environments, the dashboard, the manifests and the
+hotkeys. Read it rather than counting apps here: this sentence said six and had
+drifted twice without the prose noticing, which is the argument for pointing at
+the table instead of restating it.
 
 The rules below are what this codebase has already decided. Where they differ
 from a habit carried in from another repository, this file wins.
@@ -195,7 +198,7 @@ Mantine.
   must not — an unused define is dead config.
 - A new app means: its environment in `rsbuild.config.ts`, `start:<name>` and
   `build:<name>` scripts, an entry under `src/<name>/`, an `AppEntry` in
-  `src/shared/apps.tsx` (which also drives the 1–6 hotkeys, search, palette and
+  `src/shared/apps.tsx` (which also drives the hotkeys, search, palette and
   404), its tests, and a README section.
 - **`src/shared/`** holds the design system: `tokens.css`, the theme factory,
   header, app switcher, footer, command palette, `AppCard`, `EmptyState`,

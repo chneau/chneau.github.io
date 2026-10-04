@@ -527,7 +527,7 @@ export const App = () => {
 									Versatile, hands-on{" "}
 									<strong>Senior Full-Stack & Systems Engineer</strong> with 10+
 									years of experience engineering high-performance distributed
-									platforms, discrete-event simulation & logistics optimization
+									platforms, discrete-event simulation & logistics optimisation
 									engines, and full-stack cloud-native web applications. Proven
 									track record leading architecture and end-to-end delivery:
 									from database tuning, GIS/routing algorithms, and real-time
