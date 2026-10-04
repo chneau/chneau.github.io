@@ -45,12 +45,12 @@
 		"check:ci": "oxlint --quiet && biome check . && ts-unused-exports tsconfig.json --ignoreFiles=rsbuild.config.ts && tsc --noEmit"
 	},
 	"dependencies": {
-		"@mantine/charts": "9.6.2",
-		"@mantine/core": "9.6.2",
-		"@mantine/dates": "9.6.2",
-		"@mantine/hooks": "9.6.2",
-		"@mantine/notifications": "9.6.2",
-		"@tanstack/react-query": "^5.103.2",
+		"@mantine/charts": "9.6.3",
+		"@mantine/core": "9.6.3",
+		"@mantine/dates": "9.6.3",
+		"@mantine/hooks": "9.6.3",
+		"@mantine/notifications": "9.6.3",
+		"@tanstack/react-query": "^5.104.1",
 		"canvas-confetti": "^1.9.4",
 		"dayjs": "^1.11.23",
 		"es-toolkit": "^1.52.0",
@@ -59,8 +59,8 @@
 		"i18next": "^26.4.2",
 		"i18next-browser-languagedetector": "^8.2.1",
 		"leaflet": "^1.9.4",
-		"lucide-react": "1.47.0",
-		"posthog-js": "^1.434.9",
+		"lucide-react": "1.52.0",
+		"posthog-js": "^1.435.8",
 		"react": "^19.3.0",
 		"react-dom": "^19.3.0",
 		"react-i18next": "^17.0.15",
@@ -70,10 +70,10 @@
 		"zod": "^4.6.5"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.14",
+		"@biomejs/biome": "2.5.15",
 		"@happy-dom/global-registrator": "^20.14.5",
-		"@rsbuild/core": "^2.2.8",
-		"@rsbuild/plugin-react": "^2.1.0",
+		"@rsbuild/core": "^2.2.11",
+		"@rsbuild/plugin-react": "^2.1.1",
 		"@testing-library/dom": "^10.4.2",
 		"@testing-library/react": "^16.3.3",
 		"@types/bun": "^1.4.2",
@@ -84,7 +84,7 @@
 		"axe-core": "^4.13.0",
 		"deno": "2.9.6",
 		"gh-pages": "^6.3.0",
-		"oxlint": "1.85.0",
+		"oxlint": "1.86.0",
 		"typescript": "^7.0.2"
 	}
 }
