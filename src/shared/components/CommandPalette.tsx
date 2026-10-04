@@ -78,11 +78,18 @@ type CommandPaletteProps = {
 	commands?: Command[];
 };
 
+/** Shared empty default, so `allCommands` keeps a stable identity. */
+const EMPTY_COMMANDS: Command[] = [];
+
 /** A Cmd/Ctrl-K palette that jumps between apps and runs app actions. */
 export const CommandPalette = ({
 	opened,
 	onClose,
-	commands = [],
+	// Hoisted for the same reason as `AppNav`'s `shortcuts`: an inline `[]` default
+	// is a new array every render, which defeated the `Fuse` index below — it is
+	// keyed on `[allCommands]`, so a fresh array rebuilt the index on every render
+	// of the parent. Never mutated, so one shared constant is safe.
+	commands = EMPTY_COMMANDS,
 }: CommandPaletteProps) => {
 	const [query, setQuery] = useState("");
 	const [active, setActive] = useState(0);

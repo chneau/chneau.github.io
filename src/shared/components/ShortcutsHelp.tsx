@@ -68,7 +68,7 @@ type ShortcutsHelpProps = {
 	opened: boolean;
 	onClose: () => void;
 	/** App-specific groups, shown above the shared global one. */
-	groups: ShortcutGroup[];
+	groups: readonly ShortcutGroup[];
 	/** Extra site-wide keys for apps that support them (see `APP_SWITCH_SHORTCUTS`). */
 	globalShortcuts?: ShortcutItem[];
 	/**

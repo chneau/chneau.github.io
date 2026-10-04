@@ -41,7 +41,7 @@ type AppNavProps = {
 	/** Optional centre slot, for a search box or status badges. */
 	center?: ReactNode;
 	/** Shortcut groups for the shared help dialog this navbar owns. */
-	shortcuts?: ShortcutGroup[];
+	shortcuts?: readonly ShortcutGroup[];
 	/** Extra site-wide keys, e.g. `APP_SWITCH_SHORTCUTS`. */
 	globalShortcuts?: ShortcutItem[];
 	/**
@@ -85,6 +85,9 @@ type AppNavProps = {
  * from. It renders the controls and wires the dialog; the theme source, the
  * shortcut data and the app's own actions stay with the app that has them.
  */
+/** Shared empty default, so the prop keeps a stable identity across renders. */
+const EMPTY_SHORTCUTS: readonly ShortcutGroup[] = [];
+
 export const AppNav = ({
 	icon,
 	title,
@@ -93,7 +96,12 @@ export const AppNav = ({
 	brandHref = "/",
 	actions,
 	center,
-	shortcuts = [],
+	// A module-level constant, not an inline `[]`. A default of `[]` allocates a
+	// fresh array on every render, so the prop's identity changed each time and
+	// anything downstream that compares it — a memo, an effect dependency — saw a
+	// change on every render of the parent. Defaults are never mutated, so one
+	// shared empty array is safe.
+	shortcuts = EMPTY_SHORTCUTS,
 	globalShortcuts,
 	hasCommandPalette = false,
 	showBackHome = true,

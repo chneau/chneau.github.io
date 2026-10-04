@@ -726,20 +726,30 @@ describe("icsFileName", () => {
  * are what pin the fix, and they need no build.
  */
 const DIST_ROOT = join(process.cwd(), "dist");
+/**
+ * The root build's copy of the calendar.
+ *
+ * The guard is on this file and not on `dist/` merely existing. `bun run
+ * build:birthday` and `bun run build:cv` also leave a `dist/`, but the root
+ * environment's `distPath.root` is `dist` while a sub-app's is `dist/<slug>` — so
+ * a directory check let these run against a single-app build and fail on a
+ * missing file that no single-app build was ever going to produce.
+ */
+const DIST_ICS = join(DIST_ROOT, "birthdays.ics");
 
-describe.skipIf(!existsSync(DIST_ROOT))("the built calendar on disk", () => {
+describe.skipIf(!existsSync(DIST_ICS))("the built calendar on disk", () => {
 	test("dist/birthdays.ics is a real calendar, not an error page", () => {
-		const published = readFileSync(join(DIST_ROOT, "birthdays.ics"), "utf8");
+		const published = readFileSync(DIST_ICS, "utf8");
 		expect(published.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
 		expect(published).toContain("END:VCALENDAR");
 		expect(published).not.toContain("<!DOCTYPE");
 	});
 
-	test("the root copy is the canonical published file", () => {
+	test("the root copy is a calendar, not an error page", () => {
 		// `hostedIcsUrl` addresses `/birthdays.ics` from the origin, so the root
-		// build's copy is the one that must exist.
-		const root = join(DIST_ROOT, "birthdays.ics");
-		expect(existsSync(root)).toBe(true);
-		expect(readFileSync(root, "utf8")).toContain("BEGIN:VCALENDAR");
+		// build's copy is the one that has to be a real calendar. Its existence is
+		// what the `skipIf` above is conditioned on, so asserting it again here
+		// could only ever pass.
+		expect(readFileSync(DIST_ICS, "utf8")).toContain("BEGIN:VCALENDAR");
 	});
 });
