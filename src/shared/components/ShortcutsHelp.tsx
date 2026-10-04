@@ -158,6 +158,7 @@ export const ShortcutsHelpButton = ({
 	<HeaderAction
 		iconOnly
 		label="Keyboard shortcuts"
+		menuLabel="Keyboard shortcuts"
 		onClick={onClick}
 		ariaHaspopup="dialog"
 		ariaExpanded={expanded}

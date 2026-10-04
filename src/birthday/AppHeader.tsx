@@ -271,6 +271,7 @@ export const AppHeader = ({
 						target="_blank"
 						iconOnly
 						label={t("app.header.github")}
+						menuLabel={t("app.header.github")}
 						icon={<GitHubMark size={16} />}
 					/>
 

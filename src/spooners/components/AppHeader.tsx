@@ -111,18 +111,21 @@ export const AppHeader = ({
 					<HeaderAction
 						iconOnly
 						label="Settings"
+						menuLabel="Settings"
 						icon={<Settings size={16} />}
 						onClick={onSettingsOpen}
 					/>
 					<HeaderAction
 						iconOnly
 						label="Value charts"
+						menuLabel="Value charts"
 						icon={<Trophy size={16} />}
 						onClick={onValueOpen}
 					/>
 					<HeaderAction
 						iconOnly
 						label={copied ? "Link copied" : "Copy a link to this view"}
+						menuLabel="Copy a link to this view"
 						icon={<Copy size={16} />}
 						active={copied}
 						onClick={onShare}

@@ -7,5 +7,11 @@ type BackHomeProps = {
 
 /** The one way back to the dashboard, first in every app's action group. */
 export const BackHome = ({ label = "Back to dashboard" }: BackHomeProps) => (
-	<HeaderAction iconOnly href="/" label={label} icon={<Home size={16} />} />
+	<HeaderAction
+		iconOnly
+		href="/"
+		label={label}
+		menuLabel={label}
+		icon={<Home size={16} />}
+	/>
 );

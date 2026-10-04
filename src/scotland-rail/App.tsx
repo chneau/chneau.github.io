@@ -303,6 +303,9 @@ export const App = () => {
 									? "Sound effects active (Press M to mute)"
 									: "Sound effects muted (Press M to unmute)"
 							}
+							menuLabel={
+								settings.soundEffects ? "Sound effects on" : "Sound effects off"
+							}
 							icon={
 								settings.soundEffects ? (
 									<Volume2 size={16} />
