@@ -2,7 +2,7 @@
 	"id": "/",
 	"name": "chneau.github.io",
 	"short_name": "chneau",
-	"description": "Personal hub and web apps by chneau.",
+	"description": "Personal hub and web apps by chneau — CV, birthday tracker, Scottish rail replay, save editor and pub price maps.",
 	"start_url": "/",
 	"scope": "/",
 	"display": "standalone",

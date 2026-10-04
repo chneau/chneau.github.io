@@ -2,7 +2,7 @@
 	"id": "/dysmantle-save-editor/",
 	"name": "DYSMANTLE Save Editor",
 	"short_name": "DYSMANTLE",
-	"description": "Unpack DYSMANTLE's container, read its XML profile and restage it \u2014 materials, skills, recipes and features, rebuilt in your browser.",
+	"description": "Unpack DYSMANTLE's container, read its XML profile and restage it — materials, skills, recipes and features, rebuilt in your browser.",
 	"start_url": "/dysmantle-save-editor/",
 	"scope": "/dysmantle-save-editor/",
 	"display": "standalone",

@@ -2,7 +2,7 @@
 	"id": "/tails-of-iron-2-save-editor/",
 	"name": "Tails of Iron 2 Save Editor",
 	"short_name": "Tails Editor",
-	"description": "Read and edit Tails of Iron 2 save profiles in your browser \u2014 decoded, staged and rebuilt on your own device.",
+	"description": "Read and edit Tails of Iron 2 save profiles in your browser — decoded, staged and rebuilt on your own device.",
 	"start_url": "/tails-of-iron-2-save-editor/",
 	"scope": "/tails-of-iron-2-save-editor/",
 	"display": "standalone",
