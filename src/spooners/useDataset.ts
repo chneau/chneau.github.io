@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { SpoonersCache } from "./types";
+import { parseSpoonersCache, type SpoonersCache } from "./types";
 
 type CacheState = {
 	data: SpoonersCache | null;
@@ -33,9 +33,20 @@ export const useDataset = (): DatasetState => {
 				if (!response.ok) {
 					throw new Error(`Could not load the data (HTTP ${response.status})`);
 				}
-				const data = (await response.json()) as SpoonersCache;
+				// Validated at the boundary rather than cast, mirroring
+				// `parseRateTable` in this same app: a shape change upstream must
+				// surface here, with a message a visitor can act on, rather than as
+				// a render error deep inside a component. There is no cached copy to
+				// delete on this edge, so the failure is loud by design — `catch`
+				// routes it to `setError`, and the app renders its retry screen.
+				const cache = parseSpoonersCache(await response.json());
+				if (cache === null) {
+					throw new Error(
+						"The price data is not in the expected format. It may have been regenerated.",
+					);
+				}
 				if (!cancelled) {
-					setState({ data, error: null, loading: false });
+					setState({ data: cache, error: null, loading: false });
 				}
 			} catch (error) {
 				if (!cancelled) {

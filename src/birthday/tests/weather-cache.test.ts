@@ -364,8 +364,6 @@ describe("weather cache / sanitizeWeatherCache", () => {
 
 type StoreModule = typeof import("../store");
 
-const globals = globalThis as unknown as Record<string, unknown>;
-
 interface StubStorage {
 	readonly map: Map<string, string>;
 	readonly setItem: (key: string, value: string) => void;
@@ -414,10 +412,26 @@ const disposers: (() => void)[] = [];
  * would leave the subscription reading whatever happens to be installed later.
  */
 const loadStore = async (storage: StubStorage): Promise<StoreModule> => {
-	const previous = globals.localStorage;
-	globals.localStorage = storage;
+	// Installed with `defineProperty` rather than assigned, because a plain
+	// assignment throws whenever an earlier file in this shared process left
+	// `localStorage` as an accessor with no setter — `celebration.test.ts` does
+	// exactly that to simulate blocked site data, and the two files then collide
+	// in whichever order bun happens to run them. That made
+	// `bun test src/birthday/` fail with "Attempted to assign to readonly
+	// property" while the full suite passed, which is the worst shape for a
+	// developer narrowing something down.
+	const previous = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+	const install = (value: unknown) => {
+		Object.defineProperty(globalThis, "localStorage", {
+			configurable: true,
+			writable: true,
+			value,
+		});
+	};
+	install(storage);
 	disposers.push(() => {
-		globals.localStorage = previous;
+		if (previous) Object.defineProperty(globalThis, "localStorage", previous);
+		else Reflect.deleteProperty(globalThis, "localStorage");
 	});
 	return (await import(
 		`../store?weathercache=${instanceCounter++}`
