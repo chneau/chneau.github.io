@@ -866,23 +866,25 @@ body:has(.app-consent) {
 }
 
 /* One control per line, filling the sheet.
-   Declared here rather than beside the rest of the overflow rules because it has
-   to outrank two later blocks by specificity, and a selector of this weight in
-   the middle of the file is what made Biome flag a descending-specificity
-   cascade against `.app-footer svg`.
-   - `.app-header__actions .app-header-action { padding: 0 }` in the
-     narrow-screen media query matches a menu row too, since the menu lives
-     inside the actions row.
-   - The menu reuses `.app-switcher__menu`, declared further down.
 
-   One repeated class on the child is what buys that headroom. It used to lose on
-   source order and needed a duplicate copy of this rule near the bottom of the
-   file to win, which is a rule that goes stale silently. */
+   Placed at the end of this file deliberately, because it must beat
+   `.app-header__actions .app-header-action { padding: 0 }` in the
+   narrow-screen media query above, which also matches a menu row — the
+   menu lives inside the actions row. Both selectors are (0,2,0), so
+   declaration order decides and this one has to come second.
+
+   The obvious alternative was a repeated `.app-header-action.app-header-action`
+   to win on specificity instead, which needs no ordering discipline at all.
+   That was reverted: `HeaderAction` puts the same class list on its anchor as
+   on its button, so spelling the pair as `.app-header-action` /
+   `a.app-header-action` across three rules was redundant, and Biome read the
+   mixed specificity as a descending-specificity cascade. One selector that is
+   simply declared last is both shorter and easier to verify — and the ordering
+   constraint is now written down here instead of being invisible. */
 .app-header-overflow__row {
 	display: block;
 }
-.app-header-overflow__row > .app-header-action.app-header-action,
-.app-header-overflow__row > a.app-header-action {
+.app-header-overflow__row > .app-header-action {
 	display: flex;
 	align-items: center;
 	justify-content: flex-start;
@@ -907,13 +909,18 @@ body:has(.app-consent) {
 /* The icon keeps its size while the name wraps beside it. Without this the flex
    algorithm treats the svg as shrinkable and compresses a 16px glyph to fit a
    long label, which reads as a smudge rather than an icon. `lucide-react` sets
-   no `flex` of its own, so nothing else defends it. */
-.app-header-overflow__row > .app-header-action.app-header-action > svg,
-.app-header-overflow__row > a.app-header-action > svg {
+   no `flex` of its own, so nothing else defends it.
+
+   One selector, not a `.app-header-action` / `a.app-header-action` pair:
+   `HeaderAction` puts the same class list on its anchor as on its button, so
+   the second selector matched nothing the first did not. Spelling them
+   separately only made Biome see the pair as descending specificity
+   (0,3,1) then (0,2,2), which is a real warning about a rule that was
+   always one rule. */
+.app-header-overflow__row > .app-header-action > svg {
 	flex: none;
 }
-.app-header-overflow__row > .app-header-action.app-header-action:hover,
-.app-header-overflow__row > a.app-header-action:hover {
+.app-header-overflow__row > .app-header-action:hover {
 	background: var(--app-surface-3);
 	color: var(--app-text);
 }
