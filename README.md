@@ -137,8 +137,8 @@ The shared tokens, components, and patterns behind every app on this site.
   and `useThemeMode` + `initTheme` (light/dark/auto modes applied before the
   first paint). The dashboard's recents and pinned apps (`useRecents`,
   `usePinnedApps` in `src/shared/recent.ts`) are built on it.
-- **Code Quality**: [Biome](https://biomejs.dev/), [Oxlint](https://oxc.rs/),
-  [Deno fmt](https://deno.land/), [TypeScript](https://www.typescriptlang.org/)
+- **Code Quality**: [Biome](https://biomejs.dev/) (formatter and linter),
+  [Oxlint](https://oxc.rs/), [TypeScript](https://www.typescriptlang.org/)
 
 ---
 
@@ -186,7 +186,7 @@ bun run start:tails-of-iron-2-save-editor
 
 ```bash
 bun test         # The whole suite (~1450 tests). Not run by `bun run check` — nothing runs it for you.
-bun run check    # Deno fmt, Oxlint, Biome, unused-export check, and tsc. Rewrites files.
+bun run check    # Oxlint, Biome, unused-export check, and tsc. Rewrites files.
 ```
 
 ### Production Build & Deployment
