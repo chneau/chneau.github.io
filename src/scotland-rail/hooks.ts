@@ -1,7 +1,18 @@
-import { useCallback, useRef, useSyncExternalStore } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import { type Snapshot, snapshot, subscribe } from "valtio";
 
 const DEFAULT_INTERVAL_MS = 66;
+
+/**
+ * Snapshot every store into a fresh bundle. Module-level so neither the initial
+ * build nor a later publish has to close over a function defined in render —
+ * that closure would otherwise be an invisible dependency of the memoised
+ * subscription.
+ */
+const buildBundle = <S extends readonly object[]>(stores: S) =>
+	stores.map((store) => snapshot(store)) as unknown as {
+		[K in keyof S]: Snapshot<S[K]>;
+	};
 
 /**
  * A throttled, UI-facing replacement for Valtio's `useSnapshot`.
@@ -18,10 +29,11 @@ const DEFAULT_INTERVAL_MS = 66;
  * than two independent ones. Pass a module-level array (stable identity) as the
  * argument so the subscription is not torn down on every render.
  *
- * The published bundle is a cached `snapshot()` held in a ref, so `getSnapshot`
- * is referentially stable between publishes. That matters: handing React a fresh
- * object on every store mutation would re-introduce the 60 Hz render cascade via
- * `useSyncExternalStore`'s tearing check.
+ * The published bundle is a cached `snapshot()` held in a mutable cell created by
+ * a `useState` lazy initializer, so `getSnapshot` is referentially stable between
+ * publishes. That matters: handing React a fresh object on every store mutation
+ * would re-introduce the 60 Hz render cascade via `useSyncExternalStore`'s tearing
+ * check.
  *
  * Publish cadence: the first change paints immediately (so a play/pause click
  * never waits), then updates are capped to one per interval with a trailing
@@ -31,16 +43,15 @@ export const useThrottledSnapshots = <S extends readonly object[]>(
 	stores: S,
 	intervalMs = DEFAULT_INTERVAL_MS,
 ): { [K in keyof S]: Snapshot<S[K]> } => {
-	type Bundle = { [K in keyof S]: Snapshot<S[K]> };
+	// The first bundle must exist *before* the first `getSnapshot` call — React
+	// calls it during the initial render, so an effect would be too late and
+	// `getSnapshot` would return nothing to compare against. A `useState` lazy
+	// initializer gives us that eagerly-computed value from a render-safe place
+	// (no ref written during render), while the holder stays mutable so a
+	// publish can swap the bundle without re-rendering the hook itself.
+	const [cache] = useState(() => ({ current: buildBundle(stores) }));
 
-	const cacheRef = useRef<Bundle | null>(null);
-	if (cacheRef.current === null) {
-		cacheRef.current = stores.map((store) =>
-			snapshot(store),
-		) as unknown as Bundle;
-	}
-
-	const getSnapshot = useCallback(() => cacheRef.current as Bundle, []);
+	const getSnapshot = useCallback(() => cache.current, [cache]);
 
 	const subscribeThrottled = useCallback(
 		(onStoreChange: () => void) => {
@@ -48,9 +59,7 @@ export const useThrottledSnapshots = <S extends readonly object[]>(
 			let nextAllowedAt = 0;
 
 			const publish = () => {
-				cacheRef.current = stores.map((store) =>
-					snapshot(store),
-				) as unknown as Bundle;
+				cache.current = buildBundle(stores);
 				onStoreChange();
 			};
 

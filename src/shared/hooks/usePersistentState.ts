@@ -1,4 +1,4 @@
-import { useCallback, useRef, useSyncExternalStore } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 
 /**
  * A tiny persistent-state layer shared by every app.
@@ -161,14 +161,29 @@ if (typeof window !== "undefined") {
 /**
  * React binding for {@link readPersisted}. Returns the current value and a
  * setter that accepts either a value or an updater function.
+ *
+ * `fallback` and `options` are captured on the first render and must be
+ * render-invariant — pass literals or module constants, never a value computed
+ * per render.
  */
 export const usePersistentState = <T>(
 	key: string,
 	fallback: T,
 	options?: PersistOptions<T>,
 ): [T, (value: T | ((previous: T) => T)) => void] => {
-	const fallbackRef = useRef(fallback);
-	fallbackRef.current = fallback;
+	// `fallback` is captured once, on the first render, rather than mirrored into
+	// a ref on every render. Reading a ref from `getSnapshot` would be a ref read
+	// during render that a discarded concurrent render could leave pointing at a
+	// value that never committed; capturing once cannot.
+	//
+	// Capturing also means the memoised callbacks below never churn on the
+	// fallback's identity, which matters because callers pass fresh literals —
+	// `useRecents()` passes a new `[]` on every render — and a `fallback` in the
+	// dep arrays would re-create `getSnapshot` every render, tearing down and
+	// re-registering the `useSyncExternalStore` subscription indefinitely. So
+	// `fallback` is required to be render-invariant (a literal, or a module
+	// constant), the same contract `options` below already had.
+	const [stableFallback] = useState(fallback);
 
 	const subscribe = useCallback(
 		(listener: () => void) => subscribePersisted(key, listener),
@@ -177,22 +192,22 @@ export const usePersistentState = <T>(
 
 	// `options` is expected to be module-stable (a literal or module const).
 	const getSnapshot = useCallback(
-		() => readPersisted(key, fallbackRef.current, options),
-		[key, options],
+		() => readPersisted(key, stableFallback, options),
+		[key, stableFallback, options],
 	);
 
-	const getServerSnapshot = useCallback(() => fallbackRef.current, []);
+	const getServerSnapshot = useCallback(() => stableFallback, [stableFallback]);
 
 	const value = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
 	const setValue = useCallback(
 		(next: T | ((previous: T) => T)) => {
-			const previous = readPersisted(key, fallbackRef.current, options);
+			const previous = readPersisted(key, stableFallback, options);
 			const resolved =
 				typeof next === "function" ? (next as (p: T) => T)(previous) : next;
 			writePersisted(key, resolved, options);
 		},
-		[key, options],
+		[key, stableFallback, options],
 	);
 
 	return [value, setValue];
