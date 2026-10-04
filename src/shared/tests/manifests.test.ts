@@ -18,6 +18,10 @@ const MANIFEST_DIR = fileURLToPath(
 	new URL("../../../manifests/", import.meta.url),
 );
 
+const ICON_DIR = fileURLToPath(
+	new URL("../../../public/icons/", import.meta.url),
+);
+
 const readManifest = (slug: string): string =>
 	readFileSync(`${MANIFEST_DIR}${slug}.json`, "utf8");
 
@@ -47,5 +51,36 @@ describe("manifests/*.json", () => {
 			expect(manifest).toContain(`/icons/${meta.slug}-192.png`);
 			expect(manifest).toContain(`/icons/${meta.slug}-maskable-512.png`);
 		}
+	});
+
+	/**
+	 * The icons the manifests name actually exist.
+	 *
+	 * The test above proves each manifest *says* `/icons/<slug>-192.png`; it says
+	 * nothing about the file being there. Adding an `APP_META` row generates a
+	 * manifest naming four icons nobody has drawn, and every other assertion in
+	 * this file still passes — the manifest is internally consistent and points
+	 * at nothing. `rsbuild.config.ts` hard-codes an `apple-touch-icon` at the
+	 * 192 for all thirteen apps on the same unchecked assumption.
+	 *
+	 * A missing icon is not cosmetic: the browser rejects the install prompt and
+	 * the home-screen shortcut falls back to a default glyph.
+	 */
+	test("every icon a manifest names is present in public/icons", () => {
+		const icons = new Set(readdirSync(ICON_DIR));
+		const missing: string[] = [];
+
+		for (const meta of APP_META) {
+			for (const name of [
+				`${meta.slug}-32.png`,
+				`${meta.slug}-192.png`,
+				`${meta.slug}-512.png`,
+				`${meta.slug}-maskable-512.png`,
+			]) {
+				if (!icons.has(name)) missing.push(`${meta.slug}: ${name}`);
+			}
+		}
+
+		expect(missing).toEqual([]);
 	});
 });

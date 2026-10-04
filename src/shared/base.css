@@ -1271,7 +1271,7 @@ body:has(.app-consent) {
  * `!important` is load-bearing here, not decorative. The `*` selector has
  * specificity (0,0,0) and a media query contributes none, so without it EVERY
  * class rule that declares its own duration wins outright - which is to say the
- * guard protected nothing at all. Measured before this change: 12 selectors
+ * guard protected nothing at all. Measured before this change: 14 elements
  * still animated under `reduce`, including `.app-header-action`, `.app-card`,
  * `.app-skip-link` and `.app-statusdot`.
  *

@@ -11,7 +11,9 @@ import {
 	Text,
 } from "@mantine/core";
 import { CheckCircle2, Download, Trash2, X } from "lucide-react";
+import { useMemo } from "react";
 import { storageName } from "@/lib/inventory";
+import { stagedEditKeys } from "@/lib/staged-edit-keys";
 import type { SaveEdit } from "@/lib/staged-edits";
 
 type StagedEditsDrawerProps = {
@@ -137,6 +139,10 @@ export const StagedEditsDrawer = ({
 	onDownload,
 	busy,
 }: StagedEditsDrawerProps) => {
+	// Stable across a removal, so React does not hand one row's DOM to a
+	// different edit when an earlier row is deleted. See `stagedEditKeys`.
+	const keys = useMemo(() => stagedEditKeys(edits), [edits]);
+
 	return (
 		<Drawer
 			opened={opened}
@@ -173,10 +179,9 @@ export const StagedEditsDrawer = ({
 						<Stack gap="xs">
 							{edits.map((edit, idx) => {
 								const info = formatEditDetails(edit, nameOf);
-								const key = `${edit.type}-${idx}`;
 								return (
 									<Box
-										key={key}
+										key={keys[idx]}
 										p="sm"
 										style={{
 											borderRadius: 8,
