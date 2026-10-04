@@ -235,28 +235,52 @@ describe("HeaderOverflow on a narrow screen", () => {
 	});
 
 	/**
-	 * The spacing defects, both of which were invisible to the DOM and cost the
-	 * menu its rhythm. `.app-switcher__menu` is reused by this menu and declared
-	 * later in the file at equal specificity, so `gap: 2px` beat anything a
-	 * single-class rule here said. `gap: 6px` is the fix, and it has to win on
-	 * specificity rather than on source order.
+	 * One control per line, filling the sheet, with room between icon and name.
+	 *
+	 * `.app-switcher__menu` is reused by this menu and declared later in the file
+	 * at the same specificity, so `gap: 2px` beat anything a single-class rule
+	 * here said. The row's own rule carries a repeated class for the same
+	 * reason: the narrow-screen `.app-header__actions .app-header-action
+	 * { padding: 0 }` matches a menu row too, from a later block, and used to
+	 * win — leaving every row's text flush against its left edge.
 	 */
-	test("the menu's spacing wins over the switcher menu it reuses", () => {
+	test("the menu lays out one full-width row per control", () => {
 		// Two classes, or the reused `.app-switcher__menu` gap wins on order.
 		expect(baseCss).toMatch(
 			/\.app-switcher__menu\.app-header-overflow__menu\s*\{[^}]*gap:\s*6px/,
 		);
-		// A 44px touch target per row, and room between icon and name.
+		// `block` states one control per line; the row is not a flex line that
+		// could place two controls side by side.
 		expect(baseCss).toMatch(
-			/\.app-header-overflow__row\s*>\s*\.app-header-action,\s*\.app-header-overflow__row\s*>\s*a\s*\{[^}]*min-height:\s*44px/,
+			/\.app-header-overflow__row\s*\{\s*display:\s*block;\s*\}/,
 		);
+		const rowRule =
+			/\.app-header-overflow__row\s*>\s*\.app-header-action\.app-header-action,\s*\.app-header-overflow__row\s*>\s*a\.app-header-action\s*\{([^}]*)\}/;
+		const body = baseCss.match(rowRule)?.[1];
+		expect(body).toBeDefined();
+		// Full width, shrinkable, and a 44px touch target.
+		expect(body).toMatch(/width:\s*100%/);
+		expect(body).toMatch(/min-width:\s*0/);
+		expect(body).toMatch(/min-height:\s*44px/);
+		// Icon and name spaced like a list entry, not the bar's 7px.
+		expect(body).toMatch(/gap:\s*12px/);
+		expect(body).toMatch(/padding:\s*8px 12px/);
+	});
+
+	/**
+	 * The overflow this replaced: `.app-header-action` sets `white-space: nowrap`
+	 * so a bar control's text stays on one line, and on narrow the menu is a
+	 * fixed `left: 8px; right: 8px` sheet. A nowrap name therefore pushed the row
+	 * past the sheet's edge instead of scrolling, so the row wraps instead.
+	 */
+	test("a long name wraps instead of overflowing the sheet", () => {
+		const body = baseCss.match(
+			/\.app-header-overflow__row\s*>\s*\.app-header-action\.app-header-action,\s*\.app-header-overflow__row\s*>\s*a\.app-header-action\s*\{([^}]*)\}/,
+		)?.[1];
+		expect(body).toMatch(/white-space:\s*normal/);
+		// And the icon must not be the thing that shrinks to absorb the wrap.
 		expect(baseCss).toMatch(
-			/\.app-header-overflow__row \.app-header-action[^}]*gap:\s*12px/,
-		);
-		// And the row padding, which the narrow-screen `padding: 0` rule
-		// overrode from a later block at the same specificity.
-		expect(baseCss).toMatch(
-			/\.app-header-overflow__row\s*>\s*\.app-header-action[^}]*padding:\s*0 12px/,
+			/\.app-header-overflow__row\s*>\s*\.app-header-action\.app-header-action\s*>\s*svg,\s*\.app-header-overflow__row\s*>\s*a\.app-header-action\s*>\s*svg\s*\{\s*flex:\s*none;\s*\}/,
 		);
 	});
 
