@@ -11,10 +11,11 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { withRowKeys } from "./BirthdayTable";
-import { type Birthday, birthdays as tracked } from "./birthdays";
+import type { Birthday } from "./birthdays";
 import { KindIcon, kindLabelKey } from "./KindIcon";
 import { dataStore } from "./store";
 import { useMagnetic } from "./useMagnetic";
+import { useTrackedBirthdays } from "./useTrackedBirthdays";
 
 dayjs.extend(duration);
 
@@ -167,9 +168,19 @@ export const Countdown = ({ birthdays, onManage }: CountdownProps) => {
 	const keyed = useMemo(() => withRowKeys(birthdays), [birthdays]);
 	const primary = keyed[0]?.record;
 
-	// `tracked` is a module-level array rebuilt on every date roll and on every
-	// edit, so these four dataset-wide scans are keyed on its identity rather
-	// than recomputed on each render of the hero.
+	/**
+	 * The four dataset-wide scans below used to sit in a `useMemo` with an empty
+	 * dependency array, under a comment saying they were "keyed on its identity".
+	 * They were not: `tracked` was the imported module binding, so the people
+	 * count, the this-month count, the wedding count and the next milestone's
+	 * name were computed once at mount and never again — stale until a full
+	 * remount, while the memo six lines above (which does carry `[birthdays]`)
+	 * refreshed correctly. The two sat side by side looking identical.
+	 *
+	 * `tsc` cannot see this and `exhaustive-deps` cannot either, because the
+	 * read is an imported binding rather than a prop or state.
+	 */
+	const tracked = useTrackedBirthdays();
 	const { nextMilestone, thisMonth, weddings, people } = useMemo(() => {
 		const milestone = tracked.find(
 			(b) => b.milestone && b.daysBeforeBirthday >= 0,
@@ -180,7 +191,7 @@ export const Countdown = ({ birthdays, onManage }: CountdownProps) => {
 			weddings: tracked.filter((b) => b.kind === "💒").length,
 			people: tracked.length,
 		};
-	}, []);
+	}, [tracked]);
 
 	if (!primary) {
 		return (

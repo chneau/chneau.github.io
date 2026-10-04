@@ -44,6 +44,7 @@ import { checkAndNotify, subscribeDayRollNotification } from "./notifications";
 import { RecordsWidget } from "./RecordsWidget";
 import { dataStore, store } from "./store";
 import { TimelineView } from "./TimelineView";
+import { useTrackedBirthdays } from "./useTrackedBirthdays";
 import { WeatherTab } from "./WeatherTab";
 
 const Statistics = lazy(() =>
@@ -149,9 +150,20 @@ export const App = () => {
 		return subscribeDayRollNotification(() => birthdays);
 	}, []);
 
+	/**
+	 * The header strip's three soonest upcoming birthdays.
+	 *
+	 * This had an empty dependency array over the imported `birthdays` binding,
+	 * so it was frozen at first render: the component re-rendered on the store
+	 * signal, but this memo never recomputed, and adding someone sooner than the
+	 * current third left the strip showing the previous three. `useTrackedBirthdays`
+	 * is the same fix `Countdown` needed — subscribe to the recompute signal and
+	 * derive during render.
+	 */
+	const trackedBirthdays = useTrackedBirthdays();
 	const nextBirthdays = useMemo(
-		() => birthdays.filter((b) => b.daysBeforeBirthday >= 0).slice(0, 3),
-		[],
+		() => trackedBirthdays.filter((b) => b.daysBeforeBirthday >= 0).slice(0, 3),
+		[trackedBirthdays],
 	);
 
 	const tabItems: { key: TabKey; label: string; children: ReactNode }[] = [
