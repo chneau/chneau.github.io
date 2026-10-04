@@ -32,8 +32,15 @@ from a habit carried in from another repository, this file wins.
   only invocation whose output means anything. Read the script before quoting a
   figure from a differently-configured run: the same `biome` run twice in one
   session reported 7 057 errors and then 5, because the second was the project's
-  own `timeout 3s biome check --write --unsafe .` and the first was not, and had
-  walked into `node_modules`.
+  own `check:biome` and the first was not, and had walked into `node_modules`.
+- **`check:biome` carries no timeout, deliberately.** It used to be
+  `timeout 3s biome check --write --unsafe .`, which made a green `check`
+  indistinguishable from a truncated one — a killed run exits non-zero, but
+  `--write --unsafe` has already half-mutated the tree by then, and the failure
+  reads as a lint error rather than a timeout. The whole tree checks in well
+  under a second, so the cap bought nothing and cost the gate its meaning. Do
+  not reintroduce one. A gate that can pass without running is worse than a slow
+  gate.
 
 ---
 
@@ -287,8 +294,7 @@ bun x react-doctor@latest   # the React gate: correctness, a11y, performance, ma
   hook's dependencies, an effect that never re-runs, a re-render, an unstable
   callback or a missing key belongs to it. A change can pass one while failing
   the other. `react-doctor` is invoked ad hoc rather than wired into `check` —
-  run it on anything touching a component before calling the work
-  finished.
+  run it on anything touching a component before calling the work finished.
 - **FORBIDDEN**: "fixing" a `react-doctor` finding by suppressing it. A
   `doctor.config.json`, a `reactDoctor` key in `package.json`, or an inline
   `react-doctor-disable-next-line` switches a rule off and fixes nothing; it

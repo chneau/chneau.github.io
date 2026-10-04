@@ -663,20 +663,6 @@ describe("hosted URL resolution", () => {
 				expect(parsed.pathname, label).toBe("/birthdays.ics");
 			}
 		}
-
-		// And that pathname is a file that really exists in the build.
-		//
-		// `dist/` is a build artefact and absent on a clean checkout, so the
-		// file-content assertions are conditional. The URL-shape assertions
-		// above are not: they run everywhere and are what pin the fix.
-		const distRoot = join(process.cwd(), "dist");
-		if (!existsSync(distRoot)) return;
-		const distFile = join(distRoot, "birthdays.ics");
-		if (!existsSync(distFile)) return;
-		const published = readFileSync(distFile, "utf8");
-		expect(published.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
-		expect(published).toContain("END:VCALENDAR");
-		expect(published).not.toContain("<!DOCTYPE");
 	});
 
 	test("the .ics is published at the site ROOT, where the URL points", () => {
@@ -692,14 +678,6 @@ describe("hosted URL resolution", () => {
 		expect(new URL(hosted).pathname.split("/").filter(Boolean)).toEqual([
 			"birthdays.ics",
 		]);
-
-		const distRoot = join(process.cwd(), "dist");
-		if (!existsSync(distRoot)) return;
-		// Whatever copies exist, the root one is the canonical published file.
-		const root = join(distRoot, "birthdays.ics");
-		if (existsSync(root)) {
-			expect(readFileSync(root, "utf8")).toContain("BEGIN:VCALENDAR");
-		}
 	});
 
 	test("the browser download path does not depend on the hosted file", () => {
@@ -727,5 +705,41 @@ describe("icsFileName", () => {
 		// pure ASCII and every filesystem accepts it.
 		expect(icsFileName("Cécile")).toBe("C-cile.ics");
 		expect(icsFileName("Cécile")).toMatch(/^[A-Za-z0-9-]+\.ics$/);
+	});
+});
+
+/**
+ * The built calendar on disk.
+ *
+ * These assertions used to sit at the end of the two URL tests above, behind
+ * `if (!existsSync(distRoot)) return;`. The early return was honest about *why*
+ * — `dist/` is a build artefact and absent on a clean checkout — but it made the
+ * skip invisible: the run reported green with nothing asserted, and a reader
+ * scanning the output could not tell the difference between "verified" and
+ * "returned early". The same shape appears in `ics-published.test.ts`.
+ *
+ * `describe.skipIf` is the fix. The skip is now named in the output, and it is
+ * visibly a skip rather than a pass. Run `bun run build` first to exercise these.
+ *
+ * They are separate tests rather than trailing assertions because the URL-shape
+ * properties they used to share a test with must keep running everywhere — those
+ * are what pin the fix, and they need no build.
+ */
+const DIST_ROOT = join(process.cwd(), "dist");
+
+describe.skipIf(!existsSync(DIST_ROOT))("the built calendar on disk", () => {
+	test("dist/birthdays.ics is a real calendar, not an error page", () => {
+		const published = readFileSync(join(DIST_ROOT, "birthdays.ics"), "utf8");
+		expect(published.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
+		expect(published).toContain("END:VCALENDAR");
+		expect(published).not.toContain("<!DOCTYPE");
+	});
+
+	test("the root copy is the canonical published file", () => {
+		// `hostedIcsUrl` addresses `/birthdays.ics` from the origin, so the root
+		// build's copy is the one that must exist.
+		const root = join(DIST_ROOT, "birthdays.ics");
+		expect(existsSync(root)).toBe(true);
+		expect(readFileSync(root, "utf8")).toContain("BEGIN:VCALENDAR");
 	});
 });

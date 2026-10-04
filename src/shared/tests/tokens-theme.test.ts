@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
+import { collectUsages } from "./css-vars";
 
 /**
  * Static integrity tests for the design-token layer.
@@ -90,41 +91,6 @@ const darkBlock =
 	)?.[1] ?? "";
 
 /* ── usage inventory ──────────────────────────────────────────────────── */
-
-type Usage = { token: string; file: string; hasFallback: boolean };
-
-/**
- * Scans every `var()` read with a stack of currently-open `var(` calls, so a
- * read nested inside another read's fallback (`var(--a, var(--b))`) inherits
- * that fallback. Chained fallbacks are safe; a bare read is not.
- */
-const collectUsages = (source: string, file: string): Usage[] => {
-	const found: Usage[] = [];
-	const stack: { inheritedFallback: boolean }[] = [];
-
-	for (let i = 0; i < source.length; i += 1) {
-		if (source.startsWith("var(", i)) {
-			const close = source.indexOf(")", i);
-			const body = source.slice(i + 4, close === -1 ? source.length : close);
-			const name = body.trimStart().match(/^--[a-zA-Z0-9_-]+/)?.[0];
-			// A comma followed by more text means a fallback was supplied.
-			const own = /,\s*\S/.test(body);
-			if (name) {
-				found.push({
-					token: name,
-					file,
-					hasFallback: own || (stack.at(-1)?.inheritedFallback ?? false),
-				});
-			}
-			stack.push({ inheritedFallback: own });
-			i += 3;
-			continue;
-		}
-		if (source[i] === ")" && stack.length > 0) stack.pop();
-	}
-
-	return found;
-};
 
 const sources: [string, string][] = [
 	["tokens.css", cleanTokens],
