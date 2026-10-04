@@ -29,33 +29,52 @@ const live = new Map<number, { fn: () => void; ms: number }>();
 let armed = 0;
 let cleared = 0;
 
-const realSetTimeout = globalThis.setTimeout;
-const realClearTimeout = globalThis.clearTimeout;
+/**
+ * Typed stand-ins for the platform's overloaded timer and listener globals.
+ *
+ * `setTimeout` has two call forms and returns a `Timer` in Node but a number in
+ * a browser, and `addEventListener` is keyed by string overloads — none of which
+ * a stub can restate without either `any` or a cast at every assignment. Naming
+ * the two shapes once here is what keeps the stubs themselves honest.
+ */
+const globals = globalThis as unknown as {
+	setTimeout: (fn: () => void, ms: number) => unknown;
+	clearTimeout: (id: unknown) => void;
+};
+/**
+ * The originals, restored on teardown. The real `clearTimeout` is overloaded
+ * (a number, a `Timer`, a string) and therefore cannot be assigned back to the
+ * single-signature stub slot directly; narrowing the pair once here is what lets
+ * the restore stay a plain assignment with no cast at each use.
+ */
+const realTimers = {
+	setTimeout: globalThis.setTimeout,
+	clearTimeout: globalThis.clearTimeout,
+} as unknown as typeof globals;
+
+const windowStub = window as unknown as {
+	addEventListener: (type: string, fn: (event: Event) => void) => void;
+};
 
 beforeEach(() => {
 	nextId = 1;
 	live.clear();
 	armed = 0;
 	cleared = 0;
-	// biome-ignore lint/suspicious/noExplicitAny: a global stub must match the
-	// platform signature, which is overloaded and not expressible in TS.
-	(globalThis as any).setTimeout = (fn: () => void, ms: number) => {
+	globals.setTimeout = (fn: () => void, ms: number) => {
 		const id = nextId++;
 		live.set(id, { fn, ms });
 		armed++;
-		return id as unknown as ReturnType<typeof setTimeout>;
+		return id;
 	};
-	// biome-ignore lint/suspicious/noExplicitAny: as above.
-	(globalThis as any).clearTimeout = (id: number) => {
-		if (live.delete(id)) cleared++;
+	globals.clearTimeout = (id: unknown) => {
+		if (typeof id === "number" && live.delete(id)) cleared++;
 	};
 });
 
 afterEach(() => {
-	// biome-ignore lint/suspicious/noExplicitAny: as above.
-	(globalThis as any).setTimeout = realSetTimeout;
-	// biome-ignore lint/suspicious/noExplicitAny: as above.
-	(globalThis as any).clearTimeout = realClearTimeout;
+	globals.setTimeout = realTimers.setTimeout;
+	globals.clearTimeout = realTimers.clearTimeout;
 	cleanup();
 });
 
@@ -75,19 +94,16 @@ const realAdd = window.addEventListener.bind(window);
 
 beforeEach(() => {
 	windowListeners = [];
-	// biome-ignore lint/suspicious/noExplicitAny: a global stub must match the
-	// platform signature, which is overloaded and not expressible in TS.
-	(window as any).addEventListener = (type: string, fn: () => void) => {
+	windowStub.addEventListener = (type: string, fn: (event: Event) => void) => {
 		if (type === "focus" || type === "visibilitychange") {
-			windowListeners.push(fn);
+			windowListeners.push(() => fn(new Event(type)));
 		}
-		return realAdd(type, fn as EventListener);
+		realAdd(type, fn);
 	};
 });
 
 afterEach(() => {
-	// biome-ignore lint/suspicious/noExplicitAny: as above.
-	(window as any).addEventListener = realAdd;
+	windowStub.addEventListener = realAdd;
 });
 
 describe("useCalendarDay", () => {

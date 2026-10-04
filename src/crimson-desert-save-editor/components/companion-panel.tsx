@@ -92,10 +92,19 @@ const CompanionBrowser = ({
 	}
 	const matches = browseCompanions(rows, query, group, sort, availableOnly);
 	const current = companionPage(matches, page);
-	const update = (action: () => void) => {
-		action();
-		setPage(0);
-	};
+	/**
+	 * Return to the first page after a filter change.
+	 *
+	 * This used to take the change as a callback — `applyFilter(() => setQuery(v))`
+	 * — which reads exactly like a `useState` updater, so
+	 * `no-impure-state-updater` flagged every call that closed over `setQuery`
+	 * and friends. Nothing was ever handed to React: the closure ran once,
+	 * synchronously, from a real event handler. But the shape was a genuine
+	 * ambiguity, so the callback is gone and each handler says what it sets.
+	 * The page reset is shared here because "a filter changed, so page 0" is the
+	 * invariant, not a detail worth repeating at every call site.
+	 */
+	const toFirstPage = () => setPage(0);
 	const groupLabel = category === "mounts" ? "Breed" : "Animal type";
 	return (
 		<Paper withBorder p="md" bg="var(--app-surface-2)">
@@ -114,7 +123,10 @@ const CompanionBrowser = ({
 									size="xs"
 									variant="subtle"
 									color="gray"
-									onClick={() => update(() => setQuery(""))}
+									onClick={() => {
+										setQuery("");
+										toFirstPage();
+									}}
 									title="Clear search"
 									aria-label="Clear search"
 								>
@@ -124,7 +136,8 @@ const CompanionBrowser = ({
 						}
 						onChange={(event) => {
 							const value = event.currentTarget.value;
-							update(() => setQuery(value));
+							setQuery(value);
+							toFirstPage();
 						}}
 						id={`${category}-${mode}-search`}
 					/>
@@ -142,7 +155,10 @@ const CompanionBrowser = ({
 								})),
 						]}
 						allowDeselect={false}
-						onChange={(value) => update(() => setGroup(value ?? "all"))}
+						onChange={(value) => {
+							setGroup(value ?? "all");
+							toFirstPage();
+						}}
 					/>
 					<Select
 						w={150}
@@ -154,7 +170,10 @@ const CompanionBrowser = ({
 							{ value: "type", label: "Type, then name" },
 						]}
 						allowDeselect={false}
-						onChange={(value) => update(() => setSort(value ?? "az"))}
+						onChange={(value) => {
+							setSort(value ?? "az");
+							toFirstPage();
+						}}
 					/>
 				</Group>
 				<Group justify="space-between" gap="md">
@@ -173,7 +192,8 @@ const CompanionBrowser = ({
 							checked={availableOnly}
 							onChange={(event) => {
 								const value = event.currentTarget.checked;
-								update(() => setAvailableOnly(value));
+								setAvailableOnly(value);
+								toFirstPage();
 							}}
 						/>
 					)}
@@ -252,13 +272,12 @@ const CompanionBrowser = ({
 									<Button
 										variant="subtle"
 										size="sm"
-										onClick={() =>
-											update(() => {
-												setQuery("");
-												setGroup("all");
-												setAvailableOnly(false);
-											})
-										}
+										onClick={() => {
+											setQuery("");
+											setGroup("all");
+											setAvailableOnly(false);
+											toFirstPage();
+										}}
 									>
 										Clear filters
 									</Button>

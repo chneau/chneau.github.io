@@ -218,10 +218,19 @@ export const SkillsPanel = ({
 	const current = Math.min(page, pages - 1);
 	const visible = matches.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE);
 	const overrideCount = Object.keys(overrides).length;
-	const reset = (action: () => void) => {
-		action();
-		setPage(0);
-	};
+	/**
+	 * Return to the first page after a filter change.
+	 *
+	 * This used to take the change as a callback — `applyFilter(() => setQuery(v))`
+	 * — which reads exactly like a `useState` updater, so
+	 * `no-impure-state-updater` flagged every call that closed over `setQuery`
+	 * and friends. Nothing was ever handed to React: the closure ran once,
+	 * synchronously, from a real event handler. But the shape was a genuine
+	 * ambiguity, so the callback is gone and each handler says what it sets.
+	 * The page reset is shared here because "a filter changed, so page 0" is the
+	 * invariant, not a detail worth repeating at every call site.
+	 */
+	const toFirstPage = () => setPage(0);
 	const setOverride = (key: number, level: number | undefined) => {
 		setOverrides((existing) => {
 			const next = { ...existing };
@@ -358,7 +367,10 @@ export const SkillsPanel = ({
 									size="xs"
 									variant="subtle"
 									color="gray"
-									onClick={() => reset(() => setQuery(""))}
+									onClick={() => {
+										setQuery("");
+										toFirstPage();
+									}}
 									title="Clear search"
 									aria-label="Clear search"
 								>
@@ -369,7 +381,8 @@ export const SkillsPanel = ({
 						value={query}
 						onChange={(event) => {
 							const value = event.currentTarget.value;
-							reset(() => setQuery(value));
+							setQuery(value);
+							toFirstPage();
 						}}
 					/>
 					<Select
@@ -400,9 +413,10 @@ export const SkillsPanel = ({
 								})`,
 							},
 						]}
-						onChange={(value) =>
-							reset(() => setGroup((value ?? "all") as SkillGroupFilter))
-						}
+						onChange={(value) => {
+							setGroup((value ?? "all") as SkillGroupFilter);
+							toFirstPage();
+						}}
 					/>
 					<Checkbox
 						mb={8}
@@ -413,7 +427,8 @@ export const SkillsPanel = ({
 						checked={missingOnly}
 						onChange={(event) => {
 							const value = event.currentTarget.checked;
-							reset(() => setMissingOnly(value));
+							setMissingOnly(value);
+							toFirstPage();
 						}}
 					/>
 				</Group>
@@ -460,13 +475,12 @@ export const SkillsPanel = ({
 							<Button
 								variant="subtle"
 								size="sm"
-								onClick={() =>
-									reset(() => {
-										setQuery("");
-										setGroup("all");
-										setMissingOnly(false);
-									})
-								}
+								onClick={() => {
+									setQuery("");
+									setGroup("all");
+									setMissingOnly(false);
+									toFirstPage();
+								}}
 							>
 								Clear filters
 							</Button>
