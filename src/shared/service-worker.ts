@@ -63,6 +63,20 @@ const announceScope = (registration: ServiceWorkerRegistration) => {
 	target?.postMessage(message);
 };
 
+/**
+ * Whether {@link registerServiceWorker} has already run in this document.
+ *
+ * Every call that got past the environment gates added another `load` listener,
+ * and each of those called `register()`, `update()` and attached its own
+ * `controllerchange` listener — so two calls meant two registrations and two
+ * possible reloads, while the code's own comment claimed "at most once per page
+ * load". One flag makes that true.
+ *
+ * Set only after the gates pass, so a call made before the page is on https (and
+ * so refused) does not consume the single attempt.
+ */
+let registered = false;
+
 export const registerServiceWorker = () => {
 	if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
 		return;
@@ -70,6 +84,10 @@ export const registerServiceWorker = () => {
 	if (typeof window === "undefined") {
 		return;
 	}
+	if (registered) {
+		return;
+	}
+	registered = true;
 
 	const { hostname, protocol } = window.location;
 	// Workers require a secure context; skip local dev hosts and LAN previews.
@@ -115,13 +133,21 @@ export const registerServiceWorker = () => {
 				});
 				announceScope(registration);
 				if (!wasControlled) return;
+				let reloaded = false;
 				navigator.serviceWorker.addEventListener("controllerchange", () => {
 					// Belt and braces alongside the stable `buildToken`: reload only
-					// onto a genuinely different worker, and at most once per page
-					// load. Without this, any path that installs a new worker while
-					// the token is unchanged reloads the page into the same loop.
+					// onto a genuinely different worker, and only once.
+					//
+					// The `reloaded` latch is what makes "once" true in the code
+					// rather than in the comment. `location.reload()` is asynchronous,
+					// so a second `controllerchange` — an update landing while the
+					// navigation is still being scheduled — can arrive before the
+					// page goes away, and the old guard compared only script URLs and
+					// would have reloaded again.
+					if (reloaded) return;
 					const next = navigator.serviceWorker.controller?.scriptURL ?? "";
 					if (!next || next === runningScript) return;
+					reloaded = true;
 					window.location.reload();
 				});
 			})

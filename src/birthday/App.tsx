@@ -165,22 +165,44 @@ export const App = () => {
 		{
 			key: "table",
 			label: t("app.table.title"),
-			children: <BirthdayTable data={data} />,
+			// Each panel is wrapped rather than only the three widgets below. The
+			// panels carry most of the app and all of its data rendering, and they
+			// were the ones left bare: a throw in `TimelineView` or `WeatherTab` took
+			// down the whole app, where the same throw in `RecordsWidget` showed a
+			// retry button and lost one card. The boundary is per tab, so the label
+			// names which one failed.
+			children: (
+				<ErrorBoundary label={t("app.table.title")}>
+					<BirthdayTable data={data} />
+				</ErrorBoundary>
+			),
 		},
 		{
 			key: "timeline",
 			label: t("app.timeline.title"),
-			children: <TimelineView data={data} />,
+			children: (
+				<ErrorBoundary label={t("app.timeline.title")}>
+					<TimelineView data={data} />
+				</ErrorBoundary>
+			),
 		},
 		{
 			key: "compatibility",
 			label: t("app.compatibility.title"),
-			children: <CompatibilityMatrix data={data} />,
+			children: (
+				<ErrorBoundary label={t("app.compatibility.title")}>
+					<CompatibilityMatrix data={data} />
+				</ErrorBoundary>
+			),
 		},
 		{
 			key: "weather",
 			label: t("app.weather.title"),
-			children: <WeatherTab />,
+			children: (
+				<ErrorBoundary label={t("app.weather.title")}>
+					<WeatherTab />
+				</ErrorBoundary>
+			),
 		},
 	];
 

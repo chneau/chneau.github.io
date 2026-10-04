@@ -1,4 +1,4 @@
-import "./happy-dom";
+import "../../shared/tests/happy-dom";
 import { afterEach, describe, expect, test } from "bun:test";
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
 import type { SpoonersCache } from "../types";

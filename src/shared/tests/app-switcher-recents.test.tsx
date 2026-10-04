@@ -1,3 +1,4 @@
+import { axeFragmentOptions } from "./axe-fragment";
 import "./happy-dom";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { MantineProvider } from "@mantine/core";
@@ -358,17 +359,6 @@ describe("AppSwitcher keyboard operation", () => {
 });
 
 describe("AppSwitcher a11y with recents and pins populated", () => {
-	const DISABLED_RULES = [
-		"color-contrast",
-		"page-has-heading-one",
-		"landmark-one-main",
-		"region",
-		"html-has-lang",
-		"document-title",
-		"bypass",
-		"meta-viewport",
-	];
-
 	test("has no detectable axe violations when recents and pins are present", async () => {
 		const now = Date.now();
 		seed(
@@ -381,9 +371,7 @@ describe("AppSwitcher a11y with recents and pins populated", () => {
 		);
 		const view = open("/cv/");
 		const results = await axe.run(view.baseElement, {
-			rules: Object.fromEntries(
-				DISABLED_RULES.map((id) => [id, { enabled: false }]),
-			),
+			rules: axeFragmentOptions().rules,
 		});
 		const summary = results.violations.map(
 			(violation) =>

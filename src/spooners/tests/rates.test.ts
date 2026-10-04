@@ -1,4 +1,4 @@
-import "./happy-dom";
+import "../../shared/tests/happy-dom";
 import { beforeEach, describe, expect, test } from "bun:test";
 import {
 	canConvertTo,

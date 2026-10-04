@@ -1,3 +1,4 @@
+import { axeFragmentOptions } from "../../shared/tests/axe-fragment";
 import "../../shared/tests/happy-dom";
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { MantineProvider } from "@mantine/core";
@@ -383,19 +384,9 @@ describe("records and timeline accessibility", () => {
 		expect(scroller?.getAttribute("aria-label")).toBeTruthy();
 
 		const results = await axe.run(container, {
-			rules: Object.fromEntries(
-				// Page-level rules do not apply to a rendered fragment.
-				[
-					"color-contrast",
-					"page-has-heading-one",
-					"landmark-one-main",
-					"region",
-					"html-has-lang",
-					"document-title",
-					"bypass",
-					"meta-viewport",
-				].map((id) => [id, { enabled: false }]),
-			),
+			// Page-level rules do not apply to a rendered fragment; the shared
+			// list is the same one every other fragment suite uses.
+			rules: axeFragmentOptions().rules,
 		});
 		expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
 	});

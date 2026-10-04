@@ -1,3 +1,4 @@
+import { axeFragmentOptions } from "./axe-fragment";
 import "./happy-dom";
 import { afterEach, describe, expect, test } from "bun:test";
 import { MantineProvider } from "@mantine/core";
@@ -10,28 +11,11 @@ import { AppCard, type AppEntry } from "../index";
 
 afterEach(() => cleanup());
 
-/**
- * Page-level and layout-dependent rules don't apply to a rendered fragment in
- * a headless DOM, so we silence them and assert on the component-level rules.
- */
-const DISABLED_RULES = [
-	"color-contrast",
-	"page-has-heading-one",
-	"landmark-one-main",
-	"region",
-	"html-has-lang",
-	"document-title",
-	"bypass",
-	"meta-viewport",
-];
-
 const provider = (ui: ReactNode) => <MantineProvider>{ui}</MantineProvider>;
 
 const expectNoViolations = async (container: HTMLElement) => {
 	const results = await axe.run(container, {
-		rules: Object.fromEntries(
-			DISABLED_RULES.map((id) => [id, { enabled: false }]),
-		),
+		rules: axeFragmentOptions().rules,
 	});
 	const summary = results.violations.map(
 		(violation) =>

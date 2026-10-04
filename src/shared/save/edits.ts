@@ -49,7 +49,23 @@ export const withoutPath = (
 	edits: readonly SaveEdit[],
 	path: SavePath,
 ): readonly SaveEdit[] =>
-	edits.filter((edit) => JSON.stringify(edit.path) !== JSON.stringify(path));
+	edits.filter((edit) => pathKey(edit.path) !== pathKey(path));
+
+/**
+ * The one identity for a save path.
+ *
+ * `editId`, `withoutPath` and `stageEdits` all compare or key on this, and
+ * `useSaveDocument`'s `stagedPaths` set used `formatPath` instead. That gave the
+ * app two different answers to "is this path staged?": one based on the path's
+ * structure and one based on a rendered string.
+ *
+ * `formatPath` is lossy in a way that matters here. `["a.b"]` and `["a", "b"]`
+ * both render as `a.b`, and `["a[0]"]` and `["a", 0]` both render as `a[0]`, so a
+ * save with a key containing a dot or a bracket could mark the wrong field as
+ * staged — or mark two. `formatPath` is for *display*; this is for identity, and
+ * the two should never be interchanged.
+ */
+export const pathKey = (path: SavePath): string => JSON.stringify(path);
 
 /**
  * A stable id for an edit, derived from its path and target value.
@@ -59,7 +75,7 @@ export const withoutPath = (
  * should end up with one gold edit, not five.
  */
 export const editId = (path: SavePath, after: JsonValue): string =>
-	`${JSON.stringify(path)}=${JSON.stringify(after)}`;
+	`${pathKey(path)}=${JSON.stringify(after)}`;
 
 /**
  * Adds edits, replacing any existing edit at the same path.

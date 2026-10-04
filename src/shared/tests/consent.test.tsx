@@ -1,3 +1,4 @@
+import { axeFragmentOptions } from "./axe-fragment";
 import "./happy-dom";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { MantineProvider } from "@mantine/core";
@@ -28,21 +29,6 @@ const banner = (container: HTMLElement) =>
 
 const bannerText = (container: HTMLElement) =>
 	banner(container)?.textContent ?? "";
-
-/**
- * Same exemptions as the shared component suite: page-level rules that cannot
- * hold for a fragment rendered into a headless DOM.
- */
-const DISABLED_RULES = [
-	"color-contrast",
-	"page-has-heading-one",
-	"landmark-one-main",
-	"region",
-	"html-has-lang",
-	"document-title",
-	"bypass",
-	"meta-viewport",
-];
 
 describe("consent banner", () => {
 	test("prompts until the visitor has answered", () => {
@@ -93,9 +79,7 @@ describe("consent banner", () => {
 	test("has no detectable accessibility violations", async () => {
 		const { container } = render(provider(<ConsentBanner />));
 		const results = await axe.run(container, {
-			rules: Object.fromEntries(
-				DISABLED_RULES.map((id) => [id, { enabled: false }]),
-			),
+			rules: axeFragmentOptions().rules,
 		});
 		const summary = results.violations.map(
 			(violation) =>

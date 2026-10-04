@@ -79,6 +79,7 @@ import {
 	zlibDeflate,
 	zlibInflate,
 } from "../../shared";
+import { editId } from "../../shared/save/edits";
 import {
 	ARRAY_ELEMENT,
 	childGroups,
@@ -447,7 +448,7 @@ const setExisting = (
 	if (before === after) return [];
 	return [
 		{
-			id: `${JSON.stringify(target)}=${JSON.stringify(after)}`,
+			id: editId(target, after),
 			label: target.join("."),
 			path: target,
 			before: typeof before === "string" ? before : null,
