@@ -2,7 +2,7 @@
 	"id": "/deadly-days-roadtrip-save-editor/",
 	"name": "Deadly Days Roadtrip Save Editor",
 	"short_name": "Deadly Days",
-	"description": "Parse Deadly Days' Unreal Engine 5 GVAS save in the browser \u2014 currencies, upgrade levels and character progress, verified before download.",
+	"description": "Parse Deadly Days' Unreal Engine 5 GVAS save in the browser — currencies, upgrade levels and character progress, verified before download.",
 	"start_url": "/deadly-days-roadtrip-save-editor/",
 	"scope": "/deadly-days-roadtrip-save-editor/",
 	"display": "standalone",

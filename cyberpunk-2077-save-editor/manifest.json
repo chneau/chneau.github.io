@@ -2,7 +2,7 @@
 	"id": "/cyberpunk-2077-save-editor/",
 	"name": "Cyberpunk 2077 Save Editor",
 	"short_name": "Cyberpunk",
-	"description": "Decode Cyberpunk 2077's VASC container and REDengine node tree \u2014 attributes, skills and Street Cred, without WolvenKit or a command line.",
+	"description": "Decode Cyberpunk 2077's VASC container and REDengine node tree — attributes, skills and Street Cred, without WolvenKit or a command line.",
 	"start_url": "/cyberpunk-2077-save-editor/",
 	"scope": "/cyberpunk-2077-save-editor/",
 	"display": "standalone",

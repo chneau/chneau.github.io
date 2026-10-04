@@ -2,7 +2,7 @@
 	"id": "/design/",
 	"name": "Design System",
 	"short_name": "Design",
-	"description": "The shared design tokens and components behind chneau.github.io.",
+	"description": "The shared tokens, components and patterns behind every app on this site.",
 	"start_url": "/design/",
 	"scope": "/design/",
 	"display": "standalone",
