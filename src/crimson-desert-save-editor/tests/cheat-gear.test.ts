@@ -312,38 +312,47 @@ describe("the cheat set against a save that is not empty", () => {
 		ENDGAME_TIMEOUT,
 	);
 
-	test("pressing the button twice stages the set once", async () => {
-		// The drawer appends, so a second press used to stack a second copy of
-		// every equipment edit — and the first duplicate was enough to abort the
-		// download. Pressing again now stages nothing, and says why.
-		const save = fixture("save.save");
-		const first = await pressCheatSet(save, [], STORAGE);
-		expect(first.planned.length).toBe(cheatGearSet.length);
-		expect(first.skipped).toEqual([]);
+	test(
+		"pressing the button twice stages the set once",
+		async () => {
+			// The drawer appends, so a second press used to stack a second copy of
+			// every equipment edit — and the first duplicate was enough to abort the
+			// download. Pressing again now stages nothing, and says why.
+			const save = fixture("save.save");
+			const first = await pressCheatSet(save, [], STORAGE);
+			expect(first.planned.length).toBe(cheatGearSet.length);
+			expect(first.skipped).toEqual([]);
 
-		const second = await pressCheatSet(save, first.planned, STORAGE);
-		expect(second.planned, "a second press adds nothing").toEqual(
-			first.planned,
-		);
-		expect(second.skipped).toHaveLength(cheatGearSet.length);
-		for (const skip of second.skipped) {
-			expect(skip.wasStaged, `${skip.label} was already staged`).toBe(true);
-			expect(skip.existing).toBe(false);
-			expect(skip.reason).toBe("already staged for Character Inventory");
-		}
-		// No item key is staged twice, which is what the engine refuses.
-		const keys = insertedKeys(first.planned);
-		expect(new Set(keys).size).toBe(keys.length);
+			const second = await pressCheatSet(save, first.planned, STORAGE);
+			expect(second.planned, "a second press adds nothing").toEqual(
+				first.planned,
+			);
+			expect(second.skipped).toHaveLength(cheatGearSet.length);
+			for (const skip of second.skipped) {
+				expect(skip.wasStaged, `${skip.label} was already staged`).toBe(true);
+				expect(skip.existing).toBe(false);
+				expect(skip.reason).toBe("already staged for Character Inventory");
+			}
+			// No item key is staged twice, which is what the engine refuses.
+			const keys = insertedKeys(first.planned);
+			expect(new Set(keys).size).toBe(keys.length);
 
-		// And the single copy of the set really does apply.
-		const before = await describeInventory(await opened(save));
-		const after = await describeInventory(
-			await opened(await apply(save, first.planned)),
-		);
-		expect(after.records.length).toBe(
-			before.records.length + first.planned.length,
-		);
-	});
+			// And the single copy of the set really does apply.
+			const before = await describeInventory(await opened(save));
+			const after = await describeInventory(
+				await opened(await apply(save, first.planned)),
+			);
+			expect(after.records.length).toBe(
+				before.records.length + first.planned.length,
+			);
+			// This test decrypts and re-encodes `save.save` five times over (two
+			// cheat-set plans, an open, an apply and another open), so it sat right
+			// on Bun's default 5s timeout: it passed alone at ~2.5s and failed in a
+			// full run at 5000.08ms. The sibling tests above already carry this
+			// budget for the same reason.
+		},
+		ENDGAME_TIMEOUT,
+	);
 
 	test("an item staged by hand is not queued a second time either", async () => {
 		// The staged guard counts every insertion family, so a record the user

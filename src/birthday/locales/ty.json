@@ -102,6 +102,17 @@
 			"export_one": "E hoʻokuina i ke kanaka okina",
 			"hosted_hint": "Ua hoʻokomo nā hoʻokuina i nā mea āu i hoʻokui a hoʻolola ai. Hoʻohana nā kau hoʻokuina i ka faila i hoʻokauʻia ʻia, ʻaʻole e pana hou ʻole inā e hoʻopuildia hou ke pūna."
 		},
+		"command": {
+			"switch_light": "Huri i te taura mārama",
+			"switch_dark": "Huri i te taura po’iri",
+			"appearance": "Te ātea",
+			"keyboard_shortcuts": "Nā hōʻitiʻo papapē",
+			"help": "Āparau",
+			"go_to": "Haere i {{tab}}",
+			"tab": "Ite",
+			"search_filters": "Te puruhara me te tātai",
+			"focus_search": "Hoʻotia i te puruhara"
+		},
 		"header": {
 			"install": "Tāmi",
 			"test_notification": "Tāmatara’a",
@@ -122,7 +133,8 @@
 			"notify_not_enabled": "Ua ore te fa’ohi i te parau",
 			"notify_blocked": "Ua parahi te parau i nga tauira te hurihuri",
 			"notify_simulated": "Ua fa’ahō’ē te tiara",
-			"notify_test_sent": "Ua hapa te parau o te"
+			"notify_test_sent": "Ua hapa te parau o te",
+			"build": "I tiku i te {{date}}"
 		},
 		"countdown": {
 			"next_celebration": "Fa'ahanahana i muri nei : {{name}} ({{kind}})",
@@ -252,6 +264,11 @@
 			"reset": "Hoki i te laha",
 			"empty_title": "Aita e tautohi",
 			"empty_body": "Aita e parahi i te pāmi e te laha o teie."
+		},
+		"error": {
+			"section": "He wahi tēnei",
+			"could_not_render": "Ua hapa te whakaatu.",
+			"reload_section": "Te anu"
 		},
 		"on_this_day_error": "Ua fa'āpō te toru i nga tapao",
 		"loading": "E uta'a ana te nūmera",

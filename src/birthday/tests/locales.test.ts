@@ -142,6 +142,7 @@ describe("locale files", () => {
 					"manage.col_name": "de - 'Name' is the German word",
 					"table.name": "de - 'Name' is the German word",
 					"table.in": "de - 'in' is the German word",
+					"app.command.tab": "de - 'Tab' is the German word for a tab",
 					"biorhythms.emotional": "de - 'emotional' is the German word",
 				};
 				const untranslated = [...target]

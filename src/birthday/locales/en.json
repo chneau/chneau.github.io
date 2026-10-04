@@ -102,6 +102,17 @@
 			"export_one": "Export One Person",
 			"hosted_hint": "Downloads include your own additions and edits. Subscribing uses the hosted file, which only updates when the site is rebuilt."
 		},
+		"command": {
+			"switch_light": "Switch to light mode",
+			"switch_dark": "Switch to dark mode",
+			"appearance": "Appearance",
+			"keyboard_shortcuts": "Keyboard shortcuts",
+			"help": "Help",
+			"go_to": "Go to {{tab}}",
+			"tab": "Tab",
+			"search_filters": "Search and filters",
+			"focus_search": "Focus the search box"
+		},
 		"header": {
 			"install": "Install",
 			"test_notification": "Test Notification",
@@ -122,7 +133,8 @@
 			"notify_not_enabled": "Notifications were not enabled",
 			"notify_blocked": "Notifications are blocked in your browser settings",
 			"notify_simulated": "Birthday simulated",
-			"notify_test_sent": "Test notification sent"
+			"notify_test_sent": "Test notification sent",
+			"build": "Build {{date}}"
 		},
 		"countdown": {
 			"next_celebration": "Next Celebration: {{name}} ({{kind}})",
@@ -252,6 +264,11 @@
 			"reset": "Reset filters",
 			"empty_title": "Nothing matches",
 			"empty_body": "No records match the current search and filters."
+		},
+		"error": {
+			"section": "This section",
+			"could_not_render": "could not be rendered.",
+			"reload_section": "Reload"
 		},
 		"on_this_day_error": "Couldn't load events",
 		"loading": "Loading insights",

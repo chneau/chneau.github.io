@@ -177,21 +177,13 @@ export const App = () => {
 		},
 	];
 
-	// TEMPORARY: the keys below are not in `locales/en.json` yet, so the typed
-	// `t()` (whose key union is derived from that file) rejects them. Delete this
-	// helper once the locale JSONs gain the keys.
-	const tr = t as unknown as (
-		key: string,
-		opts?: Record<string, unknown>,
-	) => string;
-
 	const commands: Command[] = [
 		{
 			id: "toggle-theme",
 			label: storeSnap.darkMode
-				? tr("app.command.switch_light")
-				: tr("app.command.switch_dark"),
-			hint: tr("app.command.appearance"),
+				? t("app.command.switch_light")
+				: t("app.command.switch_dark"),
+			hint: t("app.command.appearance"),
 			keywords: "theme dark light appearance mode toggle",
 			icon: storeSnap.darkMode ? <Sun size={16} /> : <Moon size={16} />,
 			run: () => {
@@ -200,16 +192,16 @@ export const App = () => {
 		},
 		{
 			id: "keyboard-shortcuts",
-			label: tr("app.command.keyboard_shortcuts"),
-			hint: tr("app.command.help"),
+			label: t("app.command.keyboard_shortcuts"),
+			hint: t("app.command.help"),
 			keywords: "keyboard shortcuts keys help",
 			icon: <Keyboard size={16} />,
 			run: () => shortcuts.open(),
 		},
 		...tabItems.map((item) => ({
 			id: `tab-${item.key}`,
-			label: tr("app.command.go_to", { tab: item.label }),
-			hint: tr("app.command.tab"),
+			label: t("app.command.go_to", { tab: item.label }),
+			hint: t("app.command.tab"),
 			keywords: `tab ${item.key}`,
 			icon: <LayoutGrid size={16} />,
 			run: () => setActiveTab(item.key),
@@ -233,9 +225,9 @@ export const App = () => {
 					onOpenManage={() => setManageOpen(true)}
 					shortcuts={[
 						{
-							title: tr("app.command.search_filters"),
+							title: t("app.command.search_filters"),
 							shortcuts: [
-								{ keys: ["/"], description: tr("app.command.focus_search") },
+								{ keys: ["/"], description: t("app.command.focus_search") },
 							],
 						},
 					]}
