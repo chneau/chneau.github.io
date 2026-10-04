@@ -28,8 +28,14 @@ CERIMAL writer, which does not exist.
 
 No fixture is shipped in the app directory yet. The suite that needs them lives
 outside the repository, so the byte-exactness proof is observed locally and does
-not run in CI. That is a real cost: the strongest claim this site makes about a
-save format is currently unproven by `bun test` on a fresh clone.
+not run anywhere else. That is a real cost: the strongest claim this site makes
+about a save format is currently unproven by `bun test` on a fresh clone.
+
+The skip is `describe.skipIf`, so it appears in the runner's output as a named
+skip rather than a silent pass — a reader can tell "unproven here" from
+"verified here". An earlier form of this suite returned early from inside the
+test body instead, which reported green with nothing asserted; that shape is
+what this note exists to prevent coming back.
 
 ## Options
 
@@ -38,15 +44,20 @@ save format is currently unproven by `bun test` on a fresh clone.
    that makes the proof permanent.
 2. **Ship no fixtures.** The page starts empty and a user supplies their own
    save. Costs the "explorable before you have a save" property, and the
-   byte-exactness suite keeps skipping in CI.
+   byte-exactness suite keeps skipping.
 3. **Scrub and commit.** Requires a CERIMAL writer to rewrite the payload, which
    is a substantially larger piece of work than the editor itself.
 
 ## Consequences
 
-Under option 2, `bun test src/no-rest-for-the-wicked-save-editor` in CI
-exercises only the synthetic cases. Any future contributor reading a green run
-must know that the eleven-file byte-exactness proof is not part of it.
+Under option 2, `bun test src/no-rest-for-the-wicked-save-editor` exercises only
+the synthetic cases. Any future contributor reading a green run must know that
+the eleven-file byte-exactness proof is not part of it — the runner prints it as
+a skip, and that line is the only place the fact is visible.
+
+There is also no CI in this repository any more (the workflow was removed), so
+"someone else's machine runs it" is not a mitigation here either. Option 1 is
+the only one that makes the proof permanent for everyone.
 
 Note the contrast with ADR-0006 in the Crimson Desert app, which took the
 opposite position — that app's fixtures are committed, and they are 4.2 MB

@@ -39,7 +39,7 @@
 		"all": "bun run --sequential --no-exit-on-error upgrade check",
 		"check:deno": "deno fmt --use-tabs --quiet",
 		"check:oxlint": "oxlint --fix-dangerously --fix-suggestions --fix --quiet",
-		"check:biome": "timeout 3s biome check --write --unsafe .",
+		"check:biome": "biome check --write --unsafe .",
 		"check:clean": "bun run clean",
 		"check:export": "ts-unused-exports tsconfig.json --ignoreFiles=rsbuild.config.ts",
 		"check:ci": "oxlint --quiet && biome check . && ts-unused-exports tsconfig.json --ignoreFiles=rsbuild.config.ts && tsc --noEmit"
