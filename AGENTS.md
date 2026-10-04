@@ -268,17 +268,26 @@ bun x react-doctor@latest   # the React gate: correctness, a11y, performance, ma
 
 - Target **0 errors, 0 warnings**, and `Score: 100 / 100` from `react-doctor`.
   `check` runs tsc (`bun run lint`), so `noUnusedLocals`, `noUnusedParameters`
-  and `noUncheckedIndexedAccess` are enforced; CI runs
-  `bun install --frozen-lockfile`, `bun run lint`, `bun run test`,
-  `bun run build`, so a forgotten lockfile update, a type error, a failing test
-  and a broken build are each a separate red.
+  and `noUncheckedIndexedAccess` are enforced.
+- **There is no CI.** The GitHub Actions workflow has been removed, so nothing
+  runs automatically on push or on a pull request. Every gate is run by hand,
+  and `bun run check` does **not** include `bun test` — which makes `bun test`
+  the step most easily forgotten, since a change can pass `check` with a red
+  suite sitting behind it. Before calling work finished:
+
+  ```bash
+  bun install --frozen-lockfile   # catches a forgotten lockfile update
+  bun run check                   # style, types, dead exports (rewrites files)
+  bun test                        # NOT part of `check`
+  bun run build                   # the real per-environment build
+  ```
 - **Two gates, neither optional, and neither a substitute for the other.**
   `check` is the style, typing and dead-code gate; `react-doctor` is the
   React-correctness gate, and this is a React 19 codebase, so a rule about a
   hook's dependencies, an effect that never re-runs, a re-render, an unstable
   callback or a missing key belongs to it. A change can pass one while failing
-  the other. `react-doctor` is invoked ad hoc rather than wired into `check` or
-  CI today — run it on anything touching a component before calling the work
+  the other. `react-doctor` is invoked ad hoc rather than wired into `check` —
+  run it on anything touching a component before calling the work
   finished.
 - **FORBIDDEN**: "fixing" a `react-doctor` finding by suppressing it. A
   `doctor.config.json`, a `reactDoctor` key in `package.json`, or an inline
