@@ -46,22 +46,39 @@ describe("buildHistogram", () => {
 	});
 });
 
+/**
+ * The real-data budget.
+ *
+ * `cache` is the whole 24 MB dataset and the test walks every item in it,
+ * building a histogram for each price series. It completes in ~3.9s on its own,
+ * which leaves almost nothing under Bun's 5s default once twelve `--parallel`
+ * workers are competing for the same cores — it failed at 5126ms. Same class as
+ * the `cheat-gear` timeouts: real work, real budget, stated rather than implied.
+ */
+const REAL_DATA_TIMEOUT = 30_000;
+
 describe("buildHistogram on real pub prices", () => {
-	test("no real item collapses to zero bins", () => {
-		const names = Object.keys(cache.items);
-		let checked = 0;
-		for (const name of names) {
-			const prices = pricesOf(name);
-			if (!prices.length) {
-				continue;
+	test(
+		"no real item collapses to zero bins",
+		() => {
+			const names = Object.keys(cache.items);
+			let checked = 0;
+			for (const name of names) {
+				const prices = pricesOf(name);
+				if (!prices.length) {
+					continue;
+				}
+				checked += 1;
+				const bins = buildHistogram(prices);
+				expect(bins.length).toBeGreaterThan(0);
+				expect(bins.reduce((sum, bin) => sum + bin.count, 0)).toBe(
+					prices.length,
+				);
 			}
-			checked += 1;
-			const bins = buildHistogram(prices);
-			expect(bins.length).toBeGreaterThan(0);
-			expect(bins.reduce((sum, bin) => sum + bin.count, 0)).toBe(prices.length);
-		}
-		expect(checked).toBeGreaterThan(100);
-	});
+			expect(checked).toBeGreaterThan(100);
+		},
+		REAL_DATA_TIMEOUT,
+	);
 
 	// The three items the defect report named: all-£3/£3.50 prices, i.e.
 	// min === max after rounding to half pounds.
