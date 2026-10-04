@@ -185,7 +185,7 @@ bun run start:tails-of-iron-2-save-editor
 ### Testing & Verification
 
 ```bash
-bun test         # The whole suite (~1450 tests). Not run by `bun run check` — CI runs it.
+bun test         # The whole suite (~1450 tests). Not run by `bun run check` — nothing runs it for you.
 bun run check    # Deno fmt, Oxlint, Biome, unused-export check, and tsc. Rewrites files.
 ```
 
