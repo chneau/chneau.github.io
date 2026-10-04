@@ -1,5 +1,4 @@
 import { Menu, Tooltip } from "@mantine/core";
-import dayjs from "dayjs";
 import {
 	Bell,
 	Cake,
@@ -213,7 +212,6 @@ export const AppHeader = ({
 										rightSection={isCurrent ? <Check size={14} /> : undefined}
 										onClick={() => {
 											i18n.changeLanguage(x.key);
-											dayjs.locale(x.key);
 										}}
 									>
 										{x.label}

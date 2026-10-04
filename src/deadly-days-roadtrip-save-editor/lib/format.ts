@@ -31,14 +31,18 @@
  * highest this save already holds, which is where the number comes from.
  */
 import {
+	arrayAt,
 	editId,
-	isJsonObject,
+	indexOfBytes,
 	type JsonValue,
+	numberAt,
+	objectAt,
 	type QuickAction,
 	type SaveCodec,
 	type SaveEdit,
 	type SavePath,
 	type SummaryRow,
+	stringAt,
 } from "../../shared";
 import { gvasOf, readGvas, writeGvas } from "./gvas";
 
@@ -46,44 +50,10 @@ import { gvasOf, readGvas, writeGvas } from "./gvas";
 /* Reading a document without pretending it is a typed one                    */
 /* -------------------------------------------------------------------------- */
 
-/**
- * `summarise` and `plan` receive a `JsonValue`, because that is all the
- * workbench contract promises, and casting that to a `GvasSave` would silence
- * the one thing worth checking — that the document really is the save this codec
- * decoded. These readers walk it defensively instead, so every path they build
- * is a path that is known to exist.
- */
-const objectAt = (
-	value: JsonValue | undefined,
-	key: string,
-): JsonValue | undefined => {
-	if (value === undefined) return undefined;
-	return isJsonObject(value) ? value[key] : undefined;
-};
-
-const arrayAt = (
-	value: JsonValue | undefined,
-	key: string,
-): readonly JsonValue[] | undefined => {
-	const found = objectAt(value, key);
-	return Array.isArray(found) ? found : undefined;
-};
-
-const numberAt = (
-	value: JsonValue | undefined,
-	key: string,
-): number | undefined => {
-	const found = objectAt(value, key);
-	return typeof found === "number" ? found : undefined;
-};
-
-const stringAt = (
-	value: JsonValue | undefined,
-	key: string,
-): string | undefined => {
-	const found = objectAt(value, key);
-	return typeof found === "string" ? found : undefined;
-};
+// `objectAt`/`arrayAt`/`numberAt`/`stringAt` are the shared readers
+// (`shared/save/json.ts`): each codec had its own copy, and these are the ones
+// they now share. See `findProperty` and the `Found` type below for how this
+// codec uses them to build paths it knows exist.
 
 /** A value found in the document, with the path that reaches it. */
 type Found = { readonly value: JsonValue; readonly path: SavePath };
@@ -263,35 +233,30 @@ const rawCurrencyAmount = (
 	if (!data) return undefined;
 	const items = arrayAt(data.value, "items");
 	if (!items) return undefined;
-	const bytes: number[] = [];
+	const collected: number[] = [];
 	for (const item of items) {
 		if (stringAt(item, "kind") !== "byte") return undefined;
 		const byte = numberAt(item, "value");
 		if (byte === undefined) return undefined;
-		bytes.push(byte);
+		collected.push(byte);
 	}
-	const name = indexOfBytes(bytes, [...encoder.encode("CurrencyAmount\u0000")]);
+	const bytes = Uint8Array.from(collected);
+	const name = indexOfBytes(bytes, encoder.encode("CurrencyAmount\u0000"));
 	if (name < 0) return undefined;
 	const type = indexOfBytes(
 		bytes,
-		[...encoder.encode("IntProperty\u0000")],
+		encoder.encode("IntProperty\u0000"),
 		name + CURRENCY_NAME_LENGTH,
 	);
 	if (type < 0) return undefined;
 	const at = type + INT_PROPERTY_LENGTH + CURRENCY_TAG_LENGTH;
 	if (at + 3 >= bytes.length) return undefined;
-	const view = new DataView(new ArrayBuffer(4));
-	for (const [offset, byte] of [
-		bytes[at],
-		bytes[at + 1],
-		bytes[at + 2],
-		bytes[at + 3],
-	].entries()) {
-		view.setUint8(offset, byte ?? 0);
-	}
 	return {
 		path: [...data.path, "items", at, "value"],
-		value: view.getInt32(0, true),
+		value: new DataView(bytes.buffer, bytes.byteOffset + at, 4).getInt32(
+			0,
+			true,
+		),
 	};
 };
 
@@ -306,25 +271,6 @@ const INT_PROPERTY_LENGTH = 12;
  * `int32` array index, the `int32` size and the one-byte `hasGuid` flag.
  */
 const CURRENCY_TAG_LENGTH = 9;
-
-/** The first index of `needle` in `haystack` at or after `from`, or −1. */
-const indexOfBytes = (
-	haystack: readonly number[],
-	needle: readonly number[],
-	from = 0,
-): number => {
-	for (let at = from; at <= haystack.length - needle.length; at += 1) {
-		let hit = true;
-		for (let offset = 0; offset < needle.length; offset += 1) {
-			if (haystack[at + offset] !== needle[offset]) {
-				hit = false;
-				break;
-			}
-		}
-		if (hit) return at;
-	}
-	return -1;
-};
 
 /* -------------------------------------------------------------------------- */
 /* Character meta levels                                                       */

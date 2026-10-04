@@ -1,10 +1,6 @@
 /**
- * Turn anything that was thrown into the message the UI shows.
- *
- * The engine throws `Error`s everywhere, but a `catch` still binds `unknown`:
- * a rejected promise can carry a string or an object just as easily. Every
- * boundary that reports a failure back to the page goes through here, so the
- * fallback wording stays identical across parse, edit and companion paths.
+ * `describeError` now lives in `shared/save/errors.ts`, because the shared
+ * round-trip proof and compression path needed the same wording. Re-exported
+ * here so the Crimson engine's own modules keep importing it from './errors'.
  */
-export const describeError = (error: unknown): string =>
-	error instanceof Error ? error.message : String(error);
+export { describeError } from "../../../shared/save/errors";

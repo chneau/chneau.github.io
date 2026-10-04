@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { EmptyState } from "../shared";
 import type { Birthday } from "./birthdays";
 import { getCompatibilityScore, getScoreColor } from "./compatibility";
-import { dataStore, store } from "./store";
+import { dataStore, resetFilters } from "./store";
 
 type CompatibilityMatrixProps = {
 	data: readonly Birthday[];
@@ -42,10 +42,7 @@ export const CompatibilityMatrix = ({ data }: CompatibilityMatrixProps) => {
 	const people = useMemo(() => data.filter((x) => x.kind !== "💒"), [data]);
 
 	const handleResetFilters = () => {
-		store.search = "";
-		store.showBoys = true;
-		store.showGirls = true;
-		store.showWeddings = false;
+		resetFilters();
 	};
 
 	if (people.length === 0) {

@@ -2,7 +2,7 @@
 	"id": "/spooners/",
 	"name": "Spooners",
 	"short_name": "Spooners",
-	"description": "See what every pub charges for the same drink or dish — a searchable price map.",
+	"description": "See what every pub charges for the same drink or dish — searchable map, cheapest-to-dearest rankings and price distribution charts.",
 	"start_url": "/spooners/",
 	"scope": "/spooners/",
 	"display": "standalone",

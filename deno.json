@@ -1,5 +1,9 @@
 {
 	"fmt": {
-		"exclude": ["src/spooners/data"]
+		"exclude": [
+			"src/spooners/data",
+			"src/crimson-desert-save-editor/lib/generated",
+			"src/crimson-desert-save-editor/assets/image-archive"
+		]
 	}
 }

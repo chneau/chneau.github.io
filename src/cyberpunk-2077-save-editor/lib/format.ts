@@ -48,6 +48,7 @@ import {
 	formatBytes,
 	isJsonObject,
 	type JsonValue,
+	objectAt,
 	type QuickAction,
 	type SaveCodec,
 	type SaveEdit,
@@ -157,24 +158,6 @@ type DecodedParts = {
 	readonly bytes: number;
 	readonly ps4w: boolean;
 	readonly character: CharacterSection;
-};
-
-/**
- * The object at `key`, or `undefined`.
- *
- * `isJsonObject` takes a `JsonValue`, and an indexed read of an object is
- * `JsonValue | undefined` under `noUncheckedIndexedAccess` — which is the honest
- * type, because the key may be absent. Narrowing it here once means every
- * read of this document says what it means, rather than each caller inventing a
- * cast or a truthiness test. A missing key and a non-object are the same thing
- * to a decoder: this document is not shaped the way this codec wrote it.
- */
-const objectAt = (
-	source: { readonly [key: string]: JsonValue },
-	key: string,
-): { readonly [key: string]: JsonValue } | undefined => {
-	const value = source[key];
-	return value !== undefined && isJsonObject(value) ? value : undefined;
 };
 
 /**

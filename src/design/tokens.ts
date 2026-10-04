@@ -188,16 +188,23 @@ const readLiveTokens = (): Record<string, string> => {
 /**
  * Snapshot of the design tokens for the active scheme: the declared light and
  * dark layers plus the current live computed values (used for the drift check).
- * Re-reads whenever the scheme changes.
+ *
+ * The live values are read from the document — `getComputedStyle` on `<html>`,
+ * where the scheme is mirrored as `data-theme` / `data-mantine-color-scheme` —
+ * and every colour token carries a distinct dark-layer value, so the sample is
+ * scheme-dependent. The effect therefore depends on `scheme` and re-reads when
+ * it changes; keyed to mount alone it would hold the first scheme's values and
+ * the drift check would compare the wrong column after a toggle. `scheme` is
+ * used only to time that re-read.
  */
-export const useTokenSnapshot = (_scheme: "light" | "dark") => {
+export const useTokenSnapshot = (scheme: "light" | "dark") => {
 	const [layers, setLayers] = useState<TokenLayers>({ light: {}, dark: {} });
 	const [live, setLive] = useState<Record<string, string>>({});
 
 	useEffect(() => {
 		setLayers(readTokenLayers());
 		setLive(readLiveTokens());
-	}, []);
+	}, [scheme]);
 
 	return { layers, live };
 };

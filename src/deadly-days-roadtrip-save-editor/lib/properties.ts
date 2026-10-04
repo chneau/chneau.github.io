@@ -65,8 +65,13 @@
 import {
 	ByteReader,
 	ByteWriter,
+	fromHex,
 	isJsonObject,
 	type JsonValue,
+	requireArrayAt,
+	requireNumberAt,
+	requireStringAt,
+	toHex,
 	utf16leBytes,
 } from "../../shared";
 
@@ -148,24 +153,9 @@ export class UnrealWriter extends ByteWriter {
 /* Hex, for the byte runs this codec keeps verbatim                            */
 /* -------------------------------------------------------------------------- */
 
-/** Lower-case hex. Used for GUIDs, opaque payloads and trailing bytes. */
-const toHex = (bytes: Uint8Array): string => {
-	let out = "";
-	for (const byte of bytes) out += byte.toString(16).padStart(2, "0");
-	return out;
-};
-
-/** The inverse of `toHex`; throws rather than truncating on a bad digit. */
-const fromHex = (hex: string, what = "hex payload"): Uint8Array => {
-	if (hex.length % 2 !== 0 || !/^[0-9a-fA-F]*$/.test(hex)) {
-		throw new Error(`${what} is not an even-length run of hex digits.`);
-	}
-	const out = new Uint8Array(hex.length / 2);
-	for (let index = 0; index < out.length; index += 1) {
-		out[index] = Number.parseInt(hex.slice(index * 2, index * 2 + 2), 16);
-	}
-	return out;
-};
+// `toHex`/`fromHex` are the shared ones (`shared/save/bytes.ts`), so this codec
+// no longer keeps its own copy. `fromHex` validates — an odd-length or
+// non-hex string is refused rather than silently truncated to `NaN` bytes.
 
 /* -------------------------------------------------------------------------- */
 /* GUIDs                                                                       */
@@ -1257,22 +1247,6 @@ const field = (value: JsonValue, key: string): JsonValue => {
 	return found;
 };
 
-const numberField = (value: JsonValue, key: string): number => {
-	const found = field(value, key);
-	if (typeof found !== "number" || !Number.isFinite(found)) {
-		throw new Error(`"${key}" must be a finite number.`);
-	}
-	return found;
-};
-
-const stringField = (value: JsonValue, key: string): string => {
-	const found = field(value, key);
-	if (typeof found !== "string") {
-		throw new Error(`"${key}" must be a string.`);
-	}
-	return found;
-};
-
 const nullableStringField = (value: JsonValue, key: string): string | null => {
 	const found = field(value, key);
 	if (found === null) return null;
@@ -1285,25 +1259,17 @@ const nullableStringField = (value: JsonValue, key: string): string | null => {
 const guidField = (value: JsonValue, key: string): Guid | null =>
 	nullableStringField(value, key);
 
-const listField = (value: JsonValue, key: string): readonly JsonValue[] => {
-	const found = field(value, key);
-	if (!Array.isArray(found)) {
-		throw new Error(`"${key}" must be an array.`);
-	}
-	return found;
-};
-
 const softObjectOf = (value: JsonValue): SoftObject => ({
-	path: stringField(value, "path"),
-	subPath: stringField(value, "subPath"),
-	instanceIndex: numberField(value, "instanceIndex"),
+	path: requireStringAt(value, "path"),
+	subPath: requireStringAt(value, "subPath"),
+	instanceIndex: requireNumberAt(value, "instanceIndex"),
 });
 
 const structRefOf = (value: JsonValue): StructRef => ({
-	structType: stringField(value, "structType"),
-	structTypeIndex: numberField(value, "structTypeIndex"),
-	packageName: stringField(value, "packageName"),
-	packageNameIndex: numberField(value, "packageNameIndex"),
+	structType: requireStringAt(value, "structType"),
+	structTypeIndex: requireNumberAt(value, "structTypeIndex"),
+	packageName: requireStringAt(value, "packageName"),
+	packageNameIndex: requireNumberAt(value, "packageNameIndex"),
 });
 
 /** A `StructRef` slot, which is `null` when the type is not a struct. */
@@ -1316,15 +1282,15 @@ const nullableStructRefOf = (
 };
 
 const structFieldsOf = (value: JsonValue): StructFields => {
-	const kind = stringField(value, "kind");
+	const kind = requireStringAt(value, "kind");
 	if (kind === "ticks") {
-		return { kind: "ticks", ticks: stringField(value, "ticks") };
+		return { kind: "ticks", ticks: requireStringAt(value, "ticks") };
 	}
 	if (kind === "guid") {
 		return {
 			kind: "guid",
-			prefix: numberField(value, "prefix"),
-			guid: stringField(value, "guid"),
+			prefix: requireNumberAt(value, "prefix"),
+			guid: requireStringAt(value, "guid"),
 		};
 	}
 	if (kind === "properties") {
@@ -1334,16 +1300,16 @@ const structFieldsOf = (value: JsonValue): StructFields => {
 };
 
 const mapElementOf = (value: JsonValue): MapElement => {
-	const kind = stringField(value, "kind");
+	const kind = requireStringAt(value, "kind");
 	switch (kind) {
 		case "string":
-			return { kind: "string", value: stringField(value, "value") };
+			return { kind: "string", value: requireStringAt(value, "value") };
 		case "int":
-			return { kind: "int", value: numberField(value, "value") };
+			return { kind: "int", value: requireNumberAt(value, "value") };
 		case "int64":
-			return { kind: "int64", value: stringField(value, "value") };
+			return { kind: "int64", value: requireStringAt(value, "value") };
 		case "float":
-			return { kind: "float", value: numberField(value, "value") };
+			return { kind: "float", value: requireNumberAt(value, "value") };
 		case "softObject":
 			return {
 				kind: "softObject",
@@ -1357,14 +1323,14 @@ const mapElementOf = (value: JsonValue): MapElement => {
 };
 
 const arrayItemOf = (value: JsonValue): ArrayItem => {
-	const kind = stringField(value, "kind");
+	const kind = requireStringAt(value, "kind");
 	switch (kind) {
 		case "byte":
-			return { kind: "byte", value: numberField(value, "value") };
+			return { kind: "byte", value: requireNumberAt(value, "value") };
 		case "int":
-			return { kind: "int", value: numberField(value, "value") };
+			return { kind: "int", value: requireNumberAt(value, "value") };
 		case "string":
-			return { kind: "string", value: stringField(value, "value") };
+			return { kind: "string", value: requireStringAt(value, "value") };
 		case "softObject":
 			return {
 				kind: "softObject",
@@ -1380,14 +1346,14 @@ const arrayItemOf = (value: JsonValue): ArrayItem => {
 };
 
 const propertyListOf = (value: JsonValue): PropertyList => ({
-	properties: listField(value, "properties").map(propertyTagOf),
-	trailing: stringField(value, "trailing"),
+	properties: requireArrayAt(value, "properties").map(propertyTagOf),
+	trailing: requireStringAt(value, "trailing"),
 });
 
 const blobOf = (value: JsonValue): PropertyBlob => ({
-	version: numberField(value, "version"),
-	properties: listField(value, "properties").map(propertyTagOf),
-	trailing: stringField(value, "trailing"),
+	version: requireNumberAt(value, "version"),
+	properties: requireArrayAt(value, "properties").map(propertyTagOf),
+	trailing: requireStringAt(value, "trailing"),
 });
 
 /**
@@ -1401,35 +1367,35 @@ const blobOf = (value: JsonValue): PropertyBlob => ({
  * rejects.
  */
 const propertyValueOf = (value: JsonValue): PropertyValue => {
-	const type = stringField(value, "type");
+	const type = requireStringAt(value, "type");
 	switch (type) {
 		case "BoolProperty":
 		case "ByteProperty":
-			return { type, value: numberField(value, "value") };
+			return { type, value: requireNumberAt(value, "value") };
 		case "IntProperty":
 			return {
 				type,
-				value: numberField(value, "value"),
+				value: requireNumberAt(value, "value"),
 				guid: guidField(value, "guid"),
 			};
 		case "Int64Property":
 			return {
 				type,
-				value: stringField(value, "value"),
+				value: requireStringAt(value, "value"),
 				guid: guidField(value, "guid"),
 			};
 		case "FloatProperty":
 		case "DoubleProperty":
 			return {
 				type,
-				value: numberField(value, "value"),
+				value: requireNumberAt(value, "value"),
 				guid: guidField(value, "guid"),
 			};
 		case "StrProperty":
 		case "NameProperty":
 			return {
 				type,
-				value: stringField(value, "value"),
+				value: requireStringAt(value, "value"),
 				guid: guidField(value, "guid"),
 			};
 		case "SoftObjectProperty":
@@ -1441,47 +1407,47 @@ const propertyValueOf = (value: JsonValue): PropertyValue => {
 		case "OpaqueProperty":
 			return {
 				type,
-				declaredType: stringField(value, "declaredType"),
-				hex: stringField(value, "hex"),
+				declaredType: requireStringAt(value, "declaredType"),
+				hex: requireStringAt(value, "hex"),
 				guid: guidField(value, "guid"),
 			};
 		case "EnumProperty": {
 			const name = nullableStringField(value, "name");
 			return {
 				type,
-				enumType: stringField(value, "enumType"),
-				enumTypeIndex: numberField(value, "enumTypeIndex"),
-				packageName: stringField(value, "packageName"),
-				packageNameIndex: numberField(value, "packageNameIndex"),
-				underlyingType: stringField(value, "underlyingType"),
-				underlyingTypeIndex: numberField(value, "underlyingTypeIndex"),
+				enumType: requireStringAt(value, "enumType"),
+				enumTypeIndex: requireNumberAt(value, "enumTypeIndex"),
+				packageName: requireStringAt(value, "packageName"),
+				packageNameIndex: requireNumberAt(value, "packageNameIndex"),
+				underlyingType: requireStringAt(value, "underlyingType"),
+				underlyingTypeIndex: requireNumberAt(value, "underlyingTypeIndex"),
 				name,
-				value: numberField(value, "value"),
+				value: requireNumberAt(value, "value"),
 				guid: guidField(value, "guid"),
 			};
 		}
 		case "StructProperty":
 			return {
 				type,
-				structType: stringField(value, "structType"),
-				structTypeIndex: numberField(value, "structTypeIndex"),
-				packageName: stringField(value, "packageName"),
-				packageNameIndex: numberField(value, "packageNameIndex"),
+				structType: requireStringAt(value, "structType"),
+				structTypeIndex: requireNumberAt(value, "structTypeIndex"),
+				packageName: requireStringAt(value, "packageName"),
+				packageNameIndex: requireNumberAt(value, "packageNameIndex"),
 				guid: guidField(value, "guid"),
 				fields: structFieldsOf(field(value, "fields")),
 			};
 		case "MapProperty":
 			return {
 				type,
-				keyType: stringField(value, "keyType"),
-				keyTypeIndex: numberField(value, "keyTypeIndex"),
+				keyType: requireStringAt(value, "keyType"),
+				keyTypeIndex: requireNumberAt(value, "keyTypeIndex"),
 				keyStruct: nullableStructRefOf(value, "keyStruct"),
-				valueType: stringField(value, "valueType"),
-				valueTypeIndex: numberField(value, "valueTypeIndex"),
+				valueType: requireStringAt(value, "valueType"),
+				valueTypeIndex: requireNumberAt(value, "valueTypeIndex"),
 				valueStruct: nullableStructRefOf(value, "valueStruct"),
 				guid: guidField(value, "guid"),
-				keysToRemove: numberField(value, "keysToRemove"),
-				entries: listField(value, "entries").map((entry) => ({
+				keysToRemove: requireNumberAt(value, "keysToRemove"),
+				entries: requireArrayAt(value, "entries").map((entry) => ({
 					key: mapElementOf(field(entry, "key")),
 					value: mapElementOf(field(entry, "value")),
 				})),
@@ -1489,11 +1455,11 @@ const propertyValueOf = (value: JsonValue): PropertyValue => {
 		case "ArrayProperty":
 			return {
 				type,
-				itemType: stringField(value, "itemType"),
-				itemTypeIndex: numberField(value, "itemTypeIndex"),
+				itemType: requireStringAt(value, "itemType"),
+				itemTypeIndex: requireNumberAt(value, "itemTypeIndex"),
 				struct: nullableStructRefOf(value, "struct"),
 				elementGuid: guidField(value, "elementGuid"),
-				items: listField(value, "items").map(arrayItemOf),
+				items: requireArrayAt(value, "items").map(arrayItemOf),
 			};
 		default:
 			throw new Error(`"${type}" is not a property type this codec knows.`);
@@ -1501,7 +1467,7 @@ const propertyValueOf = (value: JsonValue): PropertyValue => {
 };
 
 export const propertyTagOf = (value: JsonValue): PropertyTag => ({
-	name: stringField(value, "name"),
-	arrayIndex: numberField(value, "arrayIndex"),
+	name: requireStringAt(value, "name"),
+	arrayIndex: requireNumberAt(value, "arrayIndex"),
 	value: propertyValueOf(field(value, "value")),
 });

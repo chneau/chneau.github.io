@@ -16,9 +16,9 @@
 		"start:power-fantasy-save-editor": "rsbuild dev --environment power-fantasy-save-editor",
 		"start:tails-of-iron-2-save-editor": "rsbuild dev --environment tails-of-iron-2-save-editor",
 		"clean": "rm -rf dist out build",
-		"build": "bun run clean && bun run src/birthday/_genIcs.ts && rsbuild build && cp README.md dist/",
+		"build": "bun run clean && bun run src/birthday/_genIcs.ts && bun run src/shared/_genManifests.ts && rsbuild build && cp README.md dist/",
 		"build:cv": "bun run clean && rsbuild build --environment cv",
-		"build:birthday": "bun run clean && bun run src/birthday/_genIcs.ts && rsbuild build --environment birthday",
+		"build:birthday": "bun run clean && bun run src/birthday/_genIcs.ts && bun run src/shared/_genManifests.ts && rsbuild build --environment birthday",
 		"build:scotland-rail": "bun run clean && rsbuild build --environment scotland-rail",
 		"build:crimson-desert-save-editor": "bun run clean && rsbuild build --environment crimson-desert-save-editor",
 		"build:spooners": "bun run clean && rsbuild build --environment spooners",
@@ -29,11 +29,9 @@
 		"build:no-rest-for-the-wicked-save-editor": "bun run clean && rsbuild build --environment no-rest-for-the-wicked-save-editor",
 		"build:power-fantasy-save-editor": "bun run clean && rsbuild build --environment power-fantasy-save-editor",
 		"build:tails-of-iron-2-save-editor": "bun run clean && rsbuild build --environment tails-of-iron-2-save-editor",
-		"build:all": "bun run build",
 		"test": "bun test",
 		"test:crimson-desert-save-editor": "bun test src/crimson-desert-save-editor",
 		"deploy": "published=; trap '[ -n \"$published\" ] && rm -rf dist' EXIT; bun run build && gh-pages --dist dist --branch master && published=1",
-		"deploy:all": "bun run deploy",
 		"upgrade": "bun update --latest",
 		"check": "bun run --sequential check:clean check:deno check:oxlint check:biome check:export lint",
 		"check:fix": "bun run --sequential --no-exit-on-error check:deno check:oxlint check:biome",
@@ -43,7 +41,8 @@
 		"check:oxlint": "oxlint --fix-dangerously --fix-suggestions --fix --quiet",
 		"check:biome": "timeout 3s biome check --write --unsafe .",
 		"check:clean": "bun run clean",
-		"check:export": "ts-unused-exports tsconfig.json --ignoreFiles=rsbuild.config.ts"
+		"check:export": "ts-unused-exports tsconfig.json --ignoreFiles=rsbuild.config.ts",
+		"check:ci": "oxlint --quiet && biome check . && ts-unused-exports tsconfig.json --ignoreFiles=rsbuild.config.ts && tsc --noEmit"
 	},
 	"dependencies": {
 		"@mantine/charts": "9.6.2",

@@ -9,7 +9,7 @@ import type { TooltipContentProps } from "recharts";
 import { useSnapshot } from "valtio";
 import { EmptyState } from "../shared";
 import { type Birthday, monthNames } from "./birthdays";
-import { dataStore, store } from "./store";
+import { dataStore, resetFilters } from "./store";
 
 type Datum = {
 	type: string;
@@ -409,10 +409,7 @@ export const Statistics = () => {
 	}, [data, t, dayjsLocale]);
 
 	const handleResetFilters = () => {
-		store.search = "";
-		store.showBoys = true;
-		store.showGirls = true;
-		store.showWeddings = false;
+		resetFilters();
 	};
 
 	if (data.length === 0) {

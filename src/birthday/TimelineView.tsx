@@ -6,8 +6,9 @@ import { useCalendarDay } from "../hooks/useToday";
 import { EmptyState } from "../shared";
 import type { Birthday } from "./birthdays";
 import { getKindColor } from "./birthdays";
+import { formatDate } from "./dates";
 import { KindIcon, kindLabelKey } from "./KindIcon";
-import { dataStore, store } from "./store";
+import { dataStore, resetFilters } from "./store";
 
 /** How far out a celebration is, in order. Drives the group headings. */
 type BucketKey = "today" | "week" | "month" | "later";
@@ -40,24 +41,6 @@ export const groupByBucket = (people: readonly Birthday[]): Bucket[] =>
 		),
 	})).filter((bucket) => bucket.items.length > 0);
 
-/**
- * Locale-aware date formatter. `Intl` handles the per-language field order,
- * which `dayjs().format("D MMM")` cannot: it always puts the day number first,
- * even in locales that write the month first.
- */
-const localeDate = (
-	date: Date,
-	language: string,
-	options: Intl.DateTimeFormatOptions,
-	fallback: string,
-): string => {
-	try {
-		return new Intl.DateTimeFormat(language, options).format(date);
-	} catch {
-		return fallback;
-	}
-};
-
 export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 	const { t, i18n } = useTranslation();
 	// `app.timeline.today` is not in `locales/en.json` yet, so the typed `t()`
@@ -75,10 +58,7 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 	const buckets = groupByBucket(data);
 
 	const handleResetFilters = () => {
-		store.search = "";
-		store.showBoys = true;
-		store.showGirls = true;
-		store.showWeddings = false;
+		resetFilters();
 	};
 
 	if (data.length === 0) {
@@ -181,7 +161,7 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 									color={getKindColor(x.kind)}
 									title={
 										<Text c="dimmed" component="span" style={{ fontSize: 12 }}>
-											{localeDate(
+											{formatDate(
 												x.nextBirthday,
 												i18n.language,
 												{ weekday: "short", day: "numeric", month: "short" },
@@ -232,7 +212,7 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 												? tr("app.timeline.today")
 												: t("app.timeline.in_days", {
 														days: x.daysBeforeBirthday,
-														day: localeDate(
+														day: formatDate(
 															x.nextBirthday,
 															i18n.language,
 															{ weekday: "long" },

@@ -9,45 +9,15 @@
  * silently, so it gets checked rather than trusted.
  *
  * Ratios are computed here rather than hardcoded, so changing a token without
- * fixing the contrast fails this test instead of quietly shipping.
+ * fixing the contrast fails this test instead of quietly shipping. The maths
+ * itself lives in `shared/colour.ts`, shared with the gallery's live audit, so
+ * the two can never drift into disagreeing.
  */
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
+import { contrastRatio } from "../colour";
 
 const css = readFileSync(new URL("../tokens.css", import.meta.url), "utf8");
-
-/** `#rrggbb` -> `[r, g, b]` in 0-255. */
-const parseHex = (value: string): [number, number, number] => {
-	let hex = value.trim().replace(/^#/, "");
-	if (hex.length === 3) hex = [...hex].map((c) => c + c).join("");
-	if (!/^[0-9a-f]{6}$/i.test(hex)) {
-		throw new Error(`not a 6-digit hex colour: ${value}`);
-	}
-	return [
-		parseInt(hex.slice(0, 2), 16),
-		parseInt(hex.slice(2, 4), 16),
-		parseInt(hex.slice(4, 6), 16),
-	];
-};
-
-/** WCAG 2.x relative luminance. */
-const luminance = ([r, g, b]: [number, number, number]): number => {
-	const channel = (raw: number) => {
-		const v = raw / 255;
-		return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-	};
-	return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
-};
-
-/** WCAG contrast ratio, 1..21. */
-const contrast = (a: string, b: string): number => {
-	const sorted = [luminance(parseHex(a)), luminance(parseHex(b))].sort(
-		(x, y) => y - x,
-	);
-	const hi = sorted[0] ?? 0;
-	const lo = sorted[1] ?? 0;
-	return (hi + 0.05) / (lo + 0.05);
-};
 
 /**
  * Every `--app-*: <hex>;` declaration, in source order. The file declares the
@@ -104,12 +74,12 @@ describe("text token contrast", () => {
 			if (!fg || !bg) return;
 			expect({
 				token: name,
-				ratio: Number(contrast(fg, bg).toFixed(2)),
+				ratio: Number(contrastRatio(fg, bg).toFixed(2)),
 			}).toEqual({
 				token: name,
 				ratio: expect.any(Number),
 			});
-			expect(contrast(fg, bg)).toBeGreaterThanOrEqual(4.5);
+			expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(4.5);
 		});
 	}
 
@@ -133,9 +103,9 @@ describe("text token contrast", () => {
 			if (!text || !muted || !faint) throw new Error(`missing ${which} token`);
 			const bg = byName.get("--app-bg")?.[index];
 			if (!bg) throw new Error(`missing ${which} --app-bg`);
-			const onText = contrast(text, bg);
-			const onMuted = contrast(muted, bg);
-			const onFaint = contrast(faint, bg);
+			const onText = contrastRatio(text, bg);
+			const onMuted = contrastRatio(muted, bg);
+			const onFaint = contrastRatio(faint, bg);
 			expect({
 				which,
 				ordered: onText > onMuted && onMuted > onFaint,

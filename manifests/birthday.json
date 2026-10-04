@@ -2,7 +2,7 @@
 	"id": "/birthday/",
 	"name": "Birthday Tracker",
 	"short_name": "Birthdays",
-	"description": "Track birthdays, milestones, biorhythms, zodiac signs and export calendar events.",
+	"description": "Track birthdays, milestones, biorhythms, zodiac signs, and export calendar events.",
 	"start_url": "/birthday/",
 	"scope": "/birthday/",
 	"display": "standalone",

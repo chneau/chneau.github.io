@@ -46,7 +46,14 @@
  * `properties.ts`.
  */
 
-import { type Bytes, isJsonObject, type JsonValue } from "../../shared";
+import {
+	type Bytes,
+	type JsonValue,
+	requireArrayAt,
+	requireNumberAt,
+	requireObjectAt,
+	requireStringAt,
+} from "../../shared";
 import {
 	type PropertyList,
 	propertyTagOf,
@@ -175,71 +182,41 @@ export const writeGvas = (save: GvasSave): Bytes => {
 	return new Uint8Array(writer.finish());
 };
 
-const numberField = (value: JsonValue, key: string): number => {
-	const found = isJsonObject(value) ? value[key] : undefined;
-	if (typeof found !== "number" || !Number.isFinite(found)) {
-		throw new Error(`"${key}" must be a finite number.`);
-	}
-	return found;
-};
-
-const stringField = (value: JsonValue, key: string): string => {
-	const found = isJsonObject(value) ? value[key] : undefined;
-	if (typeof found !== "string") {
-		throw new Error(`"${key}" must be a string.`);
-	}
-	return found;
-};
-
-const listField = (value: JsonValue, key: string): readonly JsonValue[] => {
-	const found = isJsonObject(value) ? value[key] : undefined;
-	if (!Array.isArray(found)) {
-		throw new Error(`"${key}" must be an array.`);
-	}
-	return found;
-};
-
-const objectField = (value: JsonValue, key: string): JsonValue => {
-	const found = isJsonObject(value) ? value[key] : undefined;
-	if (found === undefined || typeof found !== "object" || found === null) {
-		throw new Error(`"${key}" must be an object.`);
-	}
-	return found;
-};
-
 /**
  * Rebuilds a typed save from an edited document.
  *
  * Same reasoning as the property codec's equivalent: the inspector replaces
  * leaves in place, so every field is checked on the way out and a document that
  * has lost one is refused with a message naming it. That is a better outcome
- * than a cast and a file the game silently rejects.
+ * than a cast and a file the game silently rejects. The `require*At` readers are
+ * the shared ones (`shared/save/json.ts`) — this codec used to keep its own
+ * `numberField`/`stringField`/`listField`/`objectField` copies of them.
  */
 export const gvasOf = (value: JsonValue): GvasSave => {
-	const engine = objectField(value, "engine");
-	const list = objectField(value, "list");
+	const engine = requireObjectAt(value, "engine");
+	const list = requireObjectAt(value, "list");
 	return {
-		magic: stringField(value, "magic"),
-		fileVersion: numberField(value, "fileVersion"),
-		saveGameVersion: numberField(value, "saveGameVersion"),
-		packageFileUE5Version: numberField(value, "packageFileUE5Version"),
+		magic: requireStringAt(value, "magic"),
+		fileVersion: requireNumberAt(value, "fileVersion"),
+		saveGameVersion: requireNumberAt(value, "saveGameVersion"),
+		packageFileUE5Version: requireNumberAt(value, "packageFileUE5Version"),
 		engine: {
-			major: numberField(engine, "major"),
-			minor: numberField(engine, "minor"),
-			patch: numberField(engine, "patch"),
-			changelist: numberField(engine, "changelist"),
-			branch: stringField(engine, "branch"),
+			major: requireNumberAt(engine, "major"),
+			minor: requireNumberAt(engine, "minor"),
+			patch: requireNumberAt(engine, "patch"),
+			changelist: requireNumberAt(engine, "changelist"),
+			branch: requireStringAt(engine, "branch"),
 		},
-		customVersionFormat: numberField(value, "customVersionFormat"),
-		customVersions: listField(value, "customVersions").map((entry) => ({
-			id: stringField(entry, "id"),
-			version: numberField(entry, "version"),
+		customVersionFormat: requireNumberAt(value, "customVersionFormat"),
+		customVersions: requireArrayAt(value, "customVersions").map((entry) => ({
+			id: requireStringAt(entry, "id"),
+			version: requireNumberAt(entry, "version"),
 		})),
-		saveGameType: stringField(value, "saveGameType"),
-		containerTag: numberField(value, "containerTag"),
+		saveGameType: requireStringAt(value, "saveGameType"),
+		containerTag: requireNumberAt(value, "containerTag"),
 		list: {
-			properties: listField(list, "properties").map(propertyTagOf),
-			trailing: stringField(list, "trailing"),
+			properties: requireArrayAt(list, "properties").map(propertyTagOf),
+			trailing: requireStringAt(list, "trailing"),
 		},
 	};
 };

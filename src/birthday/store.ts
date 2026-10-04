@@ -303,11 +303,25 @@ const matchesFacets = (x: Birthday, facetMonth: number | null): boolean => {
 	return true;
 };
 
-export const clearFacets = () => {
+const clearFacets = () => {
 	store.facets.month = null;
 	store.facets.monthDay = null;
 	store.facets.generation = null;
 	store.facets.ageGroup = null;
+};
+
+/**
+ * The single "Reset filters" action every view shares. It clears the free-text
+ * query, restores the three kind toggles to their defaults and drops the facets,
+ * so a reset button can never leave half the filters on. The five copies this
+ * replaces drifted: four of them forgot `clearFacets()` entirely.
+ */
+export const resetFilters = () => {
+	store.search = "";
+	store.showBoys = true;
+	store.showGirls = true;
+	store.showWeddings = false;
+	clearFacets();
 };
 
 /**

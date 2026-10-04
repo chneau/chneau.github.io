@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync, statSync } from "node:fs";
+import { APP_META } from "../app-meta";
 
 /**
  * The boot shell is markup in the HTML, painted before any JavaScript runs, and
@@ -48,15 +49,16 @@ describe("boot shell", () => {
 	});
 
 	test("every app's HTML receives the shell, injected into the body", () => {
-		// Anchored on `manifestLink,`, the tag every environment's header list
-		// already ends with: the shell is added straight after it, so the two
-		// counts must agree. Counting environment blocks by name instead would
-		// silently undercount the moment an app is named with a digit.
+		// The config builds one environment per `APP_META` row through
+		// `environmentFor`, and the shell is added once inside that builder, so
+		// a single `...bootShell,` covers every app plus the dashboard. Counting
+		// literal blocks by name instead would undercount the moment an app is
+		// named with a digit — and is impossible now the blocks are generated.
 		const injections = config.match(/\.\.\.bootShell,/g) ?? [];
-		const headers = config.match(/^\t\t\t\t\tmanifestLink,$/gm) ?? [];
-		expect(injections.length).toBe(headers.length);
+		expect(injections.length).toBe(1);
+		expect(config).toMatch(/APP_META\.map\(/);
 		// Every app plus the dashboard.
-		expect(injections.length).toBeGreaterThanOrEqual(13);
+		expect(APP_META.length).toBeGreaterThanOrEqual(13);
 	});
 
 	test("the shell is injected after #root so the sibling rule can reach it", () => {
