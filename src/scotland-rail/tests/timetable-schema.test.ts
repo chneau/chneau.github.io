@@ -19,6 +19,32 @@ import { TrainServicesSchema } from "../data/types";
 const mutated = (): Record<string, unknown>[] =>
 	structuredClone(TIMETABLE) as Record<string, unknown>[];
 
+/**
+ * The row a mutation is applied to.
+ *
+ * A named guard rather than `rows[0]!`: if the committed file ever lost its first
+ * record, a non-null assertion would throw somewhere unrelated to the assertion
+ * being made, and the test would still be "about" the wrong thing.
+ */
+const firstRow = (rows: Record<string, unknown>[]): Record<string, unknown> => {
+	const row = rows[0];
+	if (row === undefined) {
+		throw new Error("the timetable fixture has no first row to mutate");
+	}
+	return row;
+};
+
+/** The row after the first, for the duplicate-id case. */
+const secondRow = (
+	rows: Record<string, unknown>[],
+): Record<string, unknown> => {
+	const row = rows[1];
+	if (row === undefined) {
+		throw new Error("the timetable fixture has no second row to mutate");
+	}
+	return row;
+};
+
 describe("the committed timetable", () => {
 	test("satisfies the schema it is now parsed with", () => {
 		const result = TrainServicesSchema.safeParse(TIMETABLE);
@@ -32,7 +58,7 @@ describe("the committed timetable", () => {
 		// lookup would have returned undefined and the tile would have rendered
 		// with no colour rather than failing.
 		const rows = mutated();
-		rows[0]!.category = "NotACategory";
+		firstRow(rows).category = "NotACategory";
 		expect(TrainServicesSchema.safeParse(rows).success).toBe(false);
 	});
 
@@ -41,7 +67,7 @@ describe("the committed timetable", () => {
 		// and reports nothing, so a duplicate id silently points a shared link at
 		// the wrong service.
 		const rows = mutated();
-		rows[1]!.id = rows[0]?.id;
+		secondRow(rows).id = firstRow(rows).id;
 		const result = TrainServicesSchema.safeParse(rows);
 		expect(result.success).toBe(false);
 		if (!result.success) {
@@ -53,7 +79,7 @@ describe("the committed timetable", () => {
 		// `pathCoordinates` is read as `[lon, lat]` by the interpolator and
 		// indexed at both ends, so a string or a triple is not a shape it survives.
 		const rows = mutated();
-		(rows[0]!.pathCoordinates as unknown[]) = [["a", "b"]];
+		(firstRow(rows).pathCoordinates as unknown[]) = [["a", "b"]];
 		expect(TrainServicesSchema.safeParse(rows).success).toBe(false);
 	});
 
