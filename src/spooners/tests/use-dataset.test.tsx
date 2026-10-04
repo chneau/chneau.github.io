@@ -16,11 +16,21 @@ import { useDataset } from "../useDataset";
  * The underscore was the tell: it exists only to silence the compiler about a
  * value nothing consumes.
  */
-const CACHE = {
-	items: [],
-	keywords: [],
+/**
+ * A cache that satisfies the schema `useDataset` now checks.
+ *
+ * The four top-level keys are what the app indexes; the schema uses `z.custom` for
+ * the element shapes, so empty containers are enough here. The previous fixture
+ * invented keys (`items` as an array, `keywords`) and needed `as unknown as` to be
+ * accepted — which is exactly what a cast does, and why the cast could never catch
+ * a wrong shape.
+ */
+const CACHE: SpoonersCache = {
+	venueList: [],
+	items: {},
 	venues: {},
-} as unknown as SpoonersCache;
+	fetchedAt: "2026-01-01T00:00:00.000Z",
+};
 
 const jsonResponse = (body: unknown) =>
 	new Response(JSON.stringify(body), {
@@ -53,6 +63,19 @@ const installFetch = (failures: number) => {
 	);
 	globalThis.fetch = stub;
 	return () => calls;
+};
+
+/**
+ * A `fetch` that always answers 200 with `body`.
+ *
+ * Same cast-free construction as {@link installFetch}; a bare function is not
+ * assignable to Bun's `fetch`, which also carries `preconnect`.
+ */
+const installFixedResponse = (body: unknown) => {
+	const stub: typeof fetch = Object.assign(async () => jsonResponse(body), {
+		preconnect: realFetch.preconnect,
+	});
+	globalThis.fetch = stub;
 };
 
 afterEach(() => {
@@ -93,6 +116,22 @@ describe("useDataset", () => {
 		expect(calls()).toBe(2);
 		expect(view.queryByRole("button", { name: "Try again" })).toBeNull();
 		expect(view.getByText("loaded")).toBeDefined();
+	});
+
+	test("a 200 response that is not a cache is an error, not an empty dataset", async () => {
+		// This is what the shape check earns its place on: a valid status and valid
+		// JSON carrying the wrong keys. Before it, that was accepted as a cache and
+		// rendered as an app with no pubs.
+		installFixedResponse({ areas: [], keywords: [] });
+
+		const view = render(<Harness />);
+		await act(async () => {
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+
+		expect(view.queryByText("loaded")).toBeNull();
+		expect(view.getByRole("button", { name: "Try again" })).toBeDefined();
 	});
 
 	test("a failed load surfaces the error rather than reporting success", async () => {

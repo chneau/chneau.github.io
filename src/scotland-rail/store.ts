@@ -7,6 +7,7 @@ import {
 	type Category,
 	DEFAULT_SETTINGS,
 	type TrainService,
+	TrainServicesSchema,
 	type ViewPreset,
 } from "./data/types";
 import {
@@ -31,7 +32,17 @@ type RailStore = {
 };
 
 // All loaded static services and station index
-const allServices: TrainService[] = TIMETABLE_DATA as TrainService[];
+/**
+ * The timetable, validated once at the boundary.
+ *
+ * This is the single place `timetable.json` enters the app, and everything
+ * downstream — `resolveServiceAtTime`, the category counters, the search over
+ * `s.name` and `s.calls[].stationId`, the polyline the canvas draws — trusts this
+ * shape. It used to be a bare cast. A parse failure here means the committed data
+ * is wrong, which is a broken artefact rather than a runtime condition to recover
+ * from, so it throws.
+ */
+const allServices: TrainService[] = TrainServicesSchema.parse(TIMETABLE_DATA);
 const stationNamesById = new Map(STATIONS.map((s) => [s.id, s.name]));
 
 const getInitialState = (): RailStore => {

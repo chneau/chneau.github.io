@@ -1,3 +1,4 @@
+import { z } from "zod";
 /**
  * Shapes of `.api-cache/data.json` (the deduplicated cache produced by
  * `build_map_data.py`), plus the view-model types the UI works with.
@@ -196,12 +197,46 @@ type DatasetHistory = {
 // cache file                                                                     #
 // --------------------------------------------------------------------------- #
 
-export type SpoonersCache = {
-	venueList: VenueInfo[];
-	items: Record<string, ItemDefinition>;
-	venues: Record<string, VenueEntry>;
-	fetchedAt?: string;
-	history?: DatasetHistory;
+/**
+ * The shape `data.json` must have, checked at the point it is fetched.
+ *
+ * The cache is 24 MB of generated data read with a bare `as SpoonersCache`, in an
+ * app whose own `rates.ts` validates a far smaller payload properly at both of its
+ * edges. A shape change upstream therefore reached `derive.ts` and `basket.ts` as
+ * a type the compiler believed, and the first symptom would have been a render
+ * error deep in a component rather than a message at the boundary.
+ *
+ * This is deliberately a skeleton, not a deep schema. `VenueInfo` and
+ * `ItemDefinition` carry a wide optional surface with `unknown` members already,
+ * so a strict schema would reject real rows. What is pinned is the four
+ * top-level keys the app actually indexes and their container types; that is the
+ * part whose absence breaks everything downstream, and it is the part a truncated
+ * or HTML-served response gets wrong.
+ *
+ * `VenueInfo`, `ItemDefinition`, `VenueEntry` and `DatasetHistory` stay
+ * hand-written: they are the view model's business, and a schema duplicating them
+ * field for field would be a second source of truth rather than a check.
+ */
+const SpoonersCacheSchema = z.object({
+	// `z.custom<T>()` checks the container and keeps the element type, which is
+	// what makes this a skeleton rather than a second copy of the view model.
+	venueList: z.array(z.custom<VenueInfo>()),
+	items: z.record(z.string(), z.custom<ItemDefinition>()),
+	venues: z.record(z.string(), z.custom<VenueEntry>()),
+	fetchedAt: z.string().optional(),
+	history: z.custom<DatasetHistory>().optional(),
+});
+
+export type SpoonersCache = z.infer<typeof SpoonersCacheSchema>;
+
+/**
+ * Shape check for the cache, mirroring `parseRateTable`.
+ *
+ * Returns `null` rather than throwing so the caller chooses the failure mode.
+ */
+export const parseSpoonersCache = (value: unknown): SpoonersCache | null => {
+	const result = SpoonersCacheSchema.safeParse(value);
+	return result.success ? result.data : null;
 };
 
 // --------------------------------------------------------------------------- #

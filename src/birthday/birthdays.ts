@@ -459,18 +459,37 @@ export type RawBirthday = z.infer<typeof birthdaySchema>;
 
 const STORAGE_KEY = "custom_birthdays_data";
 
+/**
+ * The bundled dataset, parsed once at module load.
+ *
+ * The committed `birthdays.json` crosses the same trust boundary as
+ * `localStorage`: it is a file that can be hand-edited or regenerated wrongly,
+ * and every row in it feeds an age, a countdown, a zodiac sign and an iCal VEVENT.
+ * It used to be cast on all three return paths below, so the schema's rules — no
+ * future dates, real calendar dates, a known `kind` — guarded only rows a visitor
+ * added by hand, and a malformed committed row went straight into
+ * `computeBirthdays` as a silently wrong age.
+ *
+ * Parsed eagerly rather than per call so the cost is one 33-row parse at startup
+ * and every reader gets the declared type without a cast. A parse failure here is
+ * a broken build artefact, not a runtime condition, so it throws rather than
+ * degrading: there is no sensible fallback dataset to invent, and an empty list
+ * would look like a working app with no data.
+ */
+const bundledBirthdays = birthdaysArraySchema.parse(rawBirthdaysJson);
+
 export const getRawBirthdays = (): RawBirthday[] => {
 	if (typeof localStorage === "undefined") {
-		return rawBirthdaysJson as RawBirthday[];
+		return bundledBirthdays;
 	}
 	const saved = localStorage.getItem(STORAGE_KEY);
-	if (!saved) return rawBirthdaysJson as RawBirthday[];
+	if (!saved) return bundledBirthdays;
 	try {
 		const parsed = JSON.parse(saved);
 		return birthdaysArraySchema.parse(parsed);
 	} catch (e) {
 		console.error("Failed to parse custom birthdays", e);
-		return rawBirthdaysJson as RawBirthday[];
+		return bundledBirthdays;
 	}
 };
 
