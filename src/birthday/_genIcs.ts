@@ -25,9 +25,45 @@ const summary = (record: IcsRecord): string =>
 		? `${record.name} Wedding Anniversary`
 		: `${record.name}'s Birthday`;
 
-const content = generateIcs(getRawBirthdays() as RawBirthday[], {
+/**
+ * The `DTSTAMP` for the published file, derived from the DATA rather than the
+ * clock.
+ *
+ * `generateIcs` defaults `now` to `new Date()`, and this script used to take
+ * that default — so every build stamped the current time and
+ * `public/birthdays.ics` came out dirty on every single build, whether or not
+ * anything about a birthday had changed. That trained everyone to `git checkout
+ * -- public/birthdays.ics`, which quietly discards a real edit whenever the
+ * generator happens to have produced one.
+ *
+ * `DTSTAMP` means "when this revision of the event was last revised" (RFC 5545
+ * 3.8.4.2), so the honest value is the newest event date in the file. Nothing
+ * here has a record-level "last edited" field and inventing one would be worse
+ * than the timestamp being a date we already know. Two properties follow, both
+ * asserted in `birthday/tests/ics-published.test.ts`:
+ *
+ *  - Rebuilding with unchanged data produces a byte-identical file, so the
+ *    build is clean instead of perpetually dirty.
+ *  - Editing a birthday's date still changes the file, so a real update is
+ *    never swallowed.
+ *
+ * When the data is empty there is no event to stamp, so it falls back to the
+ * epoch rather than to `new Date()` — an empty calendar must not reintroduce the
+ * clock.
+ */
+const DTSTAMP_FALLBACK = new Date(0);
+
+const records = getRawBirthdays() as RawBirthday[];
+const newestDate = records.reduce((newest, record) => {
+	const parsed = Date.parse(record.date);
+	if (Number.isNaN(parsed)) return newest;
+	return parsed > newest ? parsed : newest;
+}, 0);
+
+const content = generateIcs(records, {
 	summary,
 	calendarName: "Birthdays",
+	now: newestDate > 0 ? new Date(newestDate) : DTSTAMP_FALLBACK,
 });
 
 await Bun.write("public/birthdays.ics", content);

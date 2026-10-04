@@ -499,57 +499,12 @@ button.app-brand {
 	   meant to read. */
 	gap: 6px;
 }
-/* One control per line, filling the sheet. `display: flex` on the row was enough
-   to lay a single child out, but `block` states the contract the menu depends
-   on: every control is its own line, and the list is as tall as its items. */
-.app-header-overflow__row {
-	display: block;
-}
-/* Both classes on the child, deliberately. The narrow-screen rule
-   `.app-header__actions .app-header-action { padding: 0 }` matches a menu row
-   too — the menu lives inside the actions row — at the same specificity, and it
-   is declared *later*, so a `.app-header-overflow__row > .app-header-action`
-   selector loses to it and every row's icon and name sit flush against the row's
-   left edge. One more class here wins on specificity instead, which needs no
-   second copy of the rule further down the file to stay correct. */
-.app-header-overflow__row > .app-header-action.app-header-action,
-.app-header-overflow__row > a.app-header-action {
-	/* The row's whole job: fill the line, and be allowed to shrink inside it.
-	   `min-width: 0` is what stops a nowrap child from widening the flex item
-	   past the sheet — the sheet is a fixed `left: 8px; right: 8px` viewport
-	   box, so anything wider spills out of the side rather than scrolling. */
-	display: flex;
-	align-items: center;
-	width: 100%;
-	min-width: 0;
-	/* A menu row is a touch target, so the 36px the bar uses is too short here. */
-	min-height: 44px;
-	/* Left-aligned, with the icon and the name spaced like a list entry rather
-	   than the 7px the bar uses. */
-	justify-content: flex-start;
-	gap: 12px;
-	padding: 8px 12px;
-	/* `.app-header-action` sets `white-space: nowrap` to keep a bar control's
-	   text on one line. In a full-width menu row that is what pushes a long name
-	   ("Search apps and actions") past the sheet's edge, so the name wraps
-	   instead of overflowing. */
-	white-space: normal;
-	background: var(--app-surface-2);
-	color: var(--app-text-muted);
-}
-/* The icon keeps its size while the name wraps beside it. Without this the flex
-   algorithm treats the svg as shrinkable and compresses a 16px glyph to fit a
-   long label, which reads as a smudge rather than an icon. `lucide-react` sets
-   no `flex` of its own, so nothing else defends it. */
-.app-header-overflow__row > .app-header-action.app-header-action > svg,
-.app-header-overflow__row > a.app-header-action > svg {
-	flex: none;
-}
-.app-header-overflow__row > .app-header-action.app-header-action:hover,
-.app-header-overflow__row > a.app-header-action:hover {
-	background: var(--app-surface-3);
-	color: var(--app-text);
-}
+/* The row's layout lives at the very end of this file, beside the label-reveal
+   rules, because it has to outrank two later blocks by specificity:
+   `.app-header__actions .app-header-action { padding: 0 }` in the narrow-screen
+   media query, and the reused `.app-switcher__menu`. See
+   `.app-header-overflow__row` there. Keeping it here instead meant restating it
+   twice to win on source order, which is a rule that goes stale silently. */
 
 .app-switcher {
 	position: relative;
@@ -908,6 +863,59 @@ body:has(.app-consent) {
 }
 .app-header-overflow__menu .app-header-action__menulabel {
 	display: inline;
+}
+
+/* One control per line, filling the sheet.
+   Declared here rather than beside the rest of the overflow rules because it has
+   to outrank two later blocks by specificity, and a selector of this weight in
+   the middle of the file is what made Biome flag a descending-specificity
+   cascade against `.app-footer svg`.
+   - `.app-header__actions .app-header-action { padding: 0 }` in the
+     narrow-screen media query matches a menu row too, since the menu lives
+     inside the actions row.
+   - The menu reuses `.app-switcher__menu`, declared further down.
+
+   One repeated class on the child is what buys that headroom. It used to lose on
+   source order and needed a duplicate copy of this rule near the bottom of the
+   file to win, which is a rule that goes stale silently. */
+.app-header-overflow__row {
+	display: block;
+}
+.app-header-overflow__row > .app-header-action.app-header-action,
+.app-header-overflow__row > a.app-header-action {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	/* Fill the line, and be allowed to shrink inside it. `min-width: 0` is what
+	   stops a nowrap child from widening the flex item past the sheet — the sheet
+	   is a fixed `left: 8px; right: 8px` viewport box, so anything wider spills
+	   out of the side rather than scrolling. */
+	width: 100%;
+	min-width: 0;
+	/* A menu row is a touch target, so the bar's 36px is too short here. */
+	min-height: 44px;
+	/* Icon and name spaced like a list entry, not the bar's 7px. */
+	gap: 12px;
+	padding: 8px 12px;
+	/* `.app-header-action` sets `white-space: nowrap` to keep a bar control's
+	   text on one line. In a full-width menu row that is what pushed a long name
+	   ("Search apps and actions") past the sheet's edge, so the name wraps. */
+	white-space: normal;
+	background: var(--app-surface-2);
+	color: var(--app-text-muted);
+}
+/* The icon keeps its size while the name wraps beside it. Without this the flex
+   algorithm treats the svg as shrinkable and compresses a 16px glyph to fit a
+   long label, which reads as a smudge rather than an icon. `lucide-react` sets
+   no `flex` of its own, so nothing else defends it. */
+.app-header-overflow__row > .app-header-action.app-header-action > svg,
+.app-header-overflow__row > a.app-header-action > svg {
+	flex: none;
+}
+.app-header-overflow__row > .app-header-action.app-header-action:hover,
+.app-header-overflow__row > a.app-header-action:hover {
+	background: var(--app-surface-3);
+	color: var(--app-text);
 }
 
 /* Fixed, non-interactive film grain. */
