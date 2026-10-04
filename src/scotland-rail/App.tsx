@@ -1,4 +1,4 @@
-import { Box, Button, useMantineColorScheme } from "@mantine/core";
+import { Box, Button } from "@mantine/core";
 import {
 	Compass,
 	Info,
@@ -24,6 +24,7 @@ import {
 	useCommandPalette,
 	useShortcutsHelp,
 } from "../shared";
+import { useThemeMode } from "../shared/hooks/useThemeMode";
 import { Controls } from "./components/Controls";
 import { ReplayCanvas } from "./components/ReplayCanvas";
 import { ServiceDetails } from "./components/ServiceDetails";
@@ -80,8 +81,7 @@ export const App = () => {
 	// HUD only needs to re-render at ~15 Hz. ReplayCanvas keeps its own raw
 	// subscription so the map itself still animates at 60 fps.
 	const [snap, derivedSnap] = useThrottledSnapshots(railUiStores);
-	const { colorScheme, setColorScheme } = useMantineColorScheme();
-	const dark = colorScheme === "dark";
+	const { dark, toggle } = useThemeMode();
 	const shortcuts = useShortcutsHelp();
 	const commandPalette = useCommandPalette();
 	// Keep the always-bound keydown handler's view of the help dialog current
@@ -259,7 +259,7 @@ export const App = () => {
 			hint: "Appearance",
 			keywords: "theme light dark color scheme",
 			icon: dark ? <Sun size={16} /> : <Moon size={16} />,
-			run: () => setColorScheme(dark ? "light" : "dark"),
+			run: toggle,
 		},
 		{
 			id: "keyboard-shortcuts",
@@ -294,7 +294,7 @@ export const App = () => {
 				shortcuts={SHORTCUT_GROUPS}
 				theme={{
 					dark,
-					onToggle: () => setColorScheme(dark ? "light" : "dark"),
+					onToggle: toggle,
 				}}
 				actions={
 					<>

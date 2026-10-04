@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSnapshot } from "valtio";
 import { AppNav, HeaderAction, type ShortcutGroup, StatusDot } from "../shared";
+import { useThemeMode } from "../shared/hooks/useThemeMode";
 import type { Birthday } from "./birthdays";
 import { triggerConfetti } from "./celebration";
 import {
@@ -20,7 +20,6 @@ import {
 	sendTestNotification,
 } from "./notifications";
 import { notify } from "./notify";
-import { store } from "./store";
 
 declare const BUILD_DATE: string;
 
@@ -71,7 +70,7 @@ export const AppHeader = ({
 	shortcuts,
 }: AppHeaderProps) => {
 	const { t, i18n } = useTranslation();
-	const storeSnap = useSnapshot(store);
+	const { dark, toggle } = useThemeMode();
 	const [installPrompt, setInstallPrompt] =
 		useState<BeforeInstallPromptEvent>();
 	const [notificationState, setNotificationState] =
@@ -152,12 +151,7 @@ export const AppHeader = ({
 			title={t("app.title")}
 			subtitle={t("app.header.build", { date: BUILD_DATE })}
 			shortcuts={shortcuts}
-			theme={{
-				dark: storeSnap.darkMode,
-				onToggle: () => {
-					store.darkMode = !store.darkMode;
-				},
-			}}
+			theme={{ dark, onToggle: toggle }}
 			// Ten controls is 494px in a 360px bar, so on a phone only
 			// BackHome and the switcher stay inline and the rest move behind
 			// "More" (`AppNav` wraps this slot in `HeaderOverflow`). Above the

@@ -4,16 +4,16 @@ import "../shared/tokens.css";
 import "../shared/base.css";
 import "leaflet/dist/leaflet.css";
 import "./spooners.css";
-import { MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { createRoot } from "react-dom/client";
-import { registerServiceWorker } from "../shared";
+import { initTheme, registerServiceWorker, ThemedProvider } from "../shared";
 // By path, not via the barrel: analytics is a side-effectful module and must
 // not be dragged onto every app that imports a single shared component.
 import { initAnalytics } from "../shared/analytics";
 import { App } from "./App";
 import { spoonersTheme } from "./theme";
 
+initTheme();
 initAnalytics("spooners");
 registerServiceWorker();
 
@@ -23,10 +23,10 @@ if (!container) {
 }
 
 const app = (
-	<MantineProvider theme={spoonersTheme} defaultColorScheme="dark">
+	<ThemedProvider theme={spoonersTheme}>
 		<Notifications />
 		<App />
-	</MantineProvider>
+	</ThemedProvider>
 );
 
 if (import.meta.hot) {

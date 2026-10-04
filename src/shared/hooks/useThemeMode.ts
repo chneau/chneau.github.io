@@ -17,7 +17,15 @@ const MEDIA = "(prefers-color-scheme: dark)";
  * the OS until the visitor picks a scheme for themselves. Once they have, the
  * stored value is an explicit `light`/`dark` and the OS is ignored for good.
  */
-const THEME_MODE_KEY = "app_theme_mode";
+/**
+ * The one site-wide key.
+ *
+ * Exported because an app that kept its scheme somewhere else has to be able to
+ * migrate *into* this key before `initTheme` reads it, and hard-coding the string
+ * a second time is how the two drift. See `birthday/index.tsx`, which folds a
+ * boolean out of its Valtio store blob in here.
+ */
+export const THEME_MODE_KEY = "app_theme_mode";
 
 /**
  * Per-app keys that predate {@link THEME_MODE_KEY}. Each is consumed at most

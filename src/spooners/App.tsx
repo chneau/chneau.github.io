@@ -1,12 +1,4 @@
-import {
-	Box,
-	Button,
-	Group,
-	Loader,
-	Stack,
-	Text,
-	useMantineColorScheme,
-} from "@mantine/core";
+import { Box, Button, Group, Loader, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { FilterX, Keyboard, Moon, Sun } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -20,6 +12,7 @@ import {
 	useCommandPalette,
 	useShortcutsHelp,
 } from "../shared";
+import { useThemeMode } from "../shared/hooks/useThemeMode";
 import { type BasketItem, parseBasket, serializeBasket } from "./basket";
 import { AppHeader } from "./components/AppHeader";
 import { DiscoverPanel } from "./components/DiscoverPanel";
@@ -70,7 +63,7 @@ export const App = () => {
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const shortcuts = useShortcutsHelp();
 	const palette = useCommandPalette();
-	const { colorScheme, setColorScheme } = useMantineColorScheme();
+	const { dark, toggle } = useThemeMode();
 	const {
 		table: rates,
 		loading: ratesLoading,
@@ -250,8 +243,8 @@ export const App = () => {
 			id: "toggle-theme",
 			label: "Toggle light / dark theme",
 			keywords: "theme dark light mode appearance",
-			icon: colorScheme === "dark" ? <Sun size={16} /> : <Moon size={16} />,
-			run: () => setColorScheme(colorScheme === "dark" ? "light" : "dark"),
+			icon: dark ? <Sun size={16} /> : <Moon size={16} />,
+			run: toggle,
 		},
 		{
 			id: "keyboard-shortcuts",
