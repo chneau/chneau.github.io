@@ -154,48 +154,57 @@ describe("cheat gear set", () => {
 		}
 	});
 
-	test("the engine applies the whole set to a real save", async () => {
-		const save = fixture("save.save");
-		const merged = await mergedCatalog();
-		const before = await describeInventory(await opened(save));
-		const { edits, skipped } = await cheatGearEdits({
-			inventoryKey: STORAGE,
-			records: before.records,
-			catalog: { items: merged },
-		});
-		// Every item is accounted for: staged, or left out with a reason.
-		expect(edits.length + skipped.length).toBe(cheatGearSet.length);
-		expect(edits.length).toBeGreaterThan(0);
+	// The timeout is the point of this edit, not boilerplate: the test decrypts,
+	// re-encodes and re-parses `save.save` several times over, so it sits on
+	// Bun's default 5s under any real load. It passed at ~2.5s alone and failed
+	// at 5003ms under `bun test --parallel`, which is the fourth time this file
+	// has needed this and the reason the sibling tests already carry it.
+	test(
+		"the engine applies the whole set to a real save",
+		async () => {
+			const save = fixture("save.save");
+			const merged = await mergedCatalog();
+			const before = await describeInventory(await opened(save));
+			const { edits, skipped } = await cheatGearEdits({
+				inventoryKey: STORAGE,
+				records: before.records,
+				catalog: { items: merged },
+			});
+			// Every item is accounted for: staged, or left out with a reason.
+			expect(edits.length + skipped.length).toBe(cheatGearSet.length);
+			expect(edits.length).toBeGreaterThan(0);
 
-		let current = save;
-		for (const run of planSaveEdits(edits)) {
-			const [next] = await run.run(current, async () => {});
-			current = next;
-		}
+			let current = save;
+			for (const run of planSaveEdits(edits)) {
+				const [next] = await run.run(current, async () => {});
+				current = next;
+			}
 
-		const after = await describeInventory(await opened(current));
-		expect(after.records.length).toBe(before.records.length + edits.length);
-		const landed = new Set(
-			after.records
-				.filter((record) => record.inventoryKey === STORAGE)
-				.map((record) => record.itemKey),
-		);
-		for (const edit of edits) {
-			if (!("itemKey" in edit)) continue;
-			expect(landed.has(edit.itemKey), `item ${edit.itemKey} inserted`).toBe(
-				true,
+			const after = await describeInventory(await opened(current));
+			expect(after.records.length).toBe(before.records.length + edits.length);
+			const landed = new Set(
+				after.records
+					.filter((record) => record.inventoryKey === STORAGE)
+					.map((record) => record.itemKey),
 			);
-		}
-		// Nothing the save already held moved, changed or was lost.
-		const signature = (record: (typeof after.records)[number]) =>
-			`${record.inventoryKey}:${record.itemNo}:${record.itemKey}:${record.slotNo}:${record.quantity}`;
-		const afterSignatures = new Set(after.records.map(signature));
-		for (const record of before.records) {
-			expect(afterSignatures.has(signature(record)), signature(record)).toBe(
-				true,
-			);
-		}
-	});
+			for (const edit of edits) {
+				if (!("itemKey" in edit)) continue;
+				expect(landed.has(edit.itemKey), `item ${edit.itemKey} inserted`).toBe(
+					true,
+				);
+			}
+			// Nothing the save already held moved, changed or was lost.
+			const signature = (record: (typeof after.records)[number]) =>
+				`${record.inventoryKey}:${record.itemNo}:${record.itemKey}:${record.slotNo}:${record.quantity}`;
+			const afterSignatures = new Set(after.records.map(signature));
+			for (const record of before.records) {
+				expect(afterSignatures.has(signature(record)), signature(record)).toBe(
+					true,
+				);
+			}
+		},
+		ENDGAME_TIMEOUT,
+	);
 });
 
 /**

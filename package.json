@@ -29,7 +29,7 @@
 		"build:no-rest-for-the-wicked-save-editor": "bun run clean && rsbuild build --environment no-rest-for-the-wicked-save-editor",
 		"build:power-fantasy-save-editor": "bun run clean && rsbuild build --environment power-fantasy-save-editor",
 		"build:tails-of-iron-2-save-editor": "bun run clean && rsbuild build --environment tails-of-iron-2-save-editor",
-		"test": "bun test",
+		"test": "bun test --parallel",
 		"test:crimson-desert-save-editor": "bun test src/crimson-desert-save-editor",
 		"deploy": "published=; trap '[ -n \"$published\" ] && rm -rf dist' EXIT; bun run build && gh-pages --dist dist --branch master && published=1",
 		"upgrade": "bun update --latest",
