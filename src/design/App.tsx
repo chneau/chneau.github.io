@@ -232,7 +232,12 @@ export const App = () => {
 
 	// Mirror the hub's shortcuts so the hint below is honest: 1–6 switch app, T themes.
 	const themeRef = useRef(theme);
-	themeRef.current = theme;
+	// Synced in an effect rather than during render: a render can be replayed
+	// or thrown away, and a ref written mid-render can then hold a scheme that
+	// never committed. Everything reading `themeRef.current` runs after commit.
+	useEffect(() => {
+		themeRef.current = theme;
+	}, [theme]);
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (
