@@ -1,7 +1,7 @@
 import "./happy-dom";
 import { afterEach, describe, expect, test } from "bun:test";
 import { act, cleanup, render } from "@testing-library/react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { FOCUSABLE_SELECTOR, useRovingFocus } from "../hooks/useRovingFocus";
 
 /**
@@ -24,10 +24,6 @@ import { FOCUSABLE_SELECTOR, useRovingFocus } from "../hooks/useRovingFocus";
 type HarnessProps = {
 	/** Rendered inside the menu, so a test can choose the exact control mix. */
 	children?: React.ReactNode;
-	onReady?: (api: {
-		onKeyDown: (event: React.KeyboardEvent<Element>) => void;
-		focusFirst: () => void;
-	}) => void;
 };
 
 let api: {
@@ -35,7 +31,7 @@ let api: {
 	focusFirst: () => void;
 } | null = null;
 
-const Harness = ({ children, onReady }: HarnessProps) => {
+const Harness = ({ children }: HarnessProps) => {
 	const menu = useRef<HTMLDivElement>(null);
 	const trigger = useRef<HTMLButtonElement>(null);
 	const hook = useRovingFocus({
@@ -44,8 +40,16 @@ const Harness = ({ children, onReady }: HarnessProps) => {
 			if (restoreFocus) trigger.current?.focus();
 		},
 	});
-	api = hook;
-	onReady?.(hook);
+	// Published in an effect, not during render. Assigning a module-level variable
+	// in the render body is a side effect React is free to run twice or discard,
+	// which is exactly what a concurrent render would do with it — and
+	// react-doctor flags it as a prop callback invoked during render.
+	//
+	// Keyed on the two stable callbacks rather than `hook`, whose object identity
+	// is new on every render, so this cannot loop.
+	useEffect(() => {
+		api = hook;
+	}, [hook.focusFirst, hook.onKeyDown]);
 	return (
 		<div>
 			<button ref={trigger} type="button">
