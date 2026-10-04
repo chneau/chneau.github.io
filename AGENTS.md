@@ -19,7 +19,7 @@ from a habit carried in from another repository, this file wins.
 | ---------------------- | ----------------------------------------------------------------------------------- |
 | `bun start`            | Dev server for every app at `localhost:3000`                                        |
 | `bun run start:<app>`  | One app in isolation (`cv`, `birthday`, `design`, …)                                |
-| `bun run check`        | **The gate** — clean, Deno fmt, Oxlint, Biome, tsc, `bun test`                      |
+| `bun run check`        | **The gate** — clean, Oxlint, Biome, unused exports, tsc                           |
 | `bun run check:fix`    | Formatters and linters only, no typecheck or tests                                  |
 | `bun run check:export` | `ts-unused-exports` — not part of `check`; run it when adding or removing an export |
 | `bun x react-doctor`   | React correctness, a11y, performance and maintainability — the React gate           |
@@ -267,7 +267,7 @@ React 19, with `react-doctor` as the standing reviewer of the rules below.
 ## 7. Verification
 
 ```bash
-bun run check     # the gate: clean, Deno fmt, Oxlint, Biome, tsc, bun test
+bun run check     # the gate: clean, Oxlint, Biome, unused exports, tsc
 bun test          # the suites on their own
 bun run build     # the real production build, per environment
 bun x react-doctor@latest   # the React gate: correctness, a11y, performance, maintainability
@@ -302,12 +302,22 @@ bun x react-doctor@latest   # the React gate: correctness, a11y, performance, ma
   The only acceptable suppression is a narrowly scoped one for a provable false
   positive, it carries a `biome-ignore`-style reason, and it needs a second pair
   of eyes — §3 governs.
-- **`bun run check` is the source of truth and it rewrites files** — Deno fmt
-  with `--use-tabs`, Oxlint with `--fix`, Biome with `--write --unsafe`. It may
-  reformat files unrelated to the change you were asked for. Accept the output
-  and keep it; do not hand-edit formatting to a personal preference and do not
-  discard a formatter's work. The tree is kept at the tools' canonical
-  formatting on purpose.
+- **`bun run check` is the source of truth and it rewrites files** — Oxlint with
+  `--fix`, Biome with `--write --unsafe`. It may reformat files unrelated to the
+  change you were asked for. Accept the output and keep it; do not hand-edit
+  formatting to a personal preference and do not discard a formatter's work. The
+  tree is kept at the tools' canonical formatting on purpose.
+- **Biome is the only formatter. Do not reintroduce `deno fmt`.** The pipeline
+  ran both, deno first, and they disagreed about 225 files: `deno fmt` rewrote
+  every one and `biome check --write` then rewrote all 225 straight back, so the
+  deno step was pure churn that doubled the cost of the gate and changed nothing.
+  `check:ci` has always enforced Biome's formatting, which is why the tree is
+  Biome-shaped. Every file deno wanted to touch — 124 `.ts`, 99 `.tsx`, one
+  `.js`, one `.css` — is one Biome also formats; no extension made deno the only
+  formatter. The `.zip` payload under
+  `crimson-desert-save-editor/assets/image-archive/` that `deno.json` excluded
+  is ignored by Biome outright, and the two bulk JSON paths are already excluded
+  in `biome.jsonc`. `deno.json` and the `deno` devDependency went with the step.
 - **Fix real problems by changing the code.** Suppressions are bounded by §3 and
   are not a route to a green gate.
 - **The gates do not replace reading the code.** `tsc`, `biome`, `bun test` and
