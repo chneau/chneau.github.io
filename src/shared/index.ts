@@ -27,6 +27,7 @@ export { Skeleton } from "./components/Skeleton";
 export { SkipLink } from "./components/SkipLink";
 export { Stat } from "./components/Stat";
 export { StatusDot } from "./components/StatusDot";
+export { ThemedProvider } from "./components/ThemedProvider";
 export {
 	applyColorMode,
 	type ColorMode,
@@ -34,6 +35,7 @@ export {
 	type ResolvedColorMode,
 	ROOT_THEME_KEY,
 	resolveColorMode,
+	THEME_MODE_KEY,
 	useThemeMode,
 } from "./hooks/useThemeMode";
 export { prefersReducedMotion } from "./motion";

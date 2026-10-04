@@ -1,10 +1,12 @@
-import { type MantineColorsTuple, MantineProvider } from "@mantine/core";
+import type { MantineColorsTuple } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 // By path, not via the barrel: analytics is a side-effectful module and must
 // not be dragged onto every app that imports a single shared component.
 import { initAnalytics } from "./analytics";
+import { ThemedProvider } from "./components/ThemedProvider";
+import { initTheme } from "./hooks/useThemeMode";
 import { registerServiceWorker } from "./service-worker";
 import { createAppTheme } from "./theme";
 
@@ -55,12 +57,15 @@ export const mountApp = ({
 	// Site-wide analytics and offline support. Neither touches save data.
 	initAnalytics(analyticsId);
 	registerServiceWorker();
+	// Before the first paint, so the token layer is already correct when the
+	// document is first rendered rather than being corrected a frame later.
+	initTheme();
 
 	const tree = (
-		<MantineProvider theme={theme} defaultColorScheme="dark">
+		<ThemedProvider theme={theme}>
 			<Notifications />
 			{app}
-		</MantineProvider>
+		</ThemedProvider>
 	);
 
 	if (import.meta.hot) {

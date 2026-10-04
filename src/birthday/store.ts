@@ -90,6 +90,16 @@ const StoreSchema = z.object({
 	showBoys: z.boolean(),
 	showGirls: z.boolean(),
 	showWeddings: z.boolean(),
+	/**
+	 * Migration only — nothing reads or writes this any more.
+	 *
+	 * The scheme moved to the site-wide `app_theme_mode` key, and
+	 * `birthday/index.tsx` folds this boolean into it once, before first paint.
+	 * The field is kept in the schema rather than dropped so a returning
+	 * visitor's stored blob still round-trips: Zod strips unknown keys, so
+	 * removing it would discard their preference before the migration had read
+	 * it. Safe to delete once the migration has been in a release.
+	 */
 	darkMode: z.boolean(),
 	weatherLocations: z.array(z.string()),
 	weatherCache: WeatherCacheFieldSchema,

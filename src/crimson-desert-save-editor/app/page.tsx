@@ -1,4 +1,4 @@
-import { Alert, useMantineColorScheme } from "@mantine/core";
+import { Alert } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { Keyboard, Moon, Sun, TriangleAlert, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -63,6 +63,7 @@ import {
 	useCommandPalette,
 	useShortcutsHelp,
 } from "../../shared";
+import { useThemeMode } from "../../shared/hooks/useThemeMode";
 
 /**
  * The editor shell.
@@ -75,8 +76,10 @@ import {
  */
 export const Home = () => {
 	const inputRef = useRef<HTMLInputElement>(null);
-	const { colorScheme, setColorScheme } = useMantineColorScheme();
-	const dark = colorScheme === "dark";
+	// The shared site-wide theme, not Mantine's own scheme: this editor shares
+	// its workbench with six others, and reading Mantine's key here meant a
+	// visitor's choice made in any of them was not honoured here.
+	const { dark, toggle } = useThemeMode();
 	const deepLink = useMemo(readDeepLink, []);
 	const [view, setView] = useState<SaveView>(deepLink.view);
 	const [activeStorage, setActiveStorage] = useState<number | null>(
@@ -379,7 +382,7 @@ export const Home = () => {
 				label: "Toggle light / dark theme",
 				keywords: "theme dark light mode appearance",
 				icon: dark ? <Sun size={16} /> : <Moon size={16} />,
-				run: () => setColorScheme(dark ? "light" : "dark"),
+				run: toggle,
 			},
 			{
 				id: "keyboard-shortcuts",
@@ -425,7 +428,7 @@ export const Home = () => {
 			}
 		}
 		return list;
-	}, [dark, setColorScheme, shortcuts.open, edits.length, result]);
+	}, [dark, toggle, shortcuts.open, edits.length, result]);
 
 	const sidebar = (
 		<AppSidebar
@@ -598,7 +601,7 @@ export const Home = () => {
 			pageTitle={pageTitle}
 			pageSubtitle={pageSubtitle}
 			dark={dark}
-			onToggleTheme={() => setColorScheme(dark ? "light" : "dark")}
+			onToggleTheme={toggle}
 			inputRef={inputRef}
 			onRequestFile={requestParseFile}
 			downloadProgress={downloadProgress}

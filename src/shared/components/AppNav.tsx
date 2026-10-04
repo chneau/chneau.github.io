@@ -1,5 +1,5 @@
-import { useMantineColorScheme } from "@mantine/core";
 import type { ReactNode } from "react";
+import { useThemeMode } from "../hooks/useThemeMode";
 import { AppHeader } from "./AppHeader";
 import { AppSwitcher } from "./AppSwitcher";
 import { BackHome } from "./BackHome";
@@ -102,11 +102,16 @@ export const AppNav = ({
 	className,
 }: AppNavProps) => {
 	const shortcutsHelp = useShortcutsHelp();
-	const mantine = useMantineColorScheme();
+	// A hook cannot be conditional, so this always runs; an explicit `theme` prop
+	// still wins below. The fallback used to read Mantine's own scheme, which
+	// meant an app that forgot to pass `theme` got a toggle writing Mantine's key
+	// rather than the site-wide one — invisible, because the token layer follows
+	// `data-theme` while Mantine writes `data-mantine-color-scheme`, so the two
+	// halves of the scheme could disagree with no symptom.
+	const shared = useThemeMode();
 	const resolvedTheme: NavTheme = theme ?? {
-		dark: mantine.colorScheme === "dark",
-		onToggle: () =>
-			mantine.setColorScheme(mantine.colorScheme === "dark" ? "light" : "dark"),
+		dark: shared.dark,
+		onToggle: shared.toggle,
 	};
 
 	/**

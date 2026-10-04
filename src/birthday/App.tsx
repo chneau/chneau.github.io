@@ -27,6 +27,7 @@ import {
 	useCommandPalette,
 	useShortcutsHelp,
 } from "../shared";
+import { useThemeMode } from "../shared/hooks/useThemeMode";
 import { AppFooter } from "./AppFooter";
 import { AppHeader } from "./AppHeader";
 import { BirthdayDetails } from "./BirthdayDetails";
@@ -42,7 +43,7 @@ import { ManageBirthdaysModal } from "./ManageBirthdaysModal";
 import { MilestonesWidget } from "./MilestonesWidget";
 import { checkAndNotify, subscribeDayRollNotification } from "./notifications";
 import { RecordsWidget } from "./RecordsWidget";
-import { dataStore, store } from "./store";
+import { dataStore } from "./store";
 import { TimelineView } from "./TimelineView";
 import { useTrackedBirthdays } from "./useTrackedBirthdays";
 import { WeatherTab } from "./WeatherTab";
@@ -117,19 +118,13 @@ const StatisticsSkeleton = () => {
 
 export const App = () => {
 	const dataSnap = useSnapshot(dataStore);
-	const storeSnap = useSnapshot(store);
 	const data = dataSnap.filtered;
 	const { t } = useTranslation();
 	const [manageOpen, setManageOpen] = useState(false);
 	const shortcuts = useShortcutsHelp();
+	const { dark, toggle } = useThemeMode();
 	const palette = useCommandPalette();
 	const [activeTab, setActiveTab] = useState<TabKey>(readInitialTab);
-
-	useEffect(() => {
-		document.documentElement.dataset.theme = storeSnap.darkMode
-			? "dark"
-			: "light";
-	}, [storeSnap.darkMode]);
 
 	useEffect(() => {
 		const url = new URL(window.location.href);
@@ -192,15 +187,13 @@ export const App = () => {
 	const commands: Command[] = [
 		{
 			id: "toggle-theme",
-			label: storeSnap.darkMode
+			label: dark
 				? t("app.command.switch_light")
 				: t("app.command.switch_dark"),
 			hint: t("app.command.appearance"),
 			keywords: "theme dark light appearance mode toggle",
-			icon: storeSnap.darkMode ? <Sun size={16} /> : <Moon size={16} />,
-			run: () => {
-				store.darkMode = !store.darkMode;
-			},
+			icon: dark ? <Sun size={16} /> : <Moon size={16} />,
+			run: toggle,
 		},
 		{
 			id: "keyboard-shortcuts",
@@ -223,7 +216,7 @@ export const App = () => {
 	return (
 		<MantineProvider
 			theme={appTheme}
-			forceColorScheme={storeSnap.darkMode ? "dark" : "light"}
+			forceColorScheme={dark ? "dark" : "light"}
 		>
 			<SkipLink />
 			<Notifications position="top-right" />

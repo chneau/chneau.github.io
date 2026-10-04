@@ -1,10 +1,11 @@
-import { Badge, Box, Tooltip, useMantineColorScheme } from "@mantine/core";
+import { Badge, Box, Tooltip } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { Beer, Copy, Settings, TriangleAlert, Trophy } from "lucide-react";
 import { useEffect } from "react";
 import type { ShortcutGroup } from "../../shared";
 import { AppNav, HeaderAction } from "../../shared";
+import { useThemeMode } from "../../shared/hooks/useThemeMode";
 import type { CacheStats, VenueInfo } from "../types";
 import { PubSearch } from "./PubSearch";
 
@@ -40,9 +41,8 @@ export const AppHeader = ({
 	onSettingsOpen,
 	shortcuts,
 }: Props) => {
-	const { colorScheme, setColorScheme } = useMantineColorScheme();
+	const { dark, toggle } = useThemeMode();
 	const isNarrow = useMediaQuery("(max-width: 30em)");
-	const dark = colorScheme === "dark";
 
 	useEffect(() => {
 		if (copied) {
@@ -64,7 +64,7 @@ export const AppHeader = ({
 			subtitle="Pub prices on a map — build a round, see what every pub charges"
 			theme={{
 				dark,
-				onToggle: () => setColorScheme(dark ? "light" : "dark"),
+				onToggle: toggle,
 			}}
 			shortcuts={shortcuts}
 			center={
