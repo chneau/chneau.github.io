@@ -235,17 +235,32 @@ describe("HeaderOverflow on a narrow screen", () => {
 	});
 
 	/**
+	 * The row rule, matched by shape rather than by one exact selector spelling.
+	 *
+	 * It has to outrank `.app-header__actions .app-header-action { padding: 0 }` in
+	 * the narrow-screen media query, which also matches a menu row. Both are
+	 * (0,2,0), so declaration order decides and this rule must come second — which
+	 * is why it lives at the end of base.css rather than beside the other overflow
+	 * rules.
+	 *
+	 * The selector is asserted loosely on purpose. It used to be spelled as a pair,
+	 * `.app-header-action.app-header-action` plus `a.app-header-action`, to win on
+	 * specificity; that was redundant (`HeaderAction` puts the same class list on its
+	 * anchor as on its button) and Biome read the mixed weights as a
+	 * descending-specificity cascade. These assertions pin the declarations, not the
+	 * spelling, so the next person can simplify the selector without having to
+	 * rewrite the suite — but a declaration disappearing still fails.
+	 */
+	const rowRule =
+		/\.app-header-overflow__row\s*>\s*\.app-header-action\s*\{([^}]*)\}/;
+
+	/**
 	 * One control per line, filling the sheet, with room between icon and name.
 	 *
-	 * `.app-switcher__menu` is reused by this menu and declared later in the file
-	 * at the same specificity, so `gap: 2px` beat anything a single-class rule
-	 * here said. The row's own rule carries a repeated class for the same
-	 * reason: the narrow-screen `.app-header__actions .app-header-action
-	 * { padding: 0 }` matches a menu row too, from a later block, and used to
-	 * win — leaving every row's text flush against its left edge.
+	 * `.app-switcher__menu` is reused by this menu and declared earlier in the
+	 * file, so its own `gap` had to be overridden by a two-class selector.
 	 */
 	test("the menu lays out one full-width row per control", () => {
-		// Two classes, or the reused `.app-switcher__menu` gap wins on order.
 		expect(baseCss).toMatch(
 			/\.app-switcher__menu\.app-header-overflow__menu\s*\{[^}]*gap:\s*6px/,
 		);
@@ -254,8 +269,6 @@ describe("HeaderOverflow on a narrow screen", () => {
 		expect(baseCss).toMatch(
 			/\.app-header-overflow__row\s*\{\s*display:\s*block;\s*\}/,
 		);
-		const rowRule =
-			/\.app-header-overflow__row\s*>\s*\.app-header-action\.app-header-action,\s*\.app-header-overflow__row\s*>\s*a\.app-header-action\s*\{([^}]*)\}/;
 		const body = baseCss.match(rowRule)?.[1];
 		expect(body).toBeDefined();
 		// Full width, shrinkable, and a 44px touch target.
@@ -274,13 +287,11 @@ describe("HeaderOverflow on a narrow screen", () => {
 	 * past the sheet's edge instead of scrolling, so the row wraps instead.
 	 */
 	test("a long name wraps instead of overflowing the sheet", () => {
-		const body = baseCss.match(
-			/\.app-header-overflow__row\s*>\s*\.app-header-action\.app-header-action,\s*\.app-header-overflow__row\s*>\s*a\.app-header-action\s*\{([^}]*)\}/,
-		)?.[1];
+		const body = baseCss.match(rowRule)?.[1];
 		expect(body).toMatch(/white-space:\s*normal/);
 		// And the icon must not be the thing that shrinks to absorb the wrap.
 		expect(baseCss).toMatch(
-			/\.app-header-overflow__row\s*>\s*\.app-header-action\.app-header-action\s*>\s*svg,\s*\.app-header-overflow__row\s*>\s*a\.app-header-action\s*>\s*svg\s*\{\s*flex:\s*none;\s*\}/,
+			/\.app-header-overflow__row\s*>\s*\.app-header-action\s*>\s*svg\s*\{\s*flex:\s*none;\s*\}/,
 		);
 	});
 
