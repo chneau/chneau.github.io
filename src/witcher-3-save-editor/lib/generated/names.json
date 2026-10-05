@@ -5621,5 +5621,33 @@
 		"witch_whispess",
 		"yennefer",
 		"zoltan_chivay"
-	]
+	],
+	"strings": {
+		"skill_name_mutation_1": "Conductors of Magic",
+		"skill_desc_mutation_1": "When drawn, magic, unique and witcher swords increase Sign damage dealt by $S$% of their own damage dealt.",
+		"skill_name_mutation_2": "Magic Sensibilities",
+		"skill_desc_mutation_2": "Signs can deal critical hits. Their critical hit chance and damage increase with Sign Intensity (currently $S$% chance to deal an additional $S$% damage). Opponents killed by critical hits from Signs explode.",
+		"skill_name_mutation_3": "Bloodbath",
+		"skill_desc_mutation_3": "Each fatal blow dealt by a sword dismembers the enemy or activates a finisher. Each blow dealt by a weapon in melee combat increases Attack Power by $S$% until combat ends (to a maximum of $S$%). The bonus is lost if you take damage (not including damage from Toxicity).",
+		"skill_name_mutation_4": "Toxic Blood",
+		"skill_desc_mutation_4": "Each time you are injured in melee combat, the attacking opponent receives damage in the amount of $S$% of damage dealt for every point of your Toxicity level (currently $S$%, to a maximum of $S$%).",
+		"skill_name_mutation_5": "Mutated Skin",
+		"skill_desc_mutation_5": "Each Adrenaline Point decreases damage received by $S$% (to a maximum of $S$%).",
+		"skill_name_mutation_6": "Piercing Cold",
+		"skill_desc_mutation_6": "When the Aard Sign is cast, it additionally has a $S$% chance of freezing enemies. This chance scales with your available Adrenaline Points. Enemies knocked down and frozen simultaneously die immediately. Enemies who are not frozen are dealt an additional $S$ damage.",
+		"skill_name_mutation_7": "Adrenaline Rush",
+		"skill_desc_mutation_7": "At start of combat, sword Attack Power and Sign Intensity increase for $S$s by $S$% for each foe (after first). So, when fighting $S$ foes, the bonus is $S$%. Once it wears off, sword Attack Power and Sign Intensity drop by $S$% for each participating foe after first (modifier cannot exceed $S$%). Duration: $S$s.",
+		"skill_name_mutation_8": "Deadly Counter",
+		"skill_desc_mutation_8": "Sword attacks deal $S$% more damage to human opponents immune to counterattacks and monsters. In all other cases, if the attacker's Vitality is less than $S$%, a counterattack immediately triggers a finisher.",
+		"skill_name_mutation_9": "Cat Eyes",
+		"skill_desc_mutation_9": "Crossbow damage is now increased from $S$ to $S$ (values depend on crossbow used), and crossbow critical hit chance is increased by $S$%. Crossbow bolts pierce and knock down or stun opponents. Opponents struck when they have full Vitality lose $S$% of Vitality.",
+		"skill_name_mutation_10": "Euphoria",
+		"skill_desc_mutation_10": "Each point of Toxicity increases damage dealt by swords and Sign Intensity by $S$% (to a maximum of $S$%).",
+		"skill_name_mutation_11": "Second Life",
+		"skill_desc_mutation_11": "When Vitality reaches 0, you become temporarily invulnerable and regenerate $S$% vitality. This effect can only be triggered once every $S$s.",
+		"skill_name_mutation_12": "Metamorphosis",
+		"skill_desc_mutation_12": "Applying critical effects to opponents activates a random decoction for $S$s with no Toxicity cost. The maximum number of decoctions that can be activated simultaneously by the mutation is $S$. Witcher Senses help you see better in dark places.",
+		"skill_name_mutation_master": "Strengthened Synapses",
+		"skill_desc_mutation_master": "Each of Strengthened Synapses' $S$ Stages unlocks an additional Ability slot in the Character Panel. Abilities activated in these slots must match the color of the currently active mutation. Research more mutations to advance Strengthened Synapses to the next stage."
+	}
 }
