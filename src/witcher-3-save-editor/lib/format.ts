@@ -267,9 +267,17 @@ const project = (container: SaveContainer): JsonValue => {
 				.sort((a, b) => a.title.localeCompare(b.title))
 				.slice(0, 200);
 		})(),
-		skills: found.skills
-			.filter((s): s is typeof s & { level: number } => s.level !== undefined)
-			.map((s): SkillRow => ({ name: s.name, level: s.level })),
+		// Every skill in the array, including the ones with no level field, so this
+		// list's indices line up one-for-one with the save's. Filtering the
+		// un-level-bearing entries out would shift every index after the first of
+		// them, and `encode` addresses skills by index — so a filtered list would
+		// write a level onto the *wrong* skill. 148 of 167 carry a level; the other
+		// 19 omit it (a field at its default is not written to the stream) and
+		// report `null`, which is the honest answer rather than a zero that looks
+		// editable.
+		skills: found.skills.map(
+			(s): SkillRow => ({ name: s.name, level: s.level ?? null }),
+		),
 		// The branch the scaffold rides on. Present but empty as far as
 		// `JSON.stringify` is concerned, which is what keeps the round-trip
 		// comparison honest.
@@ -365,6 +373,21 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		const quantity = numberAt(row, "quantity");
 		if (quantity === undefined || quantity === null) return;
 		writeUint16(payload, item.quantityOffset, quantity);
+	});
+
+	// Skill levels. Each is a 4-byte `Int32` inside an element that is already in
+	// the array, so overwriting one changes no length — which is the whole basis
+	// for being able to write it at all (ADR-0007). A skill with no level field is
+	// skipped: the field is absent from the stream, and adding one would move
+	// every offset after it.
+	const skills = requireArrayAt(doc, "skills");
+	found.skills.forEach((skill, index) => {
+		if (skill.levelOffset === undefined || skill.levelOffset <= 0) return;
+		const row = skills[index];
+		if (row === undefined || !isJsonObject(row)) return;
+		const level = numberAt(row, "level");
+		if (level === undefined || level === null) return;
+		writeInt32(payload, skill.levelOffset, level);
 	});
 
 	const rebuilt = buildContainer(scaffold.chunks, payload);
@@ -482,6 +505,30 @@ const edit = (
 	after,
 });
 
+/**
+ * Every skill in the save that carries a level, as `[index, current]` pairs.
+ *
+ * The indices are the document's, which line up one-for-one with the save's own
+ * skill array — see the note on the projection. A skill whose level field is
+ * absent from the stream is left out rather than reported as level 0: there are
+ * 19 such skills in a real save, and claiming they are at 0 would offer to write
+ * a field that does not exist, which needs a length change and would move every
+ * offset after it.
+ */
+const levelBearing = (
+	doc: JsonValue,
+): readonly { index: number; level: number | null }[] => {
+	const skills = requireArrayAt(doc, "skills");
+	const out: { index: number; level: number | null }[] = [];
+	for (const [index, row] of skills.entries()) {
+		if (!isJsonObject(row)) continue;
+		const level = numberAt(row, "level");
+		if (level === undefined || level === null) continue;
+		out.push({ index, level });
+	}
+	return out;
+};
+
 const ACTIONS: readonly QuickAction[] = [
 	{
 		id: "crowns-max",
@@ -530,6 +577,47 @@ const ACTIONS: readonly QuickAction[] = [
 			const free = numberAt(branch, "free");
 			if (free === undefined || free === null || free === 500) return [];
 			return [edit(["experience", "free"], "Experience", free, 500)];
+		},
+	},
+	{
+		id: "skills-learn-all",
+		label: "Learn every skill",
+		description:
+			"Set every skill in this save to level 1. Each level is a 4-byte value already present in the save, so this resizes nothing.",
+		plan: (doc) => {
+			const skills = levelBearing(doc);
+			if (skills.length === 0) return [];
+			// Only the ones that would change. Staging 148 edits to write the value
+			// a skill already holds would put a wall of no-ops in the tray.
+			return skills
+				.filter((skill) => skill.level !== 1)
+				.map((skill) =>
+					edit(
+						["skills", skill.index, "level"],
+						"Skill level",
+						skill.level ?? 0,
+						1,
+					),
+				);
+		},
+	},
+	{
+		id: "skills-reset",
+		label: "Reset every skill",
+		description: "Set every skill in this save back to level 0.",
+		plan: (doc) => {
+			const skills = levelBearing(doc);
+			if (skills.length === 0) return [];
+			return skills
+				.filter((skill) => skill.level !== 0)
+				.map((skill) =>
+					edit(
+						["skills", skill.index, "level"],
+						"Skill level",
+						skill.level ?? 0,
+						0,
+					),
+				);
 		},
 	},
 	{

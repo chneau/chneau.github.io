@@ -11,7 +11,13 @@ import {
 } from "../../shared";
 // `collectLeaves` is not on the shared barrel — it is an inspector detail — so
 // it is imported from its module rather than widening the barrel's surface.
-import { collectLeaves, objectAt } from "../../shared/save/json";
+import {
+	collectLeaves,
+	numberAt,
+	objectAt,
+	requireArrayAt,
+	stringAt,
+} from "../../shared/save/json";
 import { decompressContainer } from "../lib/container";
 import { witcher3 } from "../lib/format";
 import { locateWritable } from "../lib/write";
@@ -103,7 +109,10 @@ describe("decoding a real save", () => {
 				// reports only the skills whose level was read: a slot with no level is
 				// a slot the save has not filled in, and listing it as level 0 would be
 				// claiming a skill the character does not have.
-				skills: 148,
+				// All 167 are listed, of which 148 carry a level: the other 19
+				// omit the field from the stream and are reported as `null` rather
+				// than filtered out, because the list is addressed by index.
+				skills: 167,
 			});
 		},
 		FIXTURE_TIMEOUT_MS,
@@ -130,7 +139,10 @@ describe("decoding a real save", () => {
 				experience: { free: 702, used: 6000 },
 				chunks: 5,
 				items: 615,
-				skills: 148,
+				// All 167 are listed, of which 148 carry a level: the other 19
+				// omit the field from the stream and are reported as `null` rather
+				// than filtered out, because the list is addressed by index.
+				skills: 167,
 			});
 			// The wallet is the `u16` quantity of the `Crowns` item, not a field of
 			// its own. Exposing it twice would give the document two fields over one
@@ -672,21 +684,177 @@ describe("the codec describes itself", () => {
 		}
 	});
 
-	// The value actions come first because the page renders `actions` in order, and
-	// a save editor wants "set my money" above "pick a difficulty".
-	test("orders the value actions before the difficulty actions", () => {
-		expect(
-			witcher3.actions
-				.map((action) => action.id)
-				.filter((id) => !id.startsWith("difficulty-")),
-		).toEqual([
+	// The page renders `actions` in the order given, and that order is the page's
+	// reading order: the things you reach for first, then the bulk changes, and
+	// the difficulty picker last because it is the choice you make once rather
+	// than a cheat.
+	test("orders the actions by how often they are wanted", () => {
+		expect(witcher3.actions.map((action) => action.id)).toEqual([
 			"crowns-max",
 			"crowns-round",
 			"skill-points-max",
 			"experience-max",
+			"skills-learn-all",
+			"skills-reset",
 			"level-up",
+			"difficulty-easy",
+			"difficulty-medium",
+			"difficulty-hard",
+			"difficulty-hardcore",
+			"difficulty-notset",
 		]);
 	});
+});
+
+describe("skills", () => {
+	/**
+	 * A skill's level is a 4-byte `Int32` inside an element already present in the
+	 * save's array, so writing one resizes nothing — which is the only reason this
+	 * is possible at all (ADR-0007). Measured on a real save: 148 of 167 skills
+	 * carry a level, 132 of them sit at 0 and 16 at 1.
+	 */
+
+	const skillLevels = (doc: JsonValue): (number | null)[] =>
+		(requireArrayAt(doc, "skills") ?? []).map((row) => {
+			if (!isJsonObject(row)) return null;
+			return numberAt(row, "level") ?? null;
+		});
+
+	test(
+		"exposes every skill, so a level cannot land on the wrong one",
+		async () => {
+			const doc = await witcher3.decode(largeSave());
+			const skills = requireArrayAt(doc, "skills");
+			// All 167, including the 19 with no level field. Filtering those out
+			// would shift every index after the first of them, and `encode`
+			// addresses skills by index — so a filtered list would write a level
+			// onto the wrong skill.
+			expect(skills).toHaveLength(167);
+			const levels = skillLevels(doc);
+			expect(levels.filter((level) => level !== null)).toHaveLength(148);
+			// The absent ones say so, rather than reporting 0 and looking editable.
+			expect(levels.filter((level) => level === null)).toHaveLength(19);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"stages a level for every skill that is not already there",
+		async () => {
+			const doc = await witcher3.decode(largeSave());
+			const edits =
+				witcher3.actions.find((a) => a.id === "skills-learn-all")?.plan(doc) ??
+				[];
+			// 132 sit at 0; the 16 already at 1 stage nothing, because a wall of
+			// no-op edits in the tray is noise.
+			expect(edits).toHaveLength(132);
+			for (const edit of edits) {
+				expect(edit.after).toBe(1);
+			}
+			expect(new Set(edits.map((edit) => [...edit.path].join("."))).size).toBe(
+				132,
+			);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"learns every skill in a rebuilt save, resizing nothing",
+		async () => {
+			const bytes = largeSave();
+			const doc = await witcher3.decode(bytes);
+			const edits =
+				witcher3.actions.find((a) => a.id === "skills-learn-all")?.plan(doc) ??
+				[];
+			let folded = doc;
+			for (const edit of edits)
+				folded = setAtPath(folded, edit.path, edit.after);
+
+			const verdict = await verifyRoundTrip(witcher3, bytes, folded, true);
+			expect(verdict.kind).toBe("semantic");
+
+			const back = await witcher3.decode(await witcher3.encode(folded));
+			const levels = skillLevels(back).filter(
+				(level): level is number => level !== null,
+			);
+			expect(levels).toHaveLength(148);
+			// Every one, not just the ones that were staged.
+			expect(levels.filter((level) => level === 1)).toHaveLength(148);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"writes one skill's level and no other",
+		async () => {
+			const bytes = largeSave();
+			const doc = await witcher3.decode(bytes);
+			const skills = requireArrayAt(doc, "skills");
+			const at = skills.findIndex(
+				(row) => isJsonObject(row) && stringAt(row, "name") === "S_Sword_3",
+			);
+			expect(at).toBeGreaterThanOrEqual(0);
+			// A distinctive value, so "the write landed on the right skill" is a
+			// claim about identity rather than about counts.
+			const before = stringAt(skills[at], "name");
+			const edited = setAtPath(doc, ["skills", at, "level"], 4);
+			const rebuilt = await witcher3.encode(edited);
+			const back = await witcher3.decode(rebuilt);
+
+			const rows = requireArrayAt(back, "skills");
+			expect(stringAt(rows[at], "name")).toBe(before);
+			expect(numberAt(rows[at], "level")).toBe(4);
+
+			// And nothing else moved.
+			const norm = (value: number | null | undefined) =>
+				value === null || value === undefined ? null : value;
+			const moved = rows.filter(
+				(row, index) =>
+					norm(isJsonObject(row) ? numberAt(row, "level") : null) !==
+					norm(skillLevels(doc)[index]),
+			);
+			expect(moved).toHaveLength(1);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"resets every skill back to level 0",
+		async () => {
+			const bytes = largeSave();
+			const doc = await witcher3.decode(bytes);
+			const edits =
+				witcher3.actions.find((a) => a.id === "skills-reset")?.plan(doc) ?? [];
+			// Only the 16 that are at 1.
+			expect(edits).toHaveLength(16);
+			for (const edit of edits) expect(edit.after).toBe(0);
+
+			let folded = doc;
+			for (const edit of edits)
+				folded = setAtPath(folded, edit.path, edit.after);
+			const verdict = await verifyRoundTrip(witcher3, bytes, folded, true);
+			expect(verdict.kind).toBe("semantic");
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"plans nothing once every skill is already where it would be put",
+		async () => {
+			const bytes = largeSave();
+			const doc = await witcher3.decode(bytes);
+			const learn = witcher3.actions.find((a) => a.id === "skills-learn-all");
+			if (learn === undefined) throw new Error("no such action");
+			let folded = doc;
+			for (const edit of learn.plan(doc)) {
+				folded = setAtPath(folded, edit.path, edit.after);
+			}
+			// Re-planning against the result stages nothing, so pressing the button
+			// twice cannot fill the tray with duplicate work.
+			expect(learn.plan(folded)).toHaveLength(0);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
 });
 
 describe("difficulty", () => {
