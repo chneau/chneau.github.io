@@ -149,3 +149,106 @@ export const playerInventory = (
 	if (span === undefined) return undefined;
 	return readInventory(data, names, span.offset, span.end);
 };
+
+/**
+ * One container: an `entityData` frame, its owner label, and its items.
+ */
+type InventoryContainer = {
+	readonly offset: number;
+	readonly size: number;
+	/** `"player"`, a community basename, or `idTag <hex>` when unnamed */
+	readonly label: string;
+	readonly items: readonly InventoryItem[];
+};
+
+/** `quests\\…\\keira_metz.w2comm` -> `keira_metz`. */
+const communityLabel = (path: string): string => {
+	const base = path.split(/[\\/]/).pop() ?? path;
+	return base.replace(/\.w2comm$/i, "") || path;
+};
+
+const hexOf = (bytes: Uint8Array): string =>
+	[...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+
+/**
+ * Every container in the save: each `BS entityData` frame with its items, and an
+ * owner label.
+ *
+ * The label is `"player"` for the frame holding `levelManager`, otherwise the
+ * **community basename** the entity was spawned from (`keira_metz`,
+ * `novigrad_rich_district_passiflora_girl_01`, …) — the registry entry sharing
+ * the frame's `idTag` carries a `community : String` — or `idTag <hex>` when the
+ * entity has no community. The save stores no display template inside the frame.
+ */
+export const readContainers = (
+	data: Uint8Array,
+	names: readonly string[] = readNameTable(data).names,
+): readonly InventoryContainer[] => {
+	const tokens = parseTokens(data, names).tokens;
+	const tree = readObjectTree(data);
+
+	const spans: { offset: number; end: number }[] = [];
+	const collect = (nodes: readonly ObjectNode[]): void => {
+		for (const node of nodes) {
+			if (node.span.token.name === "entityData") {
+				spans.push({ offset: node.span.offset, end: node.span.end });
+			}
+			collect(node.children);
+		}
+	};
+	collect(tree.roots);
+	spans.sort((a, b) => a.offset - b.offset);
+
+	// idTag -> community, from the registry entry that shares the idTag.
+	const community = new Map<string, string>();
+	for (let i = 0; i < tokens.length; i += 1) {
+		const tag = tokens[i];
+		if (tag === undefined || tag.name !== "idTag" || tag.value === undefined) {
+			continue;
+		}
+		for (
+			let j = i + 1;
+			j < tokens.length && (tokens[j]?.offset ?? 0) < tag.offset + 3000;
+			j += 1
+		) {
+			const next = tokens[j];
+			if (next === undefined) break;
+			if (next.name === "community" && next.value?.type === "String") {
+				community.set(hexOf(tag.value.bytes), next.value.text);
+				break;
+			}
+			if (next.name === "idTag") break;
+		}
+	}
+
+	const player = tokens.find(
+		(t) =>
+			t.name === "levelManager" && t.value?.type === "handle:W3LevelManager",
+	);
+
+	return spans.map((span) => {
+		const inside = tokens.filter(
+			(t) => t.offset >= span.offset && t.offset < span.end,
+		);
+		const tag = inside.find((t) => t.name === "idTag" && t.value !== undefined);
+		const hex = tag?.value === undefined ? "" : hexOf(tag.value.bytes);
+		const isPlayer =
+			player !== undefined &&
+			player.offset >= span.offset &&
+			player.offset < span.end;
+		const comm = community.get(hex);
+		const label = isPlayer
+			? "player"
+			: comm !== undefined
+				? communityLabel(comm)
+				: hex !== ""
+					? `idTag ${hex}`
+					: "container";
+		return {
+			offset: span.offset,
+			size: span.end - span.offset,
+			label,
+			items: readInventory(data, names, span.offset, span.end),
+		};
+	});
+};
