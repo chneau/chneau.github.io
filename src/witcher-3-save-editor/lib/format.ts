@@ -675,6 +675,34 @@ const ACTIONS: readonly QuickAction[] = [
 		},
 	},
 	{
+		id: "mutation-research-kit",
+		label: "Stock mutation research",
+		description:
+			"Set unspent skill points to 500 and top every mutagen you carry up to 50. Lab research consumes Greater mutagens (normal and lesser carry no research points) plus skill points, so this stocks the colours you already hold at least one Greater mutagen of — the editor cannot add an item the save does not contain.",
+		plan: (doc) => {
+			const edits: SaveEdit[] = [];
+			const points = objectAt(doc, "skillPoints");
+			const free = points === undefined ? undefined : numberAt(points, "free");
+			if (free !== undefined && free !== null && free < 500) {
+				edits.push(edit(["skillPoints", "free"], "Skill points", free, 500));
+			}
+			const items = requireArrayAt(doc, "items");
+			for (const [index, row] of items.entries()) {
+				if (!isJsonObject(row)) continue;
+				const name = stringAt(row, "name") ?? "";
+				// A mutagen ingredient, not the "Recipe for Mutagen N" items whose
+				// names also contain "Mutagen".
+				if (!/mutagen/i.test(name) || /recipe/i.test(name)) continue;
+				const quantity = numberAt(row, "quantity");
+				if (quantity === undefined || quantity === null || quantity >= 50) {
+					continue;
+				}
+				edits.push(edit(["items", index, "quantity"], name, quantity, 50));
+			}
+			return edits;
+		},
+	},
+	{
 		id: "experience-max",
 		label: "Max experience",
 		description: "Set available experience to 500.",
