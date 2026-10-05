@@ -37,8 +37,18 @@ const FAILED = /_fail(?:ed|ure)?$/i;
 const COMPLETED = /_(?:completed?|done|closed|success|finished)$/i;
 const ACCEPTED = /_accepted$/i;
 
-/** Normalised quest id of a fact name, or `undefined` if it is not a quest step. */
-const questIdOf = (name: string): string | undefined => {
+/**
+ * Normalised quest id of a fact name, or `undefined` if it is not a quest step.
+ *
+ * Exported because `./quest-steps` groups by the same key and two copies of one
+ * regex is one thing to drift: a fact name matching here and not there would give
+ * two readers different quest ids for the same record. One owner.
+ *
+ * It is a convention of the *fact naming*, not something the game stores — the
+ * prefix (`mq` main, `sq` side, `q` quest) is the script author's, and a quest
+ * whose facts do not follow it simply does not appear.
+ */
+export const questIdOf = (name: string): string | undefined => {
 	const match = QUEST_ID.exec(name);
 	if (match === null) return undefined;
 	return (match[1] ?? "q").toLowerCase() + (match[2] ?? "");
