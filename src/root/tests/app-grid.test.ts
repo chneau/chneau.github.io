@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { nextGridIndex } from "../AppGrid";
+import { nextGridIndex } from "../gridNavigation";
 
 /**
  * Arrow-key roving focus over the dashboard card grid.

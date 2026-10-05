@@ -296,13 +296,30 @@ describe("weather cache / read path", () => {
 	});
 
 	test("the cache survives a JSON round-trip through localStorage", () => {
-		// The real path: the entry is stringified on write and read back as
-		// plain JSON, so `date` comes back as a string and every number as a
+		// The real path, taken for real: `store.ts` puts the whole store into
+		// `localStorage["store"]` with `JSON.stringify` and reads it back with
+		// `JSON.parse`, so `date` comes back as a string and every number as a
 		// JSON scalar. `WttrResponseSchema` coerces, so the round-trip holds.
-		const written = writeCachedWeather({}, "Edinburgh", response(11), NOW);
-		const revived = JSON.parse(
-			JSON.stringify(written),
-		) as unknown as WeatherCache;
+		//
+		// This goes through the storage stub rather than through `structuredClone`
+		// because that is the claim: the entry has to survive serialisation, and a
+		// structured clone keeps `date` a `Date` — it would pass while proving
+		// nothing about what `localStorage` hands back.
+		const storage = createStorage();
+		storage.setItem(
+			"store",
+			JSON.stringify({
+				weatherCache: writeCachedWeather({}, "Edinburgh", response(11), NOW),
+			}),
+		);
+		const stored = storage.getItem("store");
+		expect(stored).not.toBeNull();
+		// One narrow cast, and it is the library's: `JSON.parse` answers `any`
+		// because it cannot know the shape, and what is asserted here is only
+		// that the wrapper is an object whose `weatherCache` the sanitiser then
+		// validates entry by entry.
+		const payload = JSON.parse(stored ?? "{}") as { weatherCache?: unknown };
+		const revived = sanitizeWeatherCache(payload.weatherCache);
 		const hit = readCachedWeather(revived, "Edinburgh", NOW, FRESH_FOR);
 		expect(hit?.current_condition[0]?.temp_C).toBe(11);
 	});

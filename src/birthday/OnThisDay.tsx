@@ -1,7 +1,7 @@
 import { Accordion, Flex, Skeleton, Stack, Text } from "@mantine/core";
 import dayjs from "dayjs";
 import { TriangleAlert } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { dataStore, type WikiEvent } from "./store";
@@ -36,18 +36,6 @@ const MAX_EVENTS = 5;
 const resolveLanguage = (language: string): string => {
 	const lang = language.slice(0, 2);
 	return SUPPORTED_LANGUAGES.includes(lang) ? lang : "en";
-};
-
-/**
- * One day's answer, resolved.
- *
- * `events` is the list to render (`[]` while nothing is known yet), and
- * `loading` says whether the network is still the source of truth.
- */
-type DayAnswer = {
-	events: WikiEvent[];
-	loading: boolean;
-	error: boolean;
 };
 
 /**
@@ -88,6 +76,21 @@ const fetchDay = async (
 	return selectedEvents;
 };
 
+/** The value the accordion is given for this panel's one item. */
+const PANEL = "1";
+
+/**
+ * Where one day's answer has got to.
+ *
+ * Tagged with the day it answers, so a resolved day is never mistaken for an
+ * unresolved one: a stale answer for a previously viewed day must not be shown
+ * for the day now on screen.
+ */
+type DayAnswer =
+	| { cacheKey: string; status: "loading" }
+	| { cacheKey: string; status: "resolved"; events: WikiEvent[] }
+	| { cacheKey: string; status: "failed" };
+
 export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 	const { t, i18n } = useTranslation();
 
@@ -107,7 +110,7 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 	 * stale or hand-edited entry must degrade to a fresh fetch rather than
 	 * render junk. This is read during render because the cache is already in
 	 * memory — a cache hit is an answer, not a thing to wait for, so reading it
-	 * in an effect would paint one frame of "nothing happened on this day"
+	 * from an effect would paint one frame of "nothing happened on this day"
 	 * before showing the events.
 	 */
 	const cached = useMemo(() => {
@@ -115,50 +118,51 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 		return parsed.success ? parsed.data : null;
 	}, [cacheKey]);
 
+	const [opened, setOpened] = useState(false);
+	const [answer, setAnswer] = useState<DayAnswer | null>(null);
+	const inFlight = useRef<AbortController | null>(null);
+
 	/**
-	 * Only what the network answered, tagged with the day it answers. The tag is
-	 * what lets the render below tell a resolved day from an unresolved one, so
-	 * a stale answer for a previously viewed day is never shown for this one.
+	 * Ask Wikimedia for this day.
+	 *
+	 * Called from the panel's own open event rather than from an effect on
+	 * mount. The panel starts collapsed and shows nothing until it is opened, so
+	 * a request fired on mount is a request for content nobody has asked to see
+	 * — and the accordion click is the event that says they want it. Anything
+	 * already in flight is aborted first, so clicking through several days
+	 * leaves one answer standing instead of several racing to set state.
+	 *
+	 * The cache write goes through the store, which is what validates, bounds,
+	 * ages out and persists the payload; one it refuses is not cached.
 	 */
-	const [fetched, setFetched] = useState<{
-		cacheKey: string;
-		answer: DayAnswer;
-	} | null>(null);
-
-	const answered = fetched !== null && fetched.cacheKey === cacheKey;
-	const { events, loading, error } =
-		answered && fetched
-			? fetched.answer
-			: cached
-				? { events: cached, loading: false, error: false }
-				: { events: [] as WikiEvent[], loading: true, error: false };
-
-	useEffect(() => {
-		// A valid mirror entry is already the rendered answer, so there is
-		// nothing to fetch for this day.
-		if (cached) return;
-
+	const ask = async (key: string) => {
+		inFlight.current?.abort();
 		const controller = new AbortController();
-		fetchDay(finalLang, mm, dd, controller.signal)
-			.then((selectedEvents) => {
-				// Goes through the cache, which is what validates, bounds, ages
-				// out and persists it. A payload it refuses is not cached.
-				dataStore.wikiCache[cacheKey] = selectedEvents;
-				setFetched({
-					cacheKey,
-					answer: { events: selectedEvents, loading: false, error: false },
-				});
-			})
-			.catch((err: unknown) => {
-				if (err instanceof Error && err.name === "AbortError") return;
-				console.error(err);
-				setFetched({
-					cacheKey,
-					answer: { events: [], loading: false, error: true },
-				});
-			});
-		return () => controller.abort();
-	}, [cacheKey, cached, finalLang, mm, dd]);
+		inFlight.current = controller;
+		setAnswer({ cacheKey: key, status: "loading" });
+		try {
+			const events = await fetchDay(finalLang, mm, dd, controller.signal);
+			dataStore.wikiCache[key] = events;
+			setAnswer({ cacheKey: key, status: "resolved", events });
+		} catch (err: unknown) {
+			// The day changed or the panel went away: there is nobody left to
+			// show an answer to, and it is not a failure to report.
+			if (err instanceof Error && err.name === "AbortError") return;
+			console.error(err);
+			setAnswer({ cacheKey: key, status: "failed" });
+		}
+	};
+
+	/**
+	 * A panel that goes away abandons its request. Nothing else cancels one,
+	 * because nothing else starts one.
+	 */
+	useEffect(() => () => inFlight.current?.abort(), []);
+
+	const mine = answer?.cacheKey === cacheKey ? answer : null;
+	const events = mine?.status === "resolved" ? mine.events : (cached ?? []);
+	const loading = mine?.status === "loading";
+	const error = mine?.status === "failed";
 
 	if (error) {
 		return (
@@ -172,6 +176,18 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 	return (
 		<Accordion
 			variant="default"
+			value={opened ? PANEL : null}
+			/**
+			 * Opening the panel is the event that asks for the day. A valid
+			 * mirror entry is already the answer, so there is nothing to fetch
+			 * for that day — and the cache is written by `ask`, so the second
+			 * open of the same day is a hit too.
+			 */
+			onChange={(value) => {
+				const isOpen = value === PANEL;
+				setOpened(isOpen);
+				if (isOpen && cached === null) void ask(cacheKey);
+			}}
 			style={{
 				marginTop: 16,
 				background: "var(--tk-surface-2)",
@@ -179,7 +195,7 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 			}}
 			styles={{ item: { border: "none", background: "transparent" } }}
 		>
-			<Accordion.Item value="1">
+			<Accordion.Item value={PANEL}>
 				<Accordion.Control>
 					<Text fw={600} component="span">
 						📜 {t("on_this_day")} (

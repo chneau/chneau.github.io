@@ -1,15 +1,8 @@
-import { Gem, Mars, Venus } from "lucide-react";
-import type { Birthday } from "./birthdays";
+import { KIND_META, type Kind } from "./kind-meta";
 
-type Kind = Birthday["kind"];
-
-const KIND_META = {
-	"♂️": { Icon: Mars, labelKey: "app.filters.boys" },
-	"♀️": { Icon: Venus, labelKey: "app.filters.girls" },
-	"💒": { Icon: Gem, labelKey: "app.filters.weddings" },
-} as const satisfies Record<Kind, { Icon: typeof Mars; labelKey: string }>;
-
-export const kindLabelKey = (kind: Kind) => KIND_META[kind].labelKey;
+// Re-exported for the existing importers; the mapping is shared by three
+// components that label a kind, so it lives in `kind-meta.ts`.
+export { kindLabelKey } from "./kind-meta";
 
 /** Presentation-only replacement for the raw gender/wedding emoji. */
 export const KindIcon = ({

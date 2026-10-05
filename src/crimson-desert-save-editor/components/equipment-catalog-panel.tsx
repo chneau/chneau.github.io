@@ -7,9 +7,9 @@ import {
 } from "@/components/catalog-browser";
 import {
 	type EquipmentCatalog,
-	EquipmentEditor,
 	freshEquipmentDetails,
-} from "@/components/equipment-workshop";
+} from "@/components/equipment-details";
+import { EquipmentEditor } from "@/components/equipment-workshop";
 import { Picture } from "@/components/picture";
 import { storageKeys } from "@/lib/add-plan";
 import type { InsertEquipmentEdit } from "@/lib/equipment";

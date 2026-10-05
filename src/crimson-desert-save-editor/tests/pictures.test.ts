@@ -21,7 +21,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type PictureKind, picturePath } from "../components/picture";
+import { type PictureKind, picturePath } from "../components/picture-path";
 import companionPaths from "../lib/generated/companion-image-paths.json";
 import itemPaths from "../lib/generated/item-image-paths.json";
 import { ARCHIVE_COUNT, imagePart } from "../lib/image-archive";

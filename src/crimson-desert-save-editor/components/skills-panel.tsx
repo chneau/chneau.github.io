@@ -1,5 +1,4 @@
 import {
-	ActionIcon,
 	Alert,
 	Badge,
 	Box,
@@ -15,19 +14,17 @@ import {
 	Stack,
 	Table,
 	Text,
-	TextInput,
 	UnstyledButton,
 } from "@mantine/core";
 import {
 	Check,
 	Eraser,
 	RotateCcw,
-	Search,
 	Sparkles,
 	TriangleAlert,
-	X,
 } from "lucide-react";
 import { useState } from "react";
+import { PanelSearchField } from "@/components/panel-search";
 import type {
 	SkillDescription,
 	SkillEntry,
@@ -55,6 +52,35 @@ type PanelProps = {
 };
 
 const PAGE_SIZE = 25;
+
+/**
+ * The staged edit one "Stage change" press produces.
+ *
+ * The overrides are an object, and the applier walks them in key order, so the
+ * sort is not cosmetic: without it the written save differs byte for byte
+ * depending on the order the user happened to type into the table, and the
+ * round-trip suites could no longer hold it.
+ */
+const skillEditFor = (
+	mode: SkillMode,
+	overrides: Record<number, number>,
+	label: string,
+	plan: SkillDescription["modes"][SkillMode] | undefined,
+): SkillEdit => {
+	const levels = Object.entries(overrides)
+		.map(([key, level]) => ({ key: Number(key), level }))
+		.sort((a, b) => a.key - b.key);
+	return {
+		type: "skills",
+		mode,
+		levels: levels.length ? levels : undefined,
+		label,
+		targets: plan?.targets ?? 0,
+		injected: plan?.injected ?? 0,
+		patched: plan?.patched ?? 0,
+		relearned: plan?.relearned ?? 0,
+	};
+};
 
 const ModeCard = ({
 	mode,
@@ -196,6 +222,138 @@ const EntryRow = ({
 	</Table.Tr>
 );
 
+/**
+ * Search, group and unlearned-only, as one filter row.
+ *
+ * The panel's own "clear filters" button only exists when the filters have
+ * matched nothing, so this takes the three values rather than a reset: making
+ * the reset unconditional would change when that button appears, which is a
+ * change to what a reader sees and not one this refactor is for.
+ */
+const SkillFilters = ({
+	description,
+	query,
+	group,
+	missingOnly,
+	onQueryChange,
+	onGroupChange,
+	onMissingOnlyChange,
+}: {
+	description?: SkillDescription;
+	query: string;
+	group: SkillGroupFilter;
+	missingOnly: boolean;
+	onQueryChange: (query: string) => void;
+	onGroupChange: (group: SkillGroupFilter) => void;
+	onMissingOnlyChange: (missingOnly: boolean) => void;
+}) => {
+	const abilityCount =
+		description?.entries.filter((entry) => entry.group === "abilities")
+			.length ?? 0;
+	return (
+		<Group align="flex-end" gap="md">
+			<PanelSearchField
+				label="Search skill entries"
+				placeholder="Search names or keys"
+				value={query}
+				onChange={onQueryChange}
+				onClear={() => onQueryChange("")}
+			/>
+			<Select
+				w={170}
+				label="Group"
+				value={group}
+				allowDeselect={false}
+				data={[
+					{
+						value: "all",
+						label: `All entries (${description?.skillTotal ?? 0})`,
+					},
+					{
+						value: "skillTree",
+						label: `Skill tree (${(description?.skillTotal ?? 0) - abilityCount})`,
+					},
+					{ value: "abilities", label: `Abilities (${abilityCount})` },
+				]}
+				onChange={(value) =>
+					onGroupChange((value ?? "all") as SkillGroupFilter)
+				}
+			/>
+			<Checkbox
+				mb={8}
+				label={`Unlearned only (${missingSkillCount(
+					description,
+					group,
+				).toLocaleString()})`}
+				checked={missingOnly}
+				onChange={(event) => onMissingOnlyChange(event.currentTarget.checked)}
+			/>
+		</Group>
+	);
+};
+
+/**
+ * The staged progression change, and the button that replaces it.
+ *
+ * The table edits one entry at a time while the stage button commits all of
+ * them, so the two sit together: what the button will do is stated next to the
+ * entries it will do it to.
+ */
+const SkillStageBar = ({
+	mode,
+	edit,
+	overrideCount,
+	busy,
+	description,
+	onClearOverrides,
+	onStage,
+}: {
+	mode: SkillMode;
+	edit: SkillEdit | undefined;
+	overrideCount: number;
+	busy: boolean;
+	description?: SkillDescription;
+	onClearOverrides: () => void;
+	onStage: () => void;
+}) => {
+	const label = modeInfo(mode).label;
+	return (
+		<Paper withBorder p="md" bg="var(--app-surface-2)">
+			<Group justify="space-between" gap="md" align="flex-end">
+				<Box maw={620}>
+					<Text size="sm" fw={500}>
+						Stage {label.toLowerCase()}
+					</Text>
+					<Text mt={4} size="xs" c="dimmed">
+						{overrideCount
+							? `${overrideCount} of the entries above get your level instead of the reference. Leave a field empty to use the reference value.`
+							: "Every entry uses its reference level. Type a level in the table to force a specific value for that entry."}
+					</Text>
+				</Box>
+				<Group gap="xs">
+					<Button
+						variant="default"
+						leftSection={<Eraser size={16} />}
+						disabled={busy || overrideCount === 0}
+						onClick={onClearOverrides}
+					>
+						Clear overrides
+					</Button>
+					<Button
+						leftSection={
+							edit ? <RotateCcw size={16} /> : <Sparkles size={16} />
+						}
+						disabled={busy || !description}
+						onClick={onStage}
+					>
+						{edit ? "Replace staged change" : "Stage change"}
+					</Button>
+				</Group>
+			</Group>
+		</Paper>
+	);
+};
+
 export const SkillsPanel = ({
 	description,
 	edit,
@@ -240,19 +398,7 @@ export const SkillsPanel = ({
 		});
 	};
 	const stage = () => {
-		const levels = Object.entries(overrides)
-			.map(([key, level]) => ({ key: Number(key), level }))
-			.sort((a, b) => a.key - b.key);
-		onStage({
-			type: "skills",
-			mode,
-			levels: levels.length ? levels : undefined,
-			label: info.label,
-			targets: plan?.targets ?? 0,
-			injected: plan?.injected ?? 0,
-			patched: plan?.patched ?? 0,
-			relearned: plan?.relearned ?? 0,
-		});
+		onStage(skillEditFor(mode, overrides, info.label, plan));
 	};
 
 	if (description?.error) {
@@ -353,86 +499,24 @@ export const SkillsPanel = ({
 				</Paper>
 			)}
 
-			<Box>
-				<Group align="flex-end" gap="md">
-					<TextInput
-						w="100%"
-						style={{ flex: 1, minWidth: "12rem" }}
-						label="Search skill entries"
-						placeholder="Search names or keys"
-						leftSection={<Search size={16} />}
-						rightSection={
-							query ? (
-								<ActionIcon
-									size="xs"
-									variant="subtle"
-									color="gray"
-									onClick={() => {
-										setQuery("");
-										toFirstPage();
-									}}
-									title="Clear search"
-									aria-label="Clear search"
-								>
-									<X size={14} />
-								</ActionIcon>
-							) : null
-						}
-						value={query}
-						onChange={(event) => {
-							const value = event.currentTarget.value;
-							setQuery(value);
-							toFirstPage();
-						}}
-					/>
-					<Select
-						w={170}
-						label="Group"
-						value={group}
-						allowDeselect={false}
-						data={[
-							{
-								value: "all",
-								label: `All entries (${description?.skillTotal ?? 0})`,
-							},
-							{
-								value: "skillTree",
-								label: `Skill tree (${
-									(description?.skillTotal ?? 0) -
-									(description?.entries.filter(
-										(entry) => entry.group === "abilities",
-									).length ?? 0)
-								})`,
-							},
-							{
-								value: "abilities",
-								label: `Abilities (${
-									description?.entries.filter(
-										(entry) => entry.group === "abilities",
-									).length ?? 0
-								})`,
-							},
-						]}
-						onChange={(value) => {
-							setGroup((value ?? "all") as SkillGroupFilter);
-							toFirstPage();
-						}}
-					/>
-					<Checkbox
-						mb={8}
-						label={`Unlearned only (${missingSkillCount(
-							description,
-							group,
-						).toLocaleString()})`}
-						checked={missingOnly}
-						onChange={(event) => {
-							const value = event.currentTarget.checked;
-							setMissingOnly(value);
-							toFirstPage();
-						}}
-					/>
-				</Group>
-			</Box>
+			<SkillFilters
+				description={description}
+				query={query}
+				group={group}
+				missingOnly={missingOnly}
+				onQueryChange={(value) => {
+					setQuery(value);
+					toFirstPage();
+				}}
+				onGroupChange={(value) => {
+					setGroup(value);
+					toFirstPage();
+				}}
+				onMissingOnlyChange={(value) => {
+					setMissingOnly(value);
+					toFirstPage();
+				}}
+			/>
 
 			<Box>
 				<ScrollArea.Autosize
@@ -510,39 +594,15 @@ export const SkillsPanel = ({
 				</Group>
 			</Box>
 
-			<Paper withBorder p="md" bg="var(--app-surface-2)">
-				<Group justify="space-between" gap="md" align="flex-end">
-					<Box maw={620}>
-						<Text size="sm" fw={500}>
-							Stage {info.label.toLowerCase()}
-						</Text>
-						<Text mt={4} size="xs" c="dimmed">
-							{overrideCount
-								? `${overrideCount} of the entries above get your level instead of the reference. Leave a field empty to use the reference value.`
-								: "Every entry uses its reference level. Type a level in the table to force a specific value for that entry."}
-						</Text>
-					</Box>
-					<Group gap="xs">
-						<Button
-							variant="default"
-							leftSection={<Eraser size={16} />}
-							disabled={busy || overrideCount === 0}
-							onClick={() => setOverrides({})}
-						>
-							Clear overrides
-						</Button>
-						<Button
-							leftSection={
-								edit ? <RotateCcw size={16} /> : <Sparkles size={16} />
-							}
-							disabled={busy || !description}
-							onClick={stage}
-						>
-							{edit ? "Replace staged change" : "Stage change"}
-						</Button>
-					</Group>
-				</Group>
-			</Paper>
+			<SkillStageBar
+				mode={mode}
+				edit={edit}
+				overrideCount={overrideCount}
+				busy={busy}
+				description={description}
+				onClearOverrides={() => setOverrides({})}
+				onStage={stage}
+			/>
 		</Stack>
 	);
 };

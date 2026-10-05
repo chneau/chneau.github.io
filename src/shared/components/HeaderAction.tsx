@@ -47,6 +47,79 @@ type HeaderActionProps = {
 	role?: string;
 };
 
+/**
+ * The class list, built in one place because the same string has to appear on
+ * both shapes: `.app-header-action__menulabel` is matched against this control's
+ * class by the overflow menu, and a control that grew a second copy of the list
+ * would stop being collected into that menu.
+ */
+const actionClassName = ({
+	iconOnly,
+	accent,
+	active,
+	className,
+}: Pick<HeaderActionProps, "iconOnly" | "accent" | "active" | "className">) =>
+	[
+		"app-header-action",
+		iconOnly ? "app-header-action--icon" : undefined,
+		accent ? "app-header-action--accent" : undefined,
+		active ? "app-header-action--active" : undefined,
+		className,
+	]
+		.filter(Boolean)
+		.join(" ");
+
+/**
+ * The attributes both an anchor and a button carry. Written once because the
+ * label is three attributes here — the accessible name, the tooltip and the
+ * menu entry — and a control missing one of them answers to a different name
+ * depending on where it is rendered.
+ */
+const sharedAria = ({
+	label,
+	ariaExpanded,
+	ariaHaspopup,
+	ariaControls,
+}: Pick<
+	HeaderActionProps,
+	"label" | "ariaExpanded" | "ariaHaspopup" | "ariaControls"
+>) =>
+	({
+		"aria-label": label,
+		"aria-expanded": ariaExpanded,
+		"aria-haspopup": ariaHaspopup,
+		"aria-controls": ariaControls,
+		title: label,
+	}) as const;
+
+/**
+ * What the control shows: its icon, then its text label if it has one, then
+ * the menu-only label.
+ */
+const ActionContent = ({
+	icon,
+	children,
+	menuLabel,
+}: Pick<HeaderActionProps, "icon" | "children" | "menuLabel">) => (
+	<>
+		{icon}
+		{children ? (
+			<span className="app-header-action__label">{children}</span>
+		) : null}
+		{/*
+		 * An `iconOnly` control carries no `label` span, so the overflow menu used
+		 * to render it as a bare icon: five controls across the site (back home,
+		 * theme, shortcuts, palette, GitHub) with nothing to read. This carries the
+		 * same text, shown only inside the menu — `display: none` by default,
+		 * because the bar has no room for it and that is the whole reason the menu
+		 * exists.
+		 */}
+		{!children && menuLabel !== undefined ? (
+			<span className="app-header-action__menulabel">{menuLabel}</span>
+		) : null}
+	</>
+);
+
 /** A 36px navbar control. Use `iconOnly`, otherwise text sits beside the icon. */
 export const HeaderAction = forwardRef<
 	HTMLButtonElement | HTMLAnchorElement,
@@ -78,35 +151,18 @@ export const HeaderAction = forwardRef<
 	) => {
 		const inert = disabled || loading;
 		const pressed = ariaPressed ?? (active === undefined ? undefined : active);
-		const classes = [
-			"app-header-action",
-			iconOnly ? "app-header-action--icon" : undefined,
-			accent ? "app-header-action--accent" : undefined,
-			active ? "app-header-action--active" : undefined,
-			className,
-		]
-			.filter(Boolean)
-			.join(" ");
-
+		const aria = sharedAria({
+			label,
+			ariaExpanded,
+			ariaHaspopup,
+			ariaControls,
+		});
 		const content = (
-			<>
-				{icon}
-				{children ? (
-					<span className="app-header-action__label">{children}</span>
-				) : null}
-				{/*
-				 * An `iconOnly` control carries no `label` span, so the overflow
-				 * menu used to render it as a bare icon: five controls across the
-				 * site (back home, theme, shortcuts, palette, GitHub) with nothing
-				 * to read. This carries the same text, shown only inside the menu —
-				 * `display: none` by default, because the bar has no room for it and
-				 * that is the whole reason the menu exists.
-				 */}
-				{!children && menuLabel !== undefined ? (
-					<span className="app-header-action__menulabel">{menuLabel}</span>
-				) : null}
-			</>
+			<ActionContent icon={icon} menuLabel={menuLabel}>
+				{children}
+			</ActionContent>
 		);
+		const classes = actionClassName({ iconOnly, accent, active, className });
 
 		if (href) {
 			return (
@@ -115,16 +171,12 @@ export const HeaderAction = forwardRef<
 					id={id}
 					className={classes}
 					role={role}
+					{...aria}
 					href={inert ? undefined : href}
 					target={target}
 					rel={target === "_blank" ? "noreferrer" : undefined}
-					aria-label={label}
-					aria-expanded={ariaExpanded}
-					aria-haspopup={ariaHaspopup}
-					aria-controls={ariaControls}
 					aria-busy={loading || undefined}
 					aria-disabled={inert || undefined}
-					title={label}
 					onClick={inert ? undefined : onClick}
 				>
 					{content}
@@ -139,11 +191,7 @@ export const HeaderAction = forwardRef<
 				id={id}
 				className={classes}
 				role={role}
-				aria-label={label}
-				title={label}
-				aria-expanded={ariaExpanded}
-				aria-haspopup={ariaHaspopup}
-				aria-controls={ariaControls}
+				{...aria}
 				aria-pressed={pressed}
 				aria-busy={loading || undefined}
 				disabled={inert}

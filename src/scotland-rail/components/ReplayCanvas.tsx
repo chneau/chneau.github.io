@@ -1,112 +1,38 @@
-import { Crosshair, MapPin, MoveRight, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSnapshot } from "valtio";
 import { prefersReducedMotion } from "../../shared";
+import { useMapCamera } from "../camera";
 import {
-	COASTLINES,
-	LANDMARKS,
-	LOCHS,
-	RAIL_PATHS,
-	STATIONS,
-} from "../data/geography";
+	bakeStaticLayer,
+	drawDynamicLayer,
+	STATIC_GRID,
+	STATIC_MARGIN,
+} from "../engine/mapLayers";
+import { describeNetwork } from "../liveRegion";
 import {
-	CATEGORIES,
-	type TrainService,
-	VIEW_BOUNDS,
-	type ViewPreset,
-} from "../data/types";
-import { drawSmoothPath } from "../engine/curve";
-import { createProjection } from "../engine/projection";
-import { derivedStore, railActions, railStore } from "../store";
-import { mapColors, palette } from "../theme";
+	BUTTON_ZOOM_IN,
+	BUTTON_ZOOM_OUT,
+	createInteractionState,
+	createMapHandlers,
+} from "../mapInteraction";
+import { derivedStore, railStore } from "../store";
+import { BootOverlay, HoverTooltip, MapNavControls } from "./map-overlays";
 
-// Vector marker for a scenic landmark, replacing the emoji glyphs used before.
-const drawLandmarkMarker = (
-	ctx: CanvasRenderingContext2D,
-	x: number,
-	y: number,
-) => {
-	ctx.save();
-	ctx.translate(x, y);
-	ctx.rotate(Math.PI / 4);
-	ctx.fillStyle = "#c9a04e";
-	ctx.strokeStyle = mapColors.bg;
-	ctx.lineWidth = 1;
-	ctx.fillRect(-3.4, -3.4, 6.8, 6.8);
-	ctx.strokeRect(-3.4, -3.4, 6.8, 6.8);
-	ctx.restore();
-};
-
-// Calculate atmospheric day/night colors based on time offset (00:00 to 24:00)
-const getDayNightAtmosphere = (
-	timeOffset: number,
-	enabled: boolean,
-): {
-	bgColor: string;
-	landColor: string;
-	coastColor: string;
-	isNight: boolean;
-	lightFactor: number;
-} => {
-	if (!enabled) {
-		return {
-			bgColor: mapColors.bg,
-			landColor: "#0d222f",
-			coastColor: "#436577",
-			isNight: false,
-			lightFactor: 1,
-		};
-	}
-
-	const hours = (timeOffset / 60) % 24;
-
-	// Sunrise: 05:30 - 08:30
-	// Daytime: 08:30 - 18:00
-	// Sunset: 18:00 - 21:30
-	// Night: 21:30 - 05:30
-	if (hours >= 8.5 && hours <= 18) {
-		return {
-			bgColor: "#091724",
-			landColor: "#0f2c3e",
-			coastColor: "#567c92",
-			isNight: false,
-			lightFactor: 1,
-		};
-	}
-	if (hours >= 5.5 && hours < 8.5) {
-		return {
-			bgColor: "#141525",
-			landColor: "#1d2538",
-			coastColor: "#a07d6a",
-			isNight: false,
-			lightFactor: 0.7,
-		};
-	}
-	if (hours > 18 && hours <= 21.5) {
-		return {
-			bgColor: "#121422",
-			landColor: "#1b2033",
-			coastColor: "#8a6f66",
-			isNight: true,
-			lightFactor: 0.6,
-		};
-	}
-	return {
-		bgColor: "#040b10",
-		landColor: "#081620",
-		coastColor: "#283f4d",
-		isNight: true,
-		lightFactor: 0.3,
-	};
-};
-
-// The static layer (coastlines, lochs, rails, landmarks, stations) is baked to
-// an offscreen canvas and then blitted. Pan is applied as a bitmap translation,
-// so it never re-projects geometry. The bake is quantized to this grid: as long
-// as the live pan stays within one grid cell the cached bitmap is reused, and
-// STATIC_MARGIN of slack around the viewport hides the cell boundary.
-const STATIC_GRID = 128;
-const STATIC_MARGIN = STATIC_GRID;
+/**
+ * The map surface: one canvas, two layers, one camera.
+ *
+ * The drawing is in `engine/mapLayers` and the gestures are in
+ * `mapInteraction`; what remains here is what can only live on the canvas
+ * element — the two subscriptions, the resize observer, the effects that
+ * schedule each layer's paint, the throttled live-region summary, and the
+ * camera-follow pass.
+ *
+ * The static layer is baked to an offscreen canvas and blitted, so panning costs
+ * one `drawImage` rather than re-projecting every coastline, loch and station
+ * label. The bake is quantized to `STATIC_GRID`: as long as the live pan stays
+ * within one grid cell the cached bitmap is reused, and `STATIC_MARGIN` of slack
+ * around the viewport hides the cell boundary.
+ */
 
 /** Minimum gap between aggregate live-region announcements, in milliseconds. */
 const ANNOUNCE_INTERVAL_MS = 2500;
@@ -143,138 +69,33 @@ export const ReplayCanvas = () => {
 		typeof document === "undefined" ? null : document.createElement("canvas"),
 	);
 
-	// Interactive Zoom and Pan state.
-	//
-	// Zoom and pan live in one state object alongside the preset they belong
-	// to, and switching preset is adjusted while rendering rather than in an
-	// effect. The camera-follow effect below reads the camera, so a reset that
-	// happened in an effect would let it run once against the bounds the user
-	// just left.
-	const [camera, setCamera] = useState<{
-		preset: ViewPreset;
-		zoom: number;
-		pan: { x: number; y: number };
-	}>({ preset: viewPreset, zoom: 1, pan: { x: 0, y: 0 } });
-	if (camera.preset !== viewPreset) {
-		// The camera is only meaningful relative to the preset's bounds, so
-		// switching between the Scotland and Europe view presets starts it over
-		// rather than leaving the user panned and zoomed off the new bounds.
-		setCamera({ preset: viewPreset, zoom: 1, pan: { x: 0, y: 0 } });
-	}
-	const { zoom, pan } = camera;
-
-	// Narrow wrappers, so the wheel, drag, touch and button handlers below can
-	// read and write one field of the camera without rebuilding the other.
-	const setZoom = (next: number | ((prev: number) => number)) =>
-		setCamera((prev) => ({
-			...prev,
-			zoom: typeof next === "function" ? next(prev.zoom) : next,
-		}));
-	const setPan = (
-		next:
-			| { x: number; y: number }
-			| ((prev: { x: number; y: number }) => { x: number; y: number }),
-	) =>
-		setCamera((prev) => ({
-			...prev,
-			pan: typeof next === "function" ? next(prev.pan) : next,
-		}));
-
+	const { zoom, pan, setZoom, setPan } = useMapCamera({
+		viewPreset,
+		canvasRef,
+		follow: {
+			enabled: settings.cameraFollowTrain,
+			position:
+				selectedServiceId === null
+					? null
+					: (activeTrains.find((t) => t.service.id === selectedServiceId)
+							?.position ?? null),
+		},
+	});
 	const [ready, setReady] = useState(false);
-	const isDraggingRef = useRef<boolean>(false);
-	const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+	// Created while rendering, like the offscreen canvas above: the drag
+	// bookkeeping has to exist before the first gesture, and `useRef` would run
+	// its argument on every render for a value it then discards.
+	const [interaction] = useState(createInteractionState);
+	const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(
+		null,
+	);
 
 	// Quantized pan used as the static-layer cache key. Staying on the grid for
 	// small movements means the bitmap is not re-baked each pan frame.
 	const bakeX = Math.round(pan.x / STATIC_GRID) * STATIC_GRID;
 	const bakeY = Math.round(pan.y / STATIC_GRID) * STATIC_GRID;
 
-	// Publish the screen-reader summary at a human cadence. A change of selected
-	// service is announced straight away; otherwise at most one update per
-	// ANNOUNCE_INTERVAL_MS so 15x playback does not flood the live region.
-	useEffect(() => {
-		const selectionChanged =
-			lastAnnouncedSelectionRef.current !== selectedServiceId;
-		const now = performance.now();
-		if (
-			!selectionChanged &&
-			now - lastAnnounceRef.current < ANNOUNCE_INTERVAL_MS
-		) {
-			return;
-		}
-		lastAnnounceRef.current = now;
-		lastAnnouncedSelectionRef.current = selectedServiceId;
-
-		if (activeTrains.length === 0) {
-			setLiveMessage("No trains are currently running.");
-			return;
-		}
-
-		const selected = selectedServiceId
-			? activeTrains.find((t) => t.service.id === selectedServiceId)
-			: null;
-		if (selected) {
-			setLiveMessage(
-				`${selected.service.serviceNumber} ${selected.service.name} ${
-					selected.isDwelling
-						? `is at ${selected.currentStopName}`
-						: `is heading to ${selected.nextStopName ?? "its destination"}`
-				}.`,
-			);
-			return;
-		}
-
-		const names = activeTrains
-			.slice(0, 6)
-			.map((t) => `${t.service.serviceNumber} ${t.service.name}`);
-		const more =
-			activeTrains.length > names.length
-				? `, plus ${activeTrains.length - names.length} more`
-				: "";
-		setLiveMessage(
-			`${activeTrains.length} trains running: ${names.join("; ")}${more}.`,
-		);
-	}, [activeTrains, selectedServiceId]);
-
-	// Camera Follow Selected Train
-	useEffect(() => {
-		if (!settings.cameraFollowTrain || !selectedServiceId) return;
-		const activeSelected = activeTrains.find(
-			(t) => t.service.id === selectedServiceId,
-		);
-		if (!activeSelected) return;
-
-		const canvas = canvasRef.current;
-		if (!canvas) return;
-		const rect = canvas.getBoundingClientRect();
-		const bounds = VIEW_BOUNDS[viewPreset];
-		const proj = createProjection(bounds, rect.width, rect.height, 32, zoom, {
-			x: 0,
-			y: 0,
-		});
-		const trainScreen = proj.project(activeSelected.position);
-
-		const targetPanX = rect.width / 2 - trainScreen.x;
-		const targetPanY = rect.height / 2 - trainScreen.y;
-
-		// Smooth ease toward the train, but bail out once converged. Returning
-		// `prev` untouched avoids an allocation and a re-render on every idle
-		// frame.
-		setCamera((prev) => {
-			const dx = (targetPanX - prev.pan.x) * 0.15;
-			const dy = (targetPanY - prev.pan.y) * 0.15;
-			if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return prev;
-			return { ...prev, pan: { x: prev.pan.x + dx, y: prev.pan.y + dy } };
-		});
-	}, [
-		selectedServiceId,
-		activeTrains,
-		settings.cameraFollowTrain,
-		viewPreset,
-		zoom,
-	]);
-
-	// Quantize time offset to 2-minute increments for static layer
+	// Quantize time offset to 2-minute increments for the static layer.
 	const quantizedTime = Math.floor(timeOffset / 2) * 2;
 
 	// Dimensions via ResizeObserver
@@ -302,6 +123,24 @@ export const ReplayCanvas = () => {
 		ro.observe(canvas);
 		return () => ro.disconnect();
 	}, []);
+
+	// Publish the screen-reader summary at a human cadence. A change of selected
+	// service is announced straight away; otherwise at most one update per
+	// ANNOUNCE_INTERVAL_MS so 15x playback does not flood the live region.
+	useEffect(() => {
+		const selectionChanged =
+			lastAnnouncedSelectionRef.current !== selectedServiceId;
+		const now = performance.now();
+		if (
+			!selectionChanged &&
+			now - lastAnnounceRef.current < ANNOUNCE_INTERVAL_MS
+		) {
+			return;
+		}
+		lastAnnounceRef.current = now;
+		lastAnnouncedSelectionRef.current = selectedServiceId;
+		setLiveMessage(describeNetwork(activeTrains, selectedServiceId));
+	}, [activeTrains, selectedServiceId]);
 
 	// Bake the static layer only when the transform/settings actually change.
 	// `pan` is deliberately absent from the deps: panning just translates the
@@ -331,198 +170,16 @@ export const ReplayCanvas = () => {
 		const sCtx = staticCanvas.getContext("2d");
 		if (!sCtx) return;
 
-		sCtx.setTransform(dpr, 0, 0, dpr, STATIC_MARGIN * dpr, STATIC_MARGIN * dpr);
-		sCtx.clearRect(-STATIC_MARGIN, -STATIC_MARGIN, bakeWidth, bakeHeight);
-
-		const atmo = getDayNightAtmosphere(quantizedTime, settings.dayNightCycle);
-
-		// Background
-		sCtx.fillStyle = atmo.bgColor;
-		sCtx.fillRect(-STATIC_MARGIN, -STATIC_MARGIN, bakeWidth, bakeHeight);
-
-		const bounds = VIEW_BOUNDS[viewPreset];
-		const proj = createProjection(bounds, width, height, 32, zoom, {
-			x: bakeX,
-			y: bakeY,
+		bakeStaticLayer(sCtx, {
+			width,
+			height,
+			quantisedTime: quantizedTime,
+			settings,
+			viewPreset,
+			zoom,
+			bakeX,
+			bakeY,
 		});
-
-		// 1. Coastlines
-		sCtx.fillStyle = atmo.landColor;
-		sCtx.strokeStyle = atmo.coastColor;
-		sCtx.lineWidth = 1.6;
-		sCtx.lineJoin = "round";
-		for (const coast of COASTLINES) {
-			sCtx.beginPath();
-			coast.forEach((pt, i) => {
-				const { x, y } = proj.project(pt);
-				if (i === 0) sCtx.moveTo(x, y);
-				else sCtx.lineTo(x, y);
-			});
-			sCtx.closePath();
-			sCtx.fill();
-			sCtx.stroke();
-		}
-
-		// 2. Scottish Lochs
-		if (settings.showLochs) {
-			sCtx.fillStyle = atmo.bgColor;
-			sCtx.strokeStyle = atmo.coastColor;
-			sCtx.lineWidth = 1.2;
-			for (const loch of LOCHS) {
-				sCtx.beginPath();
-				loch.coordinates.forEach((pt, i) => {
-					const { x, y } = proj.project(pt);
-					if (i === 0) sCtx.moveTo(x, y);
-					else sCtx.lineTo(x, y);
-				});
-				sCtx.closePath();
-				sCtx.fill();
-				sCtx.stroke();
-
-				// Loch label if zoomed in
-				if (zoom > 1.3) {
-					const midPt = loch.coordinates[0];
-					if (midPt) {
-						const { x, y } = proj.project(midPt);
-						sCtx.font = "italic 9px system-ui, sans-serif";
-						sCtx.fillStyle = "#6b8d9e";
-						sCtx.fillText(loch.name, x - 12, y - 6);
-					}
-				}
-			}
-		}
-
-		// 3. Rail Paths (Curved High-Resolution Multi-Layer Track)
-		// Track base glow / bed
-		sCtx.strokeStyle = settings.congestionHeatmap
-			? "rgba(255, 100, 50, 0.35)"
-			: "#1b3342";
-		sCtx.lineWidth = settings.congestionHeatmap ? 4.5 : 3.5;
-		sCtx.lineCap = "round";
-		sCtx.lineJoin = "round";
-		for (const rail of RAIL_PATHS) {
-			sCtx.beginPath();
-			const projected = rail.coordinates.map((pt) => proj.project(pt));
-			drawSmoothPath(sCtx, projected);
-			sCtx.stroke();
-		}
-
-		// Track main line
-		sCtx.strokeStyle = settings.congestionHeatmap ? "#ff7b47" : "#4d7388";
-		sCtx.lineWidth = 1.5;
-		for (const rail of RAIL_PATHS) {
-			sCtx.beginPath();
-			const projected = rail.coordinates.map((pt) => proj.project(pt));
-			drawSmoothPath(sCtx, projected);
-			sCtx.stroke();
-		}
-
-		// 4. City Night Lights
-		if (settings.cityLights && atmo.isNight) {
-			const majorCities = [
-				{
-					name: "Glasgow",
-					coord: [-4.258, 55.859] as [number, number],
-					r: 35,
-				},
-				{
-					name: "Edinburgh",
-					coord: [-3.189, 55.952] as [number, number],
-					r: 30,
-				},
-				{
-					name: "Dundee",
-					coord: [-2.973, 56.457] as [number, number],
-					r: 18,
-				},
-				{
-					name: "Aberdeen",
-					coord: [-2.098, 57.143] as [number, number],
-					r: 22,
-				},
-			];
-
-			for (const city of majorCities) {
-				const { x, y } = proj.project(city.coord);
-				const grad = sCtx.createRadialGradient(x, y, 2, x, y, city.r * zoom);
-				grad.addColorStop(0, "rgba(255, 205, 110, 0.4)");
-				grad.addColorStop(0.5, "rgba(255, 180, 80, 0.15)");
-				grad.addColorStop(1, "rgba(255, 160, 50, 0)");
-				sCtx.fillStyle = grad;
-				sCtx.beginPath();
-				sCtx.arc(x, y, city.r * zoom, 0, Math.PI * 2);
-				sCtx.fill();
-			}
-		}
-
-		// 5. Scenic Landmarks & Viaducts
-		if (settings.showLandmarks) {
-			for (const lm of LANDMARKS) {
-				const { x, y } = proj.project(lm.coordinate);
-				if (
-					x < -STATIC_MARGIN - 20 ||
-					x > width + STATIC_MARGIN + 20 ||
-					y < -STATIC_MARGIN - 20 ||
-					y > height + STATIC_MARGIN + 20
-				) {
-					continue;
-				}
-
-				drawLandmarkMarker(sCtx, x, y);
-
-				if (zoom > 1.2 || viewPreset !== "scotland") {
-					sCtx.font = "bold 9.5px system-ui, sans-serif";
-					sCtx.fillStyle = "#c9a04e";
-					sCtx.shadowColor = "rgba(6, 13, 18, 0.85)";
-					sCtx.shadowBlur = 4;
-					sCtx.fillText(lm.name, x + 10, y + 3);
-					sCtx.shadowBlur = 0;
-				}
-			}
-		}
-
-		// 6. Stations & Labels
-		for (const st of STATIONS) {
-			const { x, y } = proj.project(st.coordinate);
-			if (
-				x < -STATIC_MARGIN - 30 ||
-				x > width + STATIC_MARGIN + 30 ||
-				y < -STATIC_MARGIN - 30 ||
-				y > height + STATIC_MARGIN + 30
-			) {
-				continue;
-			}
-
-			// Station Halo
-			if (st.isMajor) {
-				sCtx.fillStyle = "rgba(90, 169, 201, 0.16)";
-				sCtx.beginPath();
-				sCtx.arc(x, y, 7, 0, Math.PI * 2);
-				sCtx.fill();
-			}
-
-			// Station dot
-			sCtx.fillStyle = st.isMajor ? "#ffffff" : "#98b1be";
-			sCtx.strokeStyle = mapColors.bg;
-			sCtx.lineWidth = 1;
-			sCtx.beginPath();
-			sCtx.arc(x, y, st.isMajor ? 3.5 : 2.2, 0, Math.PI * 2);
-			sCtx.fill();
-			sCtx.stroke();
-
-			// Station Label
-			if (st.isMajor || viewPreset !== "scotland" || zoom > 1.2) {
-				sCtx.font = st.isMajor
-					? "bold 11px system-ui, -apple-system, sans-serif"
-					: "500 9.5px system-ui, -apple-system, sans-serif";
-				sCtx.fillStyle = st.isMajor ? "#eef3f5" : "#93a6b0";
-
-				sCtx.shadowColor = "rgba(6, 13, 18, 0.9)";
-				sCtx.shadowBlur = 4;
-				sCtx.fillText(st.name, x + 6, y + 3.5);
-				sCtx.shadowBlur = 0;
-			}
-		}
 	}, [
 		viewPreset,
 		zoom,
@@ -547,197 +204,24 @@ export const ReplayCanvas = () => {
 		const height = canvas.height / dpr;
 
 		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-		ctx.clearRect(0, 0, width, height);
 
-		// Static layer: the bitmap was baked for `bakeX/bakeY`, so translating
-		// it by the residual pan tracks the live camera without re-projecting.
-		ctx.drawImage(
+		drawDynamicLayer(ctx, {
 			staticCanvas,
-			pan.x - bakeX - STATIC_MARGIN,
-			pan.y - bakeY - STATIC_MARGIN,
-			width + STATIC_MARGIN * 2,
-			height + STATIC_MARGIN * 2,
-		);
-
-		const bounds = VIEW_BOUNDS[viewPreset];
-		const proj = createProjection(bounds, width, height, 32, zoom, pan);
-		const atmo = getDayNightAtmosphere(timeOffset, settings.dayNightCycle);
-
-		// 1. Highland Weather / Rain Effect
-		if (settings.weatherEffects && !reducedMotion) {
-			ctx.save();
-			ctx.strokeStyle = "rgba(180, 215, 240, 0.18)";
-			ctx.lineWidth = 1;
-			const timeSec = performance.now() / 1000;
-			for (let i = 0; i < 45; i++) {
-				const seedX = (Math.sin(i * 12.9898) * 43758.5453) % 1;
-				const seedY = (Math.cos(i * 78.233) * 43758.5453) % 1;
-				const rx = (seedX * width + timeSec * 60) % width;
-				const ry = (seedY * height + timeSec * 140) % height;
-				ctx.beginPath();
-				ctx.moveTo(rx, ry);
-				ctx.lineTo(rx - 3, ry + 10);
-				ctx.stroke();
-			}
-			ctx.restore();
-		}
-
-		// 2. Draw Selected Service Full Route (High-Res Spline)
-		if (selectedServiceId) {
-			const activeSelected = filteredServices.find(
-				(s) => s.id === selectedServiceId,
-			);
-			if (activeSelected) {
-				const catConfig = CATEGORIES[activeSelected.category];
-				ctx.save();
-				ctx.lineCap = "round";
-				ctx.lineJoin = "round";
-				const projected = activeSelected.pathCoordinates.map((pt) =>
-					proj.project(pt),
-				);
-				// Soft desaturated underlay gives legibility without a neon glow.
-				ctx.strokeStyle = catConfig.color;
-				ctx.globalAlpha = 0.26;
-				ctx.lineWidth = 6;
-				ctx.beginPath();
-				drawSmoothPath(ctx, projected);
-				ctx.stroke();
-
-				ctx.globalAlpha = 0.95;
-				ctx.lineWidth = 2.4;
-				ctx.beginPath();
-				drawSmoothPath(ctx, projected);
-				ctx.stroke();
-				ctx.restore();
-			}
-		}
-
-		// 3. Draw Active Trains & Trails
-		for (const train of activeTrains) {
-			const isSelected = train.service.id === selectedServiceId;
-			const isHovered = train.service.id === hoveredServiceId;
-			const catConfig = CATEGORIES[train.service.category];
-			const { x, y } = proj.project(train.position);
-
-			// Directional Glow Trail
-			if (train.previousPosition && !train.isDwelling) {
-				const prev = proj.project(train.previousPosition);
-				ctx.save();
-				const grad = ctx.createLinearGradient(prev.x, prev.y, x, y);
-				grad.addColorStop(0, "rgba(0,0,0,0)");
-				grad.addColorStop(1, catConfig.color);
-				ctx.strokeStyle = grad;
-				ctx.lineWidth = 2.5;
-				ctx.globalAlpha = 0.7;
-				ctx.beginPath();
-				ctx.moveTo(prev.x, prev.y);
-				ctx.lineTo(x, y);
-				ctx.stroke();
-				ctx.restore();
-			}
-
-			// Headlight beam (atmosphere is hoisted above the train loop)
-			if (
-				settings.trainHeadlights &&
-				atmo.isNight &&
-				!train.isDwelling &&
-				!reducedMotion
-			) {
-				ctx.save();
-				ctx.translate(x, y);
-				ctx.rotate(train.headingAngle);
-
-				const beamGrad = ctx.createRadialGradient(0, 0, 2, 30, 0, 38);
-				beamGrad.addColorStop(0, "rgba(255, 250, 190, 0.7)");
-				beamGrad.addColorStop(0.5, "rgba(255, 235, 140, 0.25)");
-				beamGrad.addColorStop(1, "rgba(255, 220, 90, 0)");
-
-				ctx.fillStyle = beamGrad;
-				ctx.beginPath();
-				ctx.moveTo(0, 0);
-				ctx.lineTo(38, -12);
-				ctx.lineTo(38, 12);
-				ctx.closePath();
-				ctx.fill();
-				ctx.restore();
-			}
-
-			const size = isSelected || isHovered ? 6.5 : 4.5;
-
-			// Draw Station Dwelling / Stopped Train Visual Effect
-			if (train.isDwelling) {
-				const nowMs = performance.now();
-				const pulse1 = reducedMotion ? 0 : (nowMs % 1600) / 1600;
-				const pulse2 = reducedMotion ? 0.5 : ((nowMs + 800) % 1600) / 1600;
-
-				ctx.save();
-				ctx.fillStyle = `${catConfig.color}22`;
-				ctx.beginPath();
-				ctx.arc(x, y, size + 6, 0, Math.PI * 2);
-				ctx.fill();
-
-				ctx.strokeStyle = catConfig.color;
-				ctx.lineWidth = 1.6;
-				ctx.globalAlpha = Math.max(0, 1 - pulse1) * 0.85;
-				ctx.beginPath();
-				ctx.arc(x, y, size + pulse1 * 16, 0, Math.PI * 2);
-				ctx.stroke();
-
-				ctx.lineWidth = 1.2;
-				ctx.globalAlpha = Math.max(0, 1 - pulse2) * 0.65;
-				ctx.beginPath();
-				ctx.arc(x, y, size + pulse2 * 16, 0, Math.PI * 2);
-				ctx.stroke();
-
-				ctx.restore();
-			}
-
-			// Draw Train Marker Outer Highlight Ring
-			ctx.save();
-			if (isSelected || isHovered) {
-				ctx.strokeStyle = "#ffffff";
-				ctx.globalAlpha = 0.9;
-				ctx.lineWidth = 2;
-				ctx.beginPath();
-				ctx.arc(x, y, size + 4, 0, Math.PI * 2);
-				ctx.stroke();
-				ctx.globalAlpha = 1;
-			}
-
-			// Draw Directional Carriage / Train Hull
-			ctx.translate(x, y);
-			ctx.rotate(train.headingAngle);
-
-			// Streamlined Aerodynamic Train Capsule Hull
-			const halfL = size * 1.3;
-			const halfW = size * 0.65;
-			ctx.fillStyle = catConfig.color;
-			ctx.strokeStyle = mapColors.bg;
-			ctx.lineWidth = 1.4;
-
-			ctx.beginPath();
-			// Pointed / aerodynamic rounded nose along positive X axis (direction of heading)
-			ctx.moveTo(halfL, 0);
-			ctx.lineTo(halfL * 0.4, -halfW);
-			ctx.lineTo(-halfL, -halfW);
-			ctx.lineTo(-halfL, halfW);
-			ctx.lineTo(halfL * 0.4, halfW);
-			ctx.closePath();
-			ctx.fill();
-			ctx.stroke();
-
-			// Windshield cockpit glass at front
-			ctx.fillStyle = "#ffffff";
-			ctx.beginPath();
-			ctx.moveTo(halfL * 0.7, 0);
-			ctx.lineTo(halfL * 0.25, -halfW * 0.6);
-			ctx.lineTo(halfL * 0.15, 0);
-			ctx.lineTo(halfL * 0.25, halfW * 0.6);
-			ctx.closePath();
-			ctx.fill();
-
-			ctx.restore();
-		}
+			width,
+			height,
+			pan,
+			bakeX,
+			bakeY,
+			viewPreset,
+			zoom,
+			timeOffset,
+			settings,
+			reducedMotion,
+			selectedServiceId,
+			hoveredServiceId,
+			filteredServices,
+			activeTrains,
+		});
 
 		setReady(true);
 	}, [
@@ -756,203 +240,24 @@ export const ReplayCanvas = () => {
 		staticCanvas,
 	]);
 
-	// Native wheel listener so preventDefault() is honoured (React's onWheel is passive).
-	useEffect(() => {
-		const canvas = canvasRef.current;
-		if (!canvas) return;
+	// Native wheel listener so preventDefault() is honoured (React's onWheel is
+	// passive, so the page would scroll instead of zooming).
+	const handlers = createMapHandlers({
+		canvasRef,
+		state: interaction,
+		viewPreset,
+		zoom,
+		pan,
+		activeTrains,
+		selectedServiceId,
+		setZoom,
+		setPan,
+		onHoverPos: setHoverPos,
+	});
 
-		const onWheel = (e: WheelEvent) => {
-			e.preventDefault();
-			const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
-			// `setCamera`, not the `setZoom` wrapper: this listener is registered
-			// once, and only the setter itself is stable enough to leave out.
-			setCamera((prev) => ({
-				...prev,
-				zoom: Math.min(8, Math.max(0.6, prev.zoom * zoomFactor)),
-			}));
-		};
-
-		canvas.addEventListener("wheel", onWheel, { passive: false });
-		return () => canvas.removeEventListener("wheel", onWheel);
-	}, []);
-
-	// Mouse Drag to Pan
-	const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-		if (e.button === 0) {
-			isDraggingRef.current = true;
-			lastMousePosRef.current = { x: e.clientX, y: e.clientY };
-		}
-	};
-
-	const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-		if (isDraggingRef.current) {
-			const dx = e.clientX - lastMousePosRef.current.x;
-			const dy = e.clientY - lastMousePosRef.current.y;
-			lastMousePosRef.current = { x: e.clientX, y: e.clientY };
-			setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
-		}
-	};
-
-	const handleMouseUp = () => {
-		isDraggingRef.current = false;
-	};
-
-	// Touch Support (Drag & Pinch Zoom)
-	const touchStartDistRef = useRef<number | null>(null);
-	const initialTouchZoomRef = useRef<number>(1);
-
-	const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
-		if (e.touches.length === 1 && e.touches[0]) {
-			isDraggingRef.current = true;
-			lastMousePosRef.current = {
-				x: e.touches[0].clientX,
-				y: e.touches[0].clientY,
-			};
-		} else if (e.touches.length === 2 && e.touches[0] && e.touches[1]) {
-			isDraggingRef.current = false;
-			const dist = Math.hypot(
-				e.touches[0].clientX - e.touches[1].clientX,
-				e.touches[0].clientY - e.touches[1].clientY,
-			);
-			touchStartDistRef.current = dist;
-			initialTouchZoomRef.current = zoom;
-		}
-	};
-
-	const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
-		if (e.touches.length === 1 && isDraggingRef.current && e.touches[0]) {
-			const dx = e.touches[0].clientX - lastMousePosRef.current.x;
-			const dy = e.touches[0].clientY - lastMousePosRef.current.y;
-			lastMousePosRef.current = {
-				x: e.touches[0].clientX,
-				y: e.touches[0].clientY,
-			};
-			setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
-		} else if (
-			e.touches.length === 2 &&
-			touchStartDistRef.current &&
-			e.touches[0] &&
-			e.touches[1]
-		) {
-			const dist = Math.hypot(
-				e.touches[0].clientX - e.touches[1].clientX,
-				e.touches[0].clientY - e.touches[1].clientY,
-			);
-			const factor = dist / touchStartDistRef.current;
-			setZoom(Math.min(8, Math.max(0.6, initialTouchZoomRef.current * factor)));
-		}
-	};
-
-	const handleTouchEnd = () => {
-		isDraggingRef.current = false;
-		touchStartDistRef.current = null;
-	};
-
-	// Mouse Interaction & Hover Tooltip
-	const [hoverPos, setHoverPos] = useState<{ x: number; y: number } | null>(
-		null,
-	);
 	const hoveredTrain = hoveredServiceId
-		? activeTrains.find((t) => t.service.id === hoveredServiceId)
+		? activeTrains.find((train) => train.service.id === hoveredServiceId)
 		: null;
-
-	const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
-		const canvas = canvasRef.current;
-		if (!canvas) return;
-
-		const rect = canvas.getBoundingClientRect();
-		const mouseX = e.clientX - rect.left;
-		const mouseY = e.clientY - rect.top;
-
-		const bounds = VIEW_BOUNDS[viewPreset];
-		const proj = createProjection(
-			bounds,
-			rect.width,
-			rect.height,
-			32,
-			zoom,
-			pan,
-		);
-
-		// Find nearest active train with bounding box pre-filter
-		let closestId: string | null = null;
-		let minDist = 18;
-
-		for (const train of activeTrains) {
-			const { x, y } = proj.project(train.position);
-			if (Math.abs(x - mouseX) > minDist || Math.abs(y - mouseY) > minDist) {
-				continue;
-			}
-			const dist = Math.hypot(x - mouseX, y - mouseY);
-			if (dist < minDist) {
-				minDist = dist;
-				closestId = train.service.id;
-			}
-		}
-
-		if (closestId) {
-			setHoverPos({ x: mouseX, y: mouseY });
-		} else {
-			setHoverPos(null);
-		}
-
-		railActions.setHoveredServiceId(closestId);
-	};
-
-	const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-		const canvas = canvasRef.current;
-		if (!canvas) return;
-
-		const rect = canvas.getBoundingClientRect();
-		const mouseX = e.clientX - rect.left;
-		const mouseY = e.clientY - rect.top;
-
-		const bounds = VIEW_BOUNDS[viewPreset];
-		const proj = createProjection(
-			bounds,
-			rect.width,
-			rect.height,
-			32,
-			zoom,
-			pan,
-		);
-
-		let closestService: TrainService | null = null;
-		let minDist = 20;
-
-		for (const train of activeTrains) {
-			const { x, y } = proj.project(train.position);
-			if (Math.abs(x - mouseX) > minDist || Math.abs(y - mouseY) > minDist) {
-				continue;
-			}
-			const dist = Math.hypot(x - mouseX, y - mouseY);
-			if (dist < minDist) {
-				minDist = dist;
-				closestService = train.service as TrainService;
-			}
-		}
-
-		railActions.setSelectedService(closestService);
-	};
-
-	const handleResetView = () => {
-		setZoom(1);
-		setPan({ x: 0, y: 0 });
-	};
-
-	// Keyboard equivalent of clicking a train: cycle the selection through the
-	// currently running services (N = next, P = previous).
-	const cycleSelectedService = (direction: 1 | -1) => {
-		if (activeTrains.length === 0) return;
-		const ids = activeTrains.map((t) => t.service.id);
-		const currentIndex = selectedServiceId
-			? ids.indexOf(selectedServiceId)
-			: -1;
-		const nextIndex =
-			(((currentIndex + direction) % ids.length) + ids.length) % ids.length;
-		const next = activeTrains[nextIndex];
-		if (next) railActions.setSelectedService(next.service as TrainService);
-	};
 
 	return (
 		<div
@@ -969,28 +274,7 @@ export const ReplayCanvas = () => {
 				tabIndex={0}
 				aria-label="Map of Scotland showing live train positions and rail network. Press N or P to select the next or previous running train."
 				aria-keyshortcuts="N P"
-				onKeyDown={(e) => {
-					if (e.key === "n" || e.key === "N") {
-						e.preventDefault();
-						cycleSelectedService(1);
-					} else if (e.key === "p" || e.key === "P") {
-						e.preventDefault();
-						cycleSelectedService(-1);
-					}
-				}}
-				onMouseDown={handleMouseDown}
-				onMouseMove={handleMouseMove}
-				onMouseUp={handleMouseUp}
-				onTouchStart={handleTouchStart}
-				onTouchMove={handleTouchMove}
-				onTouchEnd={handleTouchEnd}
-				onPointerMove={handlePointerMove}
-				onPointerLeave={() => {
-					isDraggingRef.current = false;
-					setHoverPos(null);
-					railActions.setHoveredServiceId(null);
-				}}
-				onClick={handleClick}
+				{...handlers}
 				style={{
 					display: "block",
 					width: "100%",
@@ -1005,183 +289,21 @@ export const ReplayCanvas = () => {
 				{liveMessage}
 			</p>
 
-			{/* Boot overlay: covers the canvas until the first frame is painted. */}
-			<div
-				aria-hidden={ready}
-				style={{
-					position: "absolute",
-					inset: 0,
-					display: "flex",
-					flexDirection: "column",
-					alignItems: "center",
-					justifyContent: "center",
-					gap: 10,
-					background: mapColors.bg,
-					pointerEvents: ready ? "none" : "auto",
-					opacity: ready ? 0 : 1,
-					transition: "opacity 0.4s var(--sr-ease)",
-				}}
-			>
-				<span
-					className="app-skeleton"
-					style={{ width: 210, height: 10, maxWidth: "60vw" }}
-				/>
-				<span
-					className="app-skeleton"
-					style={{ width: 140, height: 10, maxWidth: "40vw" }}
-				/>
-				<span style={{ color: palette.textFaint, fontSize: "0.75rem" }}>
-					Drawing the network
-				</span>
-			</div>
+			<BootOverlay ready={ready} />
 
 			{/* Floating Map Navigation Controls */}
-			<div
-				className="sr-glass"
-				style={{
-					position: "absolute",
-					bottom: 96,
-					right: 20,
-					zIndex: 15,
-					display: "flex",
-					flexDirection: "column",
-					gap: 6,
-					borderRadius: 8,
-					padding: 4,
+			<MapNavControls
+				onZoomIn={() => setZoom(BUTTON_ZOOM_IN)}
+				onZoomOut={() => setZoom(BUTTON_ZOOM_OUT)}
+				onResetView={() => {
+					setZoom(1);
+					setPan({ x: 0, y: 0 });
 				}}
-			>
-				<button
-					type="button"
-					className="sr-press"
-					onClick={() => setZoom((prev) => Math.min(8, prev * 1.25))}
-					aria-label="Zoom in"
-					title="Zoom in"
-					style={{
-						background: "var(--app-surface-2)",
-						border: "none",
-						borderRadius: 6,
-						color: palette.text,
-						width: 30,
-						height: 30,
-						cursor: "pointer",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-					}}
-				>
-					<ZoomIn size={16} />
-				</button>
-				<button
-					type="button"
-					className="sr-press"
-					onClick={() => setZoom((prev) => Math.max(0.6, prev * 0.8))}
-					aria-label="Zoom out"
-					title="Zoom out"
-					style={{
-						background: "var(--app-surface-2)",
-						border: "none",
-						borderRadius: 6,
-						color: palette.text,
-						width: 30,
-						height: 30,
-						cursor: "pointer",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-					}}
-				>
-					<ZoomOut size={16} />
-				</button>
-				<button
-					type="button"
-					className="sr-press"
-					onClick={handleResetView}
-					aria-label="Reset view"
-					title="Reset view"
-					style={{
-						background: palette.accentSoft,
-						border: "none",
-						borderRadius: 6,
-						color: palette.accent,
-						width: 30,
-						height: 30,
-						cursor: "pointer",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-					}}
-				>
-					<Crosshair size={16} />
-				</button>
-			</div>
+			/>
 
 			{/* Floating Hover HUD Tooltip */}
 			{hoveredTrain && hoverPos && (
-				<div
-					style={{
-						position: "absolute",
-						left: Math.min(window.innerWidth - 240, hoverPos.x + 14),
-						top: Math.max(16, hoverPos.y - 45),
-						zIndex: 25,
-						pointerEvents: "none",
-						background: "rgba(10, 20, 27, 0.95)",
-						backdropFilter: "blur(8px)",
-						border: `1px solid ${
-							CATEGORIES[hoveredTrain.service.category].color
-						}`,
-						borderRadius: 8,
-						padding: "6px 10px",
-						color: palette.text,
-						fontSize: "0.8rem",
-						boxShadow: "0 14px 30px -18px rgba(0,0,0,0.95)",
-					}}
-				>
-					<div
-						style={{
-							display: "flex",
-							alignItems: "center",
-							gap: 6,
-						}}
-					>
-						<span
-							className="sr-num"
-							style={{
-								color: CATEGORIES[hoveredTrain.service.category].color,
-								fontWeight: "bold",
-							}}
-						>
-							{hoveredTrain.service.serviceNumber}
-						</span>
-						<span style={{ fontWeight: 600 }}>{hoveredTrain.service.name}</span>
-					</div>
-					<div
-						style={{
-							color: palette.textMuted,
-							fontSize: "0.74rem",
-							marginTop: 2,
-							display: "flex",
-							alignItems: "center",
-							gap: 4,
-						}}
-					>
-						{hoveredTrain.isDwelling ? (
-							<>
-								<MapPin
-									size={13}
-									style={{
-										color: CATEGORIES[hoveredTrain.service.category].color,
-									}}
-								/>
-								<span>At {hoveredTrain.currentStopName}</span>
-							</>
-						) : (
-							<>
-								<MoveRight size={13} />
-								<span>Next: {hoveredTrain.nextStopName ?? "Destination"}</span>
-							</>
-						)}
-					</div>
-				</div>
+				<HoverTooltip train={hoveredTrain} position={hoverPos} />
 			)}
 		</div>
 	);

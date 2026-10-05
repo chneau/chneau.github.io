@@ -1,4 +1,4 @@
-import { Box, Button } from "@mantine/core";
+import { Box } from "@mantine/core";
 import {
 	Compass,
 	Info,
@@ -6,14 +6,12 @@ import {
 	Moon,
 	Pause,
 	Play,
-	Search,
 	Settings,
 	Sun,
 	Volume2,
 	VolumeX,
-	X,
 } from "lucide-react";
-import { useEffect, useEffectEvent, useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
 	AppNav,
 	type Command,
@@ -26,27 +24,16 @@ import {
 } from "../shared";
 import { useThemeMode } from "../shared/hooks/useThemeMode";
 import { Controls } from "./components/Controls";
+import { NoMatchBanner } from "./components/NoMatchBanner";
 import { ReplayCanvas } from "./components/ReplayCanvas";
 import { ServiceDetails } from "./components/ServiceDetails";
 import { SettingsModal } from "./components/SettingsModal";
 import { SourcesModal } from "./components/SourcesModal";
 import { StatsPanel } from "./components/StatsPanel";
-import { CATEGORIES } from "./data/types";
 import { useThrottledSnapshots } from "./hooks";
-import {
-	railActions,
-	railStore,
-	railUiStores,
-	recomputeActiveTrains,
-} from "./store";
+import { useAmbientAudio, useRailShortcuts, useReplayClock } from "./runtime";
+import { railActions, railUiStores } from "./store";
 import { palette } from "./theme";
-import {
-	formatTime,
-	MAX_REPLAY_TIME,
-	MIN_REPLAY_TIME,
-	resolveRailShortcut,
-	stepSpeed,
-} from "./utils";
 
 declare const BUILD_DATE: string;
 
@@ -76,6 +63,44 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
 	},
 ];
 
+/** The three toggles in the header: sound, data sources, and map settings. */
+const HeaderActions = ({
+	soundEffects,
+	onToggleSound,
+}: {
+	soundEffects: boolean;
+	onToggleSound: () => void;
+}) => (
+	<>
+		<HeaderAction
+			iconOnly
+			active={soundEffects}
+			label={
+				soundEffects
+					? "Sound effects active (Press M to mute)"
+					: "Sound effects muted (Press M to unmute)"
+			}
+			menuLabel={soundEffects ? "Sound effects on" : "Sound effects off"}
+			icon={soundEffects ? <Volume2 size={16} /> : <VolumeX size={16} />}
+			onClick={onToggleSound}
+		/>
+		<HeaderAction
+			label="Data sources"
+			icon={<Info size={15} />}
+			onClick={() => railActions.setIsInfoOpen(true)}
+		>
+			Sources
+		</HeaderAction>
+		<HeaderAction
+			label="Map and simulation settings"
+			icon={<Settings size={15} />}
+			onClick={() => railActions.setIsSettingsOpen(true)}
+		>
+			Settings
+		</HeaderAction>
+	</>
+);
+
 export const App = () => {
 	// Throttled snapshots: the store is written every animation frame, but the
 	// HUD only needs to re-render at ~15 Hz. ReplayCanvas keeps its own raw
@@ -84,14 +109,8 @@ export const App = () => {
 	const { dark, toggle } = useThemeMode();
 	const shortcuts = useShortcutsHelp();
 	const commandPalette = useCommandPalette();
-	// Keep the always-bound keydown handler's view of the help dialog current
-	// without putting `shortcuts.close` (a fresh closure each render) in deps:
-	// an effect event reads the latest committed `shortcuts` when Escape fires.
-	const closeShortcutsIfOpen = useEffectEvent(() => {
-		if (!shortcuts.opened) return false;
-		shortcuts.close();
-		return true;
-	});
+	useRailShortcuts(shortcuts);
+
 	const {
 		isInfoOpen,
 		isPlaying,
@@ -104,130 +123,8 @@ export const App = () => {
 	} = snap;
 	const { activeTrains } = derivedSnap;
 
-	const hasSearch = searchQuery.trim().length > 0;
-	const hasCategoryFilter = selectedCategory !== "all";
-	const showNoMatch =
-		activeTrains.length === 0 && (hasSearch || hasCategoryFilter);
-	const categoryLabel =
-		selectedCategory !== "all" ? CATEGORIES[selectedCategory].label : "";
-
-	// Global Keyboard Shortcuts. Bound once: the handler reads live state from
-	// the store and a ref, and ignores key auto-repeat and already-handled keys.
-	useEffect(() => {
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.repeat || e.defaultPrevented) return;
-			const activeEl = document.activeElement;
-			const activeTag = activeEl?.tagName.toLowerCase();
-			// Let native controls handle their own keys (space/arrows/enter/Escape).
-			if (
-				activeTag === "input" ||
-				activeTag === "textarea" ||
-				activeTag === "button" ||
-				activeTag === "select" ||
-				activeTag === "a"
-			) {
-				return;
-			}
-			if (
-				activeEl instanceof HTMLElement &&
-				(activeEl.isContentEditable ||
-					activeEl.closest('[role="slider"], [contenteditable="true"]'))
-			) {
-				return;
-			}
-
-			const shortcut = resolveRailShortcut(e);
-			if (!shortcut) return;
-
-			switch (shortcut.kind) {
-				case "toggle-play":
-					e.preventDefault();
-					railActions.togglePlay();
-					break;
-				case "scrub":
-					e.preventDefault();
-					// `setTimeOffset` clamps to the replay window, so holding an
-					// arrow key stops at the ends instead of leaving it.
-					railActions.setTimeOffset(
-						railStore.timeOffset + shortcut.deltaMinutes,
-					);
-					break;
-				case "speed": {
-					e.preventDefault();
-					const speed = stepSpeed(railStore.speed, shortcut.direction);
-					if (speed !== null) railActions.setSpeed(speed);
-					break;
-				}
-				case "toggle-sound": {
-					e.preventDefault();
-					const nextSound = !railStore.settings.soundEffects;
-					if (nextSound) {
-						import("./engine/audio").then(({ railAudio }) =>
-							railAudio.unlockAudio(),
-						);
-					}
-					railActions.updateSetting("soundEffects", nextSound);
-					break;
-				}
-				case "escape":
-					if (closeShortcutsIfOpen()) break;
-					if (railStore.isSettingsOpen) {
-						railActions.setIsSettingsOpen(false);
-					} else if (railStore.isInfoOpen) {
-						railActions.setIsInfoOpen(false);
-					} else if (railStore.selectedService) {
-						railActions.setSelectedService(null);
-					}
-					break;
-			}
-		};
-
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, []);
-
-	// Animation frame loop directly updating store
-	useEffect(() => {
-		if (!isPlaying) return;
-
-		let lastTimestamp = performance.now();
-		let animId: number;
-
-		const loop = (timestamp: number) => {
-			const deltaMs = timestamp - lastTimestamp;
-			lastTimestamp = timestamp;
-
-			// Advance time: speed 1x = 1 minute per real second.
-			// Written straight to the store (not through `setTimeOffset`) so
-			// playback keeps sub-minute resolution; the window bound is still
-			// enforced here, and only here, by looping back to 05:00.
-			const minutesToAdd = (deltaMs / 1000) * speed;
-			let next = railStore.timeOffset + minutesToAdd;
-			if (next >= MAX_REPLAY_TIME) next = MIN_REPLAY_TIME;
-
-			railStore.timeOffset = next;
-			recomputeActiveTrains();
-
-			animId = requestAnimationFrame(loop);
-		};
-
-		animId = requestAnimationFrame(loop);
-		return () => cancelAnimationFrame(animId);
-	}, [isPlaying, speed]);
-
-	// Audio synthesizer management
-	useEffect(() => {
-		if (settings.soundEffects && isPlaying && activeTrains.length > 0) {
-			import("./engine/audio").then(({ railAudio }) => {
-				railAudio.startAmbient(activeTrains.length);
-				railAudio.updateIntensity(activeTrains.length);
-			});
-		} else {
-			import("./engine/audio").then(({ railAudio }) => {
-				railAudio.stop();
-			});
-		}
-	}, [settings.soundEffects, isPlaying, activeTrains.length]);
+	useReplayClock(isPlaying, speed);
+	useAmbientAudio(settings.soundEffects, isPlaying, activeTrains.length);
 
 	// Trigger station arrival chime when selected train arrives at a station
 	const prevSelectedDwellingRef = useRef<boolean>(false);
@@ -271,6 +168,10 @@ export const App = () => {
 		},
 	];
 
+	const showNoMatch =
+		activeTrains.length === 0 &&
+		(searchQuery.trim().length > 0 || selectedCategory !== "all");
+
 	return (
 		<Box
 			style={{
@@ -297,50 +198,18 @@ export const App = () => {
 					onToggle: toggle,
 				}}
 				actions={
-					<>
-						<HeaderAction
-							iconOnly
-							active={settings.soundEffects}
-							label={
-								settings.soundEffects
-									? "Sound effects active (Press M to mute)"
-									: "Sound effects muted (Press M to unmute)"
+					<HeaderActions
+						soundEffects={settings.soundEffects}
+						onToggleSound={() => {
+							const nextSound = !settings.soundEffects;
+							if (nextSound) {
+								import("./engine/audio").then(({ railAudio }) =>
+									railAudio.unlockAudio(),
+								);
 							}
-							menuLabel={
-								settings.soundEffects ? "Sound effects on" : "Sound effects off"
-							}
-							icon={
-								settings.soundEffects ? (
-									<Volume2 size={16} />
-								) : (
-									<VolumeX size={16} />
-								)
-							}
-							onClick={() => {
-								const nextSound = !settings.soundEffects;
-								if (nextSound) {
-									import("./engine/audio").then(({ railAudio }) =>
-										railAudio.unlockAudio(),
-									);
-								}
-								railActions.updateSetting("soundEffects", nextSound);
-							}}
-						/>
-						<HeaderAction
-							label="Data sources"
-							icon={<Info size={15} />}
-							onClick={() => railActions.setIsInfoOpen(true)}
-						>
-							Sources
-						</HeaderAction>
-						<HeaderAction
-							label="Map and simulation settings"
-							icon={<Settings size={15} />}
-							onClick={() => railActions.setIsSettingsOpen(true)}
-						>
-							Settings
-						</HeaderAction>
-					</>
+							railActions.updateSetting("soundEffects", nextSound);
+						}}
+					/>
 				}
 			/>
 
@@ -373,68 +242,11 @@ export const App = () => {
 
 				{/* Floating Empty Search Recovery Banner */}
 				{showNoMatch && (
-					<div
-						className="sr-glass sr-rise"
-						style={{
-							position: "absolute",
-							top: 16,
-							left: "50%",
-							transform: "translateX(-50%)",
-							zIndex: 20,
-							border: `1px solid ${palette.danger}`,
-							borderRadius: 10,
-							padding: "8px 14px",
-							display: "flex",
-							alignItems: "center",
-							flexWrap: "wrap",
-							gap: 12,
-							color: palette.text,
-							maxWidth: "calc(100vw - 32px)",
-						}}
-					>
-						<Search size={16} style={{ color: palette.danger }} />
-						<span style={{ fontSize: "0.85rem" }}>
-							{hasSearch ? (
-								<>
-									No service matches <b>"{searchQuery}"</b>
-								</>
-							) : (
-								<>
-									No <b>{categoryLabel}</b> service is running
-								</>
-							)}{" "}
-							at <span className="sr-num">{formatTime(timeOffset)}</span>
-						</span>
-						{hasSearch && (
-							<Button
-								size="xs"
-								variant="subtle"
-								color="red"
-								leftSection={<X size={14} />}
-								onClick={() => railActions.setSearchQuery("")}
-								style={{
-									color: palette.danger,
-									border: `1px solid ${palette.danger}`,
-								}}
-							>
-								Clear search
-							</Button>
-						)}
-						{hasCategoryFilter && (
-							<Button
-								size="xs"
-								variant="subtle"
-								color="red"
-								onClick={() => railActions.setSelectedCategory("all")}
-								style={{
-									color: palette.danger,
-									border: `1px solid ${palette.danger}`,
-								}}
-							>
-								Show all categories
-							</Button>
-						)}
-					</div>
+					<NoMatchBanner
+						searchQuery={searchQuery}
+						selectedCategory={selectedCategory}
+						timeOffset={timeOffset}
+					/>
 				)}
 
 				{/* Live Dynamic Stats Panel (Left HUD) */}

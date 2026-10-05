@@ -10,14 +10,23 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CATEGORIES, type TrainService } from "../data/types";
-import {
-	type ActiveTrainState,
-	getPolylineDistances,
-} from "../engine/interpolator";
+import type { ActiveTrainState } from "../engine/interpolator";
 import { useThrottledSnapshots } from "../hooks";
+import {
+	type ActiveHighlights,
+	describeActiveFilter,
+	hourlyActivity,
+	summariseActiveTrains,
+} from "../stats";
 import { railActions, railUiStores } from "../store";
 import { palette } from "../theme";
 import { formatTime } from "../utils";
+
+/** 05:00 and 24:00, the ends of the histogram the activity curve spans. */
+const CURVE_START = 300;
+const CURVE_END = 1440;
+
+type Unit = "metric" | "imperial";
 
 const HighlightRow = ({
 	icon,
@@ -108,118 +117,328 @@ const HighlightRow = ({
 	</button>
 );
 
+/** The panel's title row: collapse toggle, and the km/mi switch beside it. */
+const StatsHeader = ({
+	collapsed,
+	hasStats,
+	unit,
+	onToggleCollapsed,
+	onUnitChange,
+}: {
+	collapsed: boolean;
+	hasStats: boolean;
+	unit: Unit;
+	onToggleCollapsed: () => void;
+	onUnitChange: (unit: Unit) => void;
+}) => (
+	<div
+		style={{
+			display: "flex",
+			justifyContent: "space-between",
+			alignItems: "center",
+			width: "100%",
+			padding: "10px 12px 0",
+		}}
+	>
+		<button
+			type="button"
+			className="sr-press"
+			style={{
+				background: "none",
+				border: "none",
+				padding: 0,
+				cursor: "pointer",
+				fontSize: "0.8rem",
+				color: palette.accent,
+				display: "flex",
+				alignItems: "center",
+				gap: 6,
+			}}
+			onClick={onToggleCollapsed}
+			aria-label={collapsed ? "Expand highlights" : "Collapse highlights"}
+			aria-expanded={!collapsed}
+			title={collapsed ? "Expand highlights" : "Collapse highlights"}
+		>
+			<Flame size={15} />
+			<span style={{ fontWeight: 600 }}>Live highlights</span>
+			<span style={{ fontSize: "0.7rem", opacity: 0.7 }}>
+				{collapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+			</span>
+		</button>
+		{!collapsed && hasStats && (
+			<SegmentedControl
+				size="xs"
+				aria-label="Distance units"
+				value={unit}
+				onChange={(val) => onUnitChange(val as Unit)}
+				data={[
+					{ label: "km", value: "metric" },
+					{ label: "mi", value: "imperial" },
+				]}
+				styles={{
+					root: {
+						fontSize: "0.72rem",
+						background: "rgba(0,0,0,0.28)",
+					},
+				}}
+			/>
+		)}
+	</div>
+);
+
+/**
+ * What the panel says when the network is quiet. The two sentences it can end
+ * with are the useful half: with a filter standing, the way to get trains back
+ * is to change or clear the filter, and saying so beats leaving the visitor to
+ * scrub the clock looking for one.
+ */
+const QuietNetwork = ({
+	timeOffset,
+	filterLabel,
+}: {
+	timeOffset: number;
+	filterLabel: string | null;
+}) => (
+	<div
+		style={{
+			display: "flex",
+			flexDirection: "column",
+			alignItems: "center",
+			gap: 6,
+			padding: "14px 8px",
+			textAlign: "center",
+		}}
+	>
+		<Moon size={22} style={{ color: palette.textFaint }} />
+		<span style={{ color: palette.text, fontSize: "0.82rem" }}>
+			Quiet on the network
+		</span>
+		<span
+			style={{
+				color: palette.textMuted,
+				fontSize: "0.74rem",
+				lineHeight: 1.5,
+			}}
+		>
+			{filterLabel
+				? `No service is running that matches ${filterLabel} at `
+				: "No service is running at "}
+			<span className="sr-num">{formatTime(timeOffset)}</span>.
+			{filterLabel
+				? " Try another time or clear the active filter."
+				: " Pick another time."}
+		</span>
+	</div>
+);
+
+/**
+ * The whole-day activity curve, with a needle at the replay clock. The bars are
+ * one `role="img"` with an accessible name rather than 19 announced columns,
+ * and the needle is decorative on top of it — the clock itself is already on
+ * screen in the controls.
+ */
+const ActivityCurve = ({
+	activity,
+	timeOffset,
+}: {
+	activity: readonly { hour: number; intensity: number }[];
+	timeOffset: number;
+}) => (
+	<div style={{ padding: "2px 0 4px 0" }}>
+		<div
+			style={{
+				display: "flex",
+				justifyContent: "space-between",
+				fontSize: "0.66rem",
+				color: palette.textFaint,
+				marginBottom: 4,
+			}}
+		>
+			<span className="sr-num">{formatTime(CURVE_START)}</span>
+			<span style={{ color: palette.accent }}>Services in progress</span>
+			<span className="sr-num">{formatTime(CURVE_END)}</span>
+		</div>
+		<div
+			role="img"
+			aria-label="Hourly count of services in progress across the day"
+			style={{
+				position: "relative",
+				height: 12,
+				background: "var(--app-surface-2)",
+				borderRadius: 3,
+				overflow: "hidden",
+			}}
+		>
+			<div
+				aria-hidden
+				style={{
+					display: "flex",
+					alignItems: "flex-end",
+					height: "100%",
+					gap: 1,
+				}}
+			>
+				{activity.map(({ hour, intensity }) => (
+					<div
+						key={hour}
+						style={{
+							flex: 1,
+							height: `${Math.max(8, intensity * 100)}%`,
+							background:
+								intensity > 0.66 ? palette.accent : "rgba(90, 169, 201, 0.35)",
+						}}
+					/>
+				))}
+			</div>
+			{/* Current time needle */}
+			<div
+				aria-hidden
+				style={{
+					position: "absolute",
+					left: `${Math.min(
+						100,
+						Math.max(
+							0,
+							((timeOffset - CURVE_START) / (CURVE_END - CURVE_START)) * 100,
+						),
+					)}%`,
+					width: 2,
+					height: "100%",
+					background: palette.text,
+				}}
+			/>
+		</div>
+	</div>
+);
+
+/** The moving/dwelling tally above the curve. */
+const ActivePulse = ({
+	movingTrains,
+	dwellingTrains,
+}: {
+	movingTrains: number;
+	dwellingTrains: number;
+}) => (
+	<div
+		style={{
+			display: "flex",
+			justifyContent: "space-between",
+			alignItems: "center",
+			paddingBottom: 6,
+			borderBottom: "1px solid var(--app-border)",
+			fontSize: "0.77rem",
+		}}
+	>
+		<span
+			style={{
+				color: palette.text,
+				display: "flex",
+				alignItems: "center",
+				gap: 6,
+			}}
+		>
+			<span
+				className="sr-breathe"
+				style={{
+					display: "inline-block",
+					width: 7,
+					height: 7,
+					borderRadius: "50%",
+					background: palette.accent,
+				}}
+			/>
+			<b className="sr-num">{movingTrains}</b> cruising
+		</span>
+		<span className="sr-num" style={{ color: palette.textFaint }}>
+			{dwellingTrains} at station
+		</span>
+	</div>
+);
+
+/**
+ * The three clickable highlights. Each selects its service in the inspector, so
+ * the whole row is the button and the index staggers the CSS reveal.
+ */
+const Highlights = ({
+	highlights,
+	isImperial,
+}: {
+	highlights: ActiveHighlights;
+	isImperial: boolean;
+}) => {
+	const kmToMiles = (km: number) => km * 0.621371;
+	const { fastest, longest, mostStops } = highlights;
+
+	return (
+		<>
+			{fastest && (
+				<HighlightRow
+					icon={<Zap size={14} />}
+					title="Fastest active"
+					accent={CATEGORIES.Express.color}
+					index={0}
+					value={
+						isImperial
+							? `~${Math.round(kmToMiles(fastest.value))} mph`
+							: `~${Math.round(fastest.value)} km/h`
+					}
+					service={fastest.state.service}
+					onClick={() => railActions.setSelectedService(fastest.state.service)}
+				/>
+			)}
+
+			{longest && (
+				<HighlightRow
+					icon={<Crown size={14} />}
+					title="Longest distance"
+					accent={CATEGORIES.CrossBorder.color}
+					index={1}
+					value={
+						isImperial
+							? `${Math.round(kmToMiles(longest.value))} mi`
+							: `${Math.round(longest.value)} km`
+					}
+					service={longest.state.service}
+					onClick={() => railActions.setSelectedService(longest.state.service)}
+				/>
+			)}
+
+			{mostStops && (
+				<HighlightRow
+					icon={<Clock size={14} />}
+					title="Most calling stops"
+					accent={CATEGORIES.Highland.color}
+					index={2}
+					value={`${mostStops.value} stops`}
+					service={mostStops.state.service}
+					onClick={() =>
+						railActions.setSelectedService(mostStops.state.service)
+					}
+				/>
+			)}
+		</>
+	);
+};
+
 export const StatsPanel = () => {
 	// Throttled: the derived stats are heavy and do not need 60 fps fidelity.
 	const [snap, derivedSnap] = useThrottledSnapshots(railUiStores);
 	const { timeOffset, selectedCategory, searchQuery } = snap;
 	const { activeTrains, filteredServices } = derivedSnap;
 
-	const [unit, setUnit] = useState<"metric" | "imperial">("metric");
+	const [unit, setUnit] = useState<Unit>("metric");
 	const [collapsed, setCollapsed] = useState(false);
 
-	const hasActiveFilter =
-		searchQuery.trim().length > 0 || selectedCategory !== "all";
+	// The Valtio snapshot is deeply readonly where the engine's own types are
+	// not; the shapes are identical and the store actions take the mutable type,
+	// so the assertion happens once here rather than at every read below.
+	const trains = activeTrains as ActiveTrainState[];
+	const services = filteredServices as readonly TrainService[];
 
-	// Hourly count of services in progress, derived from the current filtered timetable.
-	const activity = useMemo(() => {
-		const BUCKETS = 19; // 05:00 through to 24:00, one column per hour
-		const buckets = Array.from({ length: BUCKETS }, () => 0);
-		for (const service of filteredServices) {
-			const first = service.calls[0];
-			const last = service.calls[service.calls.length - 1];
-			const startOffset =
-				first?.departureOffset ?? first?.arrivalOffset ?? null;
-			const endOffset = last?.arrivalOffset ?? last?.departureOffset ?? null;
-			if (startOffset === null || endOffset === null) continue;
-			const startIdx = Math.max(0, Math.floor((startOffset - 300) / 60));
-			const endIdx = Math.min(BUCKETS - 1, Math.floor((endOffset - 300) / 60));
-			for (let i = startIdx; i <= endIdx; i++) {
-				buckets[i] = (buckets[i] ?? 0) + 1;
-			}
-		}
-		const max = Math.max(1, ...buckets);
-		return buckets.map((value, index) => ({
-			hour: index + 5,
-			intensity: value / max,
-		}));
-	}, [filteredServices]);
+	const activity = useMemo(() => hourlyActivity(services), [services]);
+	const stats = useMemo(() => summariseActiveTrains(trains), [trains]);
 
-	const filterLabel =
-		searchQuery.trim() && selectedCategory !== "all"
-			? `the "${searchQuery}" search or the ${
-					CATEGORIES[selectedCategory].label
-				} filter`
-			: searchQuery.trim()
-				? `the "${searchQuery}" search`
-				: selectedCategory !== "all"
-					? `the ${CATEGORIES[selectedCategory].label} filter`
-					: null;
-
-	// Compute dynamic stats from active trains
-	const stats = useMemo(() => {
-		if (activeTrains.length === 0) return null;
-
-		let maxSpeedTrain: { state: ActiveTrainState; speedKmh: number } | null =
-			null;
-		let longestJourneyTrain: {
-			state: ActiveTrainState;
-			distKm: number;
-		} | null = null;
-		let mostStopsTrain: { state: ActiveTrainState; stopCount: number } | null =
-			null;
-		let totalActiveDistanceKm = 0;
-
-		for (const train of activeTrains) {
-			const s = train.service;
-			const totalDist = getPolylineDistances(s.pathCoordinates).total;
-			totalActiveDistanceKm += totalDist;
-
-			// Duration in hours
-			const firstDep = s.calls[0]?.departureOffset ?? 0;
-			const lastArr =
-				s.calls[s.calls.length - 1]?.arrivalOffset ?? firstDep + 1;
-			const durationHours = Math.max(0.1, (lastArr - firstDep) / 60);
-			const avgSpeedKmh = totalDist / durationHours;
-
-			// Fastest train
-			if (!maxSpeedTrain || avgSpeedKmh > maxSpeedTrain.speedKmh) {
-				maxSpeedTrain = {
-					state: train as ActiveTrainState,
-					speedKmh: avgSpeedKmh,
-				};
-			}
-
-			// Longest rail run
-			if (!longestJourneyTrain || totalDist > longestJourneyTrain.distKm) {
-				longestJourneyTrain = {
-					state: train as ActiveTrainState,
-					distKm: totalDist,
-				};
-			}
-
-			// Most intermediate stops
-			const stops = s.calls.length;
-			if (!mostStopsTrain || stops > mostStopsTrain.stopCount) {
-				mostStopsTrain = {
-					state: train as ActiveTrainState,
-					stopCount: stops,
-				};
-			}
-		}
-
-		return {
-			fastest: maxSpeedTrain,
-			longest: longestJourneyTrain,
-			mostStops: mostStopsTrain,
-			totalActiveDistanceKm: Math.round(totalActiveDistanceKm),
-			movingTrains: activeTrains.filter((t) => !t.isDwelling).length,
-			dwellingTrains: activeTrains.filter((t) => t.isDwelling).length,
-		};
-	}, [activeTrains]);
-
-	const isImperial = unit === "imperial";
-	const kmToMiles = (km: number) => km * 0.621371;
-	const { fastest, longest, mostStops } = stats ?? {};
+	const filterLabel = describeActiveFilter(searchQuery, selectedCategory);
 
 	return (
 		<div
@@ -241,250 +460,32 @@ export const StatsPanel = () => {
 					color: palette.text,
 				}}
 			>
-				<div
-					style={{
-						display: "flex",
-						justifyContent: "space-between",
-						alignItems: "center",
-						width: "100%",
-						padding: "10px 12px 0",
-					}}
-				>
-					<button
-						type="button"
-						className="sr-press"
-						style={{
-							background: "none",
-							border: "none",
-							padding: 0,
-							cursor: "pointer",
-							fontSize: "0.8rem",
-							color: palette.accent,
-							display: "flex",
-							alignItems: "center",
-							gap: 6,
-						}}
-						onClick={() => setCollapsed(!collapsed)}
-						aria-label={collapsed ? "Expand highlights" : "Collapse highlights"}
-						aria-expanded={!collapsed}
-						title={collapsed ? "Expand highlights" : "Collapse highlights"}
-					>
-						<Flame size={15} />
-						<span style={{ fontWeight: 600 }}>Live highlights</span>
-						<span style={{ fontSize: "0.7rem", opacity: 0.7 }}>
-							{collapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
-						</span>
-					</button>
-					{!collapsed && stats && (
-						<SegmentedControl
-							size="xs"
-							aria-label="Distance units"
-							value={unit}
-							onChange={(val) => setUnit(val as "metric" | "imperial")}
-							data={[
-								{ label: "km", value: "metric" },
-								{ label: "mi", value: "imperial" },
-							]}
-							styles={{
-								root: {
-									fontSize: "0.72rem",
-									background: "rgba(0,0,0,0.28)",
-								},
-							}}
-						/>
-					)}
-				</div>
+				<StatsHeader
+					collapsed={collapsed}
+					hasStats={stats !== null}
+					unit={unit}
+					onToggleCollapsed={() => setCollapsed(!collapsed)}
+					onUnitChange={setUnit}
+				/>
 
 				{!collapsed && (
 					<div style={{ padding: "10px 12px" }}>
-						{!stats ? (
-							/* Composed empty state: how to get data back. */
-							<div
-								style={{
-									display: "flex",
-									flexDirection: "column",
-									alignItems: "center",
-									gap: 6,
-									padding: "14px 8px",
-									textAlign: "center",
-								}}
-							>
-								<Moon size={22} style={{ color: palette.textFaint }} />
-								<span style={{ color: palette.text, fontSize: "0.82rem" }}>
-									Quiet on the network
-								</span>
-								<span
-									style={{
-										color: palette.textMuted,
-										fontSize: "0.74rem",
-										lineHeight: 1.5,
-									}}
-								>
-									{filterLabel
-										? `No service is running that matches ${filterLabel} at `
-										: "No service is running at "}
-									<span className="sr-num">{formatTime(timeOffset)}</span>.
-									{hasActiveFilter
-										? " Try another time or clear the active filter."
-										: " Pick another time."}
-								</span>
-							</div>
-						) : (
+						{stats ? (
 							<Stack gap={8} style={{ width: "100%" }}>
-								{/* Active status pulse */}
-								<div
-									style={{
-										display: "flex",
-										justifyContent: "space-between",
-										alignItems: "center",
-										paddingBottom: 6,
-										borderBottom: "1px solid var(--app-border)",
-										fontSize: "0.77rem",
-									}}
-								>
-									<span
-										style={{
-											color: palette.text,
-											display: "flex",
-											alignItems: "center",
-											gap: 6,
-										}}
-									>
-										<span
-											className="sr-breathe"
-											style={{
-												display: "inline-block",
-												width: 7,
-												height: 7,
-												borderRadius: "50%",
-												background: palette.accent,
-											}}
-										/>
-										<b className="sr-num">{stats.movingTrains}</b> cruising
-									</span>
-									<span className="sr-num" style={{ color: palette.textFaint }}>
-										{stats.dwellingTrains} at station
-									</span>
-								</div>
+								<ActivePulse
+									movingTrains={stats.movingTrains}
+									dwellingTrains={stats.dwellingTrains}
+								/>
 
-								{/* 24-hour Activity Curve Mini Bar */}
-								<div style={{ padding: "2px 0 4px 0" }}>
-									<div
-										style={{
-											display: "flex",
-											justifyContent: "space-between",
-											fontSize: "0.66rem",
-											color: palette.textFaint,
-											marginBottom: 4,
-										}}
-									>
-										<span className="sr-num">{formatTime(300)}</span>
-										<span style={{ color: palette.accent }}>
-											Services in progress
-										</span>
-										<span className="sr-num">{formatTime(1440)}</span>
-									</div>
-									<div
-										role="img"
-										aria-label="Hourly count of services in progress across the day"
-										style={{
-											position: "relative",
-											height: 12,
-											background: "var(--app-surface-2)",
-											borderRadius: 3,
-											overflow: "hidden",
-										}}
-									>
-										<div
-											aria-hidden
-											style={{
-												display: "flex",
-												alignItems: "flex-end",
-												height: "100%",
-												gap: 1,
-											}}
-										>
-											{activity.map(({ hour, intensity }) => (
-												<div
-													key={hour}
-													style={{
-														flex: 1,
-														height: `${Math.max(8, intensity * 100)}%`,
-														background:
-															intensity > 0.66
-																? palette.accent
-																: "rgba(90, 169, 201, 0.35)",
-													}}
-												/>
-											))}
-										</div>
-										{/* Current time needle */}
-										<div
-											aria-hidden
-											style={{
-												position: "absolute",
-												left: `${Math.min(
-													100,
-													Math.max(0, ((timeOffset - 300) / 1140) * 100),
-												)}%`,
-												width: 2,
-												height: "100%",
-												background: palette.text,
-											}}
-										/>
-									</div>
-								</div>
+								<ActivityCurve activity={activity} timeOffset={timeOffset} />
 
-								{fastest && (
-									<HighlightRow
-										icon={<Zap size={14} />}
-										title="Fastest active"
-										accent={CATEGORIES.Express.color}
-										index={0}
-										value={
-											isImperial
-												? `~${Math.round(kmToMiles(fastest.speedKmh))} mph`
-												: `~${Math.round(fastest.speedKmh)} km/h`
-										}
-										service={fastest.state.service}
-										onClick={() =>
-											railActions.setSelectedService(fastest.state.service)
-										}
-									/>
-								)}
-
-								{longest && (
-									<HighlightRow
-										icon={<Crown size={14} />}
-										title="Longest distance"
-										accent={CATEGORIES.CrossBorder.color}
-										index={1}
-										value={
-											isImperial
-												? `${Math.round(kmToMiles(longest.distKm))} mi`
-												: `${Math.round(longest.distKm)} km`
-										}
-										service={longest.state.service}
-										onClick={() =>
-											railActions.setSelectedService(longest.state.service)
-										}
-									/>
-								)}
-
-								{mostStops && (
-									<HighlightRow
-										icon={<Clock size={14} />}
-										title="Most calling stops"
-										accent={CATEGORIES.Highland.color}
-										index={2}
-										value={`${mostStops.stopCount} stops`}
-										service={mostStops.state.service}
-										onClick={() =>
-											railActions.setSelectedService(mostStops.state.service)
-										}
-									/>
-								)}
+								<Highlights
+									highlights={stats}
+									isImperial={unit === "imperial"}
+								/>
 							</Stack>
+						) : (
+							<QuietNetwork timeOffset={timeOffset} filterLabel={filterLabel} />
 						)}
 					</div>
 				)}

@@ -1,30 +1,33 @@
 import { useMemo } from "react";
 import { type BasketItem, basketVenues } from "./basket";
 import {
-	areaStats,
-	availableCurrencies,
-	availableFacilities,
 	availableFilters,
 	buildItemIndex,
 	cacheStats,
-	haversineMiles,
-	isCaptiveSpot,
-	isTemporarilyClosed,
 	itemTrend,
 	matchesFilters,
-	matchesVenueFilters,
-	nearestSellers,
-	newItems,
-	rareItems,
-	specialPremium,
-	venuesWithoutPrices,
 } from "./derive";
 import { metricText } from "./portions";
-import { makeScale, median, money } from "./price";
-import { canConvertTo, convert, type RateTable } from "./rates";
-import type { Formatter, MapPoint, SpoonersCache, ValueKind } from "./types";
+import { makeScale } from "./price";
+import type { RateTable } from "./rates";
+import type { SpoonersCache } from "./types";
+import { usePricedVenues } from "./usePricedVenues";
+import {
+	premiumInsight,
+	useAreaLayers,
+	useDiscovery,
+	useUnpricedVenues,
+	useVenueFilter,
+} from "./useVenueSets";
 
 const DEFAULT_ITEM_HINT = "guinness";
+
+/**
+ * Everything the app derives from the round and the filters. Exported because
+ * `ResultsSidebar` renders it and nothing else: naming the contract keeps that
+ * panel honest about what it is.
+ */
+export type SpoonersView = ReturnType<typeof useSpoonersView>;
 
 type SpoonersViewInput = {
 	data: SpoonersCache | null;
@@ -48,6 +51,11 @@ type SpoonersViewInput = {
 /**
  * Every derivation between the raw cache + UI state and what the pieces render.
  * App owns the state and the handlers; this hook owns the memos.
+ *
+ * Composed of narrower hooks — one currency mode, one filter pass, one map —
+ * so each is read on its own rather than as one 400-line body. They are called
+ * unconditionally and in order, and `useSpoonersView` just hands their results
+ * on: this stays the single entry point the app imports.
  */
 export const useSpoonersView = (input: SpoonersViewInput) => {
 	const {
@@ -118,107 +126,27 @@ export const useSpoonersView = (input: SpoonersViewInput) => {
 		[data, resolvedBasket],
 	);
 
-	// native mode: each pub keeps its own currency (switch between them)
-	const currencies = useMemo(() => availableCurrencies(priced), [priced]);
-	const effectiveCurrency =
-		selectedCurrency &&
-		currencies.some((option) => option.code === selectedCurrency)
-			? selectedCurrency
-			: (currencies.find((option) => option.code === "GBP")?.code ??
-				currencies[0]?.code ??
-				"GBP");
-	const nativeVenues = useMemo(
-		() => priced.filter((venue) => venue.currency === effectiveCurrency),
-		[priced, effectiveCurrency],
-	);
+	const { currencies, converting, displayCurrency, displayVenues, format } =
+		usePricedVenues({ priced, selectedCurrency, convertCurrency, rates });
 
-	// converted mode: everything into one currency, so EUR pubs show up too
-	const convertTo = convertCurrency !== "native" ? convertCurrency : null;
-	// `convert` silently returns the amount unchanged when a venue's own
-	// currency is missing from the table, which would mix currencies - so only
-	// convert when every pub can be converted.
-	const allCurrenciesConvertible = priced.every((venue) =>
-		canConvertTo(venue.currency, rates),
-	);
-	const converting = Boolean(
-		convertTo && canConvertTo(convertTo, rates) && allCurrenciesConvertible,
-	);
-	const displayVenues = useMemo(() => {
-		if (!(converting && convertTo)) {
-			return nativeVenues;
-		}
-		return priced.map((venue) => {
-			const rate = convert(1, venue.currency, convertTo, rates);
-			return {
-				...venue,
-				price: convert(venue.price, venue.currency, convertTo, rates),
-				previousPrice:
-					venue.previousPrice != null
-						? convert(venue.previousPrice, venue.currency, convertTo, rates)
-						: null,
-				// kcal/£ and £/unit both scale with the currency
-				metricValue:
-					venue.metricValue == null
-						? null
-						: venue.metricKind === "calorie"
-							? venue.metricValue / rate
-							: venue.metricValue * rate,
-				lines: venue.lines.map((line) => ({
-					...line,
-					price: convert(line.price, venue.currency, convertTo, rates),
-				})),
-				currency: convertTo,
-			};
-		});
-	}, [converting, convertTo, priced, nativeVenues, rates]);
-	const displayCurrency =
-		converting && convertTo ? convertTo : effectiveCurrency;
-
-	// one place that knows how to show a price/metric in the display currency
-	const targetCurrency = converting && convertTo ? convertTo : null;
-	const format = useMemo<Formatter>(() => {
-		const convertMoney = (value: number, from: string) =>
-			targetCurrency ? convert(value, from, targetCurrency, rates) : value;
-		const convertMetric = (kind: ValueKind, value: number, from: string) => {
-			if (!targetCurrency) {
-				return value;
-			}
-			const rate = convert(1, from, targetCurrency, rates);
-			return kind === "calorie" ? value / rate : value * rate;
-		};
-		return {
-			targetCurrency,
-			convertMoney,
-			convertMetric,
-			money: (value, from) =>
-				money(convertMoney(value, from), targetCurrency ?? from),
-			metric: (kind, value, from) =>
-				metricText(
-					{ kind, value: convertMetric(kind, value, from) },
-					targetCurrency ?? from,
-				),
-		};
-	}, [targetCurrency, rates]);
-
-	// only compare pubs that can serve every item of the round
-	const completeVenues = useMemo(
-		() =>
-			onlyComplete
-				? displayVenues.filter((venue) => venue.missing.length === 0)
-				: displayVenues,
-		[displayVenues, onlyComplete],
-	);
-	const partialCount = useMemo(
-		() => displayVenues.filter((venue) => venue.missing.length > 0).length,
-		[displayVenues],
-	);
-	const completeCount = displayVenues.length - partialCount;
+	const filtered = useVenueFilter({
+		displayVenues,
+		onlyComplete,
+		openNowOnly,
+		hideSpecial,
+		hideClosed,
+		activeFacilities,
+		areaFilter,
+		userLocation,
+		singleName,
+		roundQty: resolvedBasket.reduce((sum, item) => sum + item.qty, 0),
+	});
 
 	const itemMetric = useMemo(() => {
 		if (!singleName) {
 			return null;
 		}
-		const venue = completeVenues.find(
+		const venue = filtered.completeVenues.find(
 			(candidate) => candidate.metricKind && candidate.metricValue != null,
 		);
 		if (!venue?.metricKind || venue.metricValue == null) {
@@ -228,221 +156,33 @@ export const useSpoonersView = (input: SpoonersViewInput) => {
 			{ kind: venue.metricKind, value: venue.metricValue },
 			displayCurrency,
 		);
-	}, [completeVenues, displayCurrency, singleName]);
+	}, [filtered.completeVenues, displayCurrency, singleName]);
 	const trend = useMemo(
 		() => (data && singleName ? itemTrend(data, singleName) : null),
 		[data, singleName],
 	);
 
-	const openCount = useMemo(
-		() => completeVenues.filter((venue) => venue.isOpenNow).length,
-		[completeVenues],
-	);
-	const specialCount = useMemo(
-		() => completeVenues.filter((venue) => isCaptiveSpot(venue.spot)).length,
-		[completeVenues],
-	);
-	const closedCount = useMemo(
-		() =>
-			completeVenues.filter(
-				(venue) => venue.isClosed || isTemporarilyClosed(venue.status),
-			).length,
-		[completeVenues],
-	);
-	const facilityOptions = useMemo(
-		() => availableFacilities(completeVenues),
-		[completeVenues],
+	const premium = useMemo(
+		() => premiumInsight(filtered.completeVenues, displayCurrency),
+		[filtered.completeVenues, displayCurrency],
 	);
 
-	const venueFilters = useMemo(
-		() => ({
-			openNow: openNowOnly,
-			hideSpecial,
-			hideClosed,
-			facilities: activeFacilities,
-		}),
-		[openNowOnly, hideSpecial, hideClosed, activeFacilities],
-	);
+	const { all: unpricedAll, points: unpricedPoints } = useUnpricedVenues({
+		data,
+		userLocation,
+		venueFilters: filtered.venueFilters,
+	});
+	const { rare, fresh, sellers } = useDiscovery({
+		visibleIndex,
+		data,
+		userLocation,
+	});
+	const { areas, areaPoints } = useAreaLayers({
+		baseVenues: filtered.baseVenues,
+		displayCurrency,
+	});
 
-	const baseVenues = useMemo(
-		() =>
-			completeVenues.filter((venue) =>
-				matchesVenueFilters(venue, venueFilters),
-			),
-		[completeVenues, venueFilters],
-	);
-
-	// optional drill-down from an area marker / the area panel
-	const venues = useMemo(
-		() =>
-			areaFilter
-				? baseVenues.filter(
-						(venue) => venue.county === areaFilter || venue.town === areaFilter,
-					)
-				: baseVenues,
-		[baseVenues, areaFilter],
-	);
-
-	const withDistance = useMemo(
-		() =>
-			userLocation
-				? venues.map((venue) => ({
-						...venue,
-						distance: haversineMiles(userLocation, {
-							lat: venue.lat,
-							lng: venue.lng,
-						}),
-					}))
-				: venues,
-		[venues, userLocation],
-	);
-	const nearby = useMemo(
-		() =>
-			userLocation
-				? [...withDistance]
-						.sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0))
-						.slice(0, 12)
-				: undefined,
-		[withDistance, userLocation],
-	);
-	const scale = useMemo(
-		() => makeScale(withDistance.map((venue) => venue.price)),
-		[withDistance],
-	);
-	const prices = useMemo(
-		() => withDistance.map((venue) => venue.price),
-		[withDistance],
-	);
-	const medianPrice = useMemo(() => median(prices), [prices]);
-	const hiddenCount = displayVenues.length - venues.length;
-	const legendLabel = singleName
-		? `${singleName}${
-				displayVenues[0]?.portion ? ` · ${displayVenues[0].portion}` : ""
-			}`
-		: resolvedBasket.length > 1
-			? `${resolvedBasket.reduce((sum, item) => sum + item.qty, 0)}-item round`
-			: undefined;
-
-	const premium = useMemo(() => {
-		const insight = specialPremium(completeVenues);
-		if (!insight) {
-			return null;
-		}
-		const sign = insight.premiumPercent >= 0 ? "+" : "−";
-		const where = completeVenues.some((venue) => venue.spot === "airport")
-			? "Airport"
-			: "Travel";
-		return `${where} venues charge ${sign}${Math.abs(
-			Math.round(insight.premiumPercent),
-		)}% more than the rest — median ${money(
-			insight.specialMedian,
-			displayCurrency,
-		)} vs ${money(
-			insight.normalMedian,
-			displayCurrency,
-		)} (${insight.specialCount} of ${
-			insight.specialCount + insight.normalCount
-		} pubs)`;
-	}, [completeVenues, displayCurrency]);
-
-	const areas = useMemo(() => areaStats(baseVenues), [baseVenues]);
-
-	// pubs whose menu is not published at all - the panel lists every one,
-	// whatever the map filters, while the grey markers follow the filters
-	const unpricedAll = useMemo(() => {
-		if (!data) {
-			return [];
-		}
-		const list = venuesWithoutPrices(data);
-		return userLocation
-			? list.map((venue) => ({
-					...venue,
-					distance: haversineMiles(userLocation, {
-						lat: venue.lat,
-						lng: venue.lng,
-					}),
-				}))
-			: list;
-	}, [data, userLocation]);
-	const unpricedMap = useMemo(
-		() =>
-			unpricedAll.filter((venue) => matchesVenueFilters(venue, venueFilters)),
-		[unpricedAll, venueFilters],
-	);
-	const unpricedPoints = useMemo<MapPoint[]>(
-		() =>
-			unpricedMap.map((venue) => ({
-				ref: venue.ref,
-				name: venue.name,
-				lat: venue.lat,
-				lng: venue.lng,
-				price: 0,
-				currency: venue.currency,
-				label: "no prices published",
-				line1: null,
-				town: venue.town,
-				postcode: venue.postcode,
-				facilities: venue.facilities,
-				phone: venue.phone,
-				spot: venue.spot,
-				isClosed: venue.isClosed,
-				isOpenNow: venue.isOpenNow,
-				hoursToday: venue.hoursToday,
-				distance: venue.distance,
-			})),
-		[unpricedMap],
-	);
-
-	// discovery: rare guest ales and new items
-	const rare = useMemo(
-		() => rareItems(visibleIndex).slice(0, 60),
-		[visibleIndex],
-	);
-	const fresh = useMemo(
-		() => newItems(visibleIndex).slice(0, 60),
-		[visibleIndex],
-	);
-	const sellerNames = useMemo(
-		() => [
-			...new Set([
-				...rare.slice(0, 40).map((item) => item.name),
-				...fresh.slice(0, 40).map((item) => item.name),
-			]),
-		],
-		[rare, fresh],
-	);
-	const sellers = useMemo(
-		() =>
-			data && userLocation && sellerNames.length
-				? nearestSellers(data, sellerNames, userLocation)
-				: null,
-		[data, userLocation, sellerNames],
-	);
-
-	const areaPoints = useMemo<MapPoint[]>(
-		() =>
-			areas.map((stat, position) => ({
-				ref: -(position + 1),
-				name: stat.area,
-				lat: stat.lat,
-				lng: stat.lng,
-				price: stat.median,
-				currency: displayCurrency,
-				label: `${stat.count} pubs`,
-				line1: null,
-				town: null,
-				postcode: null,
-				facilities: [],
-				phone: null,
-				spot: "high-street" as const,
-				kind: "area" as const,
-				isClosed: false,
-				isOpenNow: false,
-				hoursToday: null,
-			})),
-		[areas, displayCurrency],
-	);
-	const mapData = view === "area" ? areaPoints : withDistance;
+	const mapData = view === "area" ? areaPoints : filtered.withDistance;
 	const mapScale = useMemo(
 		() => makeScale(mapData.map((point) => point.price)),
 		[mapData],
@@ -461,23 +201,22 @@ export const useSpoonersView = (input: SpoonersViewInput) => {
 		converting,
 		displayCurrency,
 		format,
-		completeVenues,
-		completeCount,
-		partialCount,
+		completeVenues: filtered.completeVenues,
+		completeCount: filtered.completeCount,
+		partialCount: filtered.partialCount,
 		itemMetric,
 		trend,
-		openCount,
-		specialCount,
-		closedCount,
-		facilityOptions,
-		baseVenues,
-		withDistance,
-		nearby,
-		scale,
-		prices,
-		medianPrice,
-		hiddenCount,
-		legendLabel,
+		openCount: filtered.openCount,
+		specialCount: filtered.specialCount,
+		closedCount: filtered.closedCount,
+		facilityOptions: filtered.facilityOptions,
+		withDistance: filtered.withDistance,
+		nearby: filtered.nearby,
+		scale: filtered.scale,
+		prices: filtered.prices,
+		medianPrice: filtered.medianPrice,
+		hiddenCount: filtered.hiddenCount,
+		legendLabel: filtered.legendLabel,
 		premium,
 		areas,
 		unpricedAll,

@@ -16,9 +16,7 @@ export { HeaderAction } from "./components/HeaderAction";
 export { HeaderOverflow } from "./components/HeaderOverflow";
 export { SchemeToggle } from "./components/SchemeToggle";
 export { Section } from "./components/Section";
-export type { ShortcutGroup } from "./components/ShortcutsHelp";
 export {
-	APP_SWITCH_SHORTCUTS,
 	ShortcutsHelp,
 	ShortcutsHelpButton,
 	useShortcutsHelp,
@@ -98,4 +96,8 @@ export type {
 	SummaryRow,
 } from "./save/types";
 export { registerServiceWorker } from "./service-worker";
+export {
+	APP_SWITCH_SHORTCUTS,
+	type ShortcutGroup,
+} from "./shortcutData";
 export { createAppTheme } from "./theme";

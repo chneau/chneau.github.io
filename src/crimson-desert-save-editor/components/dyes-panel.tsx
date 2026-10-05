@@ -3,9 +3,7 @@ import {
 	Badge,
 	Box,
 	Button,
-	ColorInput,
 	Group,
-	NumberInput,
 	Paper,
 	ScrollArea,
 	Select,
@@ -15,6 +13,8 @@ import {
 } from "@mantine/core";
 import { Paintbrush, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { type DyeChannels, EMPTY_CHANNELS } from "@/components/dye-channels";
+import { DyePartRow } from "@/components/dye-part-row";
 import type { DyeDescription, DyedItem, DyeSlot } from "@/lib/save-engine/dyes";
 import type { DyeEdit } from "@/lib/staged-edits";
 
@@ -37,54 +37,10 @@ type PanelProps = {
  */
 const NO_ITEMS: readonly DyedItem[] = [];
 
-type Channels = {
-	red: number | null;
-	green: number | null;
-	blue: number | null;
-	alpha: number | null;
-	grime: number | null;
-	colorGroup: number | null;
-	material: number | null;
-};
-
-const EMPTY: Channels = {
-	red: null,
-	green: null,
-	blue: null,
-	alpha: null,
-	grime: null,
-	colorGroup: null,
-	material: null,
-};
-
-const hex = (value: number): string =>
-	value.toString(16).padStart(2, "0").toUpperCase();
-
-const toHexColor = (
-	red: number | null,
-	green: number | null,
-	blue: number | null,
-): string => `#${hex(red ?? 0)}${hex(green ?? 0)}${hex(blue ?? 0)}`;
-
-const fromHexColor = (
-	value: string,
-): { red: number; green: number; blue: number } | null => {
-	const match = /^#?([0-9a-f]{6})$/i.exec(value.trim());
-	if (!match) return null;
-	const numeric = Number.parseInt(match[1] ?? "", 16);
-	return {
-		red: (numeric >> 16) & 0xff,
-		green: (numeric >> 8) & 0xff,
-		blue: numeric & 0xff,
-	};
-};
-const partKey = (item: DyedItem, index: number): string =>
-	`${item.itemNo}:${item.slotNo}:${index}`;
-
 /** The value the save holds for one channel of one part. */
 const storedChannel = (
 	slot: DyeSlot | undefined,
-	name: keyof Channels,
+	name: keyof DyeChannels,
 ): number | null => {
 	const channel = slot
 		? {
@@ -98,6 +54,54 @@ const storedChannel = (
 			}[name]
 		: null;
 	return channel?.value ?? null;
+};
+
+const sameItem = (edit: DyeEdit, item: DyedItem): boolean =>
+	edit.itemNo === item.itemNo && edit.slotNo === item.slotNo;
+
+/**
+ * The staged whole-item change for `item`, if one is queued.
+ *
+ * A change with `slotIndices: null` applies to every part, which is what makes
+ * the "All parts" button and the warning under the table the same fact seen
+ * twice.
+ */
+const bulkEditFor = (edits: DyeEdit[], item: DyedItem): DyeEdit | undefined =>
+	edits.find(
+		(candidate) => sameItem(candidate, item) && candidate.slotIndices === null,
+	);
+
+/** The staged change for exactly one part of `item`. */
+const partEditFor = (
+	edits: DyeEdit[],
+	item: DyedItem,
+	index: number,
+): DyeEdit | undefined =>
+	edits.find(
+		(candidate) =>
+			sameItem(candidate, item) &&
+			candidate.slotIndices?.length === 1 &&
+			candidate.slotIndices[0] === index,
+	);
+
+/** Every staged channel for one part, as the row reads them. */
+const channelsOf = (
+	edits: DyeEdit[],
+	item: DyedItem,
+	index: number,
+): DyeChannels => {
+	const edit = partEditFor(edits, item, index);
+	return edit
+		? {
+				red: edit.red,
+				green: edit.green,
+				blue: edit.blue,
+				alpha: edit.alpha,
+				grime: edit.grime,
+				colorGroup: edit.colorGroup,
+				material: edit.material,
+			}
+		: EMPTY_CHANNELS;
 };
 
 /**
@@ -132,60 +136,27 @@ export const DyesPanel = ({
 	);
 	const selected = item ? `${item.itemNo}` : null;
 
-	const partEdit = (index: number): DyeEdit | undefined => {
-		if (!item) return undefined;
-		return edits.find(
-			(candidate) =>
-				candidate.itemNo === item.itemNo &&
-				candidate.slotNo === item.slotNo &&
-				candidate.slotIndices?.length === 1 &&
-				candidate.slotIndices[0] === index,
-		);
-	};
-	const bulkEdit = (): DyeEdit | undefined => {
-		if (!item) return undefined;
-		return edits.find(
-			(candidate) =>
-				candidate.itemNo === item.itemNo &&
-				candidate.slotNo === item.slotNo &&
-				candidate.slotIndices === null,
-		);
-	};
-
-	const valuesOf = (index: number): Channels => {
-		const edit = partEdit(index);
-		return edit
-			? {
-					red: edit.red,
-					green: edit.green,
-					blue: edit.blue,
-					alpha: edit.alpha,
-					grime: edit.grime,
-					colorGroup: edit.colorGroup,
-					material: edit.material,
-				}
-			: EMPTY;
-	};
-
-	const stagePart = (index: number, patch: Partial<Channels>) => {
+	const stagePart = (index: number, patch: Partial<DyeChannels>) => {
 		if (!item) return;
 		const slot = item.slots[index];
 		// A channel set back to the value the save already holds is dropped: the
 		// applier refuses an edit that changes nothing, and one redundant
 		// keystroke should not fail the whole download.
-		const normalized: Partial<Channels> = {};
+		const normalized: Partial<DyeChannels> = {};
 		for (const [key, value] of Object.entries(patch)) {
-			const name = key as keyof Channels;
+			const name = key as keyof DyeChannels;
 			normalized[name] = value === storedChannel(slot, name) ? null : value;
 		}
-		const current = { ...EMPTY, ...valuesOf(index), ...normalized };
-		const sameItem = (candidate: DyeEdit): boolean =>
-			candidate.itemNo === item.itemNo && candidate.slotNo === item.slotNo;
+		const current = {
+			...EMPTY_CHANNELS,
+			...channelsOf(edits, item, index),
+			...normalized,
+		};
 		// The whole-item change goes first, then every part change that is not
 		// this one, so a part edited afterwards wins over its own item's bulk edit.
 		const others = edits.filter(
 			(candidate) =>
-				!sameItem(candidate) ||
+				!sameItem(candidate, item) ||
 				(candidate.slotIndices !== null && candidate.slotIndices[0] !== index),
 		);
 		const bulk = others.filter((candidate) => candidate.slotIndices === null);
@@ -210,14 +181,7 @@ export const DyesPanel = ({
 	const stageAllParts = (slot: DyeSlot) => {
 		if (!item) return;
 		onStage([
-			...edits.filter(
-				(candidate) =>
-					!(
-						candidate.itemNo === item.itemNo &&
-						candidate.slotNo === item.slotNo &&
-						candidate.slotIndices === null
-					),
-			),
+			...edits.filter((candidate) => !sameItem(candidate, item)),
 			{
 				type: "dye",
 				itemNo: item.itemNo,
@@ -236,37 +200,6 @@ export const DyesPanel = ({
 		]);
 	};
 
-	const channel = (
-		slot: DyeSlot,
-		name: "red" | "green" | "blue" | "alpha" | "grime",
-	) => {
-		const stored = slot[name]?.value ?? null;
-		const staged = valuesOf(slot.index)[name];
-		const effective = staged ?? stored;
-		return (
-			<NumberInput
-				size="xs"
-				w={78}
-				hideControls
-				min={0}
-				max={255}
-				clampBehavior="strict"
-				disabled={busy || (stored === null && staged === null)}
-				placeholder="—"
-				value={effective ?? ""}
-				onChange={(next) =>
-					stagePart(slot.index, {
-						[name]:
-							next === "" || next === undefined
-								? null
-								: Math.min(255, Math.max(0, Number(next))),
-					})
-				}
-				aria-label={`${name} of part ${slot.index + 1}`}
-			/>
-		);
-	};
-
 	if (description?.error) {
 		return (
 			<Stack component="section" gap="lg" p="md" style={{ flex: 1 }}>
@@ -276,6 +209,8 @@ export const DyesPanel = ({
 			</Stack>
 		);
 	}
+
+	const bulkEdit = item ? bulkEditFor(edits, item) : undefined;
 
 	return (
 		<Stack
@@ -373,116 +308,24 @@ export const DyesPanel = ({
 							</Table.Tr>
 						</Table.Thead>
 						<Table.Tbody>
-							{item.slots.map((slot) => {
-								const staged = valuesOf(slot.index);
-								const red = staged.red ?? slot.red?.value ?? null;
-								const green = staged.green ?? slot.green?.value ?? null;
-								const blue = staged.blue ?? slot.blue?.value ?? null;
-								const colorStored =
-									Boolean(slot.red) ||
-									Boolean(slot.green) ||
-									Boolean(slot.blue);
-								return (
-									<Table.Tr key={partKey(item, slot.index)}>
-										<Table.Td>
-											<Text size="sm" fw={500}>
-												{slot.name}
-											</Text>
-											{!slot.editable && (
-												<Text size="10px" c="dimmed">
-													no channels stored
-												</Text>
-											)}
-										</Table.Td>
-										<Table.Td>
-											<ColorInput
-												size="xs"
-												w={120}
-												format="hex"
-												withEyeDropper={false}
-												disabled={busy || !colorStored}
-												placeholder="not stored"
-												value={toHexColor(red, green, blue)}
-												onChange={(value) => {
-													const parsed = fromHexColor(value);
-													if (parsed) stagePart(slot.index, parsed);
-												}}
-												aria-label={`colour of part ${slot.index + 1}`}
-											/>
-										</Table.Td>
-										<Table.Td>{channel(slot, "red")}</Table.Td>
-										<Table.Td>{channel(slot, "green")}</Table.Td>
-										<Table.Td>{channel(slot, "blue")}</Table.Td>
-										<Table.Td>{channel(slot, "alpha")}</Table.Td>
-										<Table.Td>{channel(slot, "grime")}</Table.Td>
-										<Table.Td>
-											<Select
-												size="xs"
-												w={150}
-												searchable
-												disabled={busy || !slot.colorGroup}
-												placeholder="not stored"
-												value={
-													(staged.colorGroup ?? slot.colorGroup?.value) === null
-														? null
-														: String(
-																staged.colorGroup ?? slot.colorGroup?.value,
-															)
-												}
-												data={(description?.colorGroups ?? []).map((group) => ({
-													value: String(group.key),
-													label: group.name,
-												}))}
-												onChange={(value) =>
-													stagePart(slot.index, {
-														colorGroup: value === null ? null : Number(value),
-													})
-												}
-											/>
-										</Table.Td>
-										<Table.Td>
-											<Select
-												size="xs"
-												w={110}
-												disabled={busy || !slot.material}
-												placeholder="not stored"
-												value={
-													(staged.material ?? slot.material?.value) === null
-														? null
-														: String(staged.material ?? slot.material?.value)
-												}
-												data={(description?.materials ?? []).map(
-													(material) => ({
-														value: String(material.value),
-														label: material.name,
-													}),
-												)}
-												onChange={(value) =>
-													stagePart(slot.index, {
-														material: value === null ? null : Number(value),
-													})
-												}
-											/>
-										</Table.Td>
-										<Table.Td>
-											<Button
-												size="compact-xs"
-												variant="subtle"
-												disabled={busy || !colorStored}
-												onClick={() => stageAllParts(slot)}
-											>
-												All parts
-											</Button>
-										</Table.Td>
-									</Table.Tr>
-								);
-							})}
+							{item.slots.map((slot) => (
+								<DyePartRow
+									key={`${item.itemNo}:${item.slotNo}:${slot.index}`}
+									slot={slot}
+									staged={channelsOf(edits, item, slot.index)}
+									colorGroups={description?.colorGroups ?? []}
+									materials={description?.materials ?? []}
+									busy={busy}
+									onStagePart={(patch) => stagePart(slot.index, patch)}
+									onStageAllParts={() => stageAllParts(slot)}
+								/>
+							))}
 						</Table.Tbody>
 					</Table>
 				</ScrollArea.Autosize>
 			)}
 
-			{bulkEdit() && (
+			{bulkEdit && (
 				<Paper
 					withBorder
 					p="sm"
@@ -493,8 +336,8 @@ export const DyesPanel = ({
 							Every part
 						</Badge>
 						<Text size="xs" c="dimmed">
-							{bulkEdit()?.label} is staged, and applies before any part you
-							change after it.
+							{bulkEdit.label} is staged, and applies before any part you change
+							after it.
 						</Text>
 					</Group>
 				</Paper>

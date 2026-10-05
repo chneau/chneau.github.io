@@ -1,9 +1,8 @@
 import { Box } from "@mantine/core";
 import { Package, PawPrint } from "lucide-react";
 import { useState } from "react";
-import companionPaths from "@/lib/generated/companion-image-paths.json";
-import itemPaths from "@/lib/generated/item-image-paths.json";
 import { useImage } from "@/lib/image-archive";
+import { type PictureKind, picturePath, pictureTable } from "./picture-path";
 
 /**
  * One picture out of the shipped archives, or its kind's fallback glyph.
@@ -14,9 +13,6 @@ import { useImage } from "@/lib/image-archive";
  * one is the accessible label, so the frame is `aria-hidden` and the image has
  * an empty `alt`.
  */
-
-/** Which generated picture table a key is filed under. */
-export type PictureKind = "item" | "companion";
 
 type PictureKindInfo = {
 	/** The published path table, keyed by the Item Key or Character Key. */
@@ -38,7 +34,7 @@ type PictureKindInfo = {
 
 const KINDS: Record<PictureKind, PictureKindInfo> = {
 	item: {
-		pictures: itemPaths,
+		pictures: pictureTable("item"),
 		fallback: Package,
 		size: 40,
 		intrinsic: 100,
@@ -48,7 +44,7 @@ const KINDS: Record<PictureKind, PictureKindInfo> = {
 		fallbackSize: (size) => Math.max(14, Math.round(size / 2)),
 	},
 	companion: {
-		pictures: companionPaths,
+		pictures: pictureTable("companion"),
 		fallback: PawPrint,
 		size: 56,
 		intrinsic: 160,
@@ -73,17 +69,6 @@ const FRAME = {
 	// Keep automatic browser darkening from treating dark artwork as monochrome UI icons.
 	colorScheme: "only light",
 } as const;
-
-/**
- * The published path one key is filed under, or `undefined` for a key the
- * table does not carry. Exported because it is the half of this module that can
- * be checked without a DOM: `tests/pictures.test.ts` holds it against the
- * committed archives.
- */
-export const picturePath = (
-	kind: PictureKind,
-	key: number | string,
-): string | undefined => KINDS[kind].pictures[String(key)];
 
 export const Picture = ({
 	kind,

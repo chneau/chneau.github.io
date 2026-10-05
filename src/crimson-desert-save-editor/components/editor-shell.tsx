@@ -1,49 +1,16 @@
-import {
-	Badge,
-	Box,
-	Burger,
-	Button,
-	Drawer,
-	Flex,
-	Group,
-	Loader,
-	Menu,
-	Modal,
-	Progress,
-	Stack,
-	Text,
-} from "@mantine/core";
-import {
-	CheckCircle2,
-	Download,
-	FileUp,
-	HardDrive,
-	LockKeyhole,
-	Plus,
-	Trash2,
-	Undo2,
-} from "lucide-react";
+import { Box, Burger, Drawer, Flex } from "@mantine/core";
 import type { Dispatch, ReactNode, RefObject, SetStateAction } from "react";
-import { AddItemDrawer } from "@/components/add-item-drawer";
-import { EquipmentCatalogPanel } from "@/components/equipment-catalog-panel";
-import type { EquipmentCatalog } from "@/components/equipment-workshop";
-import { StagedEditsDrawer } from "@/components/staged-edits-drawer";
+import { DownloadProgressBanner } from "@/components/download-progress-banner";
+import { EditorHeaderActions } from "@/components/editor-header-actions";
+import type { EquipmentCatalog } from "@/components/equipment-details";
+import { SaveFileFooter } from "@/components/save-file-footer";
+import { SaveFileInput } from "@/components/save-file-input";
+import { SaveOverlays } from "@/components/save-overlays";
 import type { EquipmentEdit, InsertEquipmentEdit } from "@/lib/equipment";
-import {
-	type Catalog,
-	type ParseResult,
-	type SaveView,
-	storageName,
-} from "@/lib/inventory";
+import type { Catalog, ParseResult, SaveView } from "@/lib/inventory";
 import type { ItemKnowledgeMapFile } from "@/lib/save-engine/data";
 import type { SaveEdit } from "@/lib/staged-edits";
-import {
-	AppNav,
-	type Command,
-	CommandPalette,
-	HeaderAction,
-	SkipLink,
-} from "../../shared";
+import { AppNav, type Command, SkipLink } from "../../shared";
 
 /** The progress the download banner shows while a save is rebuilt. */
 type DownloadProgress = {
@@ -51,6 +18,20 @@ type DownloadProgress = {
 	total: number;
 	message: string;
 };
+
+/** The keys the editor itself binds, for the shared shortcuts dialog. */
+const EDITOR_SHORTCUTS = [
+	{
+		title: "Editing",
+		shortcuts: [
+			{
+				keys: ["Ctrl/⌘", "Z"],
+				description: "Undo the last staged change",
+			},
+			{ keys: ["Esc"], description: "Close the open panel" },
+		],
+	},
+];
 
 /**
  * The editor's chrome: the navigation rail and its mobile drawer, the header
@@ -232,316 +213,75 @@ export const EditorShell = ({
 					dark,
 					onToggle: onToggleTheme,
 				}}
-				shortcuts={[
-					{
-						title: "Editing",
-						shortcuts: [
-							{
-								keys: ["Ctrl/⌘", "Z"],
-								description: "Undo the last staged change",
-							},
-							{ keys: ["Esc"], description: "Close the open panel" },
-						],
-					},
-				]}
+				shortcuts={EDITOR_SHORTCUTS}
 				actions={
-					<>
-						{result && (
-							<>
-								{fileName && (
-									<Badge
-										variant="default"
-										visibleFrom="md"
-										h={28}
-										color="gray"
-										leftSection={<HardDrive size={13} strokeWidth={2} />}
-										title={`${fileName} (${(fileSize / 1024).toFixed(1)} KB)`}
-									>
-										{fileName}
-									</Badge>
-								)}
-								<Badge variant="outline" color="brand" visibleFrom="lg" h={28}>
-									Build {catalog?.game.steam_build_id ?? "catalog loading"}
-								</Badge>
-							</>
-						)}
-						<HeaderAction
-							label={result ? "Open another save" : "Open save"}
-							icon={<FileUp size={16} />}
-							onClick={() => inputRef.current?.click()}
-						>
-							{result ? "Open another" : "Open save"}
-						</HeaderAction>
-
-						{result && (
-							<>
-								{edits.length > 0 && (
-									<Menu
-										position="bottom-end"
-										withinPortal
-										opened={stagedMenuOpen}
-										onChange={setStagedMenuOpen}
-									>
-										<Menu.Target>
-											<HeaderAction
-												label={`Staged changes (${edits.length})`}
-												icon={<CheckCircle2 size={16} />}
-												ariaExpanded={stagedMenuOpen}
-												ariaHaspopup="menu"
-											>
-												Staged ({edits.length})
-											</HeaderAction>
-										</Menu.Target>
-										<Menu.Dropdown>
-											<Menu.Item
-												leftSection={<CheckCircle2 size={15} />}
-												onClick={onReviewOpen}
-											>
-												Review staged changes
-											</Menu.Item>
-											<Menu.Item
-												leftSection={<Undo2 size={15} />}
-												onClick={() =>
-													setEdits((current) => current.slice(0, -1))
-												}
-											>
-												Undo last change
-											</Menu.Item>
-											<Menu.Divider />
-											<Menu.Item
-												color="red"
-												leftSection={<Trash2 size={15} />}
-												onClick={onDiscardOpen}
-											>
-												Discard all
-											</Menu.Item>
-										</Menu.Dropdown>
-									</Menu>
-								)}
-								{view === "inventory" && (
-									<>
-										<EquipmentCatalogPanel
-											catalog={equipmentCatalog}
-											itemCatalog={catalog}
-											storages={storages.map((entry) => ({
-												key: entry.key,
-												name: storageName(entry.key),
-											}))}
-											defaultStorage={activeStorage}
-											records={result.records}
-											edits={edits}
-											busy={loading}
-											onStage={stageEquipment}
-										/>
-										<HeaderAction
-											label="Add item"
-											icon={<Plus size={16} />}
-											onClick={() => setAddOpen(true)}
-										>
-											Add item
-										</HeaderAction>
-									</>
-								)}
-								<HeaderAction
-									accent
-									disabled={edits.length === 0}
-									loading={loading}
-									label="Download save"
-									icon={loading ? <Loader size={16} /> : <Download size={16} />}
-									onClick={onDownload}
-								>
-									Download save
-									{edits.length > 0 ? ` (${edits.length})` : ""}
-								</HeaderAction>
-							</>
-						)}
-					</>
+					<EditorHeaderActions
+						result={result}
+						fileName={fileName}
+						fileSize={fileSize}
+						catalog={catalog}
+						equipmentCatalog={equipmentCatalog}
+						storages={storages}
+						activeStorage={activeStorage}
+						edits={edits}
+						setEdits={setEdits}
+						stagedMenuOpen={stagedMenuOpen}
+						setStagedMenuOpen={setStagedMenuOpen}
+						view={view}
+						loading={loading}
+						inputRef={inputRef}
+						setAddOpen={setAddOpen}
+						stageEquipment={stageEquipment}
+						onReviewOpen={onReviewOpen}
+						onDiscardOpen={onDiscardOpen}
+						onDownload={onDownload}
+					/>
 				}
 			/>
-			<input
-				ref={inputRef}
-				type="file"
-				accept=".save"
-				aria-label="Open a Crimson Desert save file"
-				style={{
-					position: "absolute",
-					width: 1,
-					height: 1,
-					overflow: "hidden",
-					clip: "rect(0 0 0 0)",
-					whiteSpace: "nowrap",
-				}}
-				onChange={(event) => {
-					const file = event.target.files?.[0];
-					// Clear the input so choosing the same file again still fires.
-					event.target.value = "";
-					if (file) onRequestFile(file);
-				}}
-			/>
+			<SaveFileInput inputRef={inputRef} onRequestFile={onRequestFile} />
 
 			{downloadProgress && (
-				<Box
-					px="md"
-					py="md"
-					role="status"
-					aria-live="polite"
-					aria-busy="true"
-					style={{
-						flexShrink: 0,
-						borderBottom: "1px solid var(--mantine-primary-color-filled)",
-						background: "var(--mantine-primary-color-light)",
-					}}
-				>
-					<Group justify="space-between" gap="md" mb="xs">
-						<Group gap="xs">
-							<Loader size={16} />
-							<Text size="sm">{downloadProgress.message}…</Text>
-						</Group>
-						<Text size="sm">
-							{downloadProgress.completed} / {downloadProgress.total} steps
-						</Text>
-					</Group>
-					<Progress
-						value={(downloadProgress.completed / downloadProgress.total) * 100}
-						aria-label="Save preparation progress"
-					/>
-					<Text mt="xs" size="xs" c="dimmed">
-						{elapsed}s elapsed. Large saves can take several minutes; keep this
-						tab open.
-					</Text>
-				</Box>
+				<DownloadProgressBanner
+					message={downloadProgress.message}
+					completed={downloadProgress.completed}
+					total={downloadProgress.total}
+					elapsed={elapsed}
+				/>
 			)}
 
 			{children}
 
-			{result && (
-				<Group
-					h={36}
-					px="md"
-					justify="space-between"
-					wrap="nowrap"
-					style={{
-						flexShrink: 0,
-						borderTop: "1px solid var(--app-border)",
-					}}
-				>
-					<Group gap={6} wrap="nowrap">
-						<LockKeyhole
-							size={12}
-							color="var(--app-text-muted)"
-							strokeWidth={2}
-						/>
-						<Text size="xs" c="dimmed">
-							Original file untouched
-						</Text>
-					</Group>
-					<Text size="xs" c="dimmed" ff="monospace">
-						{result.records.length} records
-					</Text>
-				</Group>
-			)}
+			{result && <SaveFileFooter result={result} />}
 		</Flex>
 
-		<AddItemDrawer
-			opened={addOpen}
-			defaultStorage={activeStorage}
+		<SaveOverlays
+			result={result}
+			activeStorage={activeStorage}
 			storages={storages}
-			records={result?.records ?? []}
 			catalog={catalog}
 			knowledgeMap={knowledgeMap}
 			edits={edits}
 			setEdits={setEdits}
 			setError={setError}
-			busy={loading}
-			onClose={() => setAddOpen(false)}
-			onReveal={revealStaged}
-		/>
-
-		<StagedEditsDrawer
-			opened={reviewOpen}
-			onClose={onCloseReview}
-			edits={edits}
-			nameOf={nameOf}
-			onRemoveEdit={removeStagedEdit}
-			onDiscardAll={onDiscardOpen}
+			loading={loading}
+			addOpen={addOpen}
+			setAddOpen={setAddOpen}
+			reviewOpen={reviewOpen}
+			onCloseReview={onCloseReview}
+			removeStagedEdit={removeStagedEdit}
+			onDiscardOpen={onDiscardOpen}
 			onDownload={onDownload}
-			busy={loading}
-		/>
-
-		<CommandPalette
-			opened={paletteOpened}
-			onClose={onClosePalette}
+			nameOf={nameOf}
+			revealStaged={revealStaged}
+			paletteOpened={paletteOpened}
+			onClosePalette={onClosePalette}
 			commands={commands}
+			discardModalOpen={discardModalOpen}
+			setDiscardModalOpen={setDiscardModalOpen}
+			replaceModalOpen={replaceModalOpen}
+			setReplaceModalOpen={setReplaceModalOpen}
+			pendingFileRef={pendingFileRef}
+			parseFile={parseFile}
 		/>
-
-		<Modal
-			opened={discardModalOpen}
-			onClose={() => setDiscardModalOpen(false)}
-			title="Discard all changes?"
-			centered
-			size="sm"
-		>
-			<Stack gap="md">
-				<Text size="sm">
-					Are you sure you want to discard all {edits.length} staged change
-					{edits.length === 1 ? "" : "s"}? This action cannot be undone.
-				</Text>
-				<Group justify="flex-end" gap="sm">
-					<Button variant="default" onClick={() => setDiscardModalOpen(false)}>
-						Cancel
-					</Button>
-					<Button
-						color="red"
-						onClick={() => {
-							setEdits([]);
-							setDiscardModalOpen(false);
-						}}
-					>
-						Discard all
-					</Button>
-				</Group>
-			</Stack>
-		</Modal>
-
-		<Modal
-			opened={replaceModalOpen}
-			onClose={() => {
-				pendingFileRef.current = null;
-				setReplaceModalOpen(false);
-			}}
-			title="Open another save?"
-			centered
-			size="sm"
-		>
-			<Stack gap="md">
-				<Text size="sm">
-					Opening a save replaces the current one and discards all{" "}
-					{edits.length} staged change{edits.length === 1 ? "" : "s"}. Download
-					the rebuilt save first if you want to keep them.
-				</Text>
-				<Group justify="flex-end" gap="sm">
-					<Button
-						variant="default"
-						onClick={() => {
-							pendingFileRef.current = null;
-							setReplaceModalOpen(false);
-						}}
-					>
-						Cancel
-					</Button>
-					<Button
-						color="red"
-						onClick={() => {
-							const file = pendingFileRef.current;
-							pendingFileRef.current = null;
-							setReplaceModalOpen(false);
-							if (file) void parseFile(file);
-						}}
-					>
-						Discard and open
-					</Button>
-				</Group>
-			</Stack>
-		</Modal>
 	</Flex>
 );

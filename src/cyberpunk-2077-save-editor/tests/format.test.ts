@@ -219,12 +219,16 @@ describe("Cyberpunk 2077 codec", () => {
 	});
 
 	test("refuses to rebuild a document that has no save behind it", async () => {
-		// A document that has been through `JSON.parse` — exported and re-imported —
-		// carries the readable projection but not the bytes. Rebuilding it from the
-		// projection alone would produce a save missing every subsystem this codec
-		// cannot name, so it is refused with a message that says what to do.
+		// A document that has been exported and re-imported carries the readable
+		// projection but not the bytes: `decode` remembers the node tree on a
+		// non-enumerable property, so a `structuredClone` — and, in the app, a
+		// `JSON.parse` of the exported file — comes back without it. Rebuilding
+		// from the projection alone would produce a save missing every subsystem
+		// this codec cannot name, so it is refused with a message that says what
+		// to do. `structuredClone` is the clone that loses it: it copies own
+		// *enumerable* properties, exactly as the JSON round-trip does.
 		const doc = await decodeFixture();
-		const reimported = JSON.parse(JSON.stringify(doc)) as JsonValue;
+		const reimported = structuredClone(doc) as JsonValue;
 		await expect(cyberpunk2077.encode(reimported)).rejects.toThrow(
 			/no node tree behind it/,
 		);

@@ -2,21 +2,20 @@ import {
 	Alert,
 	Badge,
 	Box,
-	Button,
 	Drawer,
 	Group,
 	Select,
 	Stack,
 	Text,
-	TextInput,
 } from "@mantine/core";
 import { TriangleAlert } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
 import {
 	type EquipmentCatalog,
-	EquipmentEditor,
 	freshEquipmentDetails,
-} from "@/components/equipment-workshop";
+} from "@/components/equipment-details";
+import { QuantityEditor } from "@/components/equipment-quantity-editor";
+import { EquipmentEditor } from "@/components/equipment-workshop";
 import { Picture } from "@/components/picture";
 import type { EquipmentEdit, InsertEquipmentEdit } from "@/lib/equipment";
 import abyssGearRules from "@/lib/generated/abyss-gear-compatibility.json";
@@ -27,6 +26,174 @@ import {
 	storageName,
 } from "@/lib/inventory";
 import type { QuantityEdit, SaveEdit } from "@/lib/staged-edits";
+
+/** The picker's heading: what is being edited, and which copy of it. */
+const DrawerHeading = ({
+	item,
+	record,
+	activeStorage,
+}: {
+	item: GroupedItem;
+	record: InventoryRecord;
+	activeStorage: number | null;
+}) => (
+	<Stack gap="xs">
+		<Group gap="sm">
+			<Badge
+				variant="outline"
+				color="brand"
+				styles={{ label: { textTransform: "uppercase" } }}
+			>
+				{item.category}
+			</Badge>
+			<Text size="xs" c="dimmed" ff="monospace">
+				#{item.itemKey}
+			</Text>
+		</Group>
+		<Group gap="md" wrap="nowrap">
+			<Picture kind="item" pictureKey={item.itemKey} size={64} />
+			<Text component="span" size="xl" fw={600}>
+				Edit {item.name}
+			</Text>
+		</Group>
+		<Text size="xs" c="dimmed">
+			{activeStorage === null ? "Unknown storage" : storageName(activeStorage)}{" "}
+			· {record.staged ? "staged addition" : `save slot ${record.slotNo}`}
+		</Text>
+	</Stack>
+);
+
+/**
+ * The workshop for a staged addition: an item the save does not hold yet.
+ *
+ * It needs its own record — the addition's own values, at slot -1 — and its own
+ * key, because the workshop holds its sockets and rules in state and a reused
+ * instance would carry one addition's sockets into the next.
+ */
+const StagedAdditionEditor = ({
+	addition,
+	additionDefinition,
+	itemName,
+	catalog,
+	busy,
+	staged,
+	onStage,
+	onRemove,
+}: {
+	addition: InsertEquipmentEdit;
+	additionDefinition: EquipmentCatalog["items"][string];
+	itemName: string;
+	catalog: Catalog | null;
+	busy: boolean;
+	staged: EquipmentEdit;
+	onStage: (edit: EquipmentEdit) => void;
+	onRemove: () => void;
+}) => (
+	<EquipmentEditor
+		key={`addition:${addition.inventoryKey}:${addition.itemKey}:${JSON.stringify(
+			addition,
+		)}`}
+		adding
+		submitLabel="Update staged equipment"
+		record={{
+			inventoryKey: addition.inventoryKey,
+			itemKey: addition.itemKey,
+			slotNo: -1,
+			equipment: freshEquipmentDetails(additionDefinition),
+		}}
+		name={itemName}
+		catalog={catalog}
+		busy={busy}
+		staged={staged}
+		onStage={onStage}
+		onRemove={onRemove}
+	/>
+);
+
+/**
+ * The picker for *which* copy of an item to edit.
+ *
+ * A stack can hold several copies with different refinements, and they are
+ * separate save records — editing one and seeing the other change would be a
+ * data-loss bug, so the copy is chosen explicitly whenever there is a choice.
+ */
+const RecordChooser = ({
+	item,
+	record,
+	onChoose,
+}: {
+	item: GroupedItem;
+	record: InventoryRecord;
+	onChoose: (record: InventoryRecord) => void;
+}) => (
+	<Box>
+		<Select
+			label="Save record"
+			description="This item has more than one copy here. Choose the exact copy to edit."
+			value={String(record.slotNo)}
+			allowDeselect={false}
+			data={item.recordList.map((candidate) => ({
+				value: String(candidate.slotNo),
+				label: `Slot ${candidate.slotNo} · ${
+					candidate.equipment
+						? `refinement ${candidate.equipment.refinement}`
+						: `quantity ${candidate.quantity}`
+				}`,
+			}))}
+			onChange={(value) => {
+				const candidate = item.recordList.find(
+					(entry) => entry.slotNo === Number(value),
+				);
+				if (candidate) onChoose(candidate);
+			}}
+		/>
+	</Box>
+);
+
+/**
+ * The workshop for gear that is really in the save.
+ *
+ * It edits the save's own record rather than the projected one, and its key
+ * carries the staged values so a new set of sockets remounts the workshop: it
+ * holds that state, and reusing the instance would carry the previous item's
+ * sockets into this one.
+ */
+const SavedEquipmentEditor = ({
+	savedRecord,
+	itemName,
+	catalog,
+	staged,
+	busy,
+	onStage,
+	setEdits,
+}: {
+	savedRecord: InventoryRecord & {
+		equipment: NonNullable<InventoryRecord["equipment"]>;
+	};
+	itemName: string;
+	catalog: Catalog | null;
+	staged: EquipmentEdit | undefined;
+	busy: boolean;
+	onStage: (edit: EquipmentEdit | InsertEquipmentEdit) => void;
+	setEdits: Dispatch<SetStateAction<SaveEdit[]>>;
+}) => (
+	<EquipmentEditor
+		key={`${savedRecord.inventoryKey}:${savedRecord.slotNo}:${
+			staged ? JSON.stringify(staged) : "original"
+		}`}
+		record={{ ...savedRecord, equipment: savedRecord.equipment }}
+		name={itemName}
+		catalog={catalog}
+		staged={staged}
+		busy={busy}
+		onStage={onStage}
+		rules={abyssGearRules}
+		savedRecord={savedRecord}
+		onRemove={() =>
+			setEdits((current) => current.filter((entry) => entry !== staged))
+		}
+	/>
+);
 
 /**
  * The editor for whatever the inventory view has selected: refinement and
@@ -86,32 +253,11 @@ export const EquipmentEditorDrawer = ({
 		size="28rem"
 		title={
 			item && record ? (
-				<Stack gap="xs">
-					<Group gap="sm">
-						<Badge
-							variant="outline"
-							color="brand"
-							styles={{ label: { textTransform: "uppercase" } }}
-						>
-							{item.category}
-						</Badge>
-						<Text size="xs" c="dimmed" ff="monospace">
-							#{item.itemKey}
-						</Text>
-					</Group>
-					<Group gap="md" wrap="nowrap">
-						<Picture kind="item" pictureKey={item.itemKey} size={64} />
-						<Text component="span" size="xl" fw={600}>
-							Edit {item.name}
-						</Text>
-					</Group>
-					<Text size="xs" c="dimmed">
-						{activeStorage === null
-							? "Unknown storage"
-							: storageName(activeStorage)}{" "}
-						· {record.staged ? "staged addition" : `save slot ${record.slotNo}`}
-					</Text>
-				</Stack>
+				<DrawerHeading
+					item={item}
+					record={record}
+					activeStorage={activeStorage}
+				/>
 			) : null
 		}
 	>
@@ -127,44 +273,18 @@ export const EquipmentEditorDrawer = ({
 					</Alert>
 				)}
 				{item.recordList.length > 1 && (
-					<Box>
-						<Select
-							label="Save record"
-							description="This item has more than one copy here. Choose the exact copy to edit."
-							value={String(record.slotNo)}
-							allowDeselect={false}
-							data={item.recordList.map((candidate) => ({
-								value: String(candidate.slotNo),
-								label: `Slot ${candidate.slotNo} · ${
-									candidate.equipment
-										? `refinement ${candidate.equipment.refinement}`
-										: `quantity ${candidate.quantity}`
-								}`,
-							}))}
-							onChange={(value) => {
-								const candidate = item.recordList.find(
-									(entry) => entry.slotNo === Number(value),
-								);
-								if (candidate) onChooseRecord(candidate);
-							}}
-						/>
-					</Box>
+					<RecordChooser
+						item={item}
+						record={record}
+						onChoose={onChooseRecord}
+					/>
 				)}
 
 				{addition && additionDefinition ? (
-					<EquipmentEditor
-						key={`addition:${addition.inventoryKey}:${addition.itemKey}:${JSON.stringify(
-							addition,
-						)}`}
-						adding
-						submitLabel="Update staged equipment"
-						record={{
-							inventoryKey: addition.inventoryKey,
-							itemKey: addition.itemKey,
-							slotNo: -1,
-							equipment: freshEquipmentDetails(additionDefinition),
-						}}
-						name={item.name}
+					<StagedAdditionEditor
+						addition={addition}
+						additionDefinition={additionDefinition}
+						itemName={item.name}
 						catalog={catalog}
 						busy={busy}
 						staged={{
@@ -199,56 +319,26 @@ export const EquipmentEditorDrawer = ({
 						}}
 					/>
 				) : savedRecord?.equipment ? (
-					<EquipmentEditor
-						key={`${savedRecord.inventoryKey}:${savedRecord.slotNo}:${
-							stagedEquipment ? JSON.stringify(stagedEquipment) : "original"
-						}`}
-						record={{ ...savedRecord, equipment: savedRecord.equipment }}
-						name={item.name}
+					<SavedEquipmentEditor
+						savedRecord={{
+							...savedRecord,
+							equipment: savedRecord.equipment,
+						}}
+						itemName={item.name}
 						catalog={catalog}
 						staged={stagedEquipment}
 						busy={busy}
 						onStage={onStageEquipment}
-						rules={abyssGearRules}
-						savedRecord={savedRecord}
-						onRemove={() =>
-							setEdits((current) =>
-								current.filter((entry) => entry !== stagedEquipment),
-							)
-						}
+						setEdits={setEdits}
 					/>
 				) : (
-					<>
-						<TextInput
-							label="Quantity"
-							aria-label="New quantity"
-							inputMode="numeric"
-							value={displayedQuantity}
-							onChange={(event) => onQuantityChange(event.currentTarget.value)}
-							description={`Quantity in the uploaded save: ${(
-								record.originalQuantity ?? record.quantity
-							).toLocaleString()}.`}
-							ff="monospace"
-						/>
-						<Button onClick={onStageQuantity}>Stage quantity change</Button>
-						{stagedEdit ? (
-							<Alert variant="light" color="brand" p="sm">
-								<Text size="xs">
-									Staged: {stagedEdit.expectedQuantity.toLocaleString()} →{" "}
-									{stagedEdit.newQuantity.toLocaleString()}. Use{" "}
-									<Text span fw={500}>
-										Download save
-									</Text>{" "}
-									at the top to create the new save.
-								</Text>
-							</Alert>
-						) : (
-							<Text size="xs" c="dimmed">
-								Staging does not touch your original file. The new save is only
-								created when you choose Download save.
-							</Text>
-						)}
-					</>
+					<QuantityEditor
+						record={record}
+						staged={stagedEdit}
+						displayedQuantity={displayedQuantity}
+						onQuantityChange={onQuantityChange}
+						onStage={onStageQuantity}
+					/>
 				)}
 			</Stack>
 		) : null}

@@ -2,40 +2,107 @@ import { Box, Group, Text, Tooltip } from "@mantine/core";
 import { useMemo } from "react";
 import { EmptyState } from "../../shared";
 import { medianTrend } from "../derive";
+import { type Bin, buildHistogram, medianPosition } from "../histogram";
 import { money, type PriceScale, priceColor } from "../price";
 import type { HistoryPoint } from "../types";
 import { Sparkline } from "./Sparkline";
 
-type Bin = { start: number; end: number; count: number };
+type HistogramProps = {
+	bins: Bin[];
+	/** Tallest bar; every bar's height is a share of it. */
+	peak: number;
+	scale: PriceScale;
+	currency: string;
+	/** Left offset of the median rule, as a percentage, or `null` for none. */
+	medianAt: number | null;
+};
 
-export const buildHistogram = (prices: number[]): Bin[] => {
-	if (!prices.length) {
-		return [];
-	}
-	const min = Math.floor(Math.min(...prices) * 2) / 2;
-	const max = Math.ceil(Math.max(...prices) * 2) / 2;
-	const span = Math.max(max - min, 0.5);
-	const step = Math.max(0.25, Math.round((span / 10) * 4) / 4);
-	const bins: Bin[] = [];
-	for (let start = min; start < max - 1e-9; start += step) {
-		bins.push({ start, end: start + step, count: 0 });
-	}
-	// When every price is identical, min === max and the loop above produces
-	// nothing; one bin is still enough to render the histogram.
-	if (!bins.length) {
-		bins.push({ start: min, end: min + step, count: 0 });
-	}
-	for (const price of prices) {
-		const index = Math.min(
-			bins.length - 1,
-			Math.max(0, Math.floor((price - min) / step)),
-		);
-		const bin = bins[index];
-		if (bin) {
-			bin.count += 1;
-		}
-	}
-	return bins;
+/** The bars themselves, with the median drawn over them. */
+const Histogram = ({
+	bins,
+	peak,
+	scale,
+	currency,
+	medianAt,
+}: HistogramProps) => (
+	<Box style={{ position: "relative" }}>
+		<Box
+			style={{
+				display: "flex",
+				gap: 2,
+				alignItems: "flex-end",
+				height: 96,
+			}}
+		>
+			{bins.map((bin) => {
+				const mid = (bin.start + bin.end) / 2;
+				return (
+					<Tooltip
+						key={bin.start}
+						label={`${money(bin.start, currency)}–${money(
+							bin.end,
+							currency,
+						)}: ${bin.count} ${bin.count === 1 ? "pub" : "pubs"}`}
+						withArrow
+						position="top"
+					>
+						<Box
+							style={{
+								flex: 1,
+								height: `${Math.max(2, (bin.count / peak) * 100)}%`,
+								background: priceColor(mid, scale),
+								borderRadius: "4px 4px 2px 2px",
+								opacity: bin.count ? 1 : 0.25,
+							}}
+						/>
+					</Tooltip>
+				);
+			})}
+		</Box>
+		{medianAt == null ? null : (
+			<Box
+				style={{
+					position: "absolute",
+					top: 0,
+					bottom: 0,
+					left: `${Math.min(100, Math.max(0, medianAt))}%`,
+					width: 2,
+					background: "var(--mantine-color-text)",
+					opacity: 0.7,
+					borderRadius: 2,
+					pointerEvents: "none",
+				}}
+			/>
+		)}
+	</Box>
+);
+
+/**
+ * The national median's own history, which answers a different question from
+ * the histogram above: not "what do today's pubs charge" but "which way has the
+ * typical price moved". Needs two snapshots before it can show a direction.
+ */
+const MedianHistory = ({
+	history,
+	points,
+}: {
+	history: HistoryPoint[];
+	points: number[];
+}) => {
+	const trendPercent = medianTrend(history);
+	const trend = trendPercent != null ? trendPercent / 100 : null;
+	return (
+		<Group justify="space-between" mt={6} align="center">
+			<Text size="xs" c="dimmed">
+				median since {history[0]?.t}:{" "}
+				<Text span fw={600} c={trend && trend > 0 ? "red" : "teal"}>
+					{trend && trend > 0 ? "+" : "−"}
+					{Math.abs(Math.round((trend ?? 0) * 100))}%
+				</Text>
+			</Text>
+			<Sparkline points={points} width={140} height={24} />
+		</Group>
+	);
 };
 
 /** How many pubs charge each price band - a plain histogram, no chart library. */
@@ -56,13 +123,8 @@ export const Distribution = ({
 }) => {
 	const bins = useMemo(() => buildHistogram(prices), [prices]);
 	const peak = bins.reduce((max, bin) => Math.max(max, bin.count), 0);
-	const medianPosition =
-		medianPrice != null && scale.max > scale.min
-			? ((medianPrice - scale.min) / (scale.max - scale.min)) * 100
-			: null;
+	const medianAt = medianPosition(medianPrice, scale);
 	const historyPoints = history?.map((point) => point.median) ?? [];
-	const trendPercent = history ? medianTrend(history) : null;
-	const trend = trendPercent != null ? trendPercent / 100 : null;
 
 	return (
 		<>
@@ -72,70 +134,18 @@ export const Distribution = ({
 				</Text>
 			) : null}
 			{bins.length && peak ? (
-				<Box style={{ position: "relative" }}>
-					<Box
-						style={{
-							display: "flex",
-							gap: 2,
-							alignItems: "flex-end",
-							height: 96,
-						}}
-					>
-						{bins.map((bin) => {
-							const mid = (bin.start + bin.end) / 2;
-							return (
-								<Tooltip
-									key={bin.start}
-									label={`${money(bin.start, currency)}–${money(
-										bin.end,
-										currency,
-									)}: ${bin.count} ${bin.count === 1 ? "pub" : "pubs"}`}
-									withArrow
-									position="top"
-								>
-									<Box
-										style={{
-											flex: 1,
-											height: `${Math.max(2, (bin.count / peak) * 100)}%`,
-											background: priceColor(mid, scale),
-											borderRadius: "4px 4px 2px 2px",
-											opacity: bin.count ? 1 : 0.25,
-										}}
-									/>
-								</Tooltip>
-							);
-						})}
-					</Box>
-					{medianPosition != null ? (
-						<Box
-							style={{
-								position: "absolute",
-								top: 0,
-								bottom: 0,
-								left: `${Math.min(100, Math.max(0, medianPosition))}%`,
-								width: 2,
-								background: "var(--mantine-color-text)",
-								opacity: 0.7,
-								borderRadius: 2,
-								pointerEvents: "none",
-							}}
-						/>
-					) : null}
-				</Box>
+				<Histogram
+					bins={bins}
+					peak={peak}
+					scale={scale}
+					currency={currency}
+					medianAt={medianAt}
+				/>
 			) : (
 				<EmptyState title="No prices to plot" />
 			)}
-			{historyPoints.length >= 2 ? (
-				<Group justify="space-between" mt={6} align="center">
-					<Text size="xs" c="dimmed">
-						median since {history?.[0]?.t}:{" "}
-						<Text span fw={600} c={trend && trend > 0 ? "red" : "teal"}>
-							{trend && trend > 0 ? "+" : "−"}
-							{Math.abs(Math.round((trend ?? 0) * 100))}%
-						</Text>
-					</Text>
-					<Sparkline points={historyPoints} width={140} height={24} />
-				</Group>
+			{history && historyPoints.length >= 2 ? (
+				<MedianHistory history={history} points={historyPoints} />
 			) : null}
 		</>
 	);

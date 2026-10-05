@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useThemeMode } from "../hooks/useThemeMode";
+import type { ShortcutGroup, ShortcutItem } from "../shortcutData";
 import { AppHeader } from "./AppHeader";
 import { AppSwitcher } from "./AppSwitcher";
 import { BackHome } from "./BackHome";
@@ -7,8 +8,6 @@ import { Brand } from "./Brand";
 import { HeaderOverflow } from "./HeaderOverflow";
 import { SchemeToggle } from "./SchemeToggle";
 import {
-	type ShortcutGroup,
-	type ShortcutItem,
 	ShortcutsHelp,
 	ShortcutsHelpButton,
 	useShortcutsHelp,

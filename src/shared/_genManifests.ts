@@ -117,8 +117,15 @@ export const manifestJson = (meta: AppMeta): string => {
 };
 
 if (import.meta.main) {
-	for (const meta of APP_META) {
-		await Bun.write(`manifests/${meta.slug}.json`, manifestJson(meta));
-	}
+	// Thirteen files, written together rather than one at a time. Each write
+	// names its own path and reads nothing another write produces, so there is
+	// no order to preserve and nothing a serial loop buys; the cost of the
+	// sequential version is thirteen round-trips through the filesystem for no
+	// reason at all.
+	await Promise.all(
+		APP_META.map((meta) =>
+			Bun.write(`manifests/${meta.slug}.json`, manifestJson(meta)),
+		),
+	);
 	console.log(`manifests/ generated (${APP_META.length} files)`);
 }
