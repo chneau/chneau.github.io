@@ -82,6 +82,7 @@ import type {
 	SaveEdit,
 	SummaryRow,
 } from "../../shared/save/types";
+import { addItemsToPayload } from "./add-item";
 import { localizedString, questTitle } from "./catalog";
 import { decompressContainer, type SaveContainer } from "./container";
 import { buildContainer } from "./container-write";
@@ -381,6 +382,30 @@ const scalarOf = (doc: JsonValue, key: string): number | undefined => {
 	return value === undefined || value === null ? undefined : value;
 };
 
+/**
+ * The carried item whose record flags a new item should clone, by shared words.
+ * `Greater mutagen red` picks `Greater mutagen blue`; when nothing shares a word
+ * it falls back to the first item, which is what the record's non-name bytes
+ * mostly are anyway.
+ */
+const templateFor = (
+	name: string,
+	items: readonly { readonly name: string }[],
+): string | undefined => {
+	const words = new Set(name.toLowerCase().split(/\s+/));
+	let best: { name: string; score: number } | undefined;
+	for (const item of items) {
+		const score = item.name
+			.toLowerCase()
+			.split(/\s+/)
+			.filter((word) => words.has(word)).length;
+		if (best === undefined || score > best.score) {
+			best = { name: item.name, score };
+		}
+	}
+	return best?.name;
+};
+
 const encode = async (doc: JsonValue): Promise<Bytes> => {
 	const scaffold = readScaffold(doc);
 	if (scaffold === undefined) {
@@ -434,8 +459,11 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 	}
 
 	const items = requireArrayAt(doc, "items");
+	// Rows the save does not have yet are inserts, and they are prepended by the
+	// inventory editor, so the existing rows start `newCount` in.
+	const newCount = Math.max(0, items.length - found.items.length);
 	found.items.forEach((item, index) => {
-		const row = items[index];
+		const row = items[index + newCount];
 		// `objectAt(row, "")` looks up a key named "" and silently yields
 		// `undefined` for every row, which made this loop a no-op that still
 		// looked like it was writing quantities.
@@ -459,6 +487,32 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		if (level === undefined || level === null) return;
 		writeInt32(payload, skill.levelOffset, level);
 	});
+
+	if (newCount > 0) {
+		const requests: {
+			name: string;
+			quantity: number;
+			template: string | undefined;
+		}[] = [];
+		for (let index = 0; index < newCount; index += 1) {
+			const row = items[index];
+			if (row === undefined || !isJsonObject(row)) continue;
+			const name = stringAt(row, "name");
+			if (name === undefined) continue;
+			requests.push({
+				name,
+				quantity: numberAt(row, "quantity") ?? 1,
+				template: templateFor(name, found.items),
+			});
+		}
+		if (requests.length > 0) {
+			const { data, chunks } = addItemsToPayload(
+				{ data: payload, chunks: scaffold.chunks },
+				requests,
+			);
+			return buildContainer(chunks, data) as Bytes;
+		}
+	}
 
 	const rebuilt = buildContainer(scaffold.chunks, payload);
 	return rebuilt as Bytes;
@@ -698,6 +752,64 @@ const ACTIONS: readonly QuickAction[] = [
 					continue;
 				}
 				edits.push(edit(["items", index, "quantity"], name, quantity, 50));
+			}
+			return edits;
+		},
+	},
+	{
+		id: "mutagens-greater",
+		label: "Add Greater mutagens",
+		description:
+			"Insert 50 Greater red, green and blue mutagens at the top of the player's inventory. This is the editor's one resizing edit: it inserts real records rather than changing a value, so the file grows.",
+		plan: (doc) => {
+			const items = requireArrayAt(doc, "items");
+			const named = items
+				.filter(isJsonObject)
+				.map((row) => ({ row, name: stringAt(row, "name") ?? "" }));
+			const rows = [
+				"Greater mutagen red",
+				"Greater mutagen green",
+				"Greater mutagen blue",
+			].map((name) => {
+				const template = named.find(
+					(entry) => entry.name === templateFor(name, named),
+				);
+				return {
+					name,
+					quantity: 50,
+					slot:
+						template === undefined ? 0 : (numberAt(template.row, "slot") ?? 0),
+				};
+			});
+			const edits: SaveEdit[] = [
+				{
+					id: "items=add-greater-mutagens",
+					label: "Add Greater mutagens",
+					path: ["items"],
+					before: items,
+					after: [...rows, ...items],
+				},
+			];
+			// The insert grows the decompressed stream, and `container.payloadBytes`
+			// is a projection of exactly that, so the document has to say the new
+			// size or the rebuild reads back a length the edits did not predict.
+			const container = objectAt(doc, "container");
+			const payloadBytes =
+				container === undefined
+					? undefined
+					: numberAt(container, "payloadBytes");
+			if (payloadBytes !== undefined && payloadBytes !== null) {
+				const added =
+					rows.length * 30 +
+					rows.reduce((sum, row) => sum + 1 + row.name.length, 0);
+				edits.push(
+					edit(
+						["container", "payloadBytes"],
+						"Payload size",
+						payloadBytes,
+						payloadBytes + added,
+					),
+				);
 			}
 			return edits;
 		},

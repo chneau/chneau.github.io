@@ -626,6 +626,21 @@ describe("the quick actions", () => {
 	);
 
 	test(
+		"add Greater mutagens as real inserts and the document still reads back",
+		async () => {
+			const doc = await witcher3.decode(largeSave());
+			const before = requireArrayAt(doc, "items").length;
+			const working = applyEdits(doc, planFor("mutagens-greater", doc));
+			const reread = await witcher3.decode(await witcher3.encode(working));
+			// The insert grows the stream; the projection must still match the
+			// document exactly, `payloadBytes` included.
+			expect(JSON.stringify(reread)).toBe(JSON.stringify(working));
+			expect(requireArrayAt(reread, "items").length).toBe(before + 3);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
 		"are pure: no plan touches the document it was given",
 		async () => {
 			// A plan that mutated its input would leave the working document
@@ -735,6 +750,7 @@ describe("the codec describes itself", () => {
 			"crowns-round",
 			"skill-points-max",
 			"mutation-research-kit",
+			"mutagens-greater",
 			"experience-max",
 			"skills-learn-all",
 			"skills-reset",
