@@ -289,8 +289,13 @@ export const applyDyeEdit = async (
 	sourceBytes: Uint8Array,
 	edit: DyeEdit,
 ): Promise<[Uint8Array, Record<string, unknown>]> => {
-	const names = await gameNamesTable();
-	const decoded = await decodeSave(sourceBytes);
+	// The names table and the decode read two independent inputs — neither reads
+	// the other's result and neither mutates its argument — so they are awaited
+	// together.
+	const [names, decoded] = await Promise.all([
+		gameNamesTable(),
+		decodeSave(sourceBytes),
+	]);
 	const raw = decoded.rawPayload;
 	const root = readRoot(raw, "EquipmentSaveData");
 	const target = dyedItems(root).find(({ item }) => {

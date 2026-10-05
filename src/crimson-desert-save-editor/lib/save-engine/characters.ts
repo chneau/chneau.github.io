@@ -606,13 +606,15 @@ const planAll = async (
 		patched.payload,
 	);
 
+	// Both sides of the verification are indexed: a level edit touches one row
+	// but compares every row of the reopened save, and the stage table runs to
+	// tens of thousands of rows.
 	const final = allRows(reopenedPayload, names);
+	const reopenedById = new Map(final.map((row) => [row.id, row]));
+	const beforeById = new Map(rows.map((row) => [row.id, row]));
 	const touched = new Set(second.map((plan) => plan.row.id));
 	for (const plan of second) {
-		const after = defined(
-			final.find((candidate) => candidate.id === plan.row.id),
-			"reopened row",
-		);
+		const after = defined(reopenedById.get(plan.row.id), "reopened row");
 		for (const [name, value] of Object.entries(plan.expected)) {
 			const key = name as keyof CharacterValues;
 			if (after.values[key] !== value) {
@@ -624,8 +626,8 @@ const planAll = async (
 	}
 	for (const row of final) {
 		if (touched.has(row.id)) continue;
-		const before = rows.find((candidate) => candidate.id === row.id);
-		if (!before) {
+		const before = beforeById.get(row.id);
+		if (before === undefined) {
 			throw new Error(`An unexpected row appeared during ${context}`);
 		}
 		if (JSON.stringify(before.values) !== JSON.stringify(row.values)) {

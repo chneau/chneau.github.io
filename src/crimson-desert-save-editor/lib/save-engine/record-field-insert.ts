@@ -489,11 +489,18 @@ export const insertRecordFields = (
 	// requests on one record have to be planned as one record, or their size-word
 	// growth would be applied twice.
 	const targets = new Map<number, FieldTarget>();
+	// The element list is indexed by payload offset once: a batch may request
+	// hundreds of fields and the list holds tens of thousands of elements, so
+	// searching it per request would be quadratic.
+	const objectsByStart = new Map<number, WalkedObject>();
+	for (const object of objects) {
+		if (!objectsByStart.has(object.start)) {
+			objectsByStart.set(object.start, object);
+		}
+	}
 	const requests: Creation[] = [];
 	for (const value of request.fields) {
-		const object = objects.find(
-			(candidate) => candidate.start === value.recordStart,
-		);
+		const object = objectsByStart.get(value.recordStart);
 		if (!object) {
 			throw new Error(
 				`${request.listField} has no element at payload offset ${value.recordStart}`,

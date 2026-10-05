@@ -706,7 +706,12 @@ const auditMotion = (): Finding[] => {
 	 * would train people to ignore this panel.
 	 */
 	const inline = Array.from(document.querySelectorAll<HTMLElement>("*")).filter(
-		(element) => (element.getAttribute("style") ?? "").includes("transition"),
+		(element) =>
+			// `style.length` is zero for the overwhelming majority of elements on
+			// the page, and a declaration-less element cannot declare a transition;
+			// testing it first keeps the scan of the serialised declarations off
+			// every node in the document.
+			element.style.length > 0 && element.style.cssText.includes("transition"),
 	);
 	findings.push({
 		id: "motion:inline",

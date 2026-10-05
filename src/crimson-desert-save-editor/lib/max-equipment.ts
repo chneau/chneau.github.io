@@ -252,11 +252,20 @@ const socketPlan = (
 const applicable = (details: EquipmentDetails, plan: SocketPlan): boolean => {
 	if (plan.unlockedSockets < details.unlockedSockets) return false;
 	const current = socketList(details.socketItems);
-	const restaged = plan.socketItems
-		.map((gearKey, index) =>
-			gearKey === (current[index] ?? null) ? -1 : index,
-		)
-		.filter((index) => index >= 0);
+	// Which sockets the plan actually re-stages, and where each gear key first
+	// appears in it, both as lookups: `applicable` asks the same two questions
+	// of the same small lists once per socket, and a scan of either is quadratic.
+	const restaged = new Set<number>();
+	const firstSighting = new Map<number, number>();
+	for (const [index, gearKey] of plan.socketItems.entries()) {
+		// Recorded for every occurrence, re-staged or not: the comparison below
+		// asks about the *first* copy of a key, and that one may be the socket
+		// the plan leaves alone. An empty socket has no key to place.
+		if (gearKey !== null && !firstSighting.has(gearKey)) {
+			firstSighting.set(gearKey, index);
+		}
+		if (gearKey !== (current[index] ?? null)) restaged.add(index);
+	}
 	const seen = new Set<number>();
 	return plan.socketItems.every((gearKey, index) => {
 		if (gearKey === null) return (current[index] ?? null) === null;
@@ -267,10 +276,8 @@ const applicable = (details: EquipmentDetails, plan: SocketPlan): boolean => {
 		// A duplicate is only a problem when this socket is being re-staged and
 		// the copy it duplicates is left untouched: `replace_socket` re-checks
 		// the whole item for the key and would refuse it.
-		return (
-			!restaged.includes(index) ||
-			restaged.includes(plan.socketItems.indexOf(gearKey))
-		);
+		const first = firstSighting.get(gearKey);
+		return !restaged.has(index) || (first !== undefined && restaged.has(first));
 	});
 };
 

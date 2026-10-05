@@ -227,8 +227,9 @@ const choosePrice = (
 		return null; // strict: the caller asked for a format this venue lacks
 	}
 	const preferredKinds = NATURE_KINDS[nature];
+	const preferredKindSet = new Set(preferredKinds);
 	const preferred = entries.filter(([label]) =>
-		preferredKinds.includes(classifyPortion(label)),
+		preferredKindSet.has(classifyPortion(label)),
 	);
 	const pool = preferred.length ? preferred : entries;
 	pool.sort((a, b) => portionRank(a[0]) - portionRank(b[0]) || b[1] - a[1]);
