@@ -33,8 +33,8 @@ The hub that links every app, rebuilt around fast discovery and personalisation.
 - **Privacy Control**: A footer switch (and palette action) opts analytics in or
   out at any time; Do Not Track and Global Privacy Control are honoured.
 
-Launch hotkeys (`1`–`6`), `T` to toggle the theme, and `?` for the shortcut
-reference all still work.
+Launch hotkeys (`1`–`6` and `7`, plus letters on the save editors), `T` to
+toggle the theme, and `?` for the shortcut reference all still work.
 
 ### 1. 📄 [Curriculum Vitae](https://chneau.github.io/cv/)
 
@@ -85,7 +85,7 @@ A 100% client-side, privacy-focused save editor for _Crimson Desert_.
 
 ### 5. 💾 [Save Editors](https://chneau.github.io/#main)
 
-Six client-side save editors, one per game. Each is a decoder written for that
+Seven client-side save editors, one per game. Each is a decoder written for that
 format and nothing else: your file is parsed in the tab, changes are staged
 rather than applied, and a rebuilt file is decoded again and compared against
 what you asked for before it is handed over. A rebuild that does not read back
@@ -100,9 +100,18 @@ is never offered.
 | [Cyberpunk 2077](https://chneau.github.io/cyberpunk-2077-save-editor/)                 | VASC, LZ4, REDengine 4      |
 | [Deadly Days Roadtrip](https://chneau.github.io/deadly-days-roadtrip-save-editor/)     | GVAS (Unreal Engine 5)      |
 | [Tails of Iron 2](https://chneau.github.io/tails-of-iron-2-save-editor/)               | UTF-8, XOR 0x81             |
+| [Witcher 3](https://chneau.github.io/witcher-3-save-editor/)                           | SNFH/FZLC, LZ4, SAV3, REDkit |
 
 They share one workbench, one inspector and one edit model (`src/shared/save/`);
 a game contributes its format and its quick actions and nothing else.
+
+The Witcher 3 editor is the one that writes: it decodes the `SNFH`/`FZLC` LZ4
+container, the `SAV3` stream and the REDkit token stream, then overwrites
+money, level, difficulty, skill points, experience and per-item quantities
+**in place** and rebuilds the file. A `.sav` carries no checksum, so a
+width-preserving edit needs none recomputed — but changing a field's width
+would, and so adding a skill or an item is out of reach by design
+(`src/witcher-3-save-editor/docs/adr/0007-only-width-preserving-edits.md`).
 
 ### 6. 🍺 [Spooners](https://chneau.github.io/spooners/)
 
@@ -180,6 +189,7 @@ bun run start:dysmantle-save-editor
 bun run start:cyberpunk-2077-save-editor
 bun run start:deadly-days-roadtrip-save-editor
 bun run start:tails-of-iron-2-save-editor
+bun run start:witcher-3-save-editor
 ```
 
 ### Testing & Verification
@@ -206,7 +216,7 @@ Press `?` anywhere to see the shortcuts for the current app.
 | ------------ | ----------------------------------------------------------------- |
 | `/`          | Focus the dashboard search                                        |
 | `Enter`      | Open the first search result                                      |
-| `1`–`6`      | Launch an app from the dashboard                                  |
+| `1`–`7`      | Launch an app from the dashboard                                  |
 | `T`          | Toggle light / dark theme                                         |
 | `?`          | Open the shortcut reference                                       |
 | `⌘/Ctrl + K` | Open the command palette to jump to any app or run a quick action |

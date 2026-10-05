@@ -61,7 +61,7 @@ describe("manifests/*.json", () => {
 	 * manifest naming four icons nobody has drawn, and every other assertion in
 	 * this file still passes — the manifest is internally consistent and points
 	 * at nothing. `rsbuild.config.ts` hard-codes an `apple-touch-icon` at the
-	 * 192 for all thirteen apps on the same unchecked assumption.
+	 * 192 for every app on the same unchecked assumption.
 	 *
 	 * A missing icon is not cosmetic: the browser rejects the install prompt and
 	 * the home-screen shortcut falls back to a default glyph.

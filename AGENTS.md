@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Agent guidance for **chneau.github.io** — a Bun + Rsbuild multi-page site: a
-dashboard plus twelve sub-apps sharing one Mantine design system. The
+dashboard plus thirteen sub-apps sharing one Mantine design system. The
 authoritative list is `APP_META` in `src/shared/app-meta.ts` — one row per app,
 which drives the build environments, the dashboard, the manifests and the
 hotkeys. Read it rather than counting apps here: this sentence said six and had
@@ -41,6 +41,17 @@ from a habit carried in from another repository, this file wins.
   under a second, so the cap bought nothing and cost the gate its meaning. Do
   not reintroduce one. A gate that can pass without running is worse than a slow
   gate.
+- **Biome's `--write --unsafe` answers an unused `export` by prefixing `_`,**
+  and under `noUnusedLocals` that trades one red gate for another. It rewrote
+  five `export const readContainers`-shaped declarations to
+  `const _readContainers`, which silences `noUnusedParameters` — not the rule
+  that was actually firing — and left five `TS6133` errors behind. The `_`
+  prefix is the wrong tool for a dead export: it hides the symbol from the next
+  reader without removing it, where un-exporting removes the claim and keeps the
+  code. **When `check:fix` leaves `tsc` red with `TS6133` on a symbol that was
+  exported a moment ago, the formatter did that, not you** — restore the
+  `export` (or drop it, if the symbol is genuinely dead) and re-run, rather than
+  building a workaround on top of the underscore.
 
 ---
 

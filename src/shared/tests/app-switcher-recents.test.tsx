@@ -112,6 +112,7 @@ describe("AppSwitcher app registry", () => {
 			"/dysmantle-save-editor/",
 			"/cyberpunk-2077-save-editor/",
 			"/deadly-days-roadtrip-save-editor/",
+			"/witcher-3-save-editor/",
 			"/design/",
 		]);
 	});

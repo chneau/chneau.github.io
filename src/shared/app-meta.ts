@@ -462,6 +462,39 @@ export const APP_META: readonly AppMeta[] = [
 		},
 	},
 	{
+		slug: "witcher-3-save-editor",
+		path: "/witcher-3-save-editor/",
+		entry: "./src/witcher-3-save-editor/app/main.tsx",
+		title: "Witcher 3 Save Editor",
+		description:
+			"Edit Witcher 3 PC saves in your browser — money, level, difficulty, skill points, experience and item quantities, written in place and rebuilt entirely on your device.",
+		// Cold, tarnished steel — the app's northern-fantasy palette, and far from
+		// Crimson Desert's red and Cyberpunk's yellow.
+		themeColor: "#8c9bab",
+		backgroundColor: "#0e0e11",
+		manifestName: "Witcher 3 Save Editor",
+		manifestShortName: "Witcher 3",
+		// Not null: a null emoji falls back to the config's bespoke crimson
+		// shield, which belongs to Crimson Desert.
+		emoji: "🐺",
+		lucideIcon: "Sword",
+		defineBuildDate: false,
+		metaType: "website",
+		alternateLocales: [],
+		jsonLd: [],
+		copies: [],
+		dashboard: {
+			title: "Witcher 3 Save Editor",
+			tag: "SNFH + SAV3",
+			tagColor: "teal",
+			category: "Saves",
+			shortcutKey: "Press 7",
+			hotkey: "7",
+			description:
+				"Edit Witcher 3 PC saves in your browser — money, level, difficulty, skill points, experience and item quantities, written in place and rebuilt entirely on your device.",
+		},
+	},
+	{
 		slug: "design",
 		path: "/design/",
 		entry: "./src/design/index.tsx",

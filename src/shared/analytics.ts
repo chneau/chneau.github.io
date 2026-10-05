@@ -46,6 +46,7 @@ const KNOWN_APPS = [
 	"dysmantle-save-editor",
 	"tails-of-iron-2-save-editor",
 	"deadly-days-roadtrip-save-editor",
+	"witcher-3-save-editor",
 ] as const;
 
 type AnalyticsApp = (typeof KNOWN_APPS)[number];
