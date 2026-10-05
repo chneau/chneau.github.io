@@ -91,7 +91,7 @@ export type SaveContainer = {
 	readonly chunks: readonly ChunkRecord[];
 	readonly fileSize: number;
 	/** All chunks concatenated, in order. 15,490,509 bytes for the sample. */
-	readonly data: Uint8Array;
+	readonly data: Uint8Array<ArrayBuffer>;
 };
 
 /** The table has been read but the blocks have not been touched. */

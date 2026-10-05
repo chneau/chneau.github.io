@@ -671,8 +671,8 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 const edit = (
 	path: readonly (string | number)[],
 	label: string,
-	before: number,
-	after: number,
+	before: number | string | null,
+	after: number | string | null,
 ): SaveEdit => ({
 	id: `${path.join(".")}=${after}`,
 	label,
@@ -861,8 +861,32 @@ const ACTIONS: readonly QuickAction[] = [
 			// size, so it has to predict the growth or the rebuild reads back a
 			// length the edits did not.
 			if (inserts > 0) {
+				// The active mutation goes with it: a maxed save without
+				// `equippedMutation` is the one the engine refuses, and the game's
+				// own `mutall` equips as it maxes. It is a 10-byte enum record
+				// (8-byte header + a 2-byte value) plus its name in `MANU`, and it
+				// is absent from the save unless the player already equipped one.
+				const equipped = stringAt(doc, "equippedMutation");
+				let equipAdded = 0;
+				if (equipped !== "EPMT_MutationMaster") {
+					edits.push(
+						edit(
+							["equippedMutation"],
+							"Equipped mutation",
+							equipped ?? null,
+							"EPMT_MutationMaster",
+						),
+					);
+					// Nothing in the save means the field has to be created, which
+					// costs the record and its `MANU` entry; an existing field is
+					// only its 2-byte value that changes.
+					if (equipped === undefined) {
+						equipAdded = 10 + 1 + "equippedMutation".length;
+					}
+				}
 				const added =
 					inserts * 12 +
+					equipAdded +
 					[...colors].reduce((sum, color) => sum + 1 + `${color}Used`.length, 0);
 				const container = objectAt(doc, "container");
 				const payloadBytes =
