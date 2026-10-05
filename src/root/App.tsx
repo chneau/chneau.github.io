@@ -69,6 +69,19 @@ const FUSE_OPTIONS: ConstructorParameters<typeof Fuse<AppEntry>>[1] = {
 	ignoreLocation: true,
 };
 
+/**
+ * The subset of `results` that is in `byCategory`. Fuse returns every fuzzy
+ * match for the query, so this runs over its whole result set: membership is a
+ * lookup against the category's apps, not a scan of them per result.
+ */
+const withinCategory = (
+	byCategory: AppEntry[],
+	results: AppEntry[],
+): AppEntry[] => {
+	const allowed = new Set(byCategory);
+	return results.filter((app) => allowed.has(app));
+};
+
 export const App = () => {
 	const shortcuts = useShortcutsHelp();
 	const palette = useCommandPalette();
@@ -146,12 +159,11 @@ export const App = () => {
 				? APPS
 				: APPS.filter((app) => app.category === category);
 		const trimmed = query.trim();
-		return trimmed
-			? fuse
-					.search(trimmed)
-					.map((result) => result.item)
-					.filter((app) => byCategory.includes(app))
-			: byCategory;
+		if (!trimmed) return byCategory;
+		return withinCategory(
+			byCategory,
+			fuse.search(trimmed).map((result) => result.item),
+		);
 	}, [category, fuse, query]);
 
 	const isSearching = query.trim().length > 0 || category !== "All";

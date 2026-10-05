@@ -8,7 +8,14 @@ import {
 } from "@mantine/core";
 import Fuse from "fuse.js";
 import { CornerDownLeft, Search } from "lucide-react";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import {
+	type ReactNode,
+	type RefObject,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { ALL_APPS } from "../apps";
 import { HeaderAction } from "./HeaderAction";
 
@@ -81,7 +88,16 @@ type CommandPaletteProps = {
 /** Shared empty default, so `allCommands` keeps a stable identity. */
 const EMPTY_COMMANDS: Command[] = [];
 
-/** A Cmd/Ctrl-K palette that jumps between apps and runs app actions. */
+/**
+ * A Cmd/Ctrl-K palette that jumps between apps and runs app actions.
+ *
+ * The search state lives in `CommandPaletteBody`, not here. Mantine's `Modal`
+ * does not keep its children mounted once the close transition has finished,
+ * so a body inside it is unmounted on close and remounted fresh on the next
+ * open. The old shape kept `query`/`active` here and wiped them from an effect
+ * on `opened`, which ran a render with the previous query's results still on
+ * screen and reset all of the palette's state because one prop flipped.
+ */
 export const CommandPalette = ({
 	opened,
 	onClose,
@@ -91,52 +107,10 @@ export const CommandPalette = ({
 	// of the parent. Never mutated, so one shared constant is safe.
 	commands = EMPTY_COMMANDS,
 }: CommandPaletteProps) => {
-	const [query, setQuery] = useState("");
-	const [active, setActive] = useState(0);
+	// Owned here, not by the body: the ref must survive the body's unmount so
+	// the modal's `onEntered` — which fires after the body has mounted — can
+	// still reach the input.
 	const inputRef = useRef<HTMLInputElement>(null);
-	/** True while the user steers with the keyboard; stops hover stealing focus. */
-	const keyboardNav = useRef(false);
-
-	const allCommands = useMemo(() => [...commands, ...NAV_COMMANDS], [commands]);
-	const fuse = useMemo(
-		() => new Fuse(allCommands, FUSE_OPTIONS),
-		[allCommands],
-	);
-
-	const items = useMemo(() => {
-		const trimmed = query.trim();
-		return trimmed
-			? fuse.search(trimmed).map((result) => result.item)
-			: allCommands;
-	}, [allCommands, fuse, query]);
-
-	useEffect(() => {
-		setActive(0);
-	}, []);
-
-	useEffect(() => {
-		if (opened) {
-			setQuery("");
-			setActive(0);
-			keyboardNav.current = false;
-		}
-	}, [opened]);
-
-	// Keep the highlighted row valid as the result set shrinks/grows.
-	useEffect(() => {
-		setActive((index) =>
-			items.length === 0 ? 0 : Math.min(index, items.length - 1),
-		);
-	}, [items]);
-
-	const runAt = (index: number) => {
-		const command = items[index];
-		if (!command) return;
-		command.run();
-		onClose();
-	};
-
-	const activeId = items[active] ? `command-${items[active].id}` : undefined;
 
 	return (
 		<Modal
@@ -158,23 +132,96 @@ export const CommandPalette = ({
 			}
 			transitionProps={{ onEntered: () => inputRef.current?.focus() }}
 		>
+			<CommandPaletteBody
+				commands={commands}
+				onClose={onClose}
+				inputRef={inputRef}
+			/>
+		</Modal>
+	);
+};
+
+/** The searchable half of the palette; remounts with every open. */
+const CommandPaletteBody = ({
+	commands,
+	onClose,
+	inputRef,
+}: {
+	commands: Command[];
+	onClose: () => void;
+	inputRef: RefObject<HTMLInputElement | null>;
+}) => {
+	const [query, setQuery] = useState("");
+	const [active, setActive] = useState(0);
+	/** True while the user steers with the keyboard; stops hover stealing focus. */
+	const keyboardNav = useRef(false);
+	/**
+	 * True between `compositionstart` and `compositionend`. Enter is how a CJK
+	 * user accepts the candidate the IME is offering, so an unguarded Enter
+	 * handler runs a command instead — and does it while the field still holds
+	 * the uncommitted reading.
+	 */
+	const composing = useRef(false);
+
+	const allCommands = useMemo(() => [...commands, ...NAV_COMMANDS], [commands]);
+	const fuse = useMemo(
+		() => new Fuse(allCommands, FUSE_OPTIONS),
+		[allCommands],
+	);
+
+	const items = useMemo(() => {
+		const trimmed = query.trim();
+		return trimmed
+			? fuse.search(trimmed).map((result) => result.item)
+			: allCommands;
+	}, [allCommands, fuse, query]);
+
+	// The highlight is clamped during render rather than written back by an
+	// effect on `items`: the effect ran a render in which `aria-activedescendant`
+	// still pointed past the end of the (already narrowed) list, and it is a
+	// state adjustment driven by a prop - `commands` can change under us.
+	const activeIndex =
+		items.length === 0 ? 0 : Math.min(active, items.length - 1);
+
+	const runAt = (index: number) => {
+		const command = items[index];
+		if (!command) return;
+		command.run();
+		onClose();
+	};
+
+	const activeId = items[activeIndex]
+		? `command-${items[activeIndex].id}`
+		: undefined;
+
+	return (
+		<>
 			<TextInput
 				ref={inputRef}
 				value={query}
+				onCompositionStart={() => {
+					composing.current = true;
+				}}
+				onCompositionEnd={() => {
+					composing.current = false;
+				}}
 				onChange={(event) => setQuery(event.currentTarget.value)}
 				onKeyDown={(event) => {
+					// While the IME is composing, Enter and the arrows belong to the
+					// candidate window; acting on them launches the wrong command.
+					if (composing.current) return;
 					if (items.length === 0) return;
 					if (event.key === "ArrowDown") {
 						event.preventDefault();
 						keyboardNav.current = true;
-						setActive((index) => (index + 1) % items.length);
+						setActive((activeIndex + 1) % items.length);
 					} else if (event.key === "ArrowUp") {
 						event.preventDefault();
 						keyboardNav.current = true;
-						setActive((index) => (index - 1 + items.length) % items.length);
+						setActive((activeIndex - 1 + items.length) % items.length);
 					} else if (event.key === "Enter") {
 						event.preventDefault();
-						runAt(active);
+						runAt(activeIndex);
 					}
 				}}
 				placeholder="Search apps and actions…"
@@ -199,7 +246,7 @@ export const CommandPalette = ({
 							key={command.id}
 							id={`command-${command.id}`}
 							role="option"
-							aria-selected={index === active}
+							aria-selected={index === activeIndex}
 							onMouseMove={() => {
 								if (keyboardNav.current) return;
 								setActive(index);
@@ -214,7 +261,9 @@ export const CommandPalette = ({
 								borderRadius: "var(--app-radius-sm)",
 								color: "var(--app-text)",
 								background:
-									index === active ? "var(--app-surface-3)" : "transparent",
+									index === activeIndex
+										? "var(--app-surface-3)"
+										: "transparent",
 							}}
 						>
 							<span
@@ -245,7 +294,7 @@ export const CommandPalette = ({
 									{command.hotkey}
 								</Kbd>
 							) : null}
-							{index === active ? (
+							{index === activeIndex ? (
 								<CornerDownLeft
 									size={14}
 									aria-hidden
@@ -267,7 +316,7 @@ export const CommandPalette = ({
 					</Text>
 				) : null}
 			</ScrollArea.Autosize>
-		</Modal>
+		</>
 	);
 };
 

@@ -187,18 +187,22 @@ export const currencyChoices = (table: RateTable | null): string[] => {
 	return [...codes].sort();
 };
 
+// Constructing an `Intl` formatter builds a whole locale data structure and the
+// object is designed to be reused, so it is built once when the module loads
+// rather than once per label — the picker re-renders this list on every
+// keystroke. The constructor is absent on runtimes without `Intl.DisplayNames`,
+// where the bare currency code still reads correctly.
+const CURRENCY_NAMES: Intl.DisplayNames | null =
+	typeof Intl.DisplayNames === "function"
+		? new Intl.DisplayNames(["en-GB"], { type: "currency" })
+		: null;
+
 /** Options for the settings currency picker: "£ GBP · British Pound". */
 export const currencySelectOptions = (
 	codes: string[],
 ): { value: string; label: string }[] => {
-	let names: Intl.DisplayNames | null = null;
-	try {
-		names = new Intl.DisplayNames(["en-GB"], { type: "currency" });
-	} catch {
-		names = null;
-	}
 	return codes.map((code) => {
-		const name = names?.of(code);
+		const name = CURRENCY_NAMES?.of(code);
 		const label = `${currencySymbol(code)} ${code}${name ? ` · ${name}` : ""}`;
 		return { value: code, label };
 	});

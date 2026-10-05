@@ -207,13 +207,24 @@ export const applyEquipmentChange = async (
 		if (!Array.isArray(sockets) || sockets.length !== 5) {
 			throw new Error("Expected exactly five socket positions.");
 		}
-		for (const gearKey of sockets) {
-			if (gearKey !== null && gearKey !== undefined) {
-				await requireCompatibleGear(
+		// Every socket is checked before anything is constructed or written, and the
+		// checks are independent lookups against the rules table — so they run
+		// together. `allSettled` rather than `all`, because the refusal a user sees
+		// must still be the first socket's and not whichever lookup lost the race.
+		// Validity is order-free; the report is not.
+		const gearKeys = sockets.filter(
+			(gearKey): gearKey is number => gearKey !== null && gearKey !== undefined,
+		);
+		const verdicts = await Promise.allSettled(
+			gearKeys.map((gearKey) =>
+				requireCompatibleGear(
 					whole(edit.itemKey, "Equipment item", 1),
 					whole(gearKey, "Abyss Gear", 1),
-				);
-			}
+				),
+			),
+		);
+		for (const verdict of verdicts) {
+			if (verdict.status === "rejected") throw verdict.reason;
 		}
 	}
 

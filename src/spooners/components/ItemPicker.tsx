@@ -24,6 +24,12 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 	const [highlight, setHighlight] = useState(0);
 	const [scrollTop, setScrollTop] = useState(0);
 	const viewportRef = useRef<HTMLDivElement>(null);
+	/**
+	 * True between `compositionstart` and `compositionend`. Enter is how a CJK
+	 * user accepts the candidate the IME is offering, so an unguarded Enter
+	 * handler picks an item from a list filtered by an uncommitted reading.
+	 */
+	const composing = useRef(false);
 	const listboxId = useId();
 	const optionId = (index: number) => `${listboxId}-option-${index}`;
 
@@ -114,6 +120,12 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 						setOpened(true);
 						setQuery("");
 					}}
+					onCompositionStart={() => {
+						composing.current = true;
+					}}
+					onCompositionEnd={() => {
+						composing.current = false;
+					}}
 					onChange={(event) => {
 						setQuery(event.currentTarget.value);
 						if (!opened) {
@@ -121,6 +133,9 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 						}
 					}}
 					onKeyDown={(event) => {
+						// While the IME is composing, Enter and the arrows belong to the
+						// candidate window; acting on them picks the wrong item.
+						if (composing.current) return;
 						if (event.key === "ArrowDown") {
 							event.preventDefault();
 							move(1);

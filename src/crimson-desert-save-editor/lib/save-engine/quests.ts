@@ -354,8 +354,14 @@ const applyState = async (
 	context: string,
 	select: (rows: Row[]) => Array<{ row: Row; state: number }>,
 ): Promise<[Uint8Array, Record<string, unknown>]> => {
-	const names = await gameNamesTable();
-	const decoded = await decodeSave(sourceBytes);
+	// The names table and the decode read two independent inputs; the decode does
+	// not mutate `sourceBytes` and the names table is a cached load, so they are
+	// awaited together. Nothing is written back to the save until `commitSave`,
+	// well below, which is where the engine's single write point lives.
+	const [names, decoded] = await Promise.all([
+		gameNamesTable(),
+		decodeSave(sourceBytes),
+	]);
 	const raw = decoded.rawPayload;
 	const rows = readRows(raw, names);
 	const rowsById = new Map(rows.map((row) => [row.id, row]));

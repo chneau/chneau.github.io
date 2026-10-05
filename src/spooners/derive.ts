@@ -339,7 +339,13 @@ export const availableFacilities = (
 const matchesFacilities = (
 	venue: { facilities: string[] },
 	active: string[],
-): boolean => active.every((facility) => venue.facilities.includes(facility));
+): boolean => {
+	if (active.length === 0) return true;
+	// The venue's facilities are consulted once per active filter and a venue
+	// lists several, so they are gathered into a set rather than rescanned.
+	const offered = new Set(venue.facilities);
+	return active.every((facility) => offered.has(facility));
+};
 
 /** The map/list filters the sidebar toggles. */
 type VenueFilters = {

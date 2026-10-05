@@ -113,8 +113,13 @@ export const insertDonorEquipmentIntoInventory = async (
 	const allowExperimental = options.allowExperimental ?? false;
 	const allowRuntimeRestricted = options.allowRuntimeRestricted ?? false;
 
-	const donorDecoded = await decodeSave(donorBytes);
-	const targetDecoded = await decodeSave(targetBytes);
+	// Donor and target are two separate saves: neither decode reads or mutates the
+	// other, so they run together. The single write point is still the
+	// `commitSave` further down, which commits one resulting payload.
+	const [donorDecoded, targetDecoded] = await Promise.all([
+		decodeSave(donorBytes),
+		decodeSave(targetBytes),
+	]);
 	const donorRaw = donorDecoded.rawPayload;
 	const targetRaw = targetDecoded.rawPayload;
 	const donorLayout = readEquipmentLayout(donorRaw);

@@ -28,7 +28,7 @@ import {
 	Plus,
 	Wheat,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
 	isTemporarilyClosed,
 	venueImages,
@@ -86,7 +86,18 @@ type Props = {
 
 const PAGE = 100;
 
-/** Everything known about one pub: address, hours, facilities and full menu. */
+/**
+ * Everything known about one pub: address, hours, facilities and full menu.
+ *
+ * App.tsx renders this unconditionally and only flips `opened`, so the modal
+ * itself survives a switch from one pub to the next. The per-pub state (query,
+ * sort, pager, hero photo, expanded row, menu filter) lives in `VenueModalBody`
+ * instead, keyed on `opened`/`venueRef`: a key change remounts it, so each pub
+ * starts fresh by construction. The previous shape held that state here and
+ * wiped all of it from an effect on `opened`/`venueRef`, which cost an extra
+ * render showing the previous pub's filter over the new pub's menu — a filter
+ * naming a menu this pub does not sell rendered "Nothing matched." for a frame.
+ */
 export const VenueModal = ({
 	opened,
 	onClose,
@@ -97,6 +108,41 @@ export const VenueModal = ({
 	onItem,
 	format,
 }: Props) => {
+	const entry = venueRef != null ? cache.venues[String(venueRef)] : undefined;
+	return (
+		<Modal
+			opened={opened}
+			onClose={onClose}
+			title={entry?.venue.name ?? "Pub"}
+			centered
+			size="lg"
+		>
+			<VenueModalBody
+				key={`${opened ? "open" : "shut"}:${venueRef ?? "none"}`}
+				onClose={onClose}
+				venueRef={venueRef}
+				cache={cache}
+				onSelectItem={onSelectItem}
+				onAddItem={onAddItem}
+				onItem={onItem}
+				format={format}
+			/>
+		</Modal>
+	);
+};
+
+/** `opened` is the wrapper's business: the body is keyed on it, not driven by it. */
+type BodyProps = Omit<Props, "opened">;
+
+const VenueModalBody = ({
+	onClose,
+	venueRef,
+	cache,
+	onSelectItem,
+	onAddItem,
+	onItem,
+	format,
+}: BodyProps) => {
 	const [query, setQuery] = useState("");
 	const [sort, setSort] = useState<Sort>("menu");
 	const [limit, setLimit] = useState(PAGE);
@@ -105,21 +151,6 @@ export const VenueModal = ({
 	const [expanded, setExpanded] = useState<string | null>(null);
 	const [menuFilter, setMenuFilter] = useState<string | null>(null);
 	const entry = venueRef != null ? cache.venues[String(venueRef)] : undefined;
-
-	// Each pub starts fresh: no leaked query, sort, expanded row or hero image.
-	// App.tsx renders this component unconditionally (only `opened` flips), so
-	// the instance - and every useState above - survives a switch from one pub
-	// to the next. Keying the reset on `opened`/`venueRef` is what actually runs
-	// it per pub, including when the same pub is re-opened from a shared link.
-	useEffect(() => {
-		setQuery("");
-		setSort("menu");
-		setLimit(PAGE);
-		setAdded(null);
-		setHero(0);
-		setExpanded(null);
-		setMenuFilter(null);
-	}, [opened, venueRef]);
 
 	const valueRows = useMemo(
 		() => venueValues(cache, venueRef),
@@ -202,11 +233,8 @@ export const VenueModal = ({
 	}, [rows, query, sort, menuFilter]);
 
 	if (!entry) {
-		return (
-			<Modal opened={opened} onClose={onClose} title="Pub" centered size="lg">
-				<Text c="dimmed">No data for this pub.</Text>
-			</Modal>
-		);
+		// The title comes from the wrapper, which falls back to "Pub" here too.
+		return <Text c="dimmed">No data for this pub.</Text>;
 	}
 
 	const { venue, detail } = entry;
@@ -240,511 +268,489 @@ export const VenueModal = ({
 	let lastGroup = "";
 
 	return (
-		<Modal
-			opened={opened}
-			onClose={onClose}
-			title={venue.name}
-			centered
-			size="lg"
-		>
-			<Stack gap="xs" style={{ maxHeight: "72vh", overflowY: "auto" }}>
-				<Group gap={6} wrap="wrap">
-					{spot !== "high-street" ? (
-						<Badge variant="light" color="grape">
-							<SpotLabel spot={spot} />
-						</Badge>
-					) : null}
-					{temporarilyClosed ? (
-						<Badge variant="light" color="red" leftSection={<Ban size={12} />}>
-							{venue.status?.replace("_", " ")}
-						</Badge>
-					) : null}
-					{venue.selectHandler?.type === "message" ? (
-						<Badge variant="light" color="orange">
-							no ordering
-						</Badge>
-					) : null}
-					<Badge variant="light" color="gray">
-						{currency}
+		<Stack gap="xs" style={{ maxHeight: "72vh", overflowY: "auto" }}>
+			<Group gap={6} wrap="wrap">
+				{spot !== "high-street" ? (
+					<Badge variant="light" color="grape">
+						<SpotLabel spot={spot} />
 					</Badge>
-				</Group>
-
-				{images.length ? (
-					<Box>
-						<VenueImage
-							src={heroImage}
-							alt={venue.name}
-							width="100%"
-							height={200}
-							radius={8}
-						/>
-						{images.length > 1 ? (
-							<Group gap={6} mt={6} wrap="nowrap" style={{ overflowX: "auto" }}>
-								{images.map((image, index) => (
-									<Box
-										key={image}
-										onClick={() => setHero(index)}
-										style={{
-											cursor: "pointer",
-											outline:
-												index === hero
-													? "2px solid var(--mantine-primary-color-filled)"
-													: "none",
-											borderRadius: 6,
-										}}
-									>
-										<VenueImage
-											src={image}
-											alt={`${venue.name} photo ${index + 1}`}
-											width={54}
-											height={44}
-										/>
-									</Box>
-								))}
-							</Group>
-						) : null}
-					</Box>
 				) : null}
+				{temporarilyClosed ? (
+					<Badge variant="light" color="red" leftSection={<Ban size={12} />}>
+						{venue.status?.replace("_", " ")}
+					</Badge>
+				) : null}
+				{venue.selectHandler?.type === "message" ? (
+					<Badge variant="light" color="orange">
+						no ordering
+					</Badge>
+				) : null}
+				<Badge variant="light" color="gray">
+					{currency}
+				</Badge>
+			</Group>
 
-				<Text size="sm">
-					{[
-						address?.line1,
-						address?.line2,
-						address?.town,
-						address?.county,
-						address?.postcode,
-					]
-						.filter(Boolean)
-						.join(", ")}
-				</Text>
-
-				<Group gap="md" wrap="wrap">
-					{contact?.telephone ? (
-						<Text
-							size="sm"
-							style={{ display: "flex", alignItems: "center", gap: 6 }}
-						>
-							<Phone size={14} />
-							<a href={`tel:${contact.telephone.replace(/\s/g, "")}`}>
-								{contact.telephone}
-							</a>
-						</Text>
-					) : null}
-					{contact?.email ? (
-						<Text
-							size="sm"
-							style={{ display: "flex", alignItems: "center", gap: 6 }}
-						>
-							<Mail size={14} />
-							<a href={`mailto:${contact.email}`}>{contact.email}</a>
-						</Text>
-					) : null}
-					{contact?.website ? (
-						<Text
-							size="sm"
-							style={{ display: "flex", alignItems: "center", gap: 6 }}
-						>
-							<Globe size={14} />
-							<a href={contact.website} target="_blank" rel="noreferrer">
-								website
-							</a>
-						</Text>
-					) : null}
-				</Group>
-
-				<Divider label="Opening hours" labelPosition="left" />
-				<Group gap="xl" wrap="wrap">
-					<Stack gap={0}>
-						{DAY_ORDER.map((key) => {
-							const day = days[key];
-							const today = key === TODAY;
-							return (
-								<Text
-									size="xs"
-									key={key}
-									fw={today ? 700 : undefined}
-									c={today ? "teal" : undefined}
+			{images.length ? (
+				<Box>
+					<VenueImage
+						src={heroImage}
+						alt={venue.name}
+						width="100%"
+						height={200}
+						radius={8}
+					/>
+					{images.length > 1 ? (
+						<Group gap={6} mt={6} wrap="nowrap" style={{ overflowX: "auto" }}>
+							{images.map((image, index) => (
+								<Box
+									key={image}
+									onClick={() => setHero(index)}
+									style={{
+										cursor: "pointer",
+										outline:
+											index === hero
+												? "2px solid var(--mantine-primary-color-filled)"
+												: "none",
+										borderRadius: 6,
+									}}
 								>
-									<strong>{DAY_LABEL[key]}</strong>{" "}
-									{day?.open ? `${day.open}–${day.close ?? ""}` : "closed"}
-									{today ? " · today" : ""}
-								</Text>
-							);
-						})}
-					</Stack>
-					{detail?.facilities?.length ? (
-						<Stack gap={2} style={{ flex: 1, minWidth: 180 }}>
-							<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-								Facilities
-							</Text>
-							<Group gap={4} wrap="wrap">
-								{detail.facilities.map((facility) => (
-									<Badge key={facility} size="xs" variant="light" color="teal">
-										{facility}
-									</Badge>
-								))}
-							</Group>
-							{payments.length ? (
-								<Text size="xs" c="dimmed" mt={4}>
-									Pays with: {payments.join(", ")}
-								</Text>
-							) : null}
-						</Stack>
-					) : null}
-				</Group>
-
-				{calorieRows.length || unitRows.length ? (
-					<>
-						<Divider label="Best value here" labelPosition="left" />
-						<Group align="flex-start" gap="xl" wrap="wrap">
-							<Stack gap={2} style={{ minWidth: 220, flex: 1 }}>
-								<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-									Most calories per £
-								</Text>
-								{calorieRows.map((row) => (
-									<UnstyledButton
-										key={row.name}
-										onClick={() => onItem(row.name)}
-									>
-										<Group justify="space-between" gap={8} wrap="nowrap">
-											<Text size="sm" lineClamp={1}>
-												{row.name}
-											</Text>
-											<Text size="sm" fw={700}>
-												{format.metric("calorie", row.value, currency)}
-											</Text>
-										</Group>
-									</UnstyledButton>
-								))}
-								{calorieRows.length ? null : (
-									<Text size="xs" c="dimmed">
-										No calorie data.
-									</Text>
-								)}
-							</Stack>
-							<Stack gap={2} style={{ minWidth: 220, flex: 1 }}>
-								<Text size="xs" c="dimmed" fw={700} tt="uppercase">
-									Cheapest per alcohol unit
-								</Text>
-								{unitRows.map((row) => (
-									<UnstyledButton
-										key={row.name}
-										onClick={() => onItem(row.name)}
-									>
-										<Group justify="space-between" gap={8} wrap="nowrap">
-											<Text size="sm" lineClamp={1}>
-												{row.name}
-											</Text>
-											<Text size="sm" fw={700}>
-												{format.metric("unit", row.value, currency)}
-											</Text>
-										</Group>
-									</UnstyledButton>
-								))}
-								{unitRows.length ? null : (
-									<Text size="xs" c="dimmed">
-										No alcohol data.
-									</Text>
-								)}
-							</Stack>
+									<VenueImage
+										src={image}
+										alt={`${venue.name} photo ${index + 1}`}
+										width={54}
+										height={44}
+									/>
+								</Box>
+							))}
 						</Group>
-					</>
-				) : null}
+					) : null}
+				</Box>
+			) : null}
 
-				<Divider label="Details" labelPosition="left" />
-				<Group gap={6} wrap="wrap">
-					<Badge
-						size="xs"
-						variant="light"
-						color={detail?.orderingEnabled ? "teal" : "gray"}
+			<Text size="sm">
+				{[
+					address?.line1,
+					address?.line2,
+					address?.town,
+					address?.county,
+					address?.postcode,
+				]
+					.filter(Boolean)
+					.join(", ")}
+			</Text>
+
+			<Group gap="md" wrap="wrap">
+				{contact?.telephone ? (
+					<Text
+						size="sm"
+						style={{ display: "flex", alignItems: "center", gap: 6 }}
 					>
-						{detail?.orderingEnabled ? "ordering enabled" : "ordering off"}
-					</Badge>
-					{detail?.canPlaceOrder ? (
-						<Badge size="xs" variant="light" color="teal">
-							app orders
-						</Badge>
-					) : null}
-					{detail?.comingSoon ? (
-						<Badge size="xs" variant="light" color="grape">
-							coming soon
-						</Badge>
-					) : null}
-					{detail?.employeeDiscountAllowed ? (
-						<Badge size="xs" variant="light" color="blue">
-							staff discount
-						</Badge>
-					) : null}
-					{detail?.isClosed ? (
-						<Badge size="xs" variant="light" color="red">
-							marked closed
-						</Badge>
-					) : null}
-					{(detail?.salesAreas ?? []).map((area) => (
-						<Badge size="xs" variant="light" color="gray" key={area.id}>
-							sales area: {area.name}
-						</Badge>
-					))}
-					{detail?.pricing?.includeDrink ? (
-						<Badge size="xs" variant="light" color="gray">
-							Meal deal: any drink +
-							{money(detail.pricing.includeDrink.offset ?? 0, currency)}
-							{detail.pricing.includeDrink.wineOffset != null
-								? `, wine +${money(
-										detail.pricing.includeDrink.wineOffset,
-										currency,
-									)}`
-								: ""}
-						</Badge>
-					) : null}
-					{detail?.closureDates ? (
-						<Badge size="xs" variant="light" color="orange">
-							closure dates: {JSON.stringify(detail.closureDates)}
-						</Badge>
-					) : null}
-				</Group>
-				{entry.menus.length ? (
-					<Text size="xs" c="dimmed">
-						Menus here: {entry.menus.map((menu) => menu.name).join(", ")}
+						<Phone size={14} />
+						<a href={`tel:${contact.telephone.replace(/\s/g, "")}`}>
+							{contact.telephone}
+						</a>
 					</Text>
 				) : null}
-				<Group gap="md" wrap="wrap">
-					{detail?.allergensUrl ? (
-						<Text
-							size="sm"
-							style={{ display: "flex", alignItems: "center", gap: 6 }}
-						>
-							<FileText size={14} />
-							<a href={detail.allergensUrl} target="_blank" rel="noreferrer">
-								Allergen information
-							</a>
-						</Text>
-					) : null}
-					{detail?.menuUrl?.dairyFree ? (
-						<Text
-							size="sm"
-							style={{ display: "flex", alignItems: "center", gap: 6 }}
-						>
-							<Milk size={14} />
-							<a
-								href={detail.menuUrl.dairyFree}
-								target="_blank"
-								rel="noreferrer"
-							>
-								dairy-free menu
-							</a>
-						</Text>
-					) : null}
-					{detail?.menuUrl?.glutenFree ? (
-						<Text
-							size="sm"
-							style={{ display: "flex", alignItems: "center", gap: 6 }}
-						>
-							<Wheat size={14} />
-							<a
-								href={detail.menuUrl.glutenFree}
-								target="_blank"
-								rel="noreferrer"
-							>
-								gluten-free menu
-							</a>
-						</Text>
-					) : null}
-				</Group>
-				{rows.length ? (
-					<>
-						<Divider
-							label={`Menu (${rows.length} items)`}
-							labelPosition="left"
-						/>
-						<Group gap="xs" wrap="nowrap">
-							<TextInput
+				{contact?.email ? (
+					<Text
+						size="sm"
+						style={{ display: "flex", alignItems: "center", gap: 6 }}
+					>
+						<Mail size={14} />
+						<a href={`mailto:${contact.email}`}>{contact.email}</a>
+					</Text>
+				) : null}
+				{contact?.website ? (
+					<Text
+						size="sm"
+						style={{ display: "flex", alignItems: "center", gap: 6 }}
+					>
+						<Globe size={14} />
+						<a href={contact.website} target="_blank" rel="noreferrer">
+							website
+						</a>
+					</Text>
+				) : null}
+			</Group>
+
+			<Divider label="Opening hours" labelPosition="left" />
+			<Group gap="xl" wrap="wrap">
+				<Stack gap={0}>
+					{DAY_ORDER.map((key) => {
+						const day = days[key];
+						const today = key === TODAY;
+						return (
+							<Text
 								size="xs"
-								placeholder="Filter this pub's menu…"
-								value={query}
-								style={{ flex: 1 }}
-								onChange={(event) => {
-									setQuery(event.currentTarget.value);
-									setLimit(PAGE);
-								}}
-							/>
-							<SegmentedControl
-								size="xs"
-								value={sort}
-								data={[
-									{ label: "Menu", value: "menu" },
-									{ label: "Cheapest", value: "cheapest" },
-									{ label: "Dearest", value: "dearest" },
-								]}
-								onChange={(value) => setSort(value as Sort)}
-							/>
+								key={key}
+								fw={today ? 700 : undefined}
+								c={today ? "teal" : undefined}
+							>
+								<strong>{DAY_LABEL[key]}</strong>{" "}
+								{day?.open ? `${day.open}–${day.close ?? ""}` : "closed"}
+								{today ? " · today" : ""}
+							</Text>
+						);
+					})}
+				</Stack>
+				{detail?.facilities?.length ? (
+					<Stack gap={2} style={{ flex: 1, minWidth: 180 }}>
+						<Text size="xs" c="dimmed" fw={700} tt="uppercase">
+							Facilities
+						</Text>
+						<Group gap={4} wrap="wrap">
+							{detail.facilities.map((facility) => (
+								<Badge key={facility} size="xs" variant="light" color="teal">
+									{facility}
+								</Badge>
+							))}
 						</Group>
-						<Chip.Group
-							value={menuFilter}
-							onChange={(value) => {
-								setMenuFilter(value as string | null);
-								setLimit(PAGE);
-							}}
-						>
-							<Group gap={4}>
-								{menus.map((menu) => (
-									<Chip key={menu} size="xs" value={menu}>
-										{menu}
-									</Chip>
-								))}
-							</Group>
-						</Chip.Group>
-						<Box>
-							{filtered.slice(0, limit).map((row) => {
-								const group = `${row.menu} · ${row.category}`;
-								const header = group !== lastGroup ? group : null;
-								lastGroup = group;
-								return (
-									<Box key={row.name}>
-										{header ? (
-											<Text
-												size="xs"
-												fw={700}
-												c="dimmed"
-												tt="uppercase"
-												mt="sm"
-												mb={2}
-											>
-												{header}
-											</Text>
-										) : null}
-										<Group
-											justify="space-between"
-											gap={8}
-											wrap="nowrap"
-											style={{ padding: "4px 0" }}
-										>
-											<UnstyledButton
-												style={{ minWidth: 0, textAlign: "left" }}
-												onClick={() =>
-													setExpanded((current) =>
-														current === row.name ? null : row.name,
-													)
-												}
-											>
-												<Text
-													size="sm"
-													lineClamp={1}
-													style={{
-														display: "flex",
-														alignItems: "center",
-														gap: 4,
-													}}
-												>
-													{expanded === row.name ? (
-														<ChevronDown size={13} />
-													) : (
-														<ChevronRight size={13} />
-													)}
-													{row.name}
-												</Text>
-												<Text size="xs" c="dimmed" lineClamp={1}>
-													{[
-														row.calories ? `${row.calories} kcal` : null,
-														...row.badges,
-													]
-														.filter(Boolean)
-														.join(" · ")}
-												</Text>
-											</UnstyledButton>
-											<Group gap={8} wrap="nowrap">
-												{row.portions.map(([label, price]) => (
-													<Text size="xs" key={label}>
-														<Text span c="dimmed">
-															{portionLabel(label)}{" "}
-														</Text>
-														<Text span fw={700}>
-															{currencySymbol(currency)}
-															{amount(price, currency)}
-														</Text>
-													</Text>
-												))}
-												<Tooltip label="Add one to the round">
-													<ActionIcon
-														size="sm"
-														variant={added === row.name ? "filled" : "light"}
-														color={added === row.name ? "teal" : "blue"}
-														aria-label={`Add ${row.name} to the round`}
-														onClick={() => add(row.name)}
-													>
-														{added === row.name ? (
-															<Check size={13} />
-														) : (
-															<Plus size={13} />
-														)}
-													</ActionIcon>
-												</Tooltip>
-												<Tooltip label="Show this drink on its own">
-													<ActionIcon
-														size="sm"
-														variant="subtle"
-														aria-label={`Show only ${row.name}`}
-														onClick={() => {
-															onSelectItem(row.name);
-															onClose();
-														}}
-													>
-														<ArrowRight size={13} />
-													</ActionIcon>
-												</Tooltip>
-											</Group>
-										</Group>
-										{expanded === row.name ? (
-											<Box ml={10} mt={2} mb={4}>
-												<ItemFacts
-													def={cache.items[row.name] ?? null}
-													showOptions
-													format={format}
-												/>
-												<Group gap="xs" mt={4}>
-													<Button
-														size="compact-xs"
-														variant="light"
-														onClick={() => onItem(row.name)}
-													>
-														Full details & best value
-													</Button>
-												</Group>
-											</Box>
-										) : null}
-									</Box>
-								);
-							})}
-							{filtered.length > limit ? (
-								<Button
-									variant="subtle"
-									size="xs"
-									fullWidth
-									mt="sm"
-									onClick={() => setLimit((value) => value + PAGE)}
-								>
-									Show {Math.min(PAGE, filtered.length - limit)} more (
-									{filtered.length - limit} left)
-								</Button>
-							) : null}
-							{filtered.length ? null : (
-								<Text size="sm" c="dimmed">
-									Nothing matched.
+						{payments.length ? (
+							<Text size="xs" c="dimmed" mt={4}>
+								Pays with: {payments.join(", ")}
+							</Text>
+						) : null}
+					</Stack>
+				) : null}
+			</Group>
+
+			{calorieRows.length || unitRows.length ? (
+				<>
+					<Divider label="Best value here" labelPosition="left" />
+					<Group align="flex-start" gap="xl" wrap="wrap">
+						<Stack gap={2} style={{ minWidth: 220, flex: 1 }}>
+							<Text size="xs" c="dimmed" fw={700} tt="uppercase">
+								Most calories per £
+							</Text>
+							{calorieRows.map((row) => (
+								<UnstyledButton key={row.name} onClick={() => onItem(row.name)}>
+									<Group justify="space-between" gap={8} wrap="nowrap">
+										<Text size="sm" lineClamp={1}>
+											{row.name}
+										</Text>
+										<Text size="sm" fw={700}>
+											{format.metric("calorie", row.value, currency)}
+										</Text>
+									</Group>
+								</UnstyledButton>
+							))}
+							{calorieRows.length ? null : (
+								<Text size="xs" c="dimmed">
+									No calorie data.
 								</Text>
 							)}
-						</Box>
-					</>
-				) : (
-					<>
-						<Divider label="Menu" labelPosition="left" />
-						<Text size="sm" c="dimmed">
-							This pub's menu is not published by the API, so there are no
-							prices to show. The address, hours and facilities above still
-							apply.
-						</Text>
-					</>
-				)}
-			</Stack>
-		</Modal>
+						</Stack>
+						<Stack gap={2} style={{ minWidth: 220, flex: 1 }}>
+							<Text size="xs" c="dimmed" fw={700} tt="uppercase">
+								Cheapest per alcohol unit
+							</Text>
+							{unitRows.map((row) => (
+								<UnstyledButton key={row.name} onClick={() => onItem(row.name)}>
+									<Group justify="space-between" gap={8} wrap="nowrap">
+										<Text size="sm" lineClamp={1}>
+											{row.name}
+										</Text>
+										<Text size="sm" fw={700}>
+											{format.metric("unit", row.value, currency)}
+										</Text>
+									</Group>
+								</UnstyledButton>
+							))}
+							{unitRows.length ? null : (
+								<Text size="xs" c="dimmed">
+									No alcohol data.
+								</Text>
+							)}
+						</Stack>
+					</Group>
+				</>
+			) : null}
+
+			<Divider label="Details" labelPosition="left" />
+			<Group gap={6} wrap="wrap">
+				<Badge
+					size="xs"
+					variant="light"
+					color={detail?.orderingEnabled ? "teal" : "gray"}
+				>
+					{detail?.orderingEnabled ? "ordering enabled" : "ordering off"}
+				</Badge>
+				{detail?.canPlaceOrder ? (
+					<Badge size="xs" variant="light" color="teal">
+						app orders
+					</Badge>
+				) : null}
+				{detail?.comingSoon ? (
+					<Badge size="xs" variant="light" color="grape">
+						coming soon
+					</Badge>
+				) : null}
+				{detail?.employeeDiscountAllowed ? (
+					<Badge size="xs" variant="light" color="blue">
+						staff discount
+					</Badge>
+				) : null}
+				{detail?.isClosed ? (
+					<Badge size="xs" variant="light" color="red">
+						marked closed
+					</Badge>
+				) : null}
+				{(detail?.salesAreas ?? []).map((area) => (
+					<Badge size="xs" variant="light" color="gray" key={area.id}>
+						sales area: {area.name}
+					</Badge>
+				))}
+				{detail?.pricing?.includeDrink ? (
+					<Badge size="xs" variant="light" color="gray">
+						Meal deal: any drink +
+						{money(detail.pricing.includeDrink.offset ?? 0, currency)}
+						{detail.pricing.includeDrink.wineOffset != null
+							? `, wine +${money(
+									detail.pricing.includeDrink.wineOffset,
+									currency,
+								)}`
+							: ""}
+					</Badge>
+				) : null}
+				{detail?.closureDates ? (
+					<Badge size="xs" variant="light" color="orange">
+						closure dates: {JSON.stringify(detail.closureDates)}
+					</Badge>
+				) : null}
+			</Group>
+			{entry.menus.length ? (
+				<Text size="xs" c="dimmed">
+					Menus here: {entry.menus.map((menu) => menu.name).join(", ")}
+				</Text>
+			) : null}
+			<Group gap="md" wrap="wrap">
+				{detail?.allergensUrl ? (
+					<Text
+						size="sm"
+						style={{ display: "flex", alignItems: "center", gap: 6 }}
+					>
+						<FileText size={14} />
+						<a href={detail.allergensUrl} target="_blank" rel="noreferrer">
+							Allergen information
+						</a>
+					</Text>
+				) : null}
+				{detail?.menuUrl?.dairyFree ? (
+					<Text
+						size="sm"
+						style={{ display: "flex", alignItems: "center", gap: 6 }}
+					>
+						<Milk size={14} />
+						<a href={detail.menuUrl.dairyFree} target="_blank" rel="noreferrer">
+							dairy-free menu
+						</a>
+					</Text>
+				) : null}
+				{detail?.menuUrl?.glutenFree ? (
+					<Text
+						size="sm"
+						style={{ display: "flex", alignItems: "center", gap: 6 }}
+					>
+						<Wheat size={14} />
+						<a
+							href={detail.menuUrl.glutenFree}
+							target="_blank"
+							rel="noreferrer"
+						>
+							gluten-free menu
+						</a>
+					</Text>
+				) : null}
+			</Group>
+			{rows.length ? (
+				<>
+					<Divider label={`Menu (${rows.length} items)`} labelPosition="left" />
+					<Group gap="xs" wrap="nowrap">
+						<TextInput
+							size="xs"
+							placeholder="Filter this pub's menu…"
+							value={query}
+							style={{ flex: 1 }}
+							onChange={(event) => {
+								setQuery(event.currentTarget.value);
+								setLimit(PAGE);
+							}}
+						/>
+						<SegmentedControl
+							size="xs"
+							value={sort}
+							data={[
+								{ label: "Menu", value: "menu" },
+								{ label: "Cheapest", value: "cheapest" },
+								{ label: "Dearest", value: "dearest" },
+							]}
+							onChange={(value) => setSort(value as Sort)}
+						/>
+					</Group>
+					<Chip.Group
+						value={menuFilter}
+						onChange={(value) => {
+							setMenuFilter(value as string | null);
+							setLimit(PAGE);
+						}}
+					>
+						<Group gap={4}>
+							{menus.map((menu) => (
+								<Chip key={menu} size="xs" value={menu}>
+									{menu}
+								</Chip>
+							))}
+						</Group>
+					</Chip.Group>
+					<Box>
+						{filtered.slice(0, limit).map((row) => {
+							const group = `${row.menu} · ${row.category}`;
+							const header = group !== lastGroup ? group : null;
+							lastGroup = group;
+							return (
+								<Box key={row.name}>
+									{header ? (
+										<Text
+											size="xs"
+											fw={700}
+											c="dimmed"
+											tt="uppercase"
+											mt="sm"
+											mb={2}
+										>
+											{header}
+										</Text>
+									) : null}
+									<Group
+										justify="space-between"
+										gap={8}
+										wrap="nowrap"
+										style={{ padding: "4px 0" }}
+									>
+										<UnstyledButton
+											style={{ minWidth: 0, textAlign: "left" }}
+											onClick={() =>
+												setExpanded((current) =>
+													current === row.name ? null : row.name,
+												)
+											}
+										>
+											<Text
+												size="sm"
+												lineClamp={1}
+												style={{
+													display: "flex",
+													alignItems: "center",
+													gap: 4,
+												}}
+											>
+												{expanded === row.name ? (
+													<ChevronDown size={13} />
+												) : (
+													<ChevronRight size={13} />
+												)}
+												{row.name}
+											</Text>
+											<Text size="xs" c="dimmed" lineClamp={1}>
+												{[
+													row.calories ? `${row.calories} kcal` : null,
+													...row.badges,
+												]
+													.filter(Boolean)
+													.join(" · ")}
+											</Text>
+										</UnstyledButton>
+										<Group gap={8} wrap="nowrap">
+											{row.portions.map(([label, price]) => (
+												<Text size="xs" key={label}>
+													<Text span c="dimmed">
+														{portionLabel(label)}{" "}
+													</Text>
+													<Text span fw={700}>
+														{currencySymbol(currency)}
+														{amount(price, currency)}
+													</Text>
+												</Text>
+											))}
+											<Tooltip label="Add one to the round">
+												<ActionIcon
+													size="sm"
+													variant={added === row.name ? "filled" : "light"}
+													color={added === row.name ? "teal" : "blue"}
+													aria-label={`Add ${row.name} to the round`}
+													onClick={() => add(row.name)}
+												>
+													{added === row.name ? (
+														<Check size={13} />
+													) : (
+														<Plus size={13} />
+													)}
+												</ActionIcon>
+											</Tooltip>
+											<Tooltip label="Show this drink on its own">
+												<ActionIcon
+													size="sm"
+													variant="subtle"
+													aria-label={`Show only ${row.name}`}
+													onClick={() => {
+														onSelectItem(row.name);
+														onClose();
+													}}
+												>
+													<ArrowRight size={13} />
+												</ActionIcon>
+											</Tooltip>
+										</Group>
+									</Group>
+									{expanded === row.name ? (
+										<Box ml={10} mt={2} mb={4}>
+											<ItemFacts
+												def={cache.items[row.name] ?? null}
+												showOptions
+												format={format}
+											/>
+											<Group gap="xs" mt={4}>
+												<Button
+													size="compact-xs"
+													variant="light"
+													onClick={() => onItem(row.name)}
+												>
+													Full details & best value
+												</Button>
+											</Group>
+										</Box>
+									) : null}
+								</Box>
+							);
+						})}
+						{filtered.length > limit ? (
+							<Button
+								variant="subtle"
+								size="xs"
+								fullWidth
+								mt="sm"
+								onClick={() => setLimit((value) => value + PAGE)}
+							>
+								Show {Math.min(PAGE, filtered.length - limit)} more (
+								{filtered.length - limit} left)
+							</Button>
+						) : null}
+						{filtered.length ? null : (
+							<Text size="sm" c="dimmed">
+								Nothing matched.
+							</Text>
+						)}
+					</Box>
+				</>
+			) : (
+				<>
+					<Divider label="Menu" labelPosition="left" />
+					<Text size="sm" c="dimmed">
+						This pub's menu is not published by the API, so there are no prices
+						to show. The address, hours and facilities above still apply.
+					</Text>
+				</>
+			)}
+		</Stack>
 	);
 };
