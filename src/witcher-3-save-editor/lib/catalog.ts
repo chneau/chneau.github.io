@@ -4,18 +4,15 @@
  *
  * `generated/names.json` is a verbatim copy of the source decoder's
  * `data/names.json`, produced by its `script/export-names.ts` against an English
- * install of The Witcher 3. Three of its four sections are used:
+ * install of The Witcher 3. **Only its `quests` section is read here** (236 of
+ * 253 journals resolved) — the id→title map, so the UI can show
+ * `Contract: Devil by the Well` rather than `mq0003`. The rest of the file
+ * travels undecoded and is described where it matters; see the note below.
  *
- *  - `quests` (236 of 253 journals resolved) — the id→title map, so the UI can
- *    show `Contract: Devil by the Well` rather than `mq0003`;
- *  - `itemFields` — the engine's item-class field names, useful once item
- *    instance data (durability, upgrades) is decoded;
- *  - the provenance fields, so a page can say where the data came from.
- *
- * Its fourth section, `enumTypes`, is **not** re-exported here: it is
- * byte-for-byte the same 351-name list as `ENUM_TYPES` in `./enums`, both
- * written by the same script, and `reflect.ts` needs the typed copy. Shipping
- * both would be two lists that can drift.
+ * Its `enumTypes` section is **not** re-exported here: it is byte-for-byte the
+ * same 351-name list as `ENUM_TYPES` in `./enums`, both written by the same
+ * script, and `reflect.ts` needs the typed copy. Shipping both would be two
+ * lists that can drift.
  *
  * ## The map is partial, and the lookup says so
  *
