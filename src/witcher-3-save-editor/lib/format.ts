@@ -470,11 +470,11 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 	}
 
 	const items = requireArrayAt(doc, "items");
-	// Rows the save does not have yet are inserts, and they are prepended by the
-	// inventory editor, so the existing rows start `newCount` in.
+	// Rows the save does not have yet are inserts, and the writer appends them at
+	// the end of the list, so the existing rows are still first.
 	const newCount = Math.max(0, items.length - found.items.length);
 	found.items.forEach((item, index) => {
-		const row = items[index + newCount];
+		const row = items[index];
 		// `objectAt(row, "")` looks up a key named "" and silently yields
 		// `undefined` for every row, which made this loop a no-op that still
 		// looked like it was writing quantities.
@@ -499,13 +499,32 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		writeInt32(payload, skill.levelOffset, level);
 	});
 
+	// Mutations. Every present `SMutationProgress` field is an `Int32` already in
+	// the stream, so writing one changes no length. Only fields that are present
+	// have an offset: a `*Used` field at 0 is not serialised, but
+	// `overallProgress` is (as -1), and the engine returns it directly once it is
+	// `>= 0` — which is what "researched" means and what the max action writes.
+	const mutations = requireArrayAt(doc, "mutations");
+	found.mutations.forEach((mutation, index) => {
+		const row = mutations[index];
+		const offsets = mutation.progressOffsets;
+		if (row === undefined || !isJsonObject(row) || offsets === undefined) return;
+		const progress = objectAt(row, "progress");
+		if (progress === undefined) return;
+		for (const [key, offset] of Object.entries(offsets)) {
+			const value = numberAt(progress, key);
+			if (value === undefined || value === null) continue;
+			writeInt32(payload, offset, value);
+		}
+	});
+
 	if (newCount > 0) {
 		const requests: {
 			name: string;
 			quantity: number;
 			template: string | undefined;
 		}[] = [];
-		for (let index = 0; index < newCount; index += 1) {
+		for (let index = found.items.length; index < items.length; index += 1) {
 			const row = items[index];
 			if (row === undefined || !isJsonObject(row)) continue;
 			const name = stringAt(row, "name");
@@ -770,6 +789,36 @@ const ACTIONS: readonly QuickAction[] = [
 		},
 	},
 	{
+		id: "mutations-max",
+		label: "Max all mutations",
+		description:
+			"Fully research every Blood-and-Wine mutation by setting its progress to 100. Once a mutation's overallProgress is >= 0 the engine returns it directly (GetMutationResearchProgress), so this unlocks them without spending mutagens or skill points. Width-preserving: no resizing, works on any save that has the mutation catalogue.",
+		plan: (doc) => {
+			const mutations = requireArrayAt(doc, "mutations");
+			const edits: SaveEdit[] = [];
+			mutations.forEach((row, index) => {
+				if (!isJsonObject(row)) return;
+				const progress = objectAt(row, "progress");
+				if (progress === undefined) return;
+				const name = stringAt(row, "name") ?? `mutation ${index}`;
+				// `EPMT_MutationMaster` is derived from how many other mutations
+				// are researched, not from its own progress, so leave it alone.
+				if (name === "EPMT_MutationMaster") return;
+				const before = numberAt(progress, "overallProgress");
+				if (before === undefined || before === null || before === 100) return;
+				edits.push(
+					edit(
+						["mutations", index, "progress", "overallProgress"],
+						`${name} research`,
+						before,
+						100,
+					),
+				);
+			});
+			return edits;
+		},
+	},
+	{
 		id: "mutagens-greater",
 		label: "Add Greater mutagens",
 		description:
@@ -800,7 +849,7 @@ const ACTIONS: readonly QuickAction[] = [
 					label: "Add Greater mutagens",
 					path: ["items"],
 					before: items,
-					after: [...rows, ...items],
+					after: [...items, ...rows],
 				},
 			];
 			// The insert grows the decompressed stream, and `container.payloadBytes`

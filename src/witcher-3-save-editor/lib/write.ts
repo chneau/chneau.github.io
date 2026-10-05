@@ -148,6 +148,13 @@ type SavedMutation = {
 	readonly colors: readonly string[];
 	/** `SMutationProgress` — invested vs required */
 	readonly progress?: Readonly<Record<string, number | undefined>>;
+	/**
+	 * Absolute offsets of the `SMutationProgress` fields that are actually
+	 * present in the stream. A field at its default (0) is not serialised, so it
+	 * has no offset and cannot be written without a resize; `overallProgress`
+	 * and the `*Required` fields are present, the `*Used` fields usually are not.
+	 */
+	readonly progressOffsets?: Readonly<Record<string, number>>;
 	/** `EPMT_*` symbolic names that must be learned first */
 	readonly requiredMutations: readonly string[];
 	readonly localizationNameKey?: string;
@@ -405,6 +412,14 @@ const readSavedMutations = (
 							numberAt(member(progressValue, key)),
 						]),
 					);
+		const progressOffsets =
+			progressValue?.fields === undefined
+				? undefined
+				: Object.fromEntries(
+						progressValue.fields
+							.filter((field) => field.offset > 0)
+							.map((field) => [field.name, field.offset]),
+					);
 		const type = numberAt(member(item, "type"));
 		const symbolic = (value: ReflectedValue | undefined): string | undefined =>
 			enumName(names, numberAt(value));
@@ -415,6 +430,7 @@ const readSavedMutations = (
 				.map(symbolic)
 				.filter((name): name is string => name !== undefined),
 			progress,
+			progressOffsets,
 			requiredMutations: (member(item, "requiredMutations")?.items ?? [])
 				.map(symbolic)
 				.filter((name): name is string => name !== undefined),

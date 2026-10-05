@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { addItems } from "../lib/add-item";
-import { decompressContainer } from "../lib/container";
+import { decompressContainer, parseContainer } from "../lib/container";
 import { playerInventory } from "../lib/inventory";
 import { readNameTable } from "../lib/names";
 import { readObjectTree } from "../lib/objects";
@@ -40,6 +40,12 @@ describe("adding an item", () => {
 			expect((playerInventory(container.data) ?? []).length).toBe(
 				before.length,
 			);
+			// The chunk table keeps the game's shape: every chunk but the last
+			// decompresses to the same unit (1 MiB). Growing the chunk an insert
+			// landed in produced a save the game refused to load.
+			const sizes = parseContainer(file).chunks.map((c) => c.decompressedSize);
+			expect(sizes.length).toBeGreaterThan(1);
+			expect(sizes.slice(0, -1).every((size) => size === sizes[0])).toBe(true);
 		},
 		FIXTURE_TIMEOUT_MS,
 	);

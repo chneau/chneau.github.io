@@ -626,6 +626,37 @@ describe("the quick actions", () => {
 	);
 
 	test(
+		"max every mutation, and it survives the round trip",
+		async () => {
+			const doc = await witcher3.decode(largeSave());
+			const edits = planFor("mutations-max", doc);
+			// One edit per non-master mutation, each raising its research to 100.
+			expect(edits.length).toBeGreaterThan(0);
+			expect(edits.every((entry) => entry.after === 100)).toBe(true);
+			const working = applyEdits(doc, edits);
+			const back = await witcher3.decode(await witcher3.encode(working));
+			// A width-preserving edit, so the projection must match exactly.
+			expect(JSON.stringify(back)).toBe(JSON.stringify(working));
+			const maxed = requireArrayAt(back, "mutations").filter(
+				(row) =>
+					isJsonObject(row) && stringAt(row, "name") !== "EPMT_MutationMaster",
+			);
+			expect(maxed.length).toBeGreaterThan(0);
+			for (const row of maxed) {
+				const progress = objectAt(row, "progress");
+				expect(
+					progress === undefined
+						? undefined
+						: numberAt(progress, "overallProgress"),
+				).toBe(100);
+			}
+			// Greys itself out once every mutation is already maxed.
+			expect(planFor("mutations-max", back)).toEqual([]);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
 		"add Greater mutagens as real inserts and the document still reads back",
 		async () => {
 			const doc = await witcher3.decode(largeSave());
@@ -750,6 +781,7 @@ describe("the codec describes itself", () => {
 			"crowns-round",
 			"skill-points-max",
 			"mutation-research-kit",
+			"mutations-max",
 			"mutagens-greater",
 			"experience-max",
 			"skills-learn-all",
