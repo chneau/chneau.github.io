@@ -130,7 +130,11 @@ describe("the world-entity flag census", () => {
 			// the flagged entities could be named rather than implying all of them
 			// could.
 			const { report } = read(largeSave());
-			expect(report.entitiesWithNotableFlags).toBe(798);
+			// 820, not the 798 this asserted while `GameTime` was unreadable: 22
+			// entities became notable because their `GameTime` now resolves, and
+			// `timeRemaining` set is a real observation about the world rather than
+			// an artefact of a value the reader could not parse.
+			expect(report.entitiesWithNotableFlags).toBe(820);
 			expect(report.namedEntitiesWithNotableFlags).toBe(264);
 			expect(report.namedEntitiesWithNotableFlags).toBeLessThan(
 				report.entitiesWithNotableFlags,
@@ -231,21 +235,28 @@ describe("per-flag counts on the large save", () => {
 		expect(written(report, "nestFound").entities).toBe(30);
 	});
 
-	test("the respawn pair, and the GameTime this reader declines to decode", () => {
+	test("the respawn pair, and the GameTime now read for real", () => {
 		const report = large();
 		expect(written(report, "fullRespawnScheduled").values).toEqual([
 			{ value: "false", entities: 566 },
 			{ value: "true", entities: 13 },
 		]);
-		// Written by the same 579 entities — the pairing is the point — but its
-		// value is reported as nothing. The token walker's fixed `GameTime` width is
-		// 11 where the writer emitted 15, so `reflectValue` cannot close on it and
-		// the fix belongs in `tokens.ts`.
+		// Written by the same 579 entities — the pairing is the point — and now read
+		// for real. This asserted no value at all while `GameTime` was unreadable,
+		// which is a test that encoded the bug rather than catching it: the field
+		// was present, the type resolved, and the reader silently returned nothing.
+		//
+		// The walker's fixed width for `GameTime` was 11, which is only one of the
+		// three shapes the writer emits, so `reflectValue` could not close on the
+		// 15-byte one. Fixed in `tokens.ts`; see `tests/tokens-gametime.test.ts`.
 		const respawn = written(report, "fullRespawnTime");
 		expect(respawn.entities).toBe(579);
 		expect(respawn.type).toBe("GameTime");
-		expect(respawn.values).toEqual([]);
-		expect(respawn.distinctValues).toBe(0);
+		// 33 distinct values, matching the reference decoder's figure for this
+		// save. Zero is the commonest, which is what a default `GameTime` on an
+		// entity with no pending respawn should look like.
+		expect(respawn.distinctValues).toBe(33);
+		expect(respawn.values[0]).toEqual({ value: "0", entities: 544 });
 	});
 
 	test("the quest-only allow-list, resolved through this save's own name table", () => {
