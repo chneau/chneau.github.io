@@ -360,21 +360,36 @@ const project = (container: SaveContainer): JsonValue => {
 			// order the engine happened to write its facts in, and capped because
 			// a late-game save holds hundreds: the summary row carries the true
 			// count and the tree view carries the rest.
+			// The journal's own answer per quest id, joined here so a caller can
+			// read one row's two sources side by side. `null` where the journal has
+			// no entry for the quest: absence, not a verdict — 17 of 43 rows on
+			// `52586` and 3 of 10 on `8559a` are in that state, and a UI that
+			// cannot tell "the journal says nothing" from "the journal says the
+			// quest is not done" is exactly the confusion this field exists to
+			// remove.
+			const rollupById = new Map(
+				journal.quests.map((quest) => [quest.id, quest.rollup]),
+			);
 			return questProgress(facts.facts)
 				.map((q) => ({
 					id: q.id,
 					title: questTitle(q.id) ?? q.id,
-					state: q.state,
+					// Named for where it comes from rather than what it is: this is
+					// the `_done` / `_failed` / `_accepted` **fact-name** heuristic in
+					// `./quests`, not the game's record of the quest. It disagrees
+					// with the journal on 2 of 7 comparable quests here and 7 of 26
+					// on the larger fixture, always the same way round.
+					inferredState: q.state,
+					journalStatus: rollupById.get(q.id) ?? null,
 					done: q.done,
 					total: q.total,
 				}))
 				.sort((a, b) => a.title.localeCompare(b.title))
 				.slice(0, 200);
 		})(),
-		// The per-step detail behind `quests`, from the same fact DB. `state` above
-		// is the fact-name heuristic and is **inferred**: the game's journal
-		// disagrees with it on roughly a quarter of comparable quests, which is why
-		// `journal` is a separate branch rather than a replacement here.
+		// The per-step detail behind `quests`, from the same fact DB, so it is the
+		// heuristic's evidence rather than a second reading: `inferredState` above
+		// is derived from these very records.
 		questSteps:
 			facts === undefined
 				? []
@@ -464,8 +479,9 @@ const project = (container: SaveContainer): JsonValue => {
 		//
 		// `readDialogues` and `readEntityFlags` also read the object's span index,
 		// which no one else needs, so that cost stays.
-		// The **authoritative** quest state. The `state` on each row of `quests`
-		// above is the fact-name heuristic and is inferred; this is the game's own
+		//
+		// The **authoritative** quest state. `inferredState` on each row of
+		// `quests` above is the fact-name heuristic; this is the game's own
 		// journal, and the two disagree on roughly a quarter of comparable quests
 		// (2 of 7 on 8559a, 7 of 26 on 52586, measured). Every disagreement runs the
 		// same way — the journal records `JS_Success`, the heuristic says in
@@ -792,6 +808,87 @@ const crownsRow = (
 	return undefined;
 };
 
+/**
+ * What one `inferredState` value would look like in the journal's vocabulary.
+ *
+ * Two independent vocabularies for one question, so a disagreement count needs
+ * a stated translation rather than `!==`: the heuristic says `in-progress` where
+ * the journal says `active`, and on the fixtures that pairing is agreement, not
+ * conflict — 7 of the 26 comparable quests on `52586` are exactly that. Counting
+ * them as disagreements would overstate the gap by more than a third.
+ *
+ * `not-started` maps to `inactive` on the same reasoning. Neither fixture
+ * produces that pair (every quest the fact DB groups has at least one non-zero
+ * fact), so the mapping is stated rather than measured.
+ */
+const JOURNAL_EQUIVALENT: Readonly<Record<string, string>> = {
+	completed: "succeeded",
+	failed: "failed",
+	active: "active",
+	"in-progress": "active",
+	"not-started": "inactive",
+};
+
+/**
+ * The journal's figures, and the disagreement count, from the document alone.
+ *
+ * Returned separately from `summarise` so the comparison it needs — each quest
+ * row's `inferredState` against its own `journalStatus` — is read from the
+ * document and never re-derived from the readers, which is what keeps the round
+ * trip honest.
+ */
+const questSummaryRows = (doc: JsonValue): readonly SummaryRow[] => {
+	const journal = objectAt(doc, "journal");
+	// No rows at all rather than rows of zeros, and not even a row saying "not in
+	// this save": a document without the branch is one the inspector has edited,
+	// and `summarise`'s existing rule for that is to omit rather than state —
+	// "0 quests recorded" would be a claim about the player's progress nothing
+	// supports. Measured against a save this codec decodes, the branch is always
+	// present.
+	if (journal === undefined) return [];
+	const questRows = arrayAt(doc, "quests") ?? [];
+	let comparable = 0;
+	let disagree = 0;
+	let succeeded = 0;
+	let recorded = 0;
+	for (const quest of arrayAt(journal, "quests") ?? []) {
+		if (!isJsonObject(quest)) continue;
+		recorded += 1;
+		if (stringAt(quest, "rollup") === "succeeded") succeeded += 1;
+	}
+	for (const row of questRows) {
+		if (!isJsonObject(row)) continue;
+		const status = stringAt(row, "journalStatus");
+		// No journal entry is absence of an answer, not an answer of absence, so
+		// those rows are excluded from the comparison rather than counted as
+		// agreement.
+		if (status === undefined) continue;
+		comparable += 1;
+		const inferred = stringAt(row, "inferredState");
+		if (inferred !== undefined && JOURNAL_EQUIVALENT[inferred] !== status) {
+			disagree += 1;
+		}
+	}
+	return [
+		{
+			label: "Quests in journal",
+			value: `${recorded} recorded, ${succeeded} succeeded`,
+		},
+		{
+			label: "Journal vs inferred state",
+			value:
+				comparable === 0
+					? "no quest in both readings"
+					: disagree === 0
+						? `agree on all ${comparable}`
+						: `disagree on ${disagree} of ${comparable}`,
+			// Worth noticing exactly when the two sources conflict: that is the
+			// figure the heuristic alone would have hidden.
+			emphasis: disagree > 0,
+		},
+	];
+};
+
 const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 	const crowns = crownsRow(doc);
 	const money = crowns?.quantity;
@@ -858,6 +955,9 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 			value: toNext === null ? "not derivable" : `${toNext} XP`,
 		});
 	}
+	const questRows = questSummaryRows(doc);
+	rows.push(...questRows);
+
 	const position = objectAt(doc, "position");
 	if (position !== undefined) {
 		const x = numberAt(position, "x");
