@@ -167,6 +167,21 @@ type SkillRow = {
 };
 
 /**
+ * One entry of the saved mutation catalogue (Blood and Wine), as the page shows
+ * it. Read-only — the editor decodes mutations but does not write them.
+ */
+type MutationRow = {
+	/** the `MANU` symbolic name of the `EPlayerMutationType` value */
+	readonly name: string | null;
+	readonly colors: readonly string[];
+	/** invested vs required per colour and skill point, `null` where absent */
+	readonly progress: Readonly<Record<string, number | null>> | null;
+	readonly requiredMutations: readonly string[];
+	/** the `w3strings` key whose text is the mutation's display name */
+	readonly nameKey: string | null;
+};
+
+/**
  * The label for a difficulty index, read out of the document's own `choices`.
  *
  * Computed rather than stored: a difficulty's name is a function of its index
@@ -304,6 +319,29 @@ const project = (container: SaveContainer): JsonValue => {
 				maxLevel: s.maxLevel ?? null,
 			}),
 		),
+		// The Blood-and-Wine mutation catalogue, read-only. The full twelve plus
+		// `EPMT_MutationMaster` are always present (the save stores the catalogue,
+		// not just the learned entries), so `progress` is what says how far each
+		// one is. `nameKey` is the `w3strings` key for the display name; the text
+		// itself is in the game's localisation, not in the save.
+		mutations: found.mutations.map(
+			(m): MutationRow => ({
+				name: m.name ?? null,
+				colors: m.colors,
+				progress:
+					m.progress === undefined
+						? null
+						: Object.fromEntries(
+								Object.entries(m.progress).map(([key, value]) => [
+									key,
+									value ?? null,
+								]),
+							),
+				requiredMutations: m.requiredMutations,
+				nameKey: m.localizationNameKey ?? null,
+			}),
+		),
+		equippedMutation: found.equippedMutation ?? null,
 		// The branch the scaffold rides on. Present but empty as far as
 		// `JSON.stringify` is concerned, which is what keeps the round-trip
 		// comparison honest.

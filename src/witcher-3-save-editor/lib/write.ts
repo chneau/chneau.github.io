@@ -134,6 +134,25 @@ type PatchablePoints = {
 	readonly usedOffset: number;
 };
 
+/**
+ * One entry of the saved `mutations : array<SMutation>` on the player's ability
+ * manager. Read-only: the editor does not write it, so it is not a
+ * `Patchable*`. The array is the full Blood-and-Wine catalogue (twelve plus
+ * `EPMT_MutationMaster`), not merely the learned ones.
+ */
+type SavedMutation = {
+	readonly type?: number;
+	/** the `MANU` symbolic name of the `EPlayerMutationType` value */
+	readonly name?: string;
+	/** `ESkillColor` symbolic names the mutation costs */
+	readonly colors: readonly string[];
+	/** `SMutationProgress` — invested vs required */
+	readonly progress?: Readonly<Record<string, number | undefined>>;
+	/** `EPMT_*` symbolic names that must be learned first */
+	readonly requiredMutations: readonly string[];
+	readonly localizationNameKey?: string;
+};
+
 /** Everything this editor can write in one save. */
 type WritableSave = {
 	/** `undefined` when the build's record shape is not recognised. */
@@ -145,6 +164,9 @@ type WritableSave = {
 	readonly items: readonly (InventoryItem & {
 		readonly quantityOffset: number;
 	})[];
+	/** read-only, decoded from the same ability manager this walk already holds */
+	readonly mutations: readonly SavedMutation[];
+	readonly equippedMutation?: string;
 };
 
 /** The `u16` quantity of an item record, whose anchor the decoder reports. */
@@ -327,6 +349,79 @@ const memberOffset = (
 	name: string,
 ): number | undefined => value?.fields?.find((f) => f.name === name)?.offset;
 
+/** The `MANU` symbolic name an enum value (a 1-based index) refers to. */
+const enumName = (
+	names: readonly string[],
+	value: number | undefined,
+): string | undefined =>
+	value !== undefined && value >= 1 ? names[value - 1] : undefined;
+
+/** A scalar member parsed as a finite number, or `undefined`. */
+const numberAt = (value: ReflectedValue | undefined): number | undefined => {
+	if (value === undefined) return undefined;
+	const parsed = Number(value.text);
+	return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+/** Resolve a `CName`/`name` member to its `MANU` text (a 1-based index). */
+const cname = (
+	names: readonly string[],
+	value: ReflectedValue | undefined,
+): string | undefined => {
+	if (value === undefined) return undefined;
+	const match = /^CName\((\d+)\)$/.exec(value.text);
+	if (match === null) return value.text === "" ? undefined : value.text;
+	return enumName(names, Number(match[1]));
+};
+
+const MUTATION_PROGRESS_KEYS = [
+	"redUsed",
+	"redRequired",
+	"blueUsed",
+	"blueRequired",
+	"greenUsed",
+	"greenRequired",
+	"skillpointsUsed",
+	"skillpointsRequired",
+	"overallProgress",
+] as const;
+
+/**
+ * Decode the saved mutation catalogue from the ability manager this walk
+ * already holds — no second token walk.
+ */
+const readSavedMutations = (
+	names: readonly string[],
+	ability: ReflectedValue | undefined,
+): SavedMutation[] =>
+	(member(ability, "mutations")?.items ?? []).map((item) => {
+		const progressValue = member(item, "progress");
+		const progress =
+			progressValue === undefined
+				? undefined
+				: Object.fromEntries(
+						MUTATION_PROGRESS_KEYS.map((key) => [
+							key,
+							numberAt(member(progressValue, key)),
+						]),
+					);
+		const type = numberAt(member(item, "type"));
+		const symbolic = (value: ReflectedValue | undefined): string | undefined =>
+			enumName(names, numberAt(value));
+		return {
+			type,
+			name: enumName(names, type),
+			colors: (member(item, "colors")?.items ?? [])
+				.map(symbolic)
+				.filter((name): name is string => name !== undefined),
+			progress,
+			requiredMutations: (member(item, "requiredMutations")?.items ?? [])
+				.map(symbolic)
+				.filter((name): name is string => name !== undefined),
+			localizationNameKey: cname(names, member(item, "localizationNameKey")),
+		};
+	});
+
 /**
  * Every writable field in one save, discovered rather than assumed.
  *
@@ -495,6 +590,11 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 		points,
 		skills,
 		items,
+		mutations: readSavedMutations(names, ability),
+		equippedMutation: enumName(
+			names,
+			numberAt(member(ability, "equippedMutation")),
+		),
 	};
 };
 
