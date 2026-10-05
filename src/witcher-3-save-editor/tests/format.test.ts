@@ -11,7 +11,7 @@ import {
 } from "../../shared";
 // `collectLeaves` is not on the shared barrel — it is an inspector detail — so
 // it is imported from its module rather than widening the barrel's surface.
-import { collectLeaves } from "../../shared/save/json";
+import { collectLeaves, objectAt } from "../../shared/save/json";
 import { decompressContainer } from "../lib/container";
 import { witcher3 } from "../lib/format";
 import { locateWritable } from "../lib/write";
@@ -79,7 +79,7 @@ describe("decoding a real save", () => {
 				game: asObject(doc).game,
 				build: asObject(doc).build,
 				level: getAtPath(doc, ["level"]),
-				difficulty: getAtPath(doc, ["difficulty", "name"]),
+				difficulty: rowValue(doc, "Difficulty"),
 				skillPoints: getAtPath(doc, ["skillPoints"]),
 				experience: getAtPath(doc, ["experience"]),
 				chunks: getAtPath(doc, ["container", "chunks"]),
@@ -116,7 +116,7 @@ describe("decoding a real save", () => {
 			expect({
 				build: asObject(doc).build,
 				level: getAtPath(doc, ["level"]),
-				difficulty: getAtPath(doc, ["difficulty", "name"]),
+				difficulty: rowValue(doc, "Difficulty"),
 				skillPoints: getAtPath(doc, ["skillPoints"]),
 				experience: getAtPath(doc, ["experience"]),
 				chunks: getAtPath(doc, ["container", "chunks"]),
@@ -662,14 +662,7 @@ describe("the codec describes itself", () => {
 		}
 	});
 
-	test("offers five actions, each with a description the page can show", () => {
-		expect(witcher3.actions.map((action) => action.id)).toEqual([
-			"crowns-max",
-			"crowns-round",
-			"skill-points-max",
-			"experience-max",
-			"level-up",
-		]);
+	test("every action carries a description the page can show", () => {
 		for (const action of witcher3.actions) {
 			expect({ id: action.id, label: action.label.length > 0 }).toEqual({
 				id: action.id,
@@ -678,4 +671,155 @@ describe("the codec describes itself", () => {
 			expect(action.description.length).toBeGreaterThan(10);
 		}
 	});
+
+	// The value actions come first because the page renders `actions` in order, and
+	// a save editor wants "set my money" above "pick a difficulty".
+	test("orders the value actions before the difficulty actions", () => {
+		expect(
+			witcher3.actions
+				.map((action) => action.id)
+				.filter((id) => !id.startsWith("difficulty-")),
+		).toEqual([
+			"crowns-max",
+			"crowns-round",
+			"skill-points-max",
+			"experience-max",
+			"level-up",
+		]);
+	});
+});
+
+describe("difficulty", () => {
+	/**
+	 * Difficulty is a `u16` holding the `MANU` index of the difficulty's name, so
+	 * there is no global list of them: the indices differ per game build, and the
+	 * two fixtures here share none. Everything below follows from that.
+	 */
+
+	test("offers one action per difficulty the game is known to have", () => {
+		expect(
+			witcher3.actions
+				.map((action) => action.id)
+				.filter((id) => id.startsWith("difficulty-")),
+		).toEqual([
+			"difficulty-easy",
+			"difficulty-medium",
+			"difficulty-hard",
+			"difficulty-hardcore",
+			"difficulty-notset",
+		]);
+	});
+
+	test(
+		"labels the current difficulty from the save's own name table",
+		async () => {
+			const doc = await witcher3.decode(largeSave());
+			// Not "index 4632": the label has to come from the save, and this build
+			// calls that index "Hard".
+			expect(
+				witcher3.summarise(doc).find((r) => r.label === "Difficulty")?.value,
+			).toBe("Hard");
+			const small = await witcher3.decode(smallSave());
+			expect(
+				witcher3.summarise(small).find((r) => r.label === "Difficulty")?.value,
+			).toBe("Hardcore");
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"greys out a difficulty this build does not have",
+		async () => {
+			const doc = await witcher3.decode(largeSave());
+			const plan = (id: string) =>
+				witcher3.actions.find((a) => a.id === id)?.plan(doc) ?? [];
+			// This build knows Easy, Medium, Hard and NotSet, and not Hardcore.
+			// Offering Hardcore would mean writing an index out of a different
+			// build's name table, which is some other difficulty or none at all.
+			expect(plan("difficulty-easy")).toHaveLength(1);
+			expect(plan("difficulty-medium")).toHaveLength(1);
+			expect(plan("difficulty-hardcore")).toHaveLength(0);
+			// Already Hard: nothing to stage.
+			expect(plan("difficulty-hard")).toHaveLength(0);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"stages the index the save itself uses, not an ordinal",
+		async () => {
+			const doc = await witcher3.decode(largeSave());
+			const edits =
+				witcher3.actions.find((a) => a.id === "difficulty-easy")?.plan(doc) ??
+				[];
+			expect(edits).toHaveLength(1);
+			const edit = edits[0];
+			if (edit === undefined) throw new Error("no edit staged");
+			// 127, not 0: the field holds a `MANU` index. Writing the ordinal would
+			// silently set some other difficulty, or none.
+			expect(edit.after).toBe(127);
+			expect(edit.before).toBe(4632);
+			expect([...edit.path]).toEqual(["difficulty", "index"]);
+			expect(edit.label).toBe("Difficulty: Easy");
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"changes the difficulty in the rebuilt save and reads it back",
+		async () => {
+			const doc = await witcher3.decode(largeSave());
+			const edits =
+				witcher3.actions.find((a) => a.id === "difficulty-easy")?.plan(doc) ??
+				[];
+			const edit = edits[0];
+			if (edit === undefined) throw new Error("no edit staged");
+			const edited = setAtPath(doc, edit.path, edit.after);
+			const back = await witcher3.decode(await witcher3.encode(edited));
+			expect(
+				witcher3.summarise(back).find((r) => r.label === "Difficulty")?.value,
+			).toBe("Easy");
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"carries no difficulty name in the document, so none can go stale",
+		async () => {
+			const doc = await witcher3.decode(largeSave());
+			const branch = objectAt(doc, "difficulty");
+			if (branch === undefined) throw new Error("no difficulty branch");
+			// The label is derived from `index` plus `choices`. Storing it would be a
+			// second field over one fact: setting `index` left `name` reading "Hard"
+			// while the file said "Easy", and the round-trip check called the
+			// rebuild unsound. Measured, then removed — the same lesson as `money`.
+			expect("name" in branch).toBe(false);
+			expect(Array.isArray(branch.choices)).toBe(true);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"every difficulty a save can reach survives a rebuild",
+		async () => {
+			const bytes = largeSave();
+			for (const action of witcher3.actions) {
+				if (!action.id.startsWith("difficulty-")) continue;
+				const doc = await witcher3.decode(bytes);
+				const edits = action.plan(doc);
+				if (edits.length === 0) continue;
+				const edit = edits[0];
+				if (edit === undefined) throw new Error("no edit staged");
+				const edited = setAtPath(doc, edit.path, edit.after);
+				const verdict = await verifyRoundTrip(witcher3, bytes, edited, true);
+				// `semantic`, never `identical`: re-encoding does not reproduce the
+				// game's own LZ4 output even with no edits at all.
+				expect({ id: action.id, kind: verdict.kind }).toEqual({
+					id: action.id,
+					kind: "semantic",
+				});
+			}
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
 });
