@@ -121,6 +121,30 @@ hardcoded, so a save from an earlier patch of the game reads as fully as the
 latest one. Durability is read from the same records rather than filtering them
 out, which is what recovering those 27% of records restored.
 
+It is also the most-readable save here, because a Witcher 3 `.sav` turns out to
+hold a great deal that is decodable but **not writable**: resistances, base
+stats, the whole experience curve, per-quest step detail, books read and
+schematics collected, map-pin discovery, world-entity flags, pending scene
+dialogs, and the NPC attitude matrix. All of it is projected read-only, and each
+module states in its header what it deliberately does *not* claim — that a save
+contains no dialogue graph at all, that the four core attributes (Might,
+Agility, Sign Power, Courage) sit in an undecoded engine-native struct, and that
+the `immortalityFlags` bit meanings are not recoverable from the game's scripts.
+
+Two of those refusals are load-bearing rather than modesty:
+
+- **Quest completion is projected twice, from two sources, because they
+  disagree.** The fact-name heuristic and the game's own journal disagree on about
+  a quarter of comparable quests, always the same way — the journal records
+  success and the heuristic says in progress. The journal is authoritative, so it
+  sits beside the heuristic, which is labelled inferred. It is still a *partial*
+  view: 17 of 43 quests on one fixture have no journal entry at all, and 650 of
+  972 entries cannot be attributed to a quest. Both counts are in the document
+  rather than glossed over.
+- **Enum values resolve through each save's own `MANU` table, never by ordinal.**
+  The same resistance is index 90 on one build and 240 on another, so an ordinal
+  lookup would name most of them wrongly on one of the two.
+
 ### 6. 🍺 [Spooners](https://chneau.github.io/spooners/)
 
 See what every pub charges for the same drink or dish — a searchable map,
