@@ -250,9 +250,20 @@ const project = (container: SaveContainer): JsonValue => {
 				index: choice.index,
 			})),
 		},
-		skillPoints: skill ? { free: skill.free, used: skill.used } : null,
+		skillPoints: skill
+			? {
+					// `null` when the save does not carry the field at all: a zero is
+					// omitted by the game, so there is no byte to write and a staged
+					// edit would read back differently.
+					free: skill.freeOffset > 0 ? skill.free : null,
+					used: skill.used,
+				}
+			: null,
 		experience: experience
-			? { free: experience.free, used: experience.used }
+			? {
+					free: experience.freeOffset > 0 ? experience.free : null,
+					used: experience.used,
+				}
 			: null,
 		// The wallet is not a separate field. It is the `u16` quantity of the
 		// `Crowns` item, so exposing it twice — once as `money` and once here —
@@ -578,16 +589,18 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 
 	const skillPoints = objectAt(doc, "skillPoints");
 	if (skillPoints !== undefined) {
+		const free = numberAt(skillPoints, "free");
 		rows.push({
 			label: "Skill points",
-			value: `${numberAt(skillPoints, "free") ?? 0} free`,
+			value: free === undefined ? "not in this save" : `${free} free`,
 		});
 	}
 	const experience = objectAt(doc, "experience");
 	if (experience !== undefined) {
+		const free = numberAt(experience, "free");
 		rows.push({
 			label: "Experience",
-			value: `${numberAt(experience, "free") ?? 0} available`,
+			value: free === undefined ? "not in this save" : `${free} available`,
 		});
 	}
 	const position = objectAt(doc, "position");
