@@ -1,0 +1,39 @@
+{
+	"id": "/witcher-3-save-editor/",
+	"name": "Witcher 3 Save Editor",
+	"short_name": "Witcher 3",
+	"description": "Edit Witcher 3 PC saves in your browser — money, level, difficulty, skill points, experience and item quantities, written in place and rebuilt entirely on your device.",
+	"start_url": "/witcher-3-save-editor/",
+	"scope": "/witcher-3-save-editor/",
+	"display": "standalone",
+	"display_override": ["standalone", "minimal-ui"],
+	"background_color": "#0e0e11",
+	"theme_color": "#8c9bab",
+	"lang": "en",
+	"icons": [
+		{
+			"src": "/icons/witcher-3-save-editor-32.png",
+			"sizes": "32x32",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/witcher-3-save-editor-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/witcher-3-save-editor-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/witcher-3-save-editor-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	]
+}
