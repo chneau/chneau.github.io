@@ -43,6 +43,16 @@ type PanelProps = {
 
 const PAGE_SIZE = 25;
 
+/**
+ * The fallback for a save with no character rows.
+ *
+ * Module-level because the `matches` memo depends on this list, and an inline
+ * `?? []` is a fresh array on every render — so the filter re-ran on every
+ * keystroke in the one case where there is nothing to filter. Nothing mutates
+ * it; the panel only filters it and reads its length.
+ */
+const NO_ENTRIES: readonly CharacterEntry[] = [];
+
 const BLANK: CharacterChange = {
 	level: null,
 	maxLevel: null,
@@ -71,7 +81,7 @@ export const LevelsPanel = ({
 	const [query, setQuery] = useState("");
 	const [page, setPage] = useState(0);
 
-	const entries = description?.entries ?? [];
+	const entries = description?.entries ?? NO_ENTRIES;
 	const matches = useMemo(() => {
 		const needle = query.trim().toLowerCase();
 		return entries.filter((entry) => {

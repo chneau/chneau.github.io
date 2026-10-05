@@ -33,6 +33,15 @@ export const useDashboardShortcuts = ({
 	// render (which a discarded concurrent render could leave stale).
 	const themeToggle = useEffectEvent(() => theme.toggle());
 	const dialogsAreOpen = useEffectEvent(() => dialogsOpen);
+	// The ref object itself is stable, but what it points at is not: the input
+	// is mounted and unmounted by the toolbar, and `/` must focus whichever
+	// node is current at the moment the key is pressed. That is a read of the
+	// ref's `.current` on every keypress, never a value captured when the
+	// listener was registered — which is why it goes through an effect event
+	// alongside the others rather than into the dependency array, where it
+	// would mean nothing: it cannot change, so listing it would assert a
+	// freshness it is not the thing that provides.
+	const focusSearch = useEffectEvent(() => searchRef.current?.focus());
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) {
@@ -49,7 +58,7 @@ export const useDashboardShortcuts = ({
 			}
 			if (event.key === "/") {
 				event.preventDefault();
-				searchRef.current?.focus();
+				focusSearch();
 				return;
 			}
 			// The palette and the app switcher both advertise `0` for the hub
@@ -58,7 +67,7 @@ export const useDashboardShortcuts = ({
 			if (event.key === HUB_HOTKEY) {
 				event.preventDefault();
 				window.scrollTo({ top: 0, behavior: "smooth" });
-				searchRef.current?.focus();
+				focusSearch();
 				return;
 			}
 			const targetApp = APPS.find((app) => app.hotkey === event.key);

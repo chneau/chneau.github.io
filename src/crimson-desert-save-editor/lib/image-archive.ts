@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { readZipDirectory, readZipEntry, type ZipEntry } from "./zip-archive";
 
 /**
@@ -82,9 +82,9 @@ const loadArchive = (index: number) => {
 			emit();
 		})
 		.catch(() => {
-			// No `emit` here: notifying listeners would call `imageUrl` again,
-			// and the error-to-idle retry below would refetch in a loop. The
-			// next mount retries instead.
+			// No `emit` here: every listener would immediately ask for this part
+			// again, and `ensureArchive` retries an errored part, so notifying
+			// would spin. The next subscription retries instead.
 			state.status = "error";
 		});
 };
@@ -125,27 +125,32 @@ const publish = (name: string, url: string): void => {
 };
 
 /**
- * Resolves a published picture path (`/images/items/x.webp`) to a blob URL.
- * Returns `undefined` while the owning archive is still being read; `useImage`
- * calls this again once the archive is in memory.
+ * Starts reading the archive part `index` needs, unless it is already read or
+ * already being read.
+ *
+ * The trigger is a consumer subscribing (see `subscribePicture`), not a React
+ * pass: these are build assets committed under `assets/image-archive/` and
+ * served from this app's own origin, never anything from a user's save, so the
+ * fetch is an asset read rather than data fetching.
  */
-const imageUrl = (path: string | undefined): string | undefined => {
-	if (!path || typeof window === "undefined") return undefined;
-	const name = path.replace(/^\//, "");
+const ensureArchive = (index: number) => {
+	const state = archiveState(index);
+	// A failed part is retryable: back to idle so the next consumer fetches it
+	// again instead of leaving a permanent placeholder with no explanation.
+	if (state.status === "error") state.status = "idle";
+	loadArchive(index);
+};
+
+/**
+ * Resolves a published picture path (`/images/items/x.webp`) to a blob URL.
+ * Returns `undefined` while the owning archive is still being read; the store
+ * notifies `useImage` when it is in memory.
+ */
+const imageUrl = (name: string): string | undefined => {
+	if (typeof window === "undefined") return undefined;
 	const cached = urls.get(name);
 	if (cached) return cached;
-	const index = imagePart(name);
-	const state = archiveState(index);
-	if (state.status === "error") {
-		// A failed archive is retryable: reset to idle so the next mount, or the
-		// next listener notification, fetches it again instead of showing a
-		// permanent placeholder with no explanation.
-		state.status = "idle";
-	}
-	if (state.status === "idle") {
-		loadArchive(index);
-		return undefined;
-	}
+	const state = archiveState(imagePart(name));
 	if (state.status !== "ready" || !state.bytes || !state.directory) {
 		return undefined;
 	}
@@ -178,30 +183,35 @@ const imageUrl = (path: string | undefined): string | undefined => {
 	return undefined;
 };
 
-const subscribe = (listener: () => void) => {
+/**
+ * Subscribes one mounted picture to the archive store, and starts the read its
+ * part needs.
+ *
+ * Retaining on subscription (rather than from a render) is what makes the ref
+ * count mean what it says: it counts mounted consumers, so a blob URL is only
+ * published once somebody is waiting for it and revoked as soon as the last
+ * picture unmounts. The listener is called once on the way in, so an already
+ * read archive is published to this consumer without waiting for the next
+ * change.
+ */
+const subscribePicture = (name: string | undefined, listener: () => void) => {
+	if (name === undefined) return () => {};
+	retain(name);
 	listeners.add(listener);
+	ensureArchive(imagePart(name));
+	listener();
 	return () => {
 		listeners.delete(listener);
+		release(name);
 	};
 };
 
 /** Blends `imageUrl` into React: re-renders once the archive is in memory. */
 export const useImage = (path: string | undefined): string | undefined => {
-	const [url, setUrl] = useState<string>();
-	useEffect(() => {
-		if (!path) {
-			setUrl(undefined);
-			return;
-		}
-		const name = path.replace(/^\//, "");
-		retain(name);
-		const update = () => setUrl(imageUrl(path));
-		update();
-		const unsubscribe = subscribe(update);
-		return () => {
-			unsubscribe();
-			release(name);
-		};
-	}, [path]);
-	return url;
+	const name = path === undefined ? undefined : path.replace(/^\//, "");
+	return useSyncExternalStore(
+		(listener) => subscribePicture(name, listener),
+		() => (name === undefined ? undefined : imageUrl(name)),
+		() => undefined,
+	);
 };

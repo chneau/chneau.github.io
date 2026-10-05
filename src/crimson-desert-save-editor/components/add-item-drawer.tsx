@@ -16,7 +16,6 @@ import {
 	type SetStateAction,
 	useEffect,
 	useMemo,
-	useRef,
 	useState,
 } from "react";
 import {
@@ -114,7 +113,12 @@ export const AddItemDrawer = ({
 		slotNo: number | null;
 	}) => void;
 }) => {
-	const [storageKey, setStorageKey] = useState<number | null>(defaultStorage);
+	// Lazy, so the first render already lands on a usable storage: the prop is
+	// read once here and the fallback below is the same one the open transition
+	// would apply a frame later.
+	const [storageKey, setStorageKey] = useState<number | null>(
+		() => defaultStorage ?? storages[0]?.key ?? null,
+	);
 	const [itemKey, setItemKey] = useState("");
 	const [existingSlot, setExistingSlot] = useState<number | null>(null);
 	const [quantity, setQuantity] = useState("1");
@@ -124,21 +128,29 @@ export const AddItemDrawer = ({
 	 */
 	const [localError, setLocalError] = useState("");
 
-	// Each opening starts over at the suggested storage. The guard is on the
-	// open transition, so staging a change (which reshapes `storages`) does not
-	// reset what the user is in the middle of choosing.
-	const previousOpen = useRef(false);
+	// Each opening starts over at the suggested storage. Guarded on the open
+	// transition, so staging a change (which reshapes `storages`) does not reset
+	// what the user is in the middle of choosing. Done while rendering rather
+	// than in an effect, because an effect runs after the browser has already
+	// painted the drawer with the previous session's item and quantity.
+	const [openedFor, setOpenedFor] = useState(opened);
+	if (openedFor !== opened) {
+		setOpenedFor(opened);
+		if (opened) {
+			setStorageKey(defaultStorage ?? storages[0]?.key ?? null);
+			setItemKey("");
+			setExistingSlot(null);
+			setQuantity("1");
+			setLocalError("");
+		}
+	}
+
+	// The page's error banner sits behind the open drawer, so opening clears it.
+	// That state belongs to the page, and a render must not write to another
+	// component, so this one write stays in an effect.
 	useEffect(() => {
-		if (opened === previousOpen.current) return;
-		previousOpen.current = opened;
-		if (!opened) return;
-		setStorageKey(defaultStorage ?? storages[0]?.key ?? null);
-		setItemKey("");
-		setExistingSlot(null);
-		setQuantity("1");
-		setLocalError("");
-		setError("");
-	}, [opened, defaultStorage, storages, setError]);
+		if (opened) setError("");
+	}, [opened, setError]);
 
 	const storageItems = useMemo(() => {
 		if (storageKey === null) return [];

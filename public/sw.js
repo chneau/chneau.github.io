@@ -227,24 +227,36 @@ const trimCache = (cacheName) =>
 	caches
 		.open(cacheName)
 		.then(async (cache) => {
-			const entries = [];
-			for (const request of await cache.keys()) {
-				const response = await cache.match(request);
-				entries.push({
+			const requests = await cache.keys();
+			// Independent reads, so they are batched: reading each entry in turn
+			// serialises N Cache API round-trips to build one list, and nothing
+			// below looks at an entry before the whole list exists.
+			const responses = await Promise.all(
+				requests.map((request) => cache.match(request)),
+			);
+			const entries = requests.map((request, index) => {
+				const response = responses[index];
+				return {
 					request,
 					size: Number(response?.headers.get("x-sw-size")) || 0,
 					at: Number(response?.headers.get("x-sw-stored-at")) || 0,
-				});
-			}
+				};
+			});
 			let total = entries.reduce((sum, entry) => sum + entry.size, 0);
 			entries.sort((a, b) => a.at - b.at);
 			let kept = entries.length;
+			// Oldest first, and the eviction list is settled before anything is
+			// deleted: which entries go is decided by the running totals, and those
+			// come from the sizes already read, so batching the deletes evicts
+			// exactly the set a delete-at-a-time loop would.
+			const evicted = [];
 			for (const entry of entries) {
 				if (kept <= MAX_CACHE_ENTRIES && total <= MAX_CACHE_BYTES) break;
-				await cache.delete(entry.request);
+				evicted.push(entry.request);
 				total -= entry.size;
 				kept -= 1;
 			}
+			await Promise.all(evicted.map((request) => cache.delete(request)));
 		})
 		.catch(() => undefined);
 

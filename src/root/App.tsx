@@ -6,7 +6,14 @@ import {
 } from "@mantine/core";
 import Fuse from "fuse.js";
 import { Rocket, Search } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useEffectEvent,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import {
 	APP_SWITCH_SHORTCUTS,
 	APPS,
@@ -110,10 +117,14 @@ export const App = () => {
 	// set `location.href` themselves, so they never reach `handleVisit`. Watch
 	// the document for any in-app link so every route into an app is recorded
 	// once, whichever control the visitor used.
-	const isAppHref = useCallback(
-		(href: string) => APPS.some((app) => app.href === href),
-		[],
-	);
+	//
+	// `useEffectEvent` rather than a dependency array: a `visit` that changes
+	// identity (it closes over the recents list, which grows as apps are opened)
+	// would otherwise take the document listener down and put it back on every
+	// open, dropping any click that landed in between.
+	const recordAppVisit = useEffectEvent((href: string) => {
+		if (APPS.some((app) => app.href === href)) handleVisit(href);
+	});
 	useEffect(() => {
 		const onClick = (event: MouseEvent) => {
 			if (
@@ -129,11 +140,11 @@ export const App = () => {
 			const target = event.target;
 			if (!(target instanceof Element)) return;
 			const href = target.closest("a")?.getAttribute("href");
-			if (href && isAppHref(href)) handleVisit(href);
+			if (href) recordAppVisit(href);
 		};
 		document.addEventListener("click", onClick);
 		return () => document.removeEventListener("click", onClick);
-	}, [handleVisit, isAppHref]);
+	}, []);
 
 	const [query, setQuery] = useState("");
 	const [category, setCategory] = useState<string>("All");

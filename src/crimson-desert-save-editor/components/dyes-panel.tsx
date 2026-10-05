@@ -26,6 +26,17 @@ type PanelProps = {
 	onStage: (edits: DyeEdit[]) => void;
 };
 
+/**
+ * The fallback for a save that has no dyed equipment.
+ *
+ * Module-level because the memo below depends on this list, and an inline
+ * `?? []` is a fresh array on every render — which would make the memo
+ * recompute on every keystroke for exactly the case where there is nothing to
+ * pick. Nothing mutates it; the panel only finds in it and reads its first
+ * entry.
+ */
+const NO_ITEMS: readonly DyedItem[] = [];
+
 type Channels = {
 	red: number | null;
 	green: number | null;
@@ -107,7 +118,7 @@ export const DyesPanel = ({
 	onStage,
 }: PanelProps) => {
 	const [picked, setPicked] = useState<string | null>(null);
-	const items = description?.items ?? [];
+	const items = description?.items ?? NO_ITEMS;
 	/**
 	 * The chosen item falls back to the first one, so the panel opens on real
 	 * dye rows rather than an empty table that fills in after a render.

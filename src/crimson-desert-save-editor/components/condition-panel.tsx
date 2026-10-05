@@ -35,6 +35,34 @@ type PanelProps = {
 
 const PAGE_SIZE = 25;
 
+/**
+ * The table's columns, as data.
+ *
+ * The header and the empty row's `colSpan` were the same five labels written
+ * out twice, and the span was a bare `5` that nothing held to the header — add
+ * a wear field and the placeholder row silently stopped spanning the table.
+ * Deriving both from one list makes that impossible, and it keeps the header
+ * row identical in shape to the other panels' without repeating the markup.
+ */
+const COLUMNS = [
+	"Item",
+	"Where",
+	"Endurance",
+	"Sharpness",
+	"Charges left",
+] as const;
+
+/**
+ * The fallback for a save that carries no wear records.
+ *
+ * It is a module-level constant rather than a `?? []` written inline because
+ * that literal is a *fresh* array on every render: the memos below depend on
+ * `entries`, so a new identity each render meant neither of them ever hit and
+ * the filtering re-ran on every keystroke. Nothing here mutates it — the panel
+ * only maps, filters and slices — so sharing one empty array is safe.
+ */
+const NO_ENTRIES: readonly ConditionEntry[] = [];
+
 const isSameItem = (edit: ItemConditionEdit, other: ConditionEntry): boolean =>
 	edit.inventoryKey === other.inventoryKey &&
 	edit.slotNo === other.slotNo &&
@@ -61,7 +89,7 @@ export const ConditionPanel = ({
 	const [storage, setStorage] = useState<string>("all");
 	const [page, setPage] = useState(0);
 
-	const entries = description?.entries ?? [];
+	const entries = description?.entries ?? NO_ENTRIES;
 	const storages = useMemo(() => {
 		const keys = new Set(entries.map((entry) => entry.inventoryKey));
 		return [...keys].sort((a, b) => a - b);
@@ -280,11 +308,9 @@ export const ConditionPanel = ({
 					<Table stickyHeader highlightOnHover verticalSpacing="xs" fz="xs">
 						<Table.Thead>
 							<Table.Tr>
-								<Table.Th>Item</Table.Th>
-								<Table.Th>Where</Table.Th>
-								<Table.Th>Endurance</Table.Th>
-								<Table.Th>Sharpness</Table.Th>
-								<Table.Th>Charges left</Table.Th>
+								{COLUMNS.map((column) => (
+									<Table.Th key={column}>{column}</Table.Th>
+								))}
 							</Table.Tr>
 						</Table.Thead>
 						<Table.Tbody>
@@ -331,7 +357,7 @@ export const ConditionPanel = ({
 							))}
 							{visible.length === 0 && (
 								<Table.Tr>
-									<Table.Td colSpan={5}>
+									<Table.Td colSpan={COLUMNS.length}>
 										<Text size="sm" c="dimmed" ta="center" py="md">
 											No items match this filter.
 										</Text>

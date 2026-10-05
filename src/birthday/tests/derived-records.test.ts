@@ -297,10 +297,10 @@ describe("determinism", () => {
 	test("computeBirthdays has no Math.random()/Date.now() leaking in", () => {
 		const a = recomputeBirthdays();
 		const b = recomputeBirthdays();
-		// Dates do not survive a structural compare, so serialise first.
-		expect(JSON.parse(JSON.stringify(b))).toEqual(
-			JSON.parse(JSON.stringify(a)),
-		);
+		// Dates do not survive a structural compare, so deep-clone first:
+		// `structuredClone` keeps the `Date` objects, so this compares the dates
+		// themselves rather than two serialised copies of them.
+		expect(structuredClone(b)).toEqual(structuredClone(a));
 		expect(b).toHaveLength(a.length);
 	});
 

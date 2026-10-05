@@ -260,7 +260,12 @@ export const Home = () => {
 				slotNo: edit.type === "equipment" ? edit.slotNo : null,
 			});
 		},
-		[revealStaged],
+		// `setEdits` and `setError` are declared rather than assumed away. Both
+		// are `useState` setters, whose identity React guarantees is fixed for
+		// the life of the component, so listing them cannot re-create this
+		// callback — while omitting them left the callbacks below reading them
+		// without saying so.
+		[revealStaged, setEdits, setError],
 	);
 
 	const companionEdits = stagedList.queuedCompanions(edits);
@@ -286,7 +291,9 @@ export const Home = () => {
 			setError("");
 			setEdits((current) => stagedList.replaceSection(current, matches, next));
 		},
-		[status],
+		// The two setters are `useState` dispatches, so they never change
+		// identity and this callback is still created only when `status` flips.
+		[status, setEdits, setError],
 	);
 
 	const stageDyes = useCallback(
