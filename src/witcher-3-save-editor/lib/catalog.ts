@@ -28,9 +28,17 @@ import names from "./generated/names.json";
 const QUEST_TITLES: Readonly<Record<string, string>> = names.quests;
 
 /*
- * The rest of `generated/names.json` is carried but unread, and the fields are
- * named here rather than bound to constants nothing consumes:
+ * The rest of `generated/names.json` is carried but unread here, and the fields
+ * are named rather than bound to constants nothing consumes:
  *
+ *  - `enums` — every enum's members in declaration order. `ESkill` is the 168
+ *    skill names (`S_Sword_1`, `S_Magic_1`, …); also `ESignType`,
+ *    `EEquipmentSlots`, `EPlayerMutationType`, and the native
+ *    `EBaseCharacterStats`/`ECharacterDefenseStats`. For skill pickers and for
+ *    rendering an enum value as a name.
+ *  - `communities` — the 2,148 `*.w2comm` basenames, i.e. the NPC/community
+ *    spawn names a save stores as a path; a container's basename is looked up
+ *    here to label an NPC.
  *  - `itemFields` — the engine's item-class field names, in declaration order.
  *    This is what the engine *calls* durability/upgrade fields; see
  *    `inventory.ts` for why the 30-byte item record does not expose them.

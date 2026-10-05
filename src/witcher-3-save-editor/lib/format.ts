@@ -86,6 +86,7 @@ import { questTitle } from "./catalog";
 import { decompressContainer, type SaveContainer } from "./container";
 import { buildContainer } from "./container-write";
 import { readFactDB } from "./facts";
+import { readContainers } from "./inventory";
 import { readPlayer } from "./player";
 import { questProgress } from "./quests";
 import { locateWritable, type PatchableScalar, patchScalar } from "./write";
@@ -247,6 +248,20 @@ const project = (container: SaveContainer): JsonValue => {
 			quantity: item.quantity,
 			slot: item.slot,
 		})),
+		// Every *other* container's items — actors, merchants, chests — with the
+		// owner's community name where the save records one (`keira_metz`, …), so a
+		// merchant's or NPC's stock is readable rather than a bare offset. The
+		// player's list is `items` above; including it here would be two document
+		// fields over one list, which the round-trip check would rightly reject.
+		containers: readContainers(container.data)
+			.filter((c) => c.label !== "player" && c.items.length > 0)
+			.map((c) => ({
+				label: c.label,
+				items: c.items.map((item) => ({
+					name: item.name,
+					quantity: item.quantity,
+				})),
+			})),
 		position: (() => {
 			const player = readPlayer(container.data);
 			return player === undefined
