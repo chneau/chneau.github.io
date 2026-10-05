@@ -82,6 +82,14 @@ import {
 import { CROWNS_IDENTITY_52586 } from "./money";
 import { readNameTable } from "./names";
 import { type ReflectedValue, reflectValue } from "./reflect";
+import {
+	type BaseStat,
+	type LevelDefinition,
+	type Resistance,
+	readBaseStats,
+	readLevelCurve,
+	readResistances,
+} from "./stats";
 import { parseTokens, type Token } from "./tokens";
 
 /** How wide a writable field is, and therefore how it is read back. */
@@ -178,6 +186,8 @@ type SavedMutation = {
 
 /** Everything this editor can write in one save. */
 type WritableSave = {
+	/** read-only: the named base stats, resistances and XP curve. See `./stats`. */
+	readonly stats: CharacterSheet;
 	/** `undefined` when the build's record shape is not recognised. */
 	readonly money?: PatchableScalar;
 	readonly level?: PatchableScalar;
@@ -389,6 +399,30 @@ const cname = (
 	if (match === null) return value.text === "" ? undefined : value.text;
 	return enumName(names, Number(match[1]));
 };
+
+/** The read-only half of the character sheet, decoded from the same walk. */
+type CharacterSheet = {
+	readonly baseStats: readonly BaseStat[];
+	readonly resistances: readonly Resistance[];
+	readonly levelCurve: readonly LevelDefinition[];
+};
+
+/**
+ * Decode the read-only character sheet from the two managers this walk holds.
+ *
+ * A function rather than inline code in `locateWritable` because it needs
+ * `ReflectedValue`s that are function-local, and a type carrying them would leak
+ * the reflection layer into every consumer's signature.
+ */
+const readSheet = (
+	names: readonly string[],
+	levelManager: ReflectedValue | undefined,
+	ability: ReflectedValue | undefined,
+): CharacterSheet => ({
+	baseStats: readBaseStats(names, ability),
+	resistances: readResistances(names, ability),
+	levelCurve: readLevelCurve(levelManager),
+});
 
 const MUTATION_PROGRESS_KEYS = [
 	"redUsed",
@@ -609,6 +643,7 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 	}));
 
 	return {
+		stats: readSheet(names, levelManager, ability),
 		money: locateMoney(data),
 		level,
 		difficulty,
