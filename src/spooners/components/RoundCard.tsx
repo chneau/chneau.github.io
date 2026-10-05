@@ -150,6 +150,403 @@ const Stepper = ({
 	</Group>
 );
 
+const SectionLabel = ({ children }: { children: string }) => (
+	<Text
+		role="heading"
+		aria-level={3}
+		size="xs"
+		c="dimmed"
+		fw={600}
+		tt="uppercase"
+		mb={4}
+	>
+		{children}
+	</Text>
+);
+
+/** Shown after a clear or a replace, so the previous round can come back. */
+const UndoBanner = ({
+	text,
+	onUndo,
+}: {
+	text: string | null;
+	onUndo: () => void;
+}) => (
+	<Group
+		justify="space-between"
+		gap="xs"
+		p="xs"
+		style={{
+			borderRadius: 6,
+			background: "var(--mantine-color-default-hover)",
+		}}
+	>
+		<Text size="xs">{text ?? "Round changed"}</Text>
+		<Button
+			size="compact-xs"
+			variant="light"
+			leftSection={<RotateCcw size={12} />}
+			onClick={onUndo}
+		>
+			Undo
+		</Button>
+	</Group>
+);
+
+/**
+ * What the round currently resolves to: one item's facts, or a note that the
+ * map and rankings are showing the whole round.
+ */
+const RoundSummary = ({
+	single,
+	totalQty,
+	itemCount,
+	metric,
+	trend,
+}: {
+	single: ItemInfo | null;
+	totalQty: number;
+	itemCount: number;
+	metric: string | null;
+	trend: Trend | null;
+}) => {
+	if (!single) {
+		return itemCount > 1 ? (
+			<Badge variant="light" color="blue">
+				{totalQty} items · map shows the whole round
+			</Badge>
+		) : null;
+	}
+	return (
+		<Box>
+			<Group gap={6} align="baseline">
+				<Text size="sm" fw={600}>
+					{categoryLabel(single.category) ?? "Item"}
+				</Text>
+				<Text size="xs" c="dimmed">
+					{single.menu}
+				</Text>
+				{single.calories ? (
+					<Text size="xs" c="dimmed">
+						· {single.calories} kcal
+					</Text>
+				) : null}
+				{metric ? (
+					<Group gap={2} align="center">
+						<Text size="xs" c="teal" fw={600}>
+							{metric}
+						</Text>
+						<Hint label="Value: price per alcohol unit, per 100 ml, or calories per pound. The Value tab ranks by it." />
+					</Group>
+				) : null}
+			</Group>
+			{single.description ? (
+				<Text size="xs" c="dimmed">
+					{single.description}
+				</Text>
+			) : null}
+			{trend ? (
+				<Group gap={8} mt={6} align="center">
+					<Sparkline points={trend.points.map((point) => point.median)} />
+					<Text size="xs" c="dimmed">
+						median {trend.percent >= 0 ? "+" : "−"}
+						{Math.abs(Math.round(trend.percent))}% since {trend.points[0]?.t}
+					</Text>
+				</Group>
+			) : null}
+		</Box>
+	);
+};
+
+const CurrencyPicker = ({
+	currencies,
+	currency,
+	onCurrency,
+}: {
+	currencies?: CurrencyOption[];
+	currency?: string;
+	onCurrency?: (currency: string) => void;
+}) => {
+	if (!currencies || currencies.length <= 1 || !currency || !onCurrency) {
+		return null;
+	}
+	return (
+		<Box>
+			<SectionLabel>Currency</SectionLabel>
+			<SegmentedControl
+				size="xs"
+				fullWidth
+				value={currency}
+				data={currencies.map((option) => ({
+					label: `${option.code} (${option.count})`,
+					value: option.code,
+				}))}
+				onChange={onCurrency}
+			/>
+		</Box>
+	);
+};
+
+/** Dietary tags, pub facilities and the three count-labelled switches. */
+const RoundFilterGroups = ({
+	dietaryRelevant,
+	filters,
+	activeFilters,
+	onFilters,
+	facilities,
+	activeFacilities,
+	onFacilities,
+	openNow,
+	onOpenNow,
+	openCount,
+	hideSpecial,
+	onHideSpecial,
+	specialCount,
+	hideClosed,
+	onHideClosed,
+	closedCount,
+	onlyComplete,
+	onOnlyComplete,
+	completeCount,
+	partialCount,
+}: Pick<
+	Props,
+	| "dietaryRelevant"
+	| "filters"
+	| "activeFilters"
+	| "onFilters"
+	| "facilities"
+	| "activeFacilities"
+	| "onFacilities"
+	| "openNow"
+	| "onOpenNow"
+	| "openCount"
+	| "hideSpecial"
+	| "onHideSpecial"
+	| "specialCount"
+	| "hideClosed"
+	| "onHideClosed"
+	| "closedCount"
+	| "onlyComplete"
+	| "onOnlyComplete"
+	| "completeCount"
+	| "partialCount"
+>) => (
+	<>
+		{dietaryRelevant && filters.length ? (
+			<Box>
+				<SectionLabel>Dietary</SectionLabel>
+				<Chip.Group multiple value={activeFilters} onChange={onFilters}>
+					<Group gap={4}>
+						{filters.map((filter) => (
+							<Chip key={filter.id} size="xs" value={filter.id}>
+								{filter.label} ({filter.count})
+							</Chip>
+						))}
+					</Group>
+				</Chip.Group>
+			</Box>
+		) : null}
+
+		{facilities.length ? (
+			<Box>
+				<SectionLabel>Pub facilities</SectionLabel>
+				<Chip.Group multiple value={activeFacilities} onChange={onFacilities}>
+					<Group gap={4}>
+						{facilities.map((facility) => (
+							<Chip key={facility.label} size="xs" value={facility.label}>
+								{facility.label} ({facility.count})
+							</Chip>
+						))}
+					</Group>
+				</Chip.Group>
+			</Box>
+		) : null}
+
+		<Group gap="md" wrap="wrap">
+			<Switch
+				size="xs"
+				checked={openNow}
+				onChange={(event) => onOpenNow(event.currentTarget.checked)}
+				label={`Open now (${openCount})`}
+			/>
+			<Switch
+				size="xs"
+				checked={hideSpecial}
+				onChange={(event) => onHideSpecial(event.currentTarget.checked)}
+				label={`Hide airport & travel (${specialCount})`}
+			/>
+			<Switch
+				size="xs"
+				checked={hideClosed}
+				onChange={(event) => onHideClosed(event.currentTarget.checked)}
+				label={`Hide closed (${closedCount})`}
+			/>
+			{partialCount > 0 ? (
+				<Switch
+					size="xs"
+					checked={onlyComplete}
+					onChange={(event) => onOnlyComplete(event.currentTarget.checked)}
+					label={
+						<Group gap={4} component="span">
+							<span>Whole round only ({completeCount})</span>
+							<Hint label="Only compare pubs that can serve every item, so a pub missing a drink does not look cheaper." />
+						</Group>
+					}
+				/>
+			) : null}
+		</Group>
+
+		{partialCount > 0 ? (
+			<Text size="xs" c="dimmed">
+				{completeCount
+					? `${partialCount} ${
+							partialCount === 1 ? "pub" : "pubs"
+						} miss at least one item and are excluded while this is on.`
+					: `No pub serves every item of this round — turn "Whole round only" off to see partial rounds.`}
+			</Text>
+		) : null}
+	</>
+);
+
+/** The collapsible filter panel, with its heading and "Clear all". */
+const RoundFilters = ({
+	filtersOpen,
+	activeFilterCount,
+	onResetFilters,
+	...groups
+}: Pick<
+	Props,
+	| "dietaryRelevant"
+	| "filters"
+	| "activeFilters"
+	| "onFilters"
+	| "facilities"
+	| "activeFacilities"
+	| "onFacilities"
+	| "openNow"
+	| "onOpenNow"
+	| "openCount"
+	| "hideSpecial"
+	| "onHideSpecial"
+	| "specialCount"
+	| "hideClosed"
+	| "onHideClosed"
+	| "closedCount"
+	| "onlyComplete"
+	| "onOnlyComplete"
+	| "completeCount"
+	| "partialCount"
+> & {
+	filtersOpen: boolean;
+	activeFilterCount: number;
+	onResetFilters: () => void;
+}) => (
+	<Collapse expanded={filtersOpen}>
+		<Stack gap="sm" id="round-filters">
+			<Group justify="space-between" align="center">
+				<Text
+					role="heading"
+					aria-level={3}
+					size="xs"
+					c="dimmed"
+					fw={700}
+					tt="uppercase"
+				>
+					Filters
+				</Text>
+				<Button
+					size="compact-xs"
+					variant="subtle"
+					onClick={onResetFilters}
+					disabled={!activeFilterCount}
+				>
+					Clear all
+				</Button>
+			</Group>
+			<RoundFilterGroups {...groups} />
+		</Stack>
+	</Collapse>
+);
+
+/** Whether the browser knows where the user is, and the control to change that. */
+const LocationControl = ({
+	hasLocation,
+	geoState,
+	onNearMe,
+	onClearLocation,
+}: Pick<
+	Props,
+	"hasLocation" | "geoState" | "onNearMe" | "onClearLocation"
+>) => (
+	<>
+		{hasLocation ? (
+			<Group gap={6}>
+				<Badge variant="light" color="teal" leftSection={<MapPin size={12} />}>
+					Location on
+				</Badge>
+				<Button size="compact-xs" variant="subtle" onClick={onClearLocation}>
+					Turn off
+				</Button>
+			</Group>
+		) : (
+			<Button
+				size="xs"
+				variant="light"
+				leftSection={<LocateFixed size={14} />}
+				loading={geoState === "loading"}
+				onClick={onNearMe}
+			>
+				Near me
+			</Button>
+		)}
+		{geoState === "error" ? (
+			<Text size="xs" c="red">
+				Location unavailable — check browser permissions.
+			</Text>
+		) : null}
+	</>
+);
+
+/** The green→red price key, with the two ends of the scale labelled. */
+const PriceScaleKey = ({
+	scale,
+	currency,
+	converted,
+}: Pick<Props, "scale" | "converted"> & { currency?: string }) => (
+	<>
+		<Box mt="xs">
+			<Box
+				style={{
+					height: 6,
+					borderRadius: 999,
+					background: `linear-gradient(90deg, ${priceColor(
+						scale.min,
+						scale,
+					)}, ${priceColor(
+						(scale.min + scale.max) / 2,
+						scale,
+					)}, ${priceColor(scale.max, scale)})`,
+				}}
+			/>
+			<Group justify="space-between" mt={2}>
+				<Text size="xs" c="dimmed">
+					{money(scale.min, currency ?? "GBP")}
+				</Text>
+				<Text size="xs" c="dimmed">
+					{money(scale.max, currency ?? "GBP")}
+				</Text>
+			</Group>
+		</Box>
+		{converted ? (
+			<Text size="xs" c="dimmed">
+				converted to {converted.currency}
+				{converted.rateDate ? ` at ${converted.rateDate} ECB rates` : ""}
+			</Text>
+		) : null}
+	</>
+);
+
 /**
  * The round builder (and the app's only "search"): add drinks, set quantities,
  * then the map/rankings/stats all use the round total.
@@ -250,25 +647,7 @@ export const RoundCard = ({
 
 				<Collapse expanded={open}>
 					{onUndo ? (
-						<Group
-							justify="space-between"
-							gap="xs"
-							p="xs"
-							style={{
-								borderRadius: 6,
-								background: "var(--mantine-color-default-hover)",
-							}}
-						>
-							<Text size="xs">{undoText ?? "Round changed"}</Text>
-							<Button
-								size="compact-xs"
-								variant="light"
-								leftSection={<RotateCcw size={12} />}
-								onClick={onUndo}
-							>
-								Undo
-							</Button>
-						</Group>
+						<UndoBanner text={undoText ?? null} onUndo={onUndo} />
 					) : null}
 
 					<Stack gap={4}>
@@ -295,78 +674,19 @@ export const RoundCard = ({
 						onChange={onAdd}
 					/>
 
-					{single ? (
-						<Box>
-							<Group gap={6} align="baseline">
-								<Text size="sm" fw={600}>
-									{categoryLabel(single.category) ?? "Item"}
-								</Text>
-								<Text size="xs" c="dimmed">
-									{single.menu}
-								</Text>
-								{single.calories ? (
-									<Text size="xs" c="dimmed">
-										· {single.calories} kcal
-									</Text>
-								) : null}
-								{metric ? (
-									<Group gap={2} align="center">
-										<Text size="xs" c="teal" fw={600}>
-											{metric}
-										</Text>
-										<Hint label="Value: price per alcohol unit, per 100 ml, or calories per pound. The Value tab ranks by it." />
-									</Group>
-								) : null}
-							</Group>
-							{single.description ? (
-								<Text size="xs" c="dimmed">
-									{single.description}
-								</Text>
-							) : null}
-							{trend ? (
-								<Group gap={8} mt={6} align="center">
-									<Sparkline
-										points={trend.points.map((point) => point.median)}
-									/>
-									<Text size="xs" c="dimmed">
-										median {trend.percent >= 0 ? "+" : "−"}
-										{Math.abs(Math.round(trend.percent))}% since{" "}
-										{trend.points[0]?.t}
-									</Text>
-								</Group>
-							) : null}
-						</Box>
-					) : basket.length > 1 ? (
-						<Badge variant="light" color="blue">
-							{totalQty} items · map shows the whole round
-						</Badge>
-					) : null}
+					<RoundSummary
+						single={single ?? null}
+						totalQty={totalQty}
+						itemCount={basket.length}
+						metric={metric}
+						trend={trend}
+					/>
 
-					{currencies && currencies.length > 1 && currency && onCurrency ? (
-						<Box>
-							<Text
-								role="heading"
-								aria-level={3}
-								size="xs"
-								c="dimmed"
-								fw={600}
-								tt="uppercase"
-								mb={4}
-							>
-								Currency
-							</Text>
-							<SegmentedControl
-								size="xs"
-								fullWidth
-								value={currency}
-								data={currencies.map((option) => ({
-									label: `${option.code} (${option.count})`,
-									value: option.code,
-								}))}
-								onChange={onCurrency}
-							/>
-						</Box>
-					) : null}
+					<CurrencyPicker
+						currencies={currencies}
+						currency={currency}
+						onCurrency={onCurrency}
+					/>
 
 					<Button
 						variant="default"
@@ -397,205 +717,44 @@ export const RoundCard = ({
 						Filters
 					</Button>
 
-					<Collapse expanded={filtersOpen}>
-						<Stack gap="sm" id="round-filters">
-							<Group justify="space-between" align="center">
-								<Text
-									role="heading"
-									aria-level={3}
-									size="xs"
-									c="dimmed"
-									fw={700}
-									tt="uppercase"
-								>
-									Filters
-								</Text>
-								<Button
-									size="compact-xs"
-									variant="subtle"
-									onClick={onResetFilters}
-									disabled={!activeFilterCount}
-								>
-									Clear all
-								</Button>
-							</Group>
-							{dietaryRelevant && filters.length ? (
-								<Box>
-									<Text
-										role="heading"
-										aria-level={3}
-										size="xs"
-										c="dimmed"
-										fw={600}
-										tt="uppercase"
-										mb={4}
-									>
-										Dietary
-									</Text>
-									<Chip.Group
-										multiple
-										value={activeFilters}
-										onChange={onFilters}
-									>
-										<Group gap={4}>
-											{filters.map((filter) => (
-												<Chip key={filter.id} size="xs" value={filter.id}>
-													{filter.label} ({filter.count})
-												</Chip>
-											))}
-										</Group>
-									</Chip.Group>
-								</Box>
-							) : null}
+					<RoundFilters
+						filtersOpen={filtersOpen}
+						activeFilterCount={activeFilterCount}
+						onResetFilters={onResetFilters}
+						dietaryRelevant={dietaryRelevant}
+						filters={filters}
+						activeFilters={activeFilters}
+						onFilters={onFilters}
+						facilities={facilities}
+						activeFacilities={activeFacilities}
+						onFacilities={onFacilities}
+						openNow={openNow}
+						onOpenNow={onOpenNow}
+						openCount={openCount}
+						hideSpecial={hideSpecial}
+						onHideSpecial={onHideSpecial}
+						specialCount={specialCount}
+						hideClosed={hideClosed}
+						onHideClosed={onHideClosed}
+						closedCount={closedCount}
+						onlyComplete={onlyComplete}
+						onOnlyComplete={onOnlyComplete}
+						completeCount={completeCount}
+						partialCount={partialCount}
+					/>
 
-							{facilities.length ? (
-								<Box>
-									<Text
-										role="heading"
-										aria-level={3}
-										size="xs"
-										c="dimmed"
-										fw={600}
-										tt="uppercase"
-										mb={4}
-									>
-										Pub facilities
-									</Text>
-									<Chip.Group
-										multiple
-										value={activeFacilities}
-										onChange={onFacilities}
-									>
-										<Group gap={4}>
-											{facilities.map((facility) => (
-												<Chip
-													key={facility.label}
-													size="xs"
-													value={facility.label}
-												>
-													{facility.label} ({facility.count})
-												</Chip>
-											))}
-										</Group>
-									</Chip.Group>
-								</Box>
-							) : null}
+					<LocationControl
+						hasLocation={hasLocation}
+						geoState={geoState}
+						onNearMe={onNearMe}
+						onClearLocation={onClearLocation}
+					/>
 
-							<Group gap="md" wrap="wrap">
-								<Switch
-									size="xs"
-									checked={openNow}
-									onChange={(event) => onOpenNow(event.currentTarget.checked)}
-									label={`Open now (${openCount})`}
-								/>
-								<Switch
-									size="xs"
-									checked={hideSpecial}
-									onChange={(event) =>
-										onHideSpecial(event.currentTarget.checked)
-									}
-									label={`Hide airport & travel (${specialCount})`}
-								/>
-								<Switch
-									size="xs"
-									checked={hideClosed}
-									onChange={(event) =>
-										onHideClosed(event.currentTarget.checked)
-									}
-									label={`Hide closed (${closedCount})`}
-								/>
-								{partialCount > 0 ? (
-									<Switch
-										size="xs"
-										checked={onlyComplete}
-										onChange={(event) =>
-											onOnlyComplete(event.currentTarget.checked)
-										}
-										label={
-											<Group gap={4} component="span">
-												<span>Whole round only ({completeCount})</span>
-												<Hint label="Only compare pubs that can serve every item, so a pub missing a drink does not look cheaper." />
-											</Group>
-										}
-									/>
-								) : null}
-							</Group>
-
-							{partialCount > 0 ? (
-								<Text size="xs" c="dimmed">
-									{completeCount
-										? `${partialCount} ${
-												partialCount === 1 ? "pub" : "pubs"
-											} miss at least one item and are excluded while this is on.`
-										: `No pub serves every item of this round — turn "Whole round only" off to see partial rounds.`}
-								</Text>
-							) : null}
-						</Stack>
-					</Collapse>
-
-					{hasLocation ? (
-						<Group gap={6}>
-							<Badge
-								variant="light"
-								color="teal"
-								leftSection={<MapPin size={12} />}
-							>
-								Location on
-							</Badge>
-							<Button
-								size="compact-xs"
-								variant="subtle"
-								onClick={onClearLocation}
-							>
-								Turn off
-							</Button>
-						</Group>
-					) : (
-						<Button
-							size="xs"
-							variant="light"
-							leftSection={<LocateFixed size={14} />}
-							loading={geoState === "loading"}
-							onClick={onNearMe}
-						>
-							Near me
-						</Button>
-					)}
-					{geoState === "error" ? (
-						<Text size="xs" c="red">
-							Location unavailable — check browser permissions.
-						</Text>
-					) : null}
-
-					<Box mt="xs">
-						<Box
-							style={{
-								height: 6,
-								borderRadius: 999,
-								background: `linear-gradient(90deg, ${priceColor(
-									scale.min,
-									scale,
-								)}, ${priceColor(
-									(scale.min + scale.max) / 2,
-									scale,
-								)}, ${priceColor(scale.max, scale)})`,
-							}}
-						/>
-						<Group justify="space-between" mt={2}>
-							<Text size="xs" c="dimmed">
-								{money(scale.min, currency ?? "GBP")}
-							</Text>
-							<Text size="xs" c="dimmed">
-								{money(scale.max, currency ?? "GBP")}
-							</Text>
-						</Group>
-					</Box>
-					{converted ? (
-						<Text size="xs" c="dimmed">
-							converted to {converted.currency}
-							{converted.rateDate ? ` at ${converted.rateDate} ECB rates` : ""}
-						</Text>
-					) : null}
+					<PriceScaleKey
+						scale={scale}
+						currency={currency}
+						converted={converted}
+					/>
 				</Collapse>
 			</Stack>
 		</Card>

@@ -1,11 +1,6 @@
-import {
-	Box,
-	Button,
-	type MantineColorsTuple,
-	MantineProvider,
-} from "@mantine/core";
+import { Box, type MantineColorsTuple, MantineProvider } from "@mantine/core";
 import Fuse from "fuse.js";
-import { Rocket, Search } from "lucide-react";
+import { Rocket } from "lucide-react";
 import {
 	useCallback,
 	useEffect,
@@ -22,7 +17,6 @@ import {
 	CommandPalette,
 	CommandPaletteButton,
 	createAppTheme,
-	EmptyState,
 	HeaderAction,
 	ROOT_THEME_KEY,
 	SkipLink,
@@ -36,11 +30,11 @@ import {
 // not be dragged onto every app that imports a single shared component.
 import { track } from "../shared/analytics";
 import { ConsentBanner, useAnalyticsConsent } from "../shared/consent";
-import { AppGrid } from "./AppGrid";
 import { AppToolbar } from "./AppToolbar";
 import { createCommands } from "./commands";
 import { DashboardFooter } from "./DashboardFooter";
 import { DashboardHero } from "./DashboardHero";
+import { AppLists, SearchResults } from "./DashboardSections";
 import { GithubIcon } from "./GithubIcon";
 import { useDashboardShortcuts } from "./useDashboardShortcuts";
 
@@ -178,6 +172,10 @@ export const App = () => {
 	}, [category, fuse, query]);
 
 	const isSearching = query.trim().length > 0 || category !== "All";
+	const resetSearch = useCallback(() => {
+		setQuery("");
+		setCategory("All");
+	}, []);
 	const pinnedApps = useMemo(
 		() => APPS.filter((app) => pinned.includes(app.href)),
 		[pinned],
@@ -271,103 +269,21 @@ export const App = () => {
 						/>
 
 						{isSearching ? (
-							<>
-								<h2 className="app-section-title">
-									Results
-									{/* The count is the only feedback a screen-reader user
-										    gets while typing, so announce it politely. */}
-									<span
-										className="app-section-title__count"
-										role="status"
-										aria-live="polite"
-									>
-										{filtered.length}
-									</span>
-								</h2>
-								{filtered.length > 0 ? (
-									<AppGrid
-										items={filtered}
-										isPinned={isPinned}
-										visitedAt={visitedAt}
-										onTogglePin={togglePin}
-									/>
-								) : (
-									<EmptyState
-										icon={<Search size={22} />}
-										title="No apps match that"
-										body="Try a shorter query, or clear the filters to see everything."
-										action={
-											<Button
-												variant="light"
-												onClick={() => {
-													setQuery("");
-													setCategory("All");
-												}}
-											>
-												Reset filters
-											</Button>
-										}
-									/>
-								)}
-							</>
+							<SearchResults
+								items={filtered}
+								isPinned={isPinned}
+								visitedAt={visitedAt}
+								onTogglePin={togglePin}
+								onReset={resetSearch}
+							/>
 						) : (
-							<>
-								{pinnedApps.length > 0 ? (
-									<>
-										<h2 className="app-section-title">
-											Pinned
-											<span className="app-section-title__count">
-												{pinnedApps.length}
-											</span>
-										</h2>
-										<AppGrid
-											items={pinnedApps}
-											isPinned={isPinned}
-											visitedAt={visitedAt}
-											onTogglePin={togglePin}
-										/>
-									</>
-								) : null}
-
-								{recentApps.length > 0 ? (
-									<>
-										<h2 className="app-section-title">
-											Recently opened
-											<span className="app-section-title__count">
-												{recentApps.length}
-											</span>
-										</h2>
-										<div className="app-recents">
-											{recentApps.map((app) => {
-												const Icon = app.icon;
-												return (
-													<a
-														key={app.href}
-														className="app-recent-chip"
-														href={app.href}
-													>
-														<Icon size={14} />
-														{app.title}
-													</a>
-												);
-											})}
-										</div>
-									</>
-								) : null}
-
-								<h2 className="app-section-title">
-									All apps
-									<span className="app-section-title__count">
-										{APPS.length}
-									</span>
-								</h2>
-								<AppGrid
-									items={APPS}
-									isPinned={isPinned}
-									visitedAt={visitedAt}
-									onTogglePin={togglePin}
-								/>
-							</>
+							<AppLists
+								pinned={pinnedApps}
+								recent={recentApps}
+								isPinned={isPinned}
+								visitedAt={visitedAt}
+								onTogglePin={togglePin}
+							/>
 						)}
 					</div>
 				</Box>

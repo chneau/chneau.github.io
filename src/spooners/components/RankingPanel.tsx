@@ -56,6 +56,115 @@ const changeText = (venue: PricedVenue): string | null => {
 	)} (${delta > 0 ? "+" : "−"}${Math.abs(Math.round(percent))}%)`;
 };
 
+/**
+ * The one-line summary under a venue's name: where it is, what it cannot do,
+ * what it is missing, and how its price moved. Assembled as a string rather
+ * than as elements because every clause is optional and they all read as one
+ * sentence joined by "·".
+ */
+const RowMeta = ({
+	venue,
+	currency,
+	value,
+}: {
+	venue: PricedVenue;
+	currency: string;
+	/** The Value tab prints the metric as the row's headline price instead. */
+	value: boolean;
+}) => {
+	const change = changeText(venue);
+	return (
+		<Text size="xs" c="dimmed" lineClamp={1}>
+			{[venue.town, venue.postcode].filter(Boolean).join(", ")}
+			{venue.distance != null ? ` · ${miles(venue.distance)}` : ""}
+			{venue.canOrder ? "" : " · no ordering"}
+			{venue.missing.length ? ` · missing ${venue.missing.join(", ")}` : ""}
+			{venue.metricValue != null && venue.metricKind && !value
+				? ` · ${metricText(
+						{ kind: venue.metricKind, value: venue.metricValue },
+						currency,
+					)}`
+				: ""}
+			{change
+				? ` · was ${currencySymbol(currency)}${amount(
+						venue.previousPrice ?? 0,
+						currency,
+					)}, ${change}`
+				: ""}
+		</Text>
+	);
+};
+
+/**
+ * The bold line: whether the pub is open, its name, and the badges that qualify
+ * it. The name sits between the state and the badges on purpose — it is the
+ * row's label, so it must come before the qualifiers in the reading order.
+ */
+const RowHeading = ({ venue }: { venue: PricedVenue }) => (
+	<>
+		<StatusDot
+			on={venue.isOpenNow}
+			label={venue.isOpenNow ? "Open now" : "Closed now"}
+		/>
+		<Text size="xs" fw={600} c={venue.isOpenNow ? "teal" : "red"}>
+			{venue.isOpenNow ? "Open" : "Closed"}
+		</Text>
+		<Text size="sm" lineClamp={1}>
+			{venue.name}
+		</Text>
+		{venue.spot !== "high-street" ? (
+			<Badge size="xs" variant="light" color="grape">
+				<SpotLabel spot={venue.spot} />
+			</Badge>
+		) : null}
+		{isTemporarilyClosed(venue.status) ? (
+			<Badge
+				size="xs"
+				variant="light"
+				color="red"
+				leftSection={<Ban size={11} />}
+			>
+				{venue.status?.replace("_", " ")}
+			</Badge>
+		) : null}
+		{venue.missing.length ? (
+			<Badge size="xs" variant="light" color="orange">
+				partial
+			</Badge>
+		) : null}
+	</>
+);
+
+/** The row's price, plus the value metric when that tab is ranking. */
+const RowPrice = ({
+	venue,
+	scale,
+	currency,
+	value,
+}: {
+	venue: PricedVenue;
+	scale: PriceScale;
+	currency: string;
+	value: boolean;
+}) => (
+	<Group gap={4} wrap="nowrap" align="baseline">
+		{value && venue.metricKind && venue.metricValue != null ? (
+			<Text size="sm" fw={700}>
+				{metricText(
+					{ kind: venue.metricKind, value: venue.metricValue },
+					currency,
+				)}
+			</Text>
+		) : null}
+		<Text size="xs" fw={600} style={{ color: priceColor(venue.price, scale) }}>
+			{currencySymbol(currency)}
+		</Text>
+		<Text size="sm" fw={700} style={{ color: priceColor(venue.price, scale) }}>
+			{amount(venue.price, currency)}
+		</Text>
+	</Group>
+);
+
 const Row = ({
 	venue,
 	rank,
@@ -74,146 +183,71 @@ const Row = ({
 	onFocus: (venue: PricedVenue) => void;
 	onDetails: (venue: PricedVenue) => void;
 	value: boolean;
-}) => {
-	const change = changeText(venue);
-	const temporarilyClosed = isTemporarilyClosed(venue.status);
-	return (
-		<Box style={{ position: "relative" }}>
-			<UnstyledButton
-				onClick={() => onFocus(venue)}
+}) => (
+	<Box style={{ position: "relative" }}>
+		<UnstyledButton
+			onClick={() => onFocus(venue)}
+			style={{
+				display: "block",
+				width: "100%",
+				cursor: "pointer",
+				textAlign: "left",
+				padding: "6px 30px 6px 8px",
+				borderRadius: 6,
+				background: active ? "var(--mantine-color-default-hover)" : undefined,
+			}}
+		>
+			<Group justify="space-between" gap={8} wrap="nowrap" align="baseline">
+				<Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
+					<Text size="xs" c="dimmed" w={16} ta="right">
+						{rank}
+					</Text>
+					<VenueImage
+						src={venue.images[0]}
+						alt={venue.name}
+						width={32}
+						height={32}
+					/>
+					<Box style={{ minWidth: 0 }}>
+						<Group gap={6} wrap="nowrap" align="center" style={{ minWidth: 0 }}>
+							<RowHeading venue={venue} />
+						</Group>
+						<RowMeta venue={venue} currency={currency} value={value} />
+					</Box>
+				</Group>
+				<RowPrice
+					venue={venue}
+					scale={scale}
+					currency={currency}
+					value={value}
+				/>
+			</Group>
+			<Progress
+				value={Math.max(3, normalize(venue.price, scale) * 100)}
+				color={priceColor(venue.price, scale)}
+				size={4}
+				mt={4}
+				radius="xl"
+			/>
+		</UnstyledButton>
+		<Tooltip label="Pub details">
+			<ActionIcon
+				size="sm"
+				variant="subtle"
+				aria-label={`Details for ${venue.name}`}
+				onClick={() => onDetails(venue)}
 				style={{
-					display: "block",
-					width: "100%",
-					cursor: "pointer",
-					textAlign: "left",
-					padding: "6px 30px 6px 8px",
-					borderRadius: 6,
-					background: active ? "var(--mantine-color-default-hover)" : undefined,
+					position: "absolute",
+					top: "50%",
+					right: 4,
+					transform: "translateY(-50%)",
 				}}
 			>
-				<Group justify="space-between" gap={8} wrap="nowrap" align="baseline">
-					<Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
-						<Text size="xs" c="dimmed" w={16} ta="right">
-							{rank}
-						</Text>
-						<VenueImage
-							src={venue.images[0]}
-							alt={venue.name}
-							width={32}
-							height={32}
-						/>
-						<Box style={{ minWidth: 0 }}>
-							<Group
-								gap={6}
-								wrap="nowrap"
-								align="center"
-								style={{ minWidth: 0 }}
-							>
-								<StatusDot
-									on={venue.isOpenNow}
-									label={venue.isOpenNow ? "Open now" : "Closed now"}
-								/>
-								<Text size="xs" fw={600} c={venue.isOpenNow ? "teal" : "red"}>
-									{venue.isOpenNow ? "Open" : "Closed"}
-								</Text>
-								<Text size="sm" lineClamp={1}>
-									{venue.name}
-								</Text>
-								{venue.spot !== "high-street" ? (
-									<Badge size="xs" variant="light" color="grape">
-										<SpotLabel spot={venue.spot} />
-									</Badge>
-								) : null}
-								{temporarilyClosed ? (
-									<Badge
-										size="xs"
-										variant="light"
-										color="red"
-										leftSection={<Ban size={11} />}
-									>
-										{venue.status?.replace("_", " ")}
-									</Badge>
-								) : null}
-								{venue.missing.length ? (
-									<Badge size="xs" variant="light" color="orange">
-										partial
-									</Badge>
-								) : null}
-							</Group>
-							<Text size="xs" c="dimmed" lineClamp={1}>
-								{[venue.town, venue.postcode].filter(Boolean).join(", ")}
-								{venue.distance != null ? ` · ${miles(venue.distance)}` : ""}
-								{venue.canOrder ? "" : " · no ordering"}
-								{venue.missing.length
-									? ` · missing ${venue.missing.join(", ")}`
-									: ""}
-								{venue.metricValue != null && venue.metricKind && !value
-									? ` · ${metricText(
-											{ kind: venue.metricKind, value: venue.metricValue },
-											currency,
-										)}`
-									: ""}
-								{change
-									? ` · was ${currencySymbol(currency)}${amount(
-											venue.previousPrice ?? 0,
-											currency,
-										)}, ${change}`
-									: ""}
-							</Text>
-						</Box>
-					</Group>
-					<Group gap={4} wrap="nowrap" align="baseline">
-						{value && venue.metricKind && venue.metricValue != null ? (
-							<Text size="sm" fw={700}>
-								{metricText(
-									{ kind: venue.metricKind, value: venue.metricValue },
-									currency,
-								)}
-							</Text>
-						) : null}
-						<Text
-							size="xs"
-							fw={600}
-							style={{ color: priceColor(venue.price, scale) }}
-						>
-							{currencySymbol(currency)}
-						</Text>
-						<Text
-							size="sm"
-							fw={700}
-							style={{ color: priceColor(venue.price, scale) }}
-						>
-							{amount(venue.price, currency)}
-						</Text>
-					</Group>
-				</Group>
-				<Progress
-					value={Math.max(3, normalize(venue.price, scale) * 100)}
-					color={priceColor(venue.price, scale)}
-					size={4}
-					mt={4}
-					radius="xl"
-				/>
-			</UnstyledButton>
-			<Tooltip label="Pub details">
-				<ActionIcon
-					size="sm"
-					variant="subtle"
-					aria-label={`Details for ${venue.name}`}
-					onClick={() => onDetails(venue)}
-					style={{
-						position: "absolute",
-						top: "50%",
-						right: 4,
-						transform: "translateY(-50%)",
-					}}
-				>
-					<Info size={13} />
-				</ActionIcon>
-			</Tooltip>
-		</Box>
-	);
-};
+				<Info size={13} />
+			</ActionIcon>
+		</Tooltip>
+	</Box>
+);
 
 /** Cheapest / dearest / nearest / best-value pubs for the selected item. */
 export const RankingPanel = ({

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { basketVenues } from "../basket";
-import { buildHistogram } from "../components/Distribution";
 import data from "../data/data.json";
+import { buildHistogram } from "../histogram";
 import type { SpoonersCache } from "../types";
 
 const cache = data as unknown as SpoonersCache;

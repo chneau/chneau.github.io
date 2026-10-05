@@ -1,5 +1,4 @@
 import {
-	ActionIcon,
 	Alert,
 	Badge,
 	Box,
@@ -7,17 +6,17 @@ import {
 	Checkbox,
 	Group,
 	NumberInput,
-	Pagination,
 	Paper,
 	ScrollArea,
 	Select,
 	Stack,
 	Table,
 	Text,
-	TextInput,
 } from "@mantine/core";
-import { Search, TrendingUp, TriangleAlert, Undo2, X } from "lucide-react";
+import { TrendingUp, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { PanelPager } from "@/components/panel-pager";
+import { PanelSearchField } from "@/components/panel-search";
 import type {
 	CharacterChange,
 	CharacterDescription,
@@ -62,6 +61,124 @@ const BLANK: CharacterChange = {
 };
 
 const kindOrder: CharacterKind[] = ["player", "bond", "region", "companion"];
+
+/**
+ * One tracked row: its kind and name, a box per numeric field it carries, and
+ * the two reward checkboxes a bond has and nothing else does.
+ *
+ * The row is the natural unit — the field boxes are the same input three times
+ * over and the checkboxes exist only for bonds, so both decisions belong with
+ * the row rather than with the panel that filters it.
+ */
+const LevelRow = ({
+	entry,
+	staged,
+	busy,
+	onStage,
+}: {
+	entry: CharacterEntry;
+	/** This row's staged change, when the user has touched one of its fields. */
+	staged: CharacterEdit | undefined;
+	busy: boolean;
+	onStage: (patch: Partial<CharacterChange>) => void;
+}) => {
+	const field = (name: "level" | "maxLevel" | "experience", limit: number) => {
+		const stored = entry[name];
+		const stagedValue = staged?.[name] ?? null;
+		// A field the save omits because it still holds its default is editable
+		// anyway — the applier creates it — so only a field this row does not
+		// track at all is disabled.
+		const canCreate = entry.creatable.includes(name);
+		const active = stored !== null || stagedValue !== null || canCreate;
+		return (
+			<NumberInput
+				size="xs"
+				w={96}
+				hideControls
+				min={0}
+				max={limit}
+				clampBehavior="strict"
+				disabled={busy || !active}
+				placeholder={canCreate && stored === null ? "add" : "not stored"}
+				value={stagedValue ?? stored ?? ""}
+				onChange={(next) =>
+					onStage({
+						[name]:
+							next === "" || next === undefined
+								? null
+								: Math.min(limit, Math.max(0, Number(next))),
+					})
+				}
+				aria-label={`${name} of ${entry.id}`}
+			/>
+		);
+	};
+
+	const flag = (name: "threatRewarded" | "memoryRewarded", label: string) => {
+		const value = staged?.[name] ?? entry[name] ?? false;
+		return (
+			<Checkbox
+				size="xs"
+				disabled={busy || entry.kind !== "bond"}
+				label={label}
+				checked={Boolean(value)}
+				onChange={(event) => onStage({ [name]: event.currentTarget.checked })}
+			/>
+		);
+	};
+
+	return (
+		<Table.Tr>
+			<Table.Td>
+				<Group gap="xs" wrap="nowrap">
+					<Badge
+						size="xs"
+						variant="light"
+						color="brand"
+						styles={{ label: { textTransform: "none", fontWeight: 500 } }}
+					>
+						{characterKindLabels[entry.kind]}
+					</Badge>
+					<Box style={{ minWidth: 0 }}>
+						<Text size="sm" fw={500} truncate>
+							{entry.name ?? `Key ${entry.key}`}
+						</Text>
+						<Text size="10px" c="dimmed" ff="monospace">
+							{entry.id}
+						</Text>
+					</Box>
+				</Group>
+			</Table.Td>
+			<Table.Td>{field("level", levelLimit)}</Table.Td>
+			<Table.Td>
+				{entry.kind === "region" ? (
+					field("maxLevel", levelLimit)
+				) : (
+					<Text size="xs" c="dimmed">
+						—
+					</Text>
+				)}
+			</Table.Td>
+			<Table.Td>{field("experience", experienceLimit)}</Table.Td>
+			<Table.Td>
+				{entry.kind === "bond" ? (
+					<Group gap="sm">
+						{flag("threatRewarded", "Threat")}
+						{flag("memoryRewarded", "Memory")}
+					</Group>
+				) : (
+					<Text size="xs" c="dimmed">
+						—
+					</Text>
+				)}
+			</Table.Td>
+		</Table.Tr>
+	);
+};
+
+/** How many of the staged edits are per-row changes rather than presets. */
+const stagedRowCount = (edits: LevelEdit[]): number =>
+	edits.filter((edit) => edit.type === "character").length;
 
 /**
  * Every level the save tracks, in one table.
@@ -164,62 +281,6 @@ export const LevelsPanel = ({
 		);
 	};
 
-	const field = (
-		entry: CharacterEntry,
-		name: "level" | "maxLevel" | "experience",
-		limit: number,
-	) => {
-		const stored = entry[name];
-		const staged = rowEdit(entry.id)?.[name] ?? null;
-		// A field the save omits because it still holds its default is editable
-		// anyway — the applier creates it — so only a field this row does not
-		// track at all is disabled.
-		const canCreate = entry.creatable.includes(name);
-		const active = stored !== null || staged !== null || canCreate;
-		return (
-			<NumberInput
-				size="xs"
-				w={96}
-				hideControls
-				min={0}
-				max={limit}
-				clampBehavior="strict"
-				disabled={busy || !active}
-				placeholder={canCreate && stored === null ? "add" : "not stored"}
-				value={staged ?? stored ?? ""}
-				onChange={(next) =>
-					stageRow(entry, {
-						[name]:
-							next === "" || next === undefined
-								? null
-								: Math.min(limit, Math.max(0, Number(next))),
-					})
-				}
-				aria-label={`${name} of ${entry.id}`}
-			/>
-		);
-	};
-
-	const flag = (
-		entry: CharacterEntry,
-		name: "threatRewarded" | "memoryRewarded",
-		label: string,
-	) => {
-		const staged = rowEdit(entry.id)?.[name] ?? null;
-		const value = staged ?? entry[name] ?? false;
-		return (
-			<Checkbox
-				size="xs"
-				disabled={busy || entry.kind !== "bond"}
-				label={label}
-				checked={Boolean(value)}
-				onChange={(event) =>
-					stageRow(entry, { [name]: event.currentTarget.checked })
-				}
-			/>
-		);
-	};
-
 	if (description?.error) {
 		return (
 			<Stack component="section" gap="lg" p="md" style={{ flex: 1 }}>
@@ -229,6 +290,8 @@ export const LevelsPanel = ({
 			</Stack>
 		);
 	}
+
+	const stagedRows = stagedRowCount(edits);
 
 	return (
 		<Stack
@@ -313,11 +376,7 @@ export const LevelsPanel = ({
 					<Group justify="space-between" gap="md" wrap="nowrap">
 						<Box>
 							<Text size="sm" fw={500}>
-								{edits.filter((edit) => edit.type === "character").length} row
-								{edits.filter((edit) => edit.type === "character").length === 1
-									? ""
-									: "s"}{" "}
-								staged
+								{stagedRows} row{stagedRows === 1 ? "" : "s"} staged
 								{presets.length > 0
 									? ` · ${presets.map((edit) => edit.label).join(" · ")}`
 									: ""}
@@ -339,153 +398,84 @@ export const LevelsPanel = ({
 				</Paper>
 			)}
 
-			<Box>
-				<Group align="flex-end" gap="md">
-					<TextInput
-						w="100%"
-						style={{ flex: 1, minWidth: "12rem" }}
-						label="Search rows"
-						placeholder="Search names, ids or keys"
-						leftSection={<Search size={16} />}
-						rightSection={
-							query ? (
-								<ActionIcon
-									size="xs"
-									variant="subtle"
-									color="gray"
-									onClick={() => {
-										setQuery("");
-										setPage(0);
-									}}
-									title="Clear search"
-									aria-label="Clear search"
-								>
-									<X size={14} />
-								</ActionIcon>
-							) : undefined
-						}
-						value={query}
-						onChange={(event) => {
-							setQuery(event.currentTarget.value);
-							setPage(0);
-						}}
-					/>
-					<Select
-						w={190}
-						label="Table"
-						value={kind}
-						allowDeselect={false}
-						data={[
-							{ value: "all", label: `All rows (${entries.length})` },
-							...kindOrder.map((entry) => ({
-								value: entry,
-								label: `${characterKindLabels[entry]} (${
-									description?.counts[entry] ?? 0
-								})`,
-							})),
-						]}
-						onChange={(value) => {
-							setKind((value ?? "all") as CharacterKind | "all");
-							setPage(0);
-						}}
-					/>
-				</Group>
-			</Box>
+			<Group align="flex-end" gap="md">
+				<PanelSearchField
+					label="Search rows"
+					placeholder="Search names, ids or keys"
+					value={query}
+					onChange={(value) => {
+						setQuery(value);
+						setPage(0);
+					}}
+					onClear={() => {
+						setQuery("");
+						setPage(0);
+					}}
+				/>
+				<Select
+					w={190}
+					label="Table"
+					value={kind}
+					allowDeselect={false}
+					data={[
+						{ value: "all", label: `All rows (${entries.length})` },
+						...kindOrder.map((entry) => ({
+							value: entry,
+							label: `${characterKindLabels[entry]} (${
+								description?.counts[entry] ?? 0
+							})`,
+						})),
+					]}
+					onChange={(value) => {
+						setKind((value ?? "all") as CharacterKind | "all");
+						setPage(0);
+					}}
+				/>
+			</Group>
 
-			<Box>
-				<ScrollArea.Autosize
-					mah={420}
-					type="auto"
-					style={{ border: "1px solid var(--app-border)" }}
-				>
-					<Table stickyHeader highlightOnHover verticalSpacing="xs" fz="xs">
-						<Table.Thead>
+			<ScrollArea.Autosize
+				mah={420}
+				type="auto"
+				style={{ border: "1px solid var(--app-border)" }}
+			>
+				<Table stickyHeader highlightOnHover verticalSpacing="xs" fz="xs">
+					<Table.Thead>
+						<Table.Tr>
+							<Table.Th>Row</Table.Th>
+							<Table.Th>Level</Table.Th>
+							<Table.Th>Highest reached</Table.Th>
+							<Table.Th>Experience</Table.Th>
+							<Table.Th>Rewards</Table.Th>
+						</Table.Tr>
+					</Table.Thead>
+					<Table.Tbody>
+						{visible.map((entry) => (
+							<LevelRow
+								key={entry.id}
+								entry={entry}
+								staged={rowEdit(entry.id)}
+								busy={busy}
+								onStage={(patch) => stageRow(entry, patch)}
+							/>
+						))}
+						{visible.length === 0 && (
 							<Table.Tr>
-								<Table.Th>Row</Table.Th>
-								<Table.Th>Level</Table.Th>
-								<Table.Th>Highest reached</Table.Th>
-								<Table.Th>Experience</Table.Th>
-								<Table.Th>Rewards</Table.Th>
+								<Table.Td colSpan={5}>
+									<Text size="sm" c="dimmed" ta="center" py="md">
+										No rows match this filter.
+									</Text>
+								</Table.Td>
 							</Table.Tr>
-						</Table.Thead>
-						<Table.Tbody>
-							{visible.map((entry) => (
-								<Table.Tr key={entry.id}>
-									<Table.Td>
-										<Group gap="xs" wrap="nowrap">
-											<Badge
-												size="xs"
-												variant="light"
-												color="brand"
-												styles={{
-													label: { textTransform: "none", fontWeight: 500 },
-												}}
-											>
-												{characterKindLabels[entry.kind]}
-											</Badge>
-											<Box style={{ minWidth: 0 }}>
-												<Text size="sm" fw={500} truncate>
-													{entry.name ?? `Key ${entry.key}`}
-												</Text>
-												<Text size="10px" c="dimmed" ff="monospace">
-													{entry.id}
-												</Text>
-											</Box>
-										</Group>
-									</Table.Td>
-									<Table.Td>{field(entry, "level", levelLimit)}</Table.Td>
-									<Table.Td>
-										{entry.kind === "region" ? (
-											field(entry, "maxLevel", levelLimit)
-										) : (
-											<Text size="xs" c="dimmed">
-												—
-											</Text>
-										)}
-									</Table.Td>
-									<Table.Td>
-										{field(entry, "experience", experienceLimit)}
-									</Table.Td>
-									<Table.Td>
-										{entry.kind === "bond" ? (
-											<Group gap="sm">
-												{flag(entry, "threatRewarded", "Threat")}
-												{flag(entry, "memoryRewarded", "Memory")}
-											</Group>
-										) : (
-											<Text size="xs" c="dimmed">
-												—
-											</Text>
-										)}
-									</Table.Td>
-								</Table.Tr>
-							))}
-							{visible.length === 0 && (
-								<Table.Tr>
-									<Table.Td colSpan={5}>
-										<Text size="sm" c="dimmed" ta="center" py="md">
-											No rows match this filter.
-										</Text>
-									</Table.Td>
-								</Table.Tr>
-							)}
-						</Table.Tbody>
-					</Table>
-				</ScrollArea.Autosize>
-				<Group justify="space-between" mt="sm">
-					<Text size="xs" c="dimmed">
-						{matches.length.toLocaleString()} rows
-					</Text>
-					{pages > 1 && (
-						<Pagination
-							size="sm"
-							total={pages}
-							value={current + 1}
-							onChange={(next) => setPage(next - 1)}
-						/>
-					)}
-				</Group>
-			</Box>
+						)}
+					</Table.Tbody>
+				</Table>
+			</ScrollArea.Autosize>
+			<PanelPager
+				count={`${matches.length.toLocaleString()} rows`}
+				pages={pages}
+				current={current}
+				onPageChange={setPage}
+			/>
 		</Stack>
 	);
 };

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildHistogram } from "../components/Distribution";
+import { buildHistogram } from "../histogram";
 import { makeScale, median, money, normalize } from "../price";
 
 describe("money", () => {

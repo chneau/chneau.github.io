@@ -1,58 +1,37 @@
-import { Alert } from "@mantine/core";
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
-import { Keyboard, Moon, Sun, TriangleAlert, Undo2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Keyboard, Moon, Sun, Undo2 } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
-import { CompanionPanel } from "@/components/companion-panel";
-import { ConditionPanel } from "@/components/condition-panel";
-import { DyesPanel } from "@/components/dyes-panel";
 import { EditorShell } from "@/components/editor-shell";
-import type { EquipmentCatalog } from "@/components/equipment-workshop";
 import {
 	type InventoryFocus,
 	InventoryView,
 } from "@/components/inventory-view";
 import { LandingView } from "@/components/landing-view";
-import { LevelsPanel } from "@/components/levels-panel";
-import { NamesPanel } from "@/components/names-panel";
-import { QuestsPanel } from "@/components/quests-panel";
-import { SkillsPanel } from "@/components/skills-panel";
+import { SectionPanel, SkippedRecordsAlert } from "@/components/section-panel";
+import { useEditorCatalogs } from "@/components/use-editor-catalogs";
+import {
+	useStagedEditGuards,
+	useViewInUrl,
+} from "@/components/use-editor-guards";
+import { useStagedEdits } from "@/components/use-staged-edits";
 import { useSaveSession } from "@/hooks/useSaveSession";
 import {
 	type CompanionCatalog,
 	type CompanionCategory,
-	type CompanionEdit,
 	companionLabels,
 } from "@/lib/companions";
 import { readDeepLink } from "@/lib/deep-link";
-import type { EquipmentEdit, InsertEquipmentEdit } from "@/lib/equipment";
 import companionCatalogData from "@/lib/generated/companion-catalog.json";
 import {
-	type Catalog,
-	type CatalogItem,
 	editorViewInfo,
 	isEditorView,
 	type SaveView,
 	storageName,
 } from "@/lib/inventory";
-import {
-	equipmentCatalogTable,
-	type ItemCatalogFile,
-	type ItemKnowledgeMapFile,
-	itemCatalogTable,
-	itemKnowledgeTable,
-} from "@/lib/save-engine/data";
-import type { SkillEdit } from "@/lib/skills";
 import { stagedCounts } from "@/lib/staged-counts";
-import * as stagedList from "@/lib/staged-edit-list";
-import type {
-	CompanionRenameEdit,
-	DyeEdit,
-	ItemConditionEdit,
-	LevelEdit,
-	QuestStateEdit,
-	SaveEdit,
-} from "@/lib/staged-edits";
+import { queuedCompanions } from "@/lib/staged-edit-list";
+import type { SaveEdit } from "@/lib/staged-edits";
 import {
 	itemTypeCount,
 	projectRecords,
@@ -64,6 +43,124 @@ import {
 	useShortcutsHelp,
 } from "../../shared";
 import { useThemeMode } from "../../shared/hooks/useThemeMode";
+
+/**
+ * The title and the line under it for whatever is on screen.
+ *
+ * The two are one decision — a view has a name and a description together, and
+ * inventing the inventory's is what made this worth a function: an inventory
+ * with no storage chosen says something different from one with a save open.
+ */
+const headingFor = ({
+	view,
+	hasSave,
+	activeStorage,
+	itemTypes,
+}: {
+	view: SaveView;
+	hasSave: boolean;
+	activeStorage: number | null;
+	itemTypes: number;
+}): { title: string; subtitle: string } => {
+	if (view === "inventory") {
+		return {
+			title:
+				hasSave && activeStorage !== null
+					? storageName(activeStorage)
+					: "Save Editor",
+			subtitle: hasSave
+				? `${itemTypes} item types in this location`
+				: "Load a save, make changes and download the edited file",
+		};
+	}
+	if (isEditorView(view)) {
+		return {
+			title: editorViewInfo[view].label,
+			subtitle: editorViewInfo[view].blurb,
+		};
+	}
+	return {
+		title: companionLabels[view],
+		subtitle: "Pets, horses, special mounts and camp mercenaries",
+	};
+};
+
+/**
+ * What the command palette offers.
+ *
+ * The view commands only exist once a save is open, because jumping to a panel
+ * with nothing to show is not a shortcut to anything. Building the list here
+ * keeps that rule in one place: it was previously decided twice over, by an
+ * `if (result)` in the loop and by the `Home` component re-rendering whenever a
+ * staged edit did.
+ */
+const buildCommands = ({
+	dark,
+	toggleTheme,
+	openShortcuts,
+	undoLast,
+	stagedCount,
+	loaded,
+	goToView,
+}: {
+	dark: boolean;
+	toggleTheme: () => void;
+	openShortcuts: () => void;
+	undoLast: () => void;
+	stagedCount: number;
+	loaded: boolean;
+	goToView: (view: SaveView) => void;
+}): Command[] => {
+	const list: Command[] = [
+		{
+			id: "toggle-theme",
+			label: "Toggle light / dark theme",
+			keywords: "theme dark light mode appearance",
+			icon: dark ? <Sun size={16} /> : <Moon size={16} />,
+			run: toggleTheme,
+		},
+		{
+			id: "keyboard-shortcuts",
+			label: "Keyboard shortcuts",
+			keywords: "shortcuts keyboard keys help",
+			icon: <Keyboard size={16} />,
+			run: openShortcuts,
+		},
+	];
+	if (stagedCount > 0) {
+		list.push({
+			id: "undo-last-change",
+			label: "Undo last change",
+			hint: `${stagedCount} staged`,
+			keywords: "undo revert staged change",
+			icon: <Undo2 size={16} />,
+			run: undoLast,
+		});
+	}
+	if (loaded) {
+		const views: SaveView[] = [
+			"inventory",
+			...(Object.keys(editorViewInfo) as (keyof typeof editorViewInfo)[]),
+			...(Object.keys(companionLabels) as CompanionCategory[]),
+		];
+		for (const id of views) {
+			const label =
+				id === "inventory"
+					? "Inventory"
+					: isEditorView(id)
+						? editorViewInfo[id].label
+						: companionLabels[id];
+			list.push({
+				id: `view-${id}`,
+				label: `Go to ${label}`,
+				hint: "View",
+				keywords: `view section ${id}`,
+				run: () => goToView(id),
+			});
+		}
+	}
+	return list;
+};
 
 /**
  * The editor shell.
@@ -112,31 +209,8 @@ export const Home = () => {
 		setAddOpen,
 		setEdits,
 	});
-	const [baseCatalog, setCatalog] = useState<ItemCatalogFile | null>(null);
-	const [equipmentCatalog, setEquipmentCatalog] =
-		useState<EquipmentCatalog | null>(null);
+	const { catalog, equipmentCatalog, knowledgeMap } = useEditorCatalogs();
 	const companionCatalog = companionCatalogData as CompanionCatalog;
-	const catalog = useMemo<Catalog | null>(() => {
-		if (!baseCatalog) return null;
-		const items: Record<string, CatalogItem> = { ...baseCatalog.items };
-		for (const [key, equipment] of Object.entries(
-			equipmentCatalog?.items ?? {},
-		)) {
-			items[key] = {
-				...items[key],
-				name: equipment.name,
-				legacy_internal_name_hint: equipment.internalName,
-				max_stack: 1,
-				legacy_max_stack_hint: 1,
-				equipmentCategory: equipment.category,
-				addsAsSingleRecord: !equipment.characterEquipment,
-			};
-		}
-		return { ...baseCatalog, items };
-	}, [baseCatalog, equipmentCatalog]);
-	const [knowledgeMap, setKnowledgeMap] = useState<ItemKnowledgeMapFile | null>(
-		null,
-	);
 	const [discardModalOpen, setDiscardModalOpen] = useState(false);
 	const [replaceModalOpen, setReplaceModalOpen] = useState(false);
 	/** A file the user picked while staged edits still need confirmation. */
@@ -150,72 +224,8 @@ export const Home = () => {
 	const shortcuts = useShortcutsHelp();
 	const palette = useCommandPalette();
 
-	const removeStagedEdit = (index: number) => {
-		setEdits((current) => current.filter((_, i) => i !== index));
-	};
-
-	// Global shortcut: Ctrl+Z / Cmd+Z to undo the latest staged edit
-	useEffect(() => {
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (
-				(e.ctrlKey || e.metaKey) &&
-				e.key.toLowerCase() === "z" &&
-				!e.shiftKey
-			) {
-				const activeTag = document.activeElement?.tagName?.toLowerCase();
-				if (activeTag === "input" || activeTag === "textarea") return;
-				if (edits.length === 0) return;
-				e.preventDefault();
-				setEdits((current) => current.slice(0, -1));
-			}
-		};
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [edits.length]);
-
-	// Staged edits only exist in this tab's memory: a reload or a closed tab
-	// loses them with no download. The browser's own confirmation is the only
-	// guard for those paths, so raise it whenever work is pending.
-	useEffect(() => {
-		if (edits.length === 0) return;
-		const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-			event.preventDefault();
-			// Legacy browsers need a truthy returnValue for the prompt to show.
-			event.returnValue = "";
-		};
-		window.addEventListener("beforeunload", handleBeforeUnload);
-		return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-	}, [edits.length]);
-
-	// Keep the active view (and, in the inventory, the selected storage) in the
-	// URL so a section can be linked to. Only these stable ids are written;
-	// save content, file names and other data never reach the URL.
-	useEffect(() => {
-		const params = new URLSearchParams(window.location.search);
-		params.set("view", view);
-		if (view === "inventory" && activeStorage !== null) {
-			params.set("storage", String(activeStorage));
-		} else {
-			params.delete("storage");
-		}
-		const query = params.toString();
-		const url = `${window.location.pathname}${
-			query ? `?${query}` : ""
-		}${window.location.hash}`;
-		window.history.replaceState(null, "", url);
-	}, [view, activeStorage]);
-
-	useEffect(() => {
-		void itemCatalogTable()
-			.then((table) => setCatalog(table))
-			.catch(() => setCatalog(null));
-		void itemKnowledgeTable()
-			.then((table) => setKnowledgeMap(table))
-			.catch(() => setKnowledgeMap(null));
-		void equipmentCatalogTable()
-			.then((table) => setEquipmentCatalog(table))
-			.catch(() => setEquipmentCatalog(null));
-	}, []);
+	useStagedEditGuards({ stagedCount: edits.length, setEdits });
+	useViewInUrl({ view, activeStorage });
 
 	// Staged edits are folded into the records the views display, so a change
 	// is visible before it is applied to the save. The folding is a pure
@@ -238,106 +248,34 @@ export const Home = () => {
 		[activeStorage, displayRecords],
 	);
 
-	const revealStaged = useCallback(
-		(target: {
-			inventoryKey: number;
-			itemKey: number;
-			slotNo: number | null;
-		}) => {
-			setActiveStorage(target.inventoryKey);
-			setFocus({ itemKey: target.itemKey, slotNo: target.slotNo });
-		},
-		[],
-	);
-
-	const stageEquipment = useCallback(
-		(edit: EquipmentEdit | InsertEquipmentEdit) => {
-			setError("");
-			setEdits((current) => stagedList.stageEquipment(current, edit));
-			revealStaged({
-				inventoryKey: edit.inventoryKey,
-				itemKey: edit.itemKey,
-				slotNo: edit.type === "equipment" ? edit.slotNo : null,
-			});
-		},
-		// `setEdits` and `setError` are declared rather than assumed away. Both
-		// are `useState` setters, whose identity React guarantees is fixed for
-		// the life of the component, so listing them cannot re-create this
-		// callback — while omitting them left the callbacks below reading them
-		// without saying so.
-		[revealStaged, setEdits, setError],
-	);
-
-	const companionEdits = stagedList.queuedCompanions(edits);
-	const stageCompanion = (edit: CompanionEdit) => {
-		if (status || !result?.companions) return;
-		setError("");
-		setEdits((current) =>
-			stagedList.stageCompanion(current, edit, {
-				summary: result.companions,
-				catalog: companionCatalog,
-			}),
-		);
-	};
-
-	/**
-	 * Replaces a section's staged edits with that section's own view of what it
-	 * has queued. The rule is `stagedList.replaceSection`; what stays here is the
-	 * guard that ignores a panel's change while a download is running.
-	 */
-	const replaceEdits = useCallback(
-		(matches: (edit: SaveEdit) => boolean, next: SaveEdit[]) => {
-			if (status) return;
-			setError("");
-			setEdits((current) => stagedList.replaceSection(current, matches, next));
-		},
-		// The two setters are `useState` dispatches, so they never change
-		// identity and this callback is still created only when `status` flips.
-		[status, setEdits, setError],
-	);
-
-	const stageDyes = useCallback(
-		(next: DyeEdit[]) => replaceEdits((edit) => edit.type === "dye", next),
-		[replaceEdits],
-	);
-	const stageConditions = useCallback(
-		(next: ItemConditionEdit[]) =>
-			replaceEdits((edit) => edit.type === "condition", next),
-		[replaceEdits],
-	);
-	const stageLevels = useCallback(
-		(next: LevelEdit[]) =>
-			replaceEdits(
-				(edit) => edit.type === "character" || edit.type === "characterPreset",
-				next,
-			),
-		[replaceEdits],
-	);
-	const stageQuests = useCallback(
-		(next: QuestStateEdit[]) =>
-			replaceEdits(
-				(edit) => edit.type === "quest" || edit.type === "questPreset",
-				next,
-			),
-		[replaceEdits],
-	);
-	const stageNames = useCallback(
-		(next: CompanionRenameEdit[]) =>
-			replaceEdits((edit) => edit.type === "renameCompanion", next),
-		[replaceEdits],
-	);
-
 	const nameOf = useCallback(
 		(itemKey: number) =>
 			catalog?.items[String(itemKey)]?.name ?? `Unknown item ${itemKey}`,
 		[catalog],
 	);
 
-	const stageSkill = (edit: SkillEdit) => {
-		if (status || !result?.skills || result.skills.error) return;
-		setError("");
-		setEdits((current) => stagedList.stageProgression(current, edit));
-	};
+	const companionEdits = queuedCompanions(edits);
+
+	const {
+		revealStaged,
+		stageEquipment,
+		stageCompanion,
+		stageDyes,
+		stageConditions,
+		stageLevels,
+		stageQuests,
+		stageNames,
+		stageSkill,
+		removeStagedEdit,
+	} = useStagedEdits({
+		setEdits,
+		setError,
+		busy: Boolean(status),
+		result,
+		companionCatalog,
+		setActiveStorage,
+		setFocus,
+	});
 
 	/**
 	 * Ask for confirmation before a file pick replaces staged work.
@@ -364,78 +302,29 @@ export const Home = () => {
 		[edits],
 	);
 
-	const pageTitle =
-		view === "inventory"
-			? result && activeStorage !== null
-				? storageName(activeStorage)
-				: "Save Editor"
-			: isEditorView(view)
-				? editorViewInfo[view].label
-				: companionLabels[view];
+	const commands = useMemo(
+		() =>
+			buildCommands({
+				dark,
+				toggleTheme: toggle,
+				openShortcuts: () => shortcuts.open(),
+				undoLast: () => setEdits((current) => current.slice(0, -1)),
+				stagedCount: edits.length,
+				loaded: Boolean(result),
+				goToView: (next) => {
+					setView(next);
+					setAddOpen(false);
+				},
+			}),
+		[dark, toggle, shortcuts.open, edits.length, result],
+	);
 
-	const pageSubtitle =
-		view === "inventory"
-			? result
-				? `${itemTypes} item types in this location`
-				: "Load a save, make changes and download the edited file"
-			: isEditorView(view)
-				? editorViewInfo[view].blurb
-				: "Pets, horses, special mounts and camp mercenaries";
-
-	const commands = useMemo<Command[]>(() => {
-		const list: Command[] = [
-			{
-				id: "toggle-theme",
-				label: "Toggle light / dark theme",
-				keywords: "theme dark light mode appearance",
-				icon: dark ? <Sun size={16} /> : <Moon size={16} />,
-				run: toggle,
-			},
-			{
-				id: "keyboard-shortcuts",
-				label: "Keyboard shortcuts",
-				keywords: "shortcuts keyboard keys help",
-				icon: <Keyboard size={16} />,
-				run: () => shortcuts.open(),
-			},
-		];
-		if (edits.length > 0) {
-			list.push({
-				id: "undo-last-change",
-				label: "Undo last change",
-				hint: `${edits.length} staged`,
-				keywords: "undo revert staged change",
-				icon: <Undo2 size={16} />,
-				run: () => setEdits((current) => current.slice(0, -1)),
-			});
-		}
-		if (result) {
-			const views: SaveView[] = [
-				"inventory",
-				...(Object.keys(editorViewInfo) as (keyof typeof editorViewInfo)[]),
-				...(Object.keys(companionLabels) as CompanionCategory[]),
-			];
-			for (const id of views) {
-				const label =
-					id === "inventory"
-						? "Inventory"
-						: isEditorView(id)
-							? editorViewInfo[id].label
-							: companionLabels[id];
-				list.push({
-					id: `view-${id}`,
-					label: `Go to ${label}`,
-					hint: "View",
-					keywords: `view section ${id}`,
-					run: () => {
-						setView(id);
-						setAddOpen(false);
-					},
-				});
-			}
-		}
-		return list;
-	}, [dark, toggle, shortcuts.open, edits.length, result]);
+	const { title: pageTitle, subtitle: pageSubtitle } = headingFor({
+		view,
+		hasSave: Boolean(result),
+		activeStorage,
+		itemTypes,
+	});
 
 	const sidebar = (
 		<AppSidebar
@@ -471,112 +360,37 @@ export const Home = () => {
 	) : (
 		<>
 			{result.skippedRecords > 0 && (
-				<Alert
-					color="yellow"
-					role="status"
-					icon={<TriangleAlert size={16} strokeWidth={2} />}
-					title={`${result.skippedRecords} inventory record${
-						result.skippedRecords === 1 ? "" : "s"
-					} could not be read`}
-					mx="md"
-					mt="md"
-					style={{ flexShrink: 0 }}
-				>
-					These records are withheld rather than shown with guessed values, so
-					the editor cannot change them. The rest of the save is unaffected:{" "}
-					{result.skippedDetails.join("; ")}.
-				</Alert>
+				<SkippedRecordsAlert
+					count={result.skippedRecords}
+					details={result.skippedDetails}
+				/>
 			)}
-			{view === "skills" ? (
-				<SkillsPanel
-					key="skills"
-					description={result.skills}
-					edit={edits.find(
-						(entry): entry is SkillEdit => entry.type === "skills",
-					)}
-					busy={loading}
-					error={error}
-					onStage={stageSkill}
-					onDiscard={() =>
-						setEdits((current) =>
-							current.filter((entry) => entry.type !== "skills"),
-						)
-					}
-				/>
-			) : view === "levels" ? (
-				<LevelsPanel
-					key="levels"
-					description={result.levels}
-					edits={edits.filter(
-						(entry): entry is LevelEdit =>
-							entry.type === "character" || entry.type === "characterPreset",
-					)}
-					busy={loading}
-					error={error}
-					onStage={stageLevels}
-				/>
-			) : view === "quests" ? (
-				<QuestsPanel
-					key="quests"
-					session={session}
-					edits={edits.filter(
-						(entry): entry is QuestStateEdit =>
-							entry.type === "quest" || entry.type === "questPreset",
-					)}
-					busy={loading}
-					error={error}
-					onStage={stageQuests}
-				/>
-			) : view === "dyes" ? (
-				<DyesPanel
-					key="dyes"
-					description={result.dyes}
-					edits={edits.filter(
-						(entry): entry is DyeEdit => entry.type === "dye",
-					)}
-					busy={loading}
-					error={error}
-					onStage={stageDyes}
-				/>
-			) : view === "condition" ? (
-				<ConditionPanel
-					key="condition"
-					description={result.conditions}
-					nameOf={nameOf}
-					edits={edits.filter(
-						(entry): entry is ItemConditionEdit => entry.type === "condition",
-					)}
-					busy={loading}
-					error={error}
-					onStage={stageConditions}
-				/>
-			) : view === "names" ? (
-				<NamesPanel
-					key="names"
-					description={result.names}
-					edits={edits.filter(
-						(entry): entry is CompanionRenameEdit =>
-							entry.type === "renameCompanion",
-					)}
-					busy={loading}
-					error={error}
-					onStage={stageNames}
-				/>
-			) : view !== "inventory" ? (
-				<CompanionPanel
-					key={view}
-					category={view}
-					summary={result.companions}
-					catalog={companionCatalog}
-					edits={companionEdits}
-					busy={loading}
-					error={error}
-					onStage={stageCompanion}
-					onDiscard={(edit) =>
-						setEdits((current) => current.filter((e) => e !== edit))
-					}
-				/>
-			) : null}
+			<SectionPanel
+				view={view}
+				result={result}
+				session={session}
+				edits={edits}
+				companionEdits={companionEdits}
+				companionCatalog={companionCatalog}
+				busy={loading}
+				error={error}
+				nameOf={nameOf}
+				onStageSkill={stageSkill}
+				onDiscardSkill={() =>
+					setEdits((current) =>
+						current.filter((entry) => entry.type !== "skills"),
+					)
+				}
+				onStageCompanion={stageCompanion}
+				onDiscardCompanion={(edit) =>
+					setEdits((current) => current.filter((e) => e !== edit))
+				}
+				onStageLevels={stageLevels}
+				onStageQuests={stageQuests}
+				onStageDyes={stageDyes}
+				onStageConditions={stageConditions}
+				onStageNames={stageNames}
+			/>
 			<InventoryView
 				records={displayRecords}
 				savedRecords={result.records}

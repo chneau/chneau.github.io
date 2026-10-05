@@ -1,21 +1,20 @@
 import {
-	ActionIcon,
 	Alert,
 	Badge,
 	Box,
 	Button,
 	Group,
 	NumberInput,
-	Pagination,
 	ScrollArea,
 	Select,
 	Stack,
 	Table,
 	Text,
-	TextInput,
 } from "@mantine/core";
-import { Search, ShieldCheck, TriangleAlert, Undo2, X } from "lucide-react";
+import { ShieldCheck, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { PanelPager } from "@/components/panel-pager";
+import { PanelSearchField } from "@/components/panel-search";
 import { storageName } from "@/lib/inventory";
 import type {
 	ConditionDescription,
@@ -68,6 +67,94 @@ const isSameItem = (edit: ItemConditionEdit, other: ConditionEntry): boolean =>
 	edit.slotNo === other.slotNo &&
 	edit.itemKey === other.itemKey;
 
+/** The three channels a wear record can carry, in the order the table shows them. */
+const WEAR_FIELDS = ["endurance", "sharpness", "chargedUses"] as const;
+
+type WearField = (typeof WEAR_FIELDS)[number];
+
+/**
+ * One worn item: what it is, where it sits, and a box per channel.
+ *
+ * A row is the natural unit here — the three channels are the same input three
+ * times over, and the only thing that differs between rows is the entry and the
+ * limits — so it is its own component and the panel keeps the staged-edit rule.
+ */
+const WearRow = ({
+	entry,
+	name,
+	staged,
+	limits,
+	busy,
+	onStageField,
+}: {
+	entry: ConditionEntry;
+	name: string;
+	/** This row's staged edit, when the user has touched one of its channels. */
+	staged: ItemConditionEdit | undefined;
+	limits: NonNullable<ConditionDescription["limits"]> | undefined;
+	busy: boolean;
+	onStageField: (field: WearField, value: number | null) => void;
+}) => {
+	const wearField = (field: WearField, limit: number) => {
+		const stored = entry.condition[field];
+		const stagedValue = staged?.[field] ?? null;
+		const active = stored !== null || stagedValue !== null;
+		return (
+			<NumberInput
+				size="xs"
+				w={104}
+				hideControls
+				min={0}
+				max={limit}
+				clampBehavior="strict"
+				disabled={busy || !active}
+				placeholder="not stored"
+				value={stagedValue ?? stored ?? ""}
+				onChange={(next) =>
+					onStageField(
+						field,
+						next === "" || next === undefined
+							? null
+							: Math.min(limit, Math.max(0, Number(next))),
+					)
+				}
+				aria-label={`${field} of item ${entry.itemKey}`}
+			/>
+		);
+	};
+	return (
+		<Table.Tr>
+			<Table.Td>
+				<Group gap="xs" wrap="nowrap">
+					<Box style={{ minWidth: 0 }}>
+						<Text size="sm" fw={500} truncate>
+							{name}
+						</Text>
+						<Text size="10px" c="dimmed" ff="monospace">
+							{entry.itemKey} · ×{entry.stackCount}
+						</Text>
+					</Box>
+					{staged && (
+						<Badge size="xs" color="brand" variant="light">
+							staged
+						</Badge>
+					)}
+				</Group>
+			</Table.Td>
+			<Table.Td>
+				<Text size="xs" c="dimmed">
+					{storageName(entry.inventoryKey)} · slot {entry.slotNo}
+				</Text>
+			</Table.Td>
+			<Table.Td>{wearField("endurance", limits?.endurance ?? 65535)}</Table.Td>
+			<Table.Td>{wearField("sharpness", limits?.sharpness ?? 65535)}</Table.Td>
+			<Table.Td>
+				{wearField("chargedUses", limits?.chargedUses ?? 999_999_999)}
+			</Table.Td>
+		</Table.Tr>
+	);
+};
+
 /**
  * Item wear: endurance, sharpness and the charges left on a useable item.
  *
@@ -117,7 +204,7 @@ export const ConditionPanel = ({
 
 	const stageField = (
 		entry: ConditionEntry,
-		field: "endurance" | "sharpness" | "chargedUses",
+		field: WearField,
 		value: number | null,
 	) => {
 		const currentEdit = editFor(entry);
@@ -144,39 +231,6 @@ export const ConditionPanel = ({
 			merged.sharpness === null &&
 			merged.chargedUses === null;
 		onStage(empty ? rest : [...rest, merged]);
-	};
-
-	const wearField = (
-		entry: ConditionEntry,
-		field: "endurance" | "sharpness" | "chargedUses",
-		limit: number,
-	) => {
-		const stored = entry.condition[field];
-		const staged = editFor(entry)?.[field] ?? null;
-		const active = stored !== null || staged !== null;
-		return (
-			<NumberInput
-				size="xs"
-				w={104}
-				hideControls
-				min={0}
-				max={limit}
-				clampBehavior="strict"
-				disabled={busy || !active}
-				placeholder="not stored"
-				value={staged ?? stored ?? ""}
-				onChange={(next) =>
-					stageField(
-						entry,
-						field,
-						next === "" || next === undefined
-							? null
-							: Math.min(limit, Math.max(0, Number(next))),
-					)
-				}
-				aria-label={`${field} of item ${entry.itemKey}`}
-			/>
-		);
 	};
 
 	if (description?.error) {
@@ -248,139 +302,82 @@ export const ConditionPanel = ({
 				</Group>
 			)}
 
-			<Box>
-				<Group align="flex-end" gap="md">
-					<TextInput
-						w="100%"
-						style={{ flex: 1, minWidth: "12rem" }}
-						label="Search items"
-						placeholder="Search names or item keys"
-						leftSection={<Search size={16} />}
-						rightSection={
-							query ? (
-								<ActionIcon
-									size="xs"
-									variant="subtle"
-									color="gray"
-									onClick={() => {
-										setQuery("");
-										setPage(0);
-									}}
-									title="Clear search"
-									aria-label="Clear search"
-								>
-									<X size={14} />
-								</ActionIcon>
-							) : null
-						}
-						value={query}
-						onChange={(event) => {
-							setQuery(event.currentTarget.value);
-							setPage(0);
-						}}
-					/>
-					<Select
-						w={220}
-						label="Storage"
-						value={storage}
-						allowDeselect={false}
-						data={[
-							{ value: "all", label: `All storages (${entries.length})` },
-							...storages.map((key) => ({
-								value: String(key),
-								label: `${storageName(key)} (${key})`,
-							})),
-						]}
-						onChange={(value) => {
-							setStorage(value ?? "all");
-							setPage(0);
-						}}
-					/>
-				</Group>
-			</Box>
+			<Group align="flex-end" gap="md">
+				<PanelSearchField
+					label="Search items"
+					placeholder="Search names or item keys"
+					value={query}
+					onChange={(value) => {
+						setQuery(value);
+						setPage(0);
+					}}
+					onClear={() => {
+						setQuery("");
+						setPage(0);
+					}}
+				/>
+				<Select
+					w={220}
+					label="Storage"
+					value={storage}
+					allowDeselect={false}
+					data={[
+						{ value: "all", label: `All storages (${entries.length})` },
+						...storages.map((key) => ({
+							value: String(key),
+							label: `${storageName(key)} (${key})`,
+						})),
+					]}
+					onChange={(value) => {
+						setStorage(value ?? "all");
+						setPage(0);
+					}}
+				/>
+			</Group>
 
-			<Box>
-				<ScrollArea.Autosize
-					mah={420}
-					type="auto"
-					style={{ border: "1px solid var(--app-border)" }}
-				>
-					<Table stickyHeader highlightOnHover verticalSpacing="xs" fz="xs">
-						<Table.Thead>
-							<Table.Tr>
-								{COLUMNS.map((column) => (
-									<Table.Th key={column}>{column}</Table.Th>
-								))}
-							</Table.Tr>
-						</Table.Thead>
-						<Table.Tbody>
-							{visible.map((entry) => (
-								<Table.Tr
-									key={`${entry.inventoryKey}:${entry.slotNo}:${entry.itemKey}`}
-								>
-									<Table.Td>
-										<Group gap="xs" wrap="nowrap">
-											<Box style={{ minWidth: 0 }}>
-												<Text size="sm" fw={500} truncate>
-													{nameOf(entry.itemKey)}
-												</Text>
-												<Text size="10px" c="dimmed" ff="monospace">
-													{entry.itemKey} · ×{entry.stackCount}
-												</Text>
-											</Box>
-											{editFor(entry) && (
-												<Badge size="xs" color="brand" variant="light">
-													staged
-												</Badge>
-											)}
-										</Group>
-									</Table.Td>
-									<Table.Td>
-										<Text size="xs" c="dimmed">
-											{storageName(entry.inventoryKey)} · slot {entry.slotNo}
-										</Text>
-									</Table.Td>
-									<Table.Td>
-										{wearField(entry, "endurance", limits?.endurance ?? 65535)}
-									</Table.Td>
-									<Table.Td>
-										{wearField(entry, "sharpness", limits?.sharpness ?? 65535)}
-									</Table.Td>
-									<Table.Td>
-										{wearField(
-											entry,
-											"chargedUses",
-											limits?.chargedUses ?? 999_999_999,
-										)}
-									</Table.Td>
-								</Table.Tr>
+			<ScrollArea.Autosize
+				mah={420}
+				type="auto"
+				style={{ border: "1px solid var(--app-border)" }}
+			>
+				<Table stickyHeader highlightOnHover verticalSpacing="xs" fz="xs">
+					<Table.Thead>
+						<Table.Tr>
+							{COLUMNS.map((column) => (
+								<Table.Th key={column}>{column}</Table.Th>
 							))}
-							{visible.length === 0 && (
-								<Table.Tr>
-									<Table.Td colSpan={COLUMNS.length}>
-										<Text size="sm" c="dimmed" ta="center" py="md">
-											No items match this filter.
-										</Text>
-									</Table.Td>
-								</Table.Tr>
-							)}
-						</Table.Tbody>
-					</Table>
-				</ScrollArea.Autosize>
-				<Group justify="space-between" mt="sm">
-					<Text size="xs" c="dimmed">
-						{matches.length.toLocaleString()} items
-					</Text>
-					{pages > 1 && (
-						<Pagination
-							size="sm"
-							total={pages}
-							value={current + 1}
-							onChange={(next) => setPage(next - 1)}
-						/>
-					)}
-				</Group>
-			</Box>
+						</Table.Tr>
+					</Table.Thead>
+					<Table.Tbody>
+						{visible.map((entry) => (
+							<WearRow
+								key={`${entry.inventoryKey}:${entry.slotNo}:${entry.itemKey}`}
+								entry={entry}
+								name={nameOf(entry.itemKey)}
+								staged={editFor(entry)}
+								limits={limits}
+								busy={busy}
+								onStageField={(field, value) => stageField(entry, field, value)}
+							/>
+						))}
+						{visible.length === 0 && (
+							<Table.Tr>
+								<Table.Td colSpan={COLUMNS.length}>
+									<Text size="sm" c="dimmed" ta="center" py="md">
+										No items match this filter.
+									</Text>
+								</Table.Td>
+							</Table.Tr>
+						)}
+					</Table.Tbody>
+				</Table>
+			</ScrollArea.Autosize>
+			<PanelPager
+				count={`${matches.length.toLocaleString()} items`}
+				pages={pages}
+				current={current}
+				onPageChange={setPage}
+			/>
 		</Stack>
 	);
 };
