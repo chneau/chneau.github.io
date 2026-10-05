@@ -12,7 +12,7 @@
  * 4. shift/grow every `SC` span entry — `(start + 3084, size)` — that lies after
  *    or encloses an insert,
  * 5. move the footer's variable-table offset, and
- * 6. rebuild the container around the longer payload.
+ * 6. report the chunk table with the inserted bytes charged to their chunks.
  *
  * Measured on `ManualSave_52586_7ea48c00_591a1d1.sav`: adding the three Greater
  * mutagens gives names +2, items +3, and the object tree still resolves to the
@@ -28,6 +28,12 @@ import { readU32 } from "./inner";
 import { type InventoryItem, playerInventory } from "./inventory";
 import { readNameTable } from "./names";
 import { readObjectTree } from "./objects";
+
+/** The parts of a container a resize needs; a `SaveContainer` satisfies it. */
+type Resizable = {
+	readonly data: Uint8Array;
+	readonly chunks: SaveContainer["chunks"];
+};
 
 type AddItemRequest = {
 	/** template name, resolved through the save's `MANU` (appended when absent) */
@@ -81,16 +87,6 @@ const namesEndOf = (data: Uint8Array): { offset: number; end: number } => {
 const recordOf = (data: Uint8Array, item: InventoryItem): Uint8Array =>
 	data.slice(item.offset - 13, item.offset + 17);
 
-const mustFind = (
-	items: readonly InventoryItem[],
-	predicate: (item: InventoryItem) => boolean,
-	message: string,
-): InventoryItem => {
-	const found = items.find(predicate) ?? items[0];
-	if (found === undefined) throw new Error(message);
-	return found;
-};
-
 const appendNameBytes = (names: readonly string[]): Uint8Array => {
 	let length = 0;
 	for (const name of names) length += 1 + name.length;
@@ -103,106 +99,6 @@ const appendNameBytes = (names: readonly string[]): Uint8Array => {
 		at += name.length;
 	}
 	return bytes;
-};
-
-/**
- * Add one record per request to the player's inventory, returning the rebuilt
- * file. Names already in `MANU` are reused; only the new ones are appended.
- */
-export const addItems = (
-	container: SaveContainer,
-	requests: readonly AddItemRequest[],
-): Uint8Array => {
-	if (requests.length === 0) throw new Error("nothing to add");
-	const data = container.data;
-	const names = readNameTable(data).names;
-	const items = playerInventory(data, names) ?? [];
-	const first = items[0];
-	const second = items[1];
-	if (first === undefined) throw new Error("no player inventory in this save");
-
-	const recordLen = requests.length * RECORD_SIZE;
-	const itemInsert = (second ?? first).offset - 13;
-	const countAt = first.offset - 15;
-	const { offset: manuStart, end: namesEnd } = namesEndOf(data);
-
-	const missing = requests
-		.map((request) => request.name)
-		.filter(
-			(name, index, all) =>
-				names.indexOf(name) < 0 && all.indexOf(name) === index,
-		);
-	const nameBytes = appendNameBytes(missing);
-	const nameIndex = (name: string): number => {
-		const existing = names.indexOf(name);
-		return existing >= 0
-			? existing + 1
-			: names.length + missing.indexOf(name) + 1;
-	};
-
-	const records = new Uint8Array(recordLen);
-	const templateItem = mustFind(
-		items,
-		(item) => item.name === (requests[0]?.template ?? ""),
-		"no items to clone a record from",
-	);
-	const template = recordOf(data, templateItem);
-	requests.forEach((request, index) => {
-		const record = template.slice();
-		writeU16(record, 0, nameIndex(request.name));
-		writeU16(record, 17, request.quantity);
-		records.set(record, index * RECORD_SIZE);
-	});
-
-	// Insert the records, then the names.
-	const withRecords = new Uint8Array(data.length + recordLen);
-	withRecords.set(data.subarray(0, itemInsert), 0);
-	withRecords.set(records, itemInsert);
-	withRecords.set(data.subarray(itemInsert), itemInsert + recordLen);
-	writeU16(withRecords, countAt, u16(data, countAt) + requests.length);
-	for (const node of enclosing(data, itemInsert)) {
-		if (node.tag === "SS") {
-			writeU32(withRecords, node.offset + 2, node.childSize + recordLen);
-		} else {
-			writeU16(withRecords, node.offset + 6, node.childSize + recordLen);
-		}
-	}
-
-	const namesInsertAt = namesEnd + recordLen;
-	const out = new Uint8Array(withRecords.length + nameBytes.length);
-	out.set(withRecords.subarray(0, namesInsertAt), 0);
-	out.set(nameBytes, namesInsertAt);
-	out.set(
-		withRecords.subarray(namesInsertAt),
-		namesInsertAt + nameBytes.length,
-	);
-	writeU32(out, manuStart + recordLen + 4, names.length + missing.length);
-	writeU32(
-		out,
-		out.length - 6,
-		(readU32(data, data.length - 6) ?? 0) + recordLen + nameBytes.length,
-	);
-
-	shiftSpanIndex(data, out, itemInsert, recordLen, namesEnd, nameBytes.length);
-
-	const chunks = container.chunks.map((chunk, index) => {
-		const start = container.chunks
-			.slice(0, index)
-			.reduce((sum, c) => sum + c.decompressedSize, 0);
-		const inRecords =
-			start <= itemInsert && itemInsert < start + chunk.decompressedSize
-				? recordLen
-				: 0;
-		const inNames =
-			start <= namesEnd && namesEnd < start + chunk.decompressedSize
-				? nameBytes.length
-				: 0;
-		return {
-			...chunk,
-			decompressedSize: chunk.decompressedSize + inRecords + inNames,
-		};
-	});
-	return buildContainer(chunks, out);
 };
 
 /** The `BLCK`/`SS` frames on the path from a root down to `offset`. */
@@ -264,4 +160,123 @@ const shiftSpanIndex = (
 		writeU32(out, to, start + shift + BASE);
 		writeU32(out, to + 4, size + grow);
 	}
+};
+
+/** The container's chunk table with the inserted bytes charged to their chunks. */
+const shiftedChunks = (
+	container: Resizable,
+	itemInsert: number,
+	recordLen: number,
+	namesInsert: number,
+	namesLen: number,
+): SaveContainer["chunks"] =>
+	container.chunks.map((chunk, index) => {
+		const start = container.chunks
+			.slice(0, index)
+			.reduce((sum, c) => sum + c.decompressedSize, 0);
+		const inRecords =
+			start <= itemInsert && itemInsert < start + chunk.decompressedSize
+				? recordLen
+				: 0;
+		const inNames =
+			start <= namesInsert && namesInsert < start + chunk.decompressedSize
+				? namesLen
+				: 0;
+		return {
+			...chunk,
+			decompressedSize: chunk.decompressedSize + inRecords + inNames,
+		};
+	});
+
+/** The insertion itself; returns the resized payload and its chunk table. */
+const resize = (
+	container: Resizable,
+	requests: readonly AddItemRequest[],
+): { readonly data: Uint8Array; readonly chunks: SaveContainer["chunks"] } => {
+	if (requests.length === 0) throw new Error("nothing to add");
+	const data = container.data;
+	const names = readNameTable(data).names;
+	const items = playerInventory(data, names) ?? [];
+	const first = items[0];
+	if (first === undefined) throw new Error("no player inventory in this save");
+	const recordLen = requests.length * RECORD_SIZE;
+	// Prepend, so the rebuilt list reads `[new…, …existing]` and a document that
+	// prepends the same rows round-trips exactly.
+	const itemInsert = first.offset - 13;
+	const countAt = first.offset - 15;
+	const { offset: manuStart, end: namesEnd } = namesEndOf(data);
+
+	const missing = requests.map((request) => request.name);
+	const nameBytes = appendNameBytes(missing);
+
+	const records = new Uint8Array(recordLen);
+	requests.forEach((request, index) => {
+		const templateItem =
+			items.find((item) => item.name === (request.template ?? "")) ?? first;
+		const record = recordOf(data, templateItem).slice();
+		writeU16(record, 0, names.length + index + 1);
+		writeU16(record, 17, request.quantity);
+		records.set(record, index * RECORD_SIZE);
+	});
+
+	// Insert the records, then the names.
+	const withRecords = new Uint8Array(data.length + recordLen);
+	withRecords.set(data.subarray(0, itemInsert), 0);
+	withRecords.set(records, itemInsert);
+	withRecords.set(data.subarray(itemInsert), itemInsert + recordLen);
+	writeU16(withRecords, countAt, u16(data, countAt) + requests.length);
+	for (const node of enclosing(data, itemInsert)) {
+		if (node.tag === "SS") {
+			writeU32(withRecords, node.offset + 2, node.childSize + recordLen);
+		} else {
+			writeU16(withRecords, node.offset + 6, node.childSize + recordLen);
+		}
+	}
+
+	const namesInsertAt = namesEnd + recordLen;
+	const out = new Uint8Array(withRecords.length + nameBytes.length);
+	out.set(withRecords.subarray(0, namesInsertAt), 0);
+	out.set(nameBytes, namesInsertAt);
+	out.set(
+		withRecords.subarray(namesInsertAt),
+		namesInsertAt + nameBytes.length,
+	);
+	writeU32(out, manuStart + recordLen + 4, names.length + missing.length);
+	writeU32(
+		out,
+		out.length - 6,
+		(readU32(data, data.length - 6) ?? 0) + recordLen + nameBytes.length,
+	);
+
+	shiftSpanIndex(data, out, itemInsert, recordLen, namesEnd, nameBytes.length);
+
+	return {
+		data: out,
+		chunks: shiftedChunks(
+			container,
+			itemInsert,
+			recordLen,
+			namesEnd,
+			nameBytes.length,
+		),
+	};
+};
+
+/**
+ * The resized decompressed payload and its chunk table, without rebuilding the
+ * container — `encode` composes this with its own scalar edits.
+ */
+export const addItemsToPayload = (
+	container: Resizable,
+	requests: readonly AddItemRequest[],
+): { readonly data: Uint8Array; readonly chunks: SaveContainer["chunks"] } =>
+	resize(container, requests);
+
+/** Add items and rebuild the whole file (the CLI path). */
+export const addItems = (
+	container: Resizable,
+	requests: readonly AddItemRequest[],
+): Uint8Array => {
+	const { data, chunks } = resize(container, requests);
+	return buildContainer(chunks, data);
 };
