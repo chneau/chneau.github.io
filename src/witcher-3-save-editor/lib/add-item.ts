@@ -7,7 +7,9 @@
  * repairs every structure that addresses the decompressed stream:
  *
  * 1. append the new name to `MANU` (each name is `u8 length` + ASCII),
- * 2. insert a 30-byte record per item into the player's list and `count++`,
+ * 2. append a 30-byte record per item at the end of the player's list and
+ *    `count++` — the engine appends just before the list's 6-byte trailer,
+ *    and gives each new record a fresh per-item id (see `appendPoint`),
  * 3. grow the `SS` frame's `childSize` (the `BS` ancestors carry no size),
  * 4. shift/grow every `SC` span entry — `(start + 3084, size)` — that lies after
  *    or encloses an insert,
@@ -28,6 +30,7 @@ import { readU32 } from "./inner";
 import { type InventoryItem, playerInventory } from "./inventory";
 import { readNameTable } from "./names";
 import { readObjectTree } from "./objects";
+import { parseTokens } from "./tokens";
 
 /** The parts of a container a resize needs; a `SaveContainer` satisfies it. */
 type Resizable = {
@@ -86,6 +89,33 @@ const namesEndOf = (data: Uint8Array): { offset: number; end: number } => {
 /** One item record, 30 bytes ending 17 past its `72 00 74 00` anchor. */
 const recordOf = (data: Uint8Array, item: InventoryItem): Uint8Array =>
 	data.slice(item.offset - 13, item.offset + 17);
+
+/**
+ * Where the engine appends a new record: just before the item array's 6-byte
+ * trailer. Measured from a game-made `additem`: the array is `[records…]` then 6
+ * bytes, and the new record went immediately before them, so read order stays
+ * insertion order. The trailer length is established by the first token after
+ * the last record — `next - 6` lands exactly where the engine wrote it.
+ */
+const appendPoint = (
+	data: Uint8Array,
+	names: readonly string[],
+	last: InventoryItem,
+): number => {
+	const tokens = parseTokens(data, names).tokens;
+	const next = tokens.find((t) => t.offset > last.offset + 17);
+	return next === undefined ? last.offset + 17 : next.offset - 6;
+};
+
+/** The largest per-item u16 id in the list, so new records get fresh ones. */
+const maxItemId = (data: Uint8Array, items: readonly InventoryItem[]): number => {
+	let max = 0;
+	for (const item of items) {
+		const id = u16(data, item.offset - 11);
+		if (id > max) max = id;
+	}
+	return max;
+};
 
 const appendNameBytes = (names: readonly string[]): Uint8Array => {
 	let length = 0;
@@ -163,30 +193,35 @@ const shiftSpanIndex = (
 };
 
 /** The container's chunk table with the inserted bytes charged to their chunks. */
-const shiftedChunks = (
+/**
+ * Re-emit the chunk table the way the game writes it: every chunk decompresses
+ * to the same `unit` (1 MiB in every observed save) except the last. The first
+ * version grew whichever chunk the insert landed in, which the decoder reads
+ * happily but the engine's loader appears not to — its own files are always
+ * 1 MiB chunks, and a 1 MiB + 90 one is where "save game data is not available"
+ * came from.
+ */
+const rechunk = (
 	container: Resizable,
-	itemInsert: number,
-	recordLen: number,
-	namesInsert: number,
-	namesLen: number,
-): SaveContainer["chunks"] =>
-	container.chunks.map((chunk, index) => {
-		const start = container.chunks
-			.slice(0, index)
-			.reduce((sum, c) => sum + c.decompressedSize, 0);
-		const inRecords =
-			start <= itemInsert && itemInsert < start + chunk.decompressedSize
-				? recordLen
-				: 0;
-		const inNames =
-			start <= namesInsert && namesInsert < start + chunk.decompressedSize
-				? namesLen
-				: 0;
-		return {
-			...chunk,
-			decompressedSize: chunk.decompressedSize + inRecords + inNames,
-		};
-	});
+	totalLength: number,
+): SaveContainer["chunks"] => {
+	const first = container.chunks[0];
+	if (first === undefined) throw new Error("this save has no chunks");
+	const unit = first.decompressedSize;
+	const chunks: SaveContainer["chunks"][number][] = [];
+	for (let start = 0; start < totalLength; start += unit) {
+		const template =
+			container.chunks[chunks.length] ??
+			container.chunks[container.chunks.length - 1] ??
+			first;
+		chunks.push({
+			...template,
+			index: chunks.length,
+			decompressedSize: Math.min(unit, totalLength - start),
+		});
+	}
+	return chunks;
+};
 
 /** The insertion itself; returns the resized payload and its chunk table. */
 const resize = (
@@ -198,12 +233,17 @@ const resize = (
 	const names = readNameTable(data).names;
 	const items = playerInventory(data, names) ?? [];
 	const first = items[0];
-	if (first === undefined) throw new Error("no player inventory in this save");
+	const last = items[items.length - 1];
+	if (first === undefined || last === undefined) {
+		throw new Error("no player inventory in this save");
+	}
 	const recordLen = requests.length * RECORD_SIZE;
-	// Prepend, so the rebuilt list reads `[new…, …existing]` and a document that
-	// prepends the same rows round-trips exactly.
-	const itemInsert = first.offset - 13;
+	// Append, the way the engine does: after the last record and before the
+	// list's 6-byte trailer. Prepending and cloning the template's id are the two
+	// things a game-made `additem` showed to be wrong.
+	const itemInsert = appendPoint(data, names, last);
 	const countAt = first.offset - 15;
+	const baseId = maxItemId(data, items) + 1;
 	const { offset: manuStart, end: namesEnd } = namesEndOf(data);
 
 	const missing = requests.map((request) => request.name);
@@ -215,6 +255,9 @@ const resize = (
 			items.find((item) => item.name === (request.template ?? "")) ?? first;
 		const record = recordOf(data, templateItem).slice();
 		writeU16(record, 0, names.length + index + 1);
+		// The game assigns a fresh per-item id; reusing the template's is what
+		// failed before. The id is the `u16` at the start of the 11-byte identity.
+		writeU16(record, 2, (baseId + index) & 0xffff);
 		writeU16(record, 17, request.quantity);
 		records.set(record, index * RECORD_SIZE);
 	});
@@ -252,13 +295,7 @@ const resize = (
 
 	return {
 		data: out,
-		chunks: shiftedChunks(
-			container,
-			itemInsert,
-			recordLen,
-			namesEnd,
-			nameBytes.length,
-		),
+		chunks: rechunk(container, out.length),
 	};
 };
 
