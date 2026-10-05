@@ -345,8 +345,9 @@ export type EntityFlags = {
  * EntityFlags.distinctPropertyNames}) and is not enumerated: 149 rows of per-save
  * property names is a census, not a document, and it would change with the save.
  *
- * `fullRespawnTime` is here as the partner of `fullRespawnScheduled` — see the
- * `GameTime` note in {@link decodeValue} for why its own value is not claimed.
+ * `fullRespawnTime` is here as the partner of `fullRespawnScheduled`: the `Bool`
+ * says a respawn is pending and the `GameTime` says until when. Its value is
+ * reported — see the `GameTime` note in {@link decodeValue}.
  */
 const TRACKED_FLAGS: readonly string[] = [
 	// alive / dead
@@ -445,18 +446,20 @@ const valueOffsetOf = (token: Token): number =>
 /**
  * Decode one tracked property's value.
  *
- * The interesting refusal is `GameTime`. A `GameTime` is a struct
- * `{ m_seconds : Int32 }`; `reflectValue` closes on the 3-byte form (an empty
- * struct, `{}`) and returns `undefined` on the wider ones, because the token
- * walker's fixed width for `GameTime` (11) is narrower than the value the writer
- * emitted (15). That is a second disagreement between the walker's width table
- * and the stream, and the correct repair is in `tokens.ts` rather than here — so
- * a `GameTime` is reported as a count with no value claimed, and it is never
- * `notable`.
+ * A `GameTime` is a struct `{ m_seconds : Int32 }` and is reported as the second
+ * count it holds. It used to be refused here, and the reason was a width
+ * disagreement in `tokens.ts` rather than anything about the value: with the
+ * walker measuring 11 bytes for a frame the writer had emitted 15, `reflectValue`
+ * could not close on it and the honest thing to do with a value this module had
+ * not read was to claim none. The walker now measures the frame (see
+ * `readGameTime`), so `fullRespawnTime` reads: 579 entities, 33 distinct values
+ * on the large fixture, which is the figure the reference decoder measured on
+ * the same save.
  *
- * Nothing about pending respawns is lost by it: `fullRespawnScheduled` is a
- * `Bool` and carries the state, and the reference decoder measured both on the
- * same 579 entities.
+ * The empty 3-byte form decodes to `0` and not to nothing. That is the writer
+ * saying the member is at its default, which for an `Int32` second count is
+ * zero, so the value is known even when it is uninteresting — and it is 544 of
+ * the 579 `fullRespawnTime` values on the large fixture.
  */
 const decodeValue = (
 	data: Uint8Array,
@@ -480,7 +483,17 @@ const decodeValue = (
 		const resolved = cnameAt(names, cnameIndex(value.text));
 		return { value: resolved ?? value.text, notable: true, names: null };
 	}
-	if (value.type === "GameTime") return NOTHING;
+	// Numeric like an `Int32`, because that is what the walker rendered: the
+	// `m_seconds` the struct holds. Notable when it is set, the same test the
+	// other integer properties use.
+	if (value.type === "GameTime") {
+		const seconds = Number(value.text);
+		return {
+			value: value.text,
+			notable: Number.isFinite(seconds) && seconds !== 0,
+			names: null,
+		};
+	}
 	if (value.type.startsWith("array:2,0,")) {
 		const length = value.bytes.length;
 		const reflected = reflectValue(
@@ -835,9 +848,11 @@ export const readEntityFlags = (
 			};
 			entry.type = token.value?.type ?? entry.type;
 			// Counted whether or not the value was decoded: `entities` is how many
-			// entities *write* the property, which is a fact about the stream, and a
-			// `GameTime` this reader declines to decode is still written by 579 of
-			// them.
+			// entities *write* the property, which is a fact about the stream and not
+			// about this reader's ability to render what it wrote. The histogram, by
+			// contrast, only takes a value it decoded — a token that carries none adds
+			// no entry, so an undecodable property shows a count and no values rather
+			// than a count of empty strings.
 			entry.entities += 1;
 			if (decoded.value !== "") {
 				entry.counts.set(

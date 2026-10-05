@@ -132,6 +132,10 @@ const i16 = (data: Uint8Array, o: number): number => {
 	return v > 0x7fff ? v - 0x10000 : v;
 };
 const u32 = (data: Uint8Array, o: number): number => readU32(data, o) ?? 0;
+const i32 = (data: Uint8Array, o: number): number => {
+	const v = u32(data, o);
+	return v > 0x7fffffff ? v - 0x1_0000_0000 : v;
+};
 
 const hasMagic = (data: Uint8Array, o: number, magic: string): boolean => {
 	for (let i = 0; i < magic.length; i += 1) {
@@ -153,7 +157,15 @@ const ENUM_TYPES = new Set([
 	"EVehicleSlot",
 ]);
 
-/** Fixed widths for primitive type names, in bytes. */
+/**
+ * Fixed widths for primitive type names, in bytes.
+ *
+ * A type absent from this table is not an error: `valueWidth` measures the ones
+ * that are variable (`String`, `EntityHandle`, an array, a class-reflection
+ * struct) from the bytes in front of it. `GameTime` used to sit here at 11, which
+ * is the width of one of its three shapes and none of the other two — see
+ * {@link readGameTime}.
+ */
 const FIXED_WIDTHS: ReadonlyMap<string, number> = new Map([
 	["Bool", 1],
 	["Uint8", 1],
@@ -173,13 +185,103 @@ const FIXED_WIDTHS: ReadonlyMap<string, number> = new Map([
 	["Vector2", 19],
 	["EulerAngles", 27],
 	["Vector", 35],
-	["GameTime", 11],
 	["W3EnvironmentManager", 19],
 	["SQuestThreadSuspensionData", 29],
 ]);
 
 /** The prefix that marks a WitcherScript array type and its element type. */
 const ARRAY_PREFIX = "array:2,0,";
+
+/** A decoded `GameTime`: the second count, and the bytes it was read from. */
+type GameTimeRead = {
+	readonly width: number;
+	readonly seconds: number;
+};
+
+/**
+ * Bytes a framed `Int32` member occupies inside a struct: the four bytes of the
+ * `nameIdx`/`typeIdx` pair the writer counts with the value, plus the value.
+ *
+ * `GameTime` is declared `{ m_seconds : Int32 }`, so this is the *only* size its
+ * single member can carry — which is what makes the frame's shape decidable
+ * rather than a guess: a `u32` of exactly this in the size field is a size, and
+ * anything else is the member's value with no size field at all.
+ */
+const FRAMED_INT32_MEMBER = 8;
+
+/** Bytes an `m_seconds` frame is, once the member is written. See {@link readGameTime}. */
+const GAME_TIME_SIZED = 15;
+const GAME_TIME_INLINE = 11;
+
+/**
+ * Read the `GameTime` struct value at `o`: its width, and its `m_seconds`.
+ *
+ * `GameTime` is a class-reflection struct, not a primitive, so its width depends
+ * on what the writer put in it. Measured on both fixtures — 380 populated frames
+ * over the two saves — the writer emits **three** shapes, and no two of them
+ * agree:
+ *
+ * ```
+ *   empty   | 00 | 00 00                                     3 bytes
+ *   sized   | 00 | u16 name | u16 type | u32 8 | i32 secs | 00 00    15 bytes
+ *   inline  | 00 | u16 name | u16 type | i32 secs     | 00 00           11 bytes
+ * ```
+ *
+ * The member header is the same in both populated shapes and both resolve to
+ * `m_seconds`/`Int32` in each save's own `MANU` table (286/69 on `52586`,
+ * 114/64 on `8559a`). What differs is whether the member's `u32 size` field is
+ * present, and that tracks the record shape without a single exception: of the
+ * 372 sized frames every one is in an `AVAL` or a `PORP`, and of the 8 inline
+ * frames every one is in a `VL` or an `OP`. An `AVAL`/`PORP` declares its
+ * value's length and the struct inside it is written sized; a `VL`/`OP` carries
+ * no length and gets the member's value written where the size would be. The
+ * inline frames are the clock values — `timeRemaining`, `time` and
+ * `recentDialogOrCutsceneEndGameTime`.
+ *
+ * The tag correlation is *not* the discriminator, because `valueWidth` is called
+ * without one; it is what makes the byte-level rule below believable rather than
+ * a curve fit.
+ *
+ * The reading is chosen by each shape having to close on its own `u16 0`
+ * terminator, and the inline shape is only reached when the sized one cannot,
+ * because the stream is full of zero bytes and a terminator test alone is not
+ * exclusive: an inline frame whose seconds read as a size finds a `00 00` at
+ * 354 bytes out twice on the large fixture. Requiring the size field to be
+ * exactly {@link FRAMED_INT32_MEMBER} is what separates them, since the member's
+ * type is known.
+ *
+ * One value stays indistinguishable: an *inline* frame holding exactly
+ * `m_seconds === 8` also satisfies the sized test. It does not occur on either
+ * fixture (the eight inline frames hold 354, 6861, 941690, 1062611, 77612,
+ * 2610590, 2635781 and 34419), and choosing sized there would read four bytes
+ * past the frame as the value.
+ *
+ * The 11-byte inline shape is what the reference decoder's own dump of
+ * `timeManger.time` shows (`docs/re-engineering/12-player-world.md`), and the
+ * `m_seconds` it reads there — 2,635,781 — is the one this reads on the same
+ * build, which is the cross-check that the inline shape is a clock rather than a
+ * mis-parse.
+ */
+const readGameTime = (
+	data: Uint8Array,
+	o: number,
+): GameTimeRead | undefined => {
+	// A presence byte, not the value: a struct records whether it is there.
+	if (u8(data, o) !== 0) return undefined;
+	// Terminator straight after the presence byte: every member is at its
+	// default, and an `Int32` default is zero.
+	if (u16(data, o + 1) === 0) return { width: 3, seconds: 0 };
+	if (
+		u32(data, o + 5) === FRAMED_INT32_MEMBER &&
+		u16(data, o + GAME_TIME_SIZED - 2) === 0
+	) {
+		return { width: GAME_TIME_SIZED, seconds: i32(data, o + 9) };
+	}
+	if (u16(data, o + GAME_TIME_INLINE - 2) === 0) {
+		return { width: GAME_TIME_INLINE, seconds: i32(data, o + 5) };
+	}
+	return undefined;
+};
 
 /**
  * Width in bytes of a value of `type` starting at `o`, or `undefined` when the
@@ -196,6 +298,8 @@ const valueWidth = (
 	if (ENUM_TYPES.has(type)) return 2;
 	const fixed = FIXED_WIDTHS.get(type);
 	if (fixed !== undefined) return fixed;
+	// Measured, not tabulated: a struct's width is a function of its members.
+	if (type === "GameTime") return readGameTime(data, o)?.width;
 	if (type === "StringAnsi") return 1 + u8(data, o);
 	if (type === "String" || type === "CEntityTemplate") {
 		const header = u8(data, o);
@@ -248,11 +352,18 @@ const renderValue = (
 		case "Uint16":
 		case "Uint32":
 		case "EngineTime":
-		case "GameTime":
 			text = String(
 				bytes.reduce((acc, byte, i) => acc + byte * 2 ** (8 * i), 0),
 			);
 			break;
+		case "GameTime": {
+			// A struct holding one `Int32`, so the number it is worth is a
+			// second count and not the bytes of the frame. `valueWidth` measured
+			// those bytes to reach here, so the same reader reads the member.
+			const read = readGameTime(data, o);
+			text = read === undefined ? hex(0) : String(read.seconds);
+			break;
+		}
 		case "Int8": {
 			const v = bytes[0] ?? 0;
 			text = String(v > 0x7f ? v - 0x100 : v);
