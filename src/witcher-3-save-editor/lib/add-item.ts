@@ -86,7 +86,7 @@ const namesEndOf = (data: Uint8Array): { offset: number; end: number } => {
 	return { offset: table.offset, end };
 };
 
-/** One item record, 30 bytes ending 17 past its `72 00 74 00` anchor. */
+/** One item record, 30 bytes ending 17 past its build's tag pair. */
 const recordOf = (data: Uint8Array, item: InventoryItem): Uint8Array =>
 	data.slice(item.offset - 13, item.offset + 17);
 
@@ -108,7 +108,10 @@ const appendPoint = (
 };
 
 /** The largest per-item u16 id in the list, so new records get fresh ones. */
-const maxItemId = (data: Uint8Array, items: readonly InventoryItem[]): number => {
+const maxItemId = (
+	data: Uint8Array,
+	items: readonly InventoryItem[],
+): number => {
 	let max = 0;
 	for (const item of items) {
 		const id = u16(data, item.offset - 11);

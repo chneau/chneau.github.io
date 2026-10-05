@@ -50,19 +50,35 @@
  * The `u16` item quantity and the `u16` crowns quantity are the same record
  * shape, so `locateInventory` covers both: the quantity is the `u16` at
  * `anchor + 4`, and the template name is the `u16` name index at `anchor - 13`,
- * resolved through the save's own `MANU` table.
+ * resolved through the save's own `MANU` table. "Anchor" is this build's tag
+ * pair, which `discoverTagPair` recovers per save rather than assuming.
  *
  * ## Build support is honest here, not assumed
  *
- * The crowns item identity is **per game build**, and a different build does not
- * even use the same record shape: across the seven reference saves, the four
- * non-`52586` ones contain *zero* records of this shape. So `locateMoney`
- * returns `undefined` off that build, and the page says the field is
- * unsupported rather than offering an edit that would hit an unrelated record.
+ * Two things here are per **build**, and both used to be hardcoded to `52586`:
+ * the crowns item identity, and the item record's tag pair. A reader pinned to
+ * one build's tag pair finds *zero* records in the other four of the seven
+ * reference saves, which is why this file used to report "not supported for this
+ * build" for a save whose records it simply had not been taught to recognise.
+ *
+ * `discoverTagPair` now recovers the pair from the save's own bytes (see
+ * `./inventory`), so the *record shape* is found on any build. The **identity**
+ * is a different matter and is still one measured value: `CROWNS_IDENTITY_52586`
+ * is the only one this repository has, so `locateMoney` still returns
+ * `undefined` off that build, and the page says the field is unsupported rather
+ * than offering an edit that would hit an unrelated record. Note that the wallet
+ * is *readable* on every build regardless — it is the `Crowns` item's quantity,
+ * which the inventory reader resolves by name (`format.ts`'s `crownsRow`), and
+ * only this write path is pinned to one build's identity.
+ *
  * Progression, by contrast, is found structurally — `levelManager` occurs
  * exactly once in a save and only on the player — so it works on every build.
  */
-import { type InventoryItem, playerInventory } from "./inventory";
+import {
+	discoverTagPair,
+	type InventoryItem,
+	playerInventory,
+} from "./inventory";
 import { CROWNS_IDENTITY_52586 } from "./money";
 import { readNameTable } from "./names";
 import { type ReflectedValue, reflectValue } from "./reflect";
@@ -279,24 +295,17 @@ export const readScalar = (
 export const locateMoney = (
 	data: Uint8Array,
 	signature: readonly number[] = CROWNS_IDENTITY_52586,
+	tagPair: readonly number[] | undefined = discoverTagPair(data),
 ): PatchableScalar | undefined => {
+	// Without a recovered tag pair there is nothing to anchor on, and matching
+	// another build's pair would find a record that is not this build's wallet.
+	if (tagPair === undefined) return undefined;
 	for (let at = 0; at + 14 <= data.length; at += 1) {
-		if (
-			data[at] !== 0x72 ||
-			data[at + 1] !== 0x00 ||
-			data[at + 2] !== 0x74 ||
-			data[at + 3] !== 0x00
-		) {
-			continue;
-		}
-		if (
-			data[at + 6] !== 0x00 ||
-			data[at + 7] !== 0x00 ||
-			data[at + 8] !== 0x80 ||
-			data[at + 9] !== 0xbf
-		) {
-			continue;
-		}
+		if (!tagPair.every((byte, i) => data[at + i] === byte)) continue;
+		// The identity is the strong filter; the durability sentinel is *not*
+		// required, because the crowns record is an ordinary stackable and does
+		// carry `-1.0`, but requiring it would also reject any wallet record that
+		// does not.
 		for (let idAt = at - 16; idAt <= at - 4; idAt += 1) {
 			if (!signature.every((byte, i) => data[idAt + i] === byte)) continue;
 			return {

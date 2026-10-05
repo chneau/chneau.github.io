@@ -83,12 +83,13 @@ import type {
 	SummaryRow,
 } from "../../shared/save/types";
 import { addItemsToPayload } from "./add-item";
-import { maxMutationsInPayload } from "./max-mutations";
 import { localizedString, questTitle } from "./catalog";
 import { decompressContainer, type SaveContainer } from "./container";
 import { buildContainer } from "./container-write";
 import { readFactDB } from "./facts";
+import { readSaveVersion } from "./inner";
 import { readContainers } from "./inventory";
+import { maxMutationsInPayload } from "./max-mutations";
 import { readPlayer } from "./player";
 import { questProgress } from "./quests";
 import { locateWritable, type PatchableScalar, patchScalar } from "./write";
@@ -209,6 +210,7 @@ const difficultyLabel = (doc: JsonValue): string => {
 /** The readable projection. Every field here is a function of the bytes. */
 const project = (container: SaveContainer): JsonValue => {
 	const found = locateWritable(container.data);
+	const saveVersion = readSaveVersion(container.data);
 	const skill = found.points.find((p) => p.kind === "skill");
 	const experience = found.points.find((p) => p.kind === "exp");
 
@@ -227,7 +229,23 @@ const project = (container: SaveContainer): JsonValue => {
 			// chunk count and the header size are all stable under a width-
 			// preserving edit, so those are safe to show.
 		},
-		build: found.money === undefined ? "unrecognised" : "52586",
+		// The save's own `SAV3` version, read from the header rather than inferred
+		// from what this editor happens to recognise.
+		//
+		// This key was `build`, holding `found.money === undefined ?
+		// "unrecognised" : "52586"` — on the reasoning that finding the Next-Gen
+		// crowns record identified the game build. That conflated two different
+		// things and became visibly wrong once the inventory reader learned to
+		// recover each build's record tag pair (`./inventory`): the second fixture
+		// is build `8559a`, reads its wallet perfectly well, and was still labelled
+		// "unrecognised" because it does not use `52586`'s item identity. A build
+		// this codec cannot name is not a save it cannot read.
+		//
+		// Nor is the build recoverable from the file at all: the three `u32`
+		// typecodes at offsets 4, 8 and 12 are the save format version
+		// (`66/29/164` on both fixtures, which are two different builds), and the
+		// build id appears only in the filename. See `./inner`.
+		saveVersion,
 		level: found.level?.value ?? null,
 		difficulty: {
 			index: found.difficulty?.value ?? null,
@@ -277,6 +295,11 @@ const project = (container: SaveContainer): JsonValue => {
 			name: item.name,
 			quantity: item.quantity,
 			slot: item.slot,
+			// `null` when the item has no durability — the engine's own `-1.0`
+			// sentinel, not a missing field. Reported because requiring `-1.0` to
+			// *recognise* the record used to drop every damaged item: 11 of this
+			// save's 626, the player's own sword and armour among them.
+			durability: item.durability,
 		})),
 		// Every *other* container's items — actors, merchants, chests — with the
 		// owner's community name where the save records one (`keira_metz`, …), so a
@@ -443,7 +466,8 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		const progress = objectAt(row, "progress");
 		if (progress === undefined) return false;
 		return ["redUsed", "blueUsed", "greenUsed", "skillpointsUsed"].some(
-			(key) => (numberAt(progress, key) ?? 0) !== (mutation.progress?.[key] ?? 0),
+			(key) =>
+				(numberAt(progress, key) ?? 0) !== (mutation.progress?.[key] ?? 0),
 		);
 	});
 	if (wantsMutationResize) {
@@ -531,7 +555,8 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 	found.mutations.forEach((mutation, index) => {
 		const row = mutations[index];
 		const offsets = mutation.progressOffsets;
-		if (row === undefined || !isJsonObject(row) || offsets === undefined) return;
+		if (row === undefined || !isJsonObject(row) || offsets === undefined)
+			return;
 		const progress = objectAt(row, "progress");
 		if (progress === undefined) return;
 		for (const [key, offset] of Object.entries(offsets)) {
@@ -605,8 +630,11 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 	const level = scalarOf(doc, "level");
 	const rows: SummaryRow[] = [
 		{
-			label: "Build",
-			value: requireStringAt(doc, "build"),
+			// The `SAV3` version, so the label says what the value is. It used to
+			// read "Build" over a value that was a game build id, which the file
+			// does not contain.
+			label: "Save version",
+			value: requireStringAt(doc, "saveVersion"),
 		},
 		{
 			label: "Level",
@@ -887,7 +915,10 @@ const ACTIONS: readonly QuickAction[] = [
 				const added =
 					inserts * 12 +
 					equipAdded +
-					[...colors].reduce((sum, color) => sum + 1 + `${color}Used`.length, 0);
+					[...colors].reduce(
+						(sum, color) => sum + 1 + `${color}Used`.length,
+						0,
+					);
 				const container = objectAt(doc, "container");
 				const payloadBytes =
 					container === undefined
@@ -930,6 +961,13 @@ const ACTIONS: readonly QuickAction[] = [
 					quantity: 50,
 					slot:
 						template === undefined ? 0 : (numberAt(template.row, "slot") ?? 0),
+					// `addItemsToPayload` clones the template's record wholesale, so
+					// the durability field it copies is the *template's*, not the new
+					// item's. A mutagen has none, and the inserted record's field is
+					// the template's `f32 -1.0`, so this is the value the rebuild will
+					// read — and the document has to say it or the round trip reports a
+					// difference that was never a difference in the file.
+					durability: numberAt(template?.row ?? null, "durability") ?? null,
 				};
 			});
 			const edits: SaveEdit[] = [

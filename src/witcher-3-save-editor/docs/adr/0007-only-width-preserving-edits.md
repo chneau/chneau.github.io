@@ -36,13 +36,33 @@ entries) — whose coordinate base the decoder's own notes record as *not fully
 understood*: residuals spread across roughly `[2960, 3130]` and `field1` is not
 `absoluteEnd + const`. Separately, the decompressed stream is only about 72–77%
 token-walked, so a full encoder would be writing bytes it cannot parse. Adding
-a skill, renaming a string, or adding an inventory item are therefore out of
-reach, and no amount of care in this repository changes that.
+a skill or renaming a string is therefore out of reach, and no amount of care in
+this repository changes that.
+
+**Amended once, and the amendment matters.** This paragraph originally also listed
+"adding an inventory item", and that turned out to be reachable by a narrower
+route than the general one: an item record is a *self-contained 30-byte unit* in a
+list whose header declares its own length, so appending one grows a known span
+rather than requiring the whole stream to be understood. `lib/add-item.ts` does
+it, and `lib/max-mutations.ts` inserts absent struct members for the same reason.
+The claim was not wrong about the difficulty — it was wrong about which
+operations the difficulty applies to, and it was never re-examined against the
+code that had since been written. See the consequences below.
 
 **Consequences, accepted.**
 
-- The editor is a **stat editor**: money, level, difficulty, skill points,
-  experience, and per-item quantities. It cannot add a skill or an item.
+- The editor's *default* edits are **width-preserving stat edits**: money, level,
+  difficulty, skill points, experience, and per-item quantities.
+- **Two operations are resizes, and this ADR does not govern them.** `add-item`
+  appends a whole record and `max-mutations` inserts absent `*Used` fields; both
+  therefore grow the decompressed stream and rewrite the `SC` span index and the
+  footer's variable-table offset — see `lib/add-item.ts` and `lib/max-mutations.ts`,
+  each of which carries its own measured evidence in its header. They were added
+  after this ADR and should be read as the narrow exceptions to the rule above.
+  "Adding a skill or an item is out of reach" was true when this was written and
+  is **no longer true for an item**; it remains true for a skill, which would need
+  a new `MANU` name *and* an array element in a stream this codec cannot fully
+  walk.
 - The compressed size of a rebuilt save differs from the original even with no
   edits, because LZ4 admits many valid encodings and this compressor makes no
   attempt to match the game's. So an unedited save round-trips as `semantic`,

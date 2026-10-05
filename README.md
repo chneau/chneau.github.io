@@ -109,9 +109,17 @@ The Witcher 3 editor is the one that writes: it decodes the `SNFH`/`FZLC` LZ4
 container, the `SAV3` stream and the REDkit token stream, then overwrites
 money, level, difficulty, skill points, experience and per-item quantities
 **in place** and rebuilds the file. A `.sav` carries no checksum, so a
-width-preserving edit needs none recomputed — but changing a field's width
-would, and so adding a skill or an item is out of reach by design
+width-preserving edit needs none recomputed — but changing a field's width would,
+so the edits that resize the stream (appending an item record, filling in absent
+mutation fields) are the narrow exceptions, each justified in its own module.
+Adding a *skill* remains out of reach by design
 (`src/witcher-3-save-editor/docs/adr/0007-only-width-preserving-edits.md`).
+
+Its inventory reader is **build-agnostic**: each game's item records carry a
+different four-byte tag pair, and it is recovered from the save rather than
+hardcoded, so a save from an earlier patch of the game reads as fully as the
+latest one. Durability is read from the same records rather than filtering them
+out, which is what recovering those 27% of records restored.
 
 ### 6. 🍺 [Spooners](https://chneau.github.io/spooners/)
 
