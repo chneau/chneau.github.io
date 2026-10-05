@@ -67,6 +67,7 @@
 import type { Bytes } from "../../shared/save/bytes";
 import { describeError } from "../../shared/save/errors";
 import {
+	arrayAt,
 	isJsonObject,
 	type JsonValue,
 	numberAt,
@@ -92,6 +93,7 @@ import { readContainers } from "./inventory";
 import { maxMutationsInPayload } from "./max-mutations";
 import { readPlayer } from "./player";
 import { questProgress } from "./quests";
+import { experienceToNextLevel, type LevelDefinition } from "./stats";
 import { locateWritable, type PatchableScalar, patchScalar } from "./write";
 
 /** Route slug, matching the app's directory name. */
@@ -384,6 +386,20 @@ const project = (container: SaveContainer): JsonValue => {
 			}),
 		),
 		equippedMutation: found.equippedMutation ?? null,
+		// The read-only character sheet. Every field here is a function of the
+		// bytes: a name resolved through this save's own `MANU` table, and a
+		// multiplier read off the reflected struct.
+		//
+		// What is *not* here is experience-to-next-level, which is derived from
+		// `levelCurve` plus the two experience fields. It is computed in
+		// `summarise` instead, because a figure no byte in the file states would
+		// be a second thing for the document to be right about — the same
+		// reasoning that removed `difficulty.name`.
+		stats: {
+			baseStats: found.stats.baseStats,
+			resistances: found.stats.resistances,
+			levelCurve: found.stats.levelCurve,
+		},
 		// The branch the scaffold rides on. Present but empty as far as
 		// `JSON.stringify` is concerned, which is what keeps the round-trip
 		// comparison honest.
@@ -609,6 +625,36 @@ const writeUint16 = (data: Uint8Array, at: number, value: number): void => {
 	data[at + 1] = (clamped >>> 8) & 0xff;
 };
 
+/**
+ * The document's XP curve, read back as typed rows.
+ *
+ * The document is a `JsonValue` and cannot be handed to `experienceToNextLevel`,
+ * which needs the curve's numbers rather than arbitrary JSON. Every row is
+ * narrowed by hand and a row missing its level is dropped — a curve row with no
+ * `level` cannot be looked up by one, and passing it on would mean looking up the
+ * wrong row rather than failing to find one.
+ *
+ * The inverse of `project`, and the reason `LevelDefinition` is a plain type of
+ * three numbers: it survives the round trip through JSON without a cast.
+ */
+const readLevelCurveAt = (doc: JsonValue): readonly LevelDefinition[] => {
+	const stats = objectAt(doc, "stats");
+	if (stats === undefined) return [];
+	const rows = arrayAt(stats, "levelCurve") ?? [];
+	const curve: LevelDefinition[] = [];
+	for (const row of rows) {
+		if (!isJsonObject(row)) continue;
+		const level = numberAt(row, "level");
+		if (level === undefined || level === null) continue;
+		curve.push({
+			level,
+			requiredTotalExp: numberAt(row, "requiredTotalExp") ?? null,
+			addedSkillPoints: numberAt(row, "addedSkillPoints") ?? null,
+		});
+	}
+	return curve;
+};
+
 /** The Crowns row, which is the wallet. */
 const crownsRow = (
 	doc: JsonValue,
@@ -668,6 +714,26 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 		rows.push({
 			label: "Experience",
 			value: free === undefined ? "not in this save" : `${free} available`,
+		});
+		// How much is still owed to the next level, from the save's own XP curve.
+		//
+		// Computed here rather than stored: no byte in the file states it, so a
+		// stored copy would be a field the round-trip check compared against
+		// itself. `experienceToNextLevel` answers `null` unless the curve, the
+		// level and the counter agree, and a row that says so beats a guess.
+		const toNext = experienceToNextLevel(
+			readLevelCurveAt(doc),
+			level === undefined ? null : level,
+			experience === undefined
+				? null
+				: {
+						free: free === undefined || free === null ? null : free,
+						used: numberAt(experience, "used") ?? 0,
+					},
+		);
+		rows.push({
+			label: "To next level",
+			value: toNext === null ? "not derivable" : `${toNext} XP`,
 		});
 	}
 	const position = objectAt(doc, "position");
