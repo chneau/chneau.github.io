@@ -82,7 +82,7 @@ import type {
 	SaveEdit,
 	SummaryRow,
 } from "../../shared/save/types";
-import { questTitle } from "./catalog";
+import { localizedString, questTitle } from "./catalog";
 import { decompressContainer, type SaveContainer } from "./container";
 import { buildContainer } from "./container-write";
 import { readFactDB } from "./facts";
@@ -179,6 +179,8 @@ type MutationRow = {
 	readonly requiredMutations: readonly string[];
 	/** the `w3strings` key whose text is the mutation's display name */
 	readonly nameKey: string | null;
+	/** the display text for `nameKey` (`Euphoria`), or `null` if not shipped */
+	readonly label: string | null;
 };
 
 /**
@@ -339,6 +341,10 @@ const project = (container: SaveContainer): JsonValue => {
 							),
 				requiredMutations: m.requiredMutations,
 				nameKey: m.localizationNameKey ?? null,
+				label:
+					m.localizationNameKey === undefined
+						? null
+						: (localizedString(m.localizationNameKey) ?? null),
 			}),
 		),
 		equippedMutation: found.equippedMutation ?? null,

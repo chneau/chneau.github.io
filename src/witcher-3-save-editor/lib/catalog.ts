@@ -27,6 +27,9 @@ import names from "./generated/names.json";
 /** The id→title map exactly as the game install resolved it. */
 const QUEST_TITLES: Readonly<Record<string, string>> = names.quests;
 
+/** The keys a save stores by name, to their localisation text. */
+const STRINGS: Readonly<Record<string, string>> = names.strings;
+
 /*
  * The rest of `generated/names.json` is carried but unread here, and the fields
  * are named rather than bound to constants nothing consumes:
@@ -47,6 +50,9 @@ const QUEST_TITLES: Readonly<Record<string, string>> = names.quests;
  *  - `Object.keys(quests).length` — how many journal ids have a resolved title.
  *    It is a figure about this file, not a constant, so it is recomputed rather
  *    than frozen.
+ *
+ * `strings` is read below, next to `quests`: it resolves the mutation keys the
+ * save stores by name.
  *
  * They stay in the JSON because that file is a verbatim copy of the source
  * decoder's, and trimming it would break the correspondence that makes a
@@ -71,3 +77,13 @@ export const questTitle = (questId: string): string | undefined => {
 	}
 	return undefined;
 };
+
+/**
+ * The localisation text for a key a save stores by name, or `undefined` when the
+ * catalogue does not ship it.
+ *
+ * The mutation `localizationNameKey` is the case in point: the save holds
+ * `skill_name_mutation_10`, so this returns `Euphoria`.
+ */
+export const localizedString = (key: string): string | undefined =>
+	STRINGS[key];
