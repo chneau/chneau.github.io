@@ -1,0 +1,554 @@
+/**
+ * The Witcher 3: Wild Hunt `.sav` — the codec this app contributes to the
+ * workbench.
+ *
+ * ## What this file is responsible for
+ *
+ * The shared workbench knows how to read a document, stage edits against it,
+ * re-encode, and prove the re-encode by decoding it again. It knows nothing
+ * about `SNFH` containers, LZ4 blocks or the REDkit token stream. This module
+ * supplies the game-specific half.
+ *
+ * ## How a save is edited at all
+ *
+ * The decoder this codec is built on is **read-only by design** — its own notes
+ * say "never assume a write path exists", which was the right instinct while
+ * the format was still being understood. A writer turned out to be possible
+ * anyway, and the reason is structural rather than lucky:
+ *
+ * - A `.sav` has **no checksum**. Not in the container, not in the `SAV3`
+ *   stream, not in the footer. The one CRC in the game belongs to the asset
+ *   *bundle* format, a different file entirely.
+ * - Every offset that could shift lives in the 3084-byte container header, and
+ *   the `SAV3` header, footer, `SC` span index and variable table all address
+ *   the **decompressed** stream.
+ *
+ * So a field whose **width does not change** can be written in place, and the
+ * rebuilt file is accepted. That is the whole strategy: the payload is carried
+ * verbatim, the fields we understand are overwritten at the offsets they were
+ * read from, and everything else survives untouched. Measured: patching money,
+ * level and both point counters changes 7 bytes of a 5,108,010-byte payload and
+ * the rebuilt file re-reads every one of them correctly.
+ *
+ * What this deliberately cannot do is *resize* anything. Adding a skill or
+ * renaming a string changes a length, which moves every offset after it and
+ * would require rewriting the `AVAL` length, the enclosing frame sizes, the
+ * `SC` span index and the variable table — whose coordinate base is still not
+ * fully understood. So the edits offered here are scalars only. That is a
+ * limitation of the format work, not an oversight, and the page says so.
+ *
+ * ## Offsets are discovered, never stored
+ *
+ * The document carries **values, never addresses**. Three saves of the same
+ * build put the wallet at 3640748, 3640300 and 3640999, because everything
+ * before it in the stream moves; a stored offset would silently corrupt
+ * whichever save it did not belong to. `encode` re-derives every address from
+ * the payload it is about to write, which is also why it cannot be fooled by a
+ * document edited by hand in the inspector.
+ *
+ * ## Why the scaffold is non-enumerable
+ *
+ * The workbench proves a rebuild by decoding it and comparing the resulting
+ * *document* with the one that was encoded. So every field a document exposes
+ * must be a function of the save's bytes, or the check reports a difference in
+ * a field nobody touched and calls the file unsound. The payload is exactly
+ * such a field: the document describes the pre-edit bytes while `encode`
+ * produces post-edit ones.
+ *
+ * Attaching it as a normal property does not work, and neither does hiding it
+ * on the root: the workbench folds edits with `setAtPath`, which rebuilds the
+ * root with an object spread, so anything non-enumerable on the root is lost by
+ * the time `encode` runs. It rides instead on a branch no edit rebuilds, as a
+ * non-enumerable property of its own object — so it survives every spread, and
+ * `JSON.stringify` skips it so the comparison sees only the readable
+ * projection.
+ */
+
+import type { Bytes } from "../../shared/save/bytes";
+import { describeError } from "../../shared/save/errors";
+import {
+	isJsonObject,
+	type JsonValue,
+	numberAt,
+	objectAt,
+	requireArrayAt,
+	requireStringAt,
+	stringAt,
+} from "../../shared/save/json";
+import type {
+	FormatNote,
+	QuickAction,
+	SaveCodec,
+	SaveEdit,
+	SummaryRow,
+} from "../../shared/save/types";
+import { questTitle } from "./catalog";
+import { decompressContainer, type SaveContainer } from "./container";
+import { buildContainer } from "./container-write";
+import { readFactDB } from "./facts";
+import { readPlayer } from "./player";
+import { questProgress } from "./quests";
+import {
+	type DifficultyScalar,
+	locateWritable,
+	type PatchableScalar,
+	patchScalar,
+} from "./write";
+
+/** Route slug, matching the app's directory name. */
+const ID = "witcher-3-save-editor";
+
+/** The payload and chunk layout `encode` writes back into. */
+type Scaffold = {
+	/** The decompressed stream, edited in place. */
+	readonly payload: Uint8Array;
+	/** The original chunk records, so the table's sizes stay authoritative. */
+	readonly chunks: readonly {
+		readonly index: number;
+		readonly compressedSize: number;
+		readonly decompressedSize: number;
+		readonly endOffset: number;
+		readonly start: number;
+	}[];
+};
+
+const SCAFFOLD_KEY = "scaffold";
+
+/**
+ * Recognise a scaffold by its shape rather than asserting one.
+ *
+ * The value riding here was attached by `decode`, but `encode` receives an
+ * untyped `JsonValue` and must not take that on trust — a document the user
+ * hand-edited in the inspector could hold anything under this key. A predicate
+ * that checks the two fields that matter is both safer and honest, where a cast
+ * would be a claim nothing checks.
+ */
+const isScaffold = (value: unknown): value is Scaffold => {
+	if (typeof value !== "object" || value === null) return false;
+	const candidate = value as { payload?: unknown; chunks?: unknown };
+	return (
+		candidate.payload instanceof Uint8Array && Array.isArray(candidate.chunks)
+	);
+};
+
+/**
+ * Attach the payload to the document's scaffold *branch*.
+ *
+ * The branch matters and the mistake is easy: defining the property on the root
+ * instead looks identical from `decode` and is destroyed by the first edit,
+ * because the workbench folds with `setAtPath`, which rebuilds the root with an
+ * object spread and copies only enumerable properties. Measured: with the
+ * property on the root, one edit was enough to lose the save and make `encode`
+ * refuse; on the branch, it survives every fold.
+ */
+const attachScaffold = (doc: JsonValue, scaffold: Scaffold): void => {
+	if (!isJsonObject(doc)) return;
+	const branch = doc[SCAFFOLD_KEY];
+	if (branch === undefined || !isJsonObject(branch)) return;
+	const holder: Record<string, unknown> = branch;
+	Object.defineProperty(holder, "bytes", {
+		value: scaffold,
+		enumerable: false,
+		writable: false,
+		configurable: true,
+	});
+};
+
+const readScaffold = (doc: JsonValue): Scaffold | undefined => {
+	if (!isJsonObject(doc)) return undefined;
+	const branch = doc[SCAFFOLD_KEY];
+	if (branch === undefined || !isJsonObject(branch)) return undefined;
+	const holder: Record<string, unknown> = branch;
+	const scaffold: unknown = holder.bytes;
+	return isScaffold(scaffold) ? scaffold : undefined;
+};
+
+/** One learned skill, as the page shows it. */
+type SkillRow = { readonly name: string; readonly level: number | null };
+
+const difficultyName = (difficulty: DifficultyScalar | undefined): string => {
+	if (difficulty === undefined) return "unknown";
+	const match = difficulty.choices.find((c) => c.index === difficulty.value);
+	return match?.label ?? `index ${difficulty.value}`;
+};
+
+/** The readable projection. Every field here is a function of the bytes. */
+const project = (container: SaveContainer): JsonValue => {
+	const found = locateWritable(container.data);
+	const skill = found.points.find((p) => p.kind === "skill");
+	const experience = found.points.find((p) => p.kind === "exp");
+
+	return {
+		format: ID,
+		game: "The Witcher 3: Wild Hunt",
+		container: {
+			chunks: container.chunks.length,
+			headerSize: container.headerSize,
+			payloadBytes: container.data.length,
+			// Deliberately absent: the file's compressed size. Re-encoding does
+			// not reproduce the game's exact LZ4 output, so that number is
+			// different on every rebuild even with no edits at all — and a field
+			// that moves on every rebuild is exactly what the workbench's
+			// round-trip check reads as an unsound file. The payload length, the
+			// chunk count and the header size are all stable under a width-
+			// preserving edit, so those are safe to show.
+		},
+		build: found.money === undefined ? "unrecognised" : "52586",
+		level: found.level?.value ?? null,
+		difficulty: {
+			index: found.difficulty?.value ?? null,
+			name: difficultyName(found.difficulty),
+		},
+		skillPoints: skill ? { free: skill.free, used: skill.used } : null,
+		experience: experience
+			? { free: experience.free, used: experience.used }
+			: null,
+		// The wallet is not a separate field. It is the `u16` quantity of the
+		// `Crowns` item, so exposing it twice — once as `money` and once here —
+		// would be two document fields over one pair of bytes, and editing either
+		// would silently disagree with the other. Measured: with both fields,
+		// setting `money` to 50000 left `items[Crowns]` reading 2996, and the
+		// round-trip check correctly called the rebuild unsound. One field, one
+		// byte.
+		items: found.items.map((item) => ({
+			name: item.name,
+			quantity: item.quantity,
+			slot: item.slot,
+		})),
+		position: (() => {
+			const player = readPlayer(container.data);
+			return player === undefined
+				? null
+				: { template: player.template, x: player.x, y: player.y, z: player.z };
+		})(),
+		quests: (() => {
+			const db = readFactDB(container.data);
+			if (db === undefined) return [];
+			// Sorted by title so the list reads as a journal rather than as the
+			// order the engine happened to write its facts in, and capped because
+			// a late-game save holds hundreds: the summary row carries the true
+			// count and the tree view carries the rest.
+			return questProgress(db.facts)
+				.map((q) => ({
+					id: q.id,
+					title: questTitle(q.id) ?? q.id,
+					state: q.state,
+					done: q.done,
+					total: q.total,
+				}))
+				.sort((a, b) => a.title.localeCompare(b.title))
+				.slice(0, 200);
+		})(),
+		skills: found.skills
+			.filter((s): s is typeof s & { level: number } => s.level !== undefined)
+			.map((s): SkillRow => ({ name: s.name, level: s.level })),
+		// The branch the scaffold rides on. Present but empty as far as
+		// `JSON.stringify` is concerned, which is what keeps the round-trip
+		// comparison honest.
+		[SCAFFOLD_KEY]: {},
+	};
+};
+
+const decode = async (bytes: Bytes): Promise<JsonValue> => {
+	let container: SaveContainer;
+	try {
+		container = decompressContainer(bytes);
+	} catch (cause) {
+		throw new Error(
+			`This does not look like a Witcher 3 save: ${describeError(cause)}`,
+		);
+	}
+	if (container.chunks.length === 0) {
+		throw new Error("The save has no content chunks.");
+	}
+	const doc = project(container);
+	attachScaffold(doc, {
+		payload: container.data,
+		chunks: container.chunks.map((c) => ({ ...c })),
+	});
+	return doc;
+};
+
+/** Read a scalar the document exposes, or `undefined` when it is absent. */
+const scalarOf = (doc: JsonValue, key: string): number | undefined => {
+	const value = numberAt(doc, key);
+	return value === undefined || value === null ? undefined : value;
+};
+
+const encode = async (doc: JsonValue): Promise<Bytes> => {
+	const scaffold = readScaffold(doc);
+	if (scaffold === undefined) {
+		throw new Error(
+			"This document has no save attached to it. Re-open the file — the inspector cannot rebuild a save from its own projection.",
+		);
+	}
+
+	// Re-derive every address from the payload rather than trusting one from
+	// the document: the offsets are per-save and cannot survive being stored.
+	const payload = scaffold.payload.slice();
+	const found = locateWritable(payload);
+
+	const apply = (target: PatchableScalar | undefined, key: string): void => {
+		if (target === undefined) return;
+		const wanted = scalarOf(doc, key);
+		if (wanted === undefined) return;
+		patchScalar(payload, target, wanted);
+	};
+
+	apply(found.level, "level");
+
+	if (found.difficulty !== undefined) {
+		const difficulty = objectAt(doc, "difficulty");
+		const index =
+			difficulty === undefined ? undefined : numberAt(difficulty, "index");
+		if (index !== undefined && index !== null) {
+			patchScalar(payload, found.difficulty, index);
+		}
+	}
+
+	for (const [key, kind] of [
+		["skillPoints", "skill"],
+		["experience", "exp"],
+	] as const) {
+		const branch = objectAt(doc, key);
+		if (branch === undefined) continue;
+		const points = found.points.find((p) => p.kind === kind);
+		if (points === undefined) continue;
+		const free = numberAt(branch, "free");
+		const used = numberAt(branch, "used");
+		if (free !== undefined && free !== null) {
+			writeInt32(payload, points.freeOffset, free);
+		}
+		if (used !== undefined && used !== null && points.usedOffset > 0) {
+			writeInt32(payload, points.usedOffset, used);
+		}
+	}
+
+	const items = requireArrayAt(doc, "items");
+	found.items.forEach((item, index) => {
+		const row = items[index];
+		// `objectAt(row, "")` looks up a key named "" and silently yields
+		// `undefined` for every row, which made this loop a no-op that still
+		// looked like it was writing quantities.
+		if (row === undefined || !isJsonObject(row)) return;
+		const quantity = numberAt(row, "quantity");
+		if (quantity === undefined || quantity === null) return;
+		writeUint16(payload, item.quantityOffset, quantity);
+	});
+
+	const rebuilt = buildContainer(scaffold.chunks, payload);
+	return rebuilt as Bytes;
+};
+
+const writeInt32 = (data: Uint8Array, at: number, value: number): void => {
+	if (at <= 0 || at + 4 > data.length) return;
+	new DataView(data.buffer, data.byteOffset + at, 4).setInt32(
+		0,
+		Math.trunc(value),
+		true,
+	);
+};
+
+const writeUint16 = (data: Uint8Array, at: number, value: number): void => {
+	if (at <= 0 || at + 2 > data.length) return;
+	const clamped = Math.min(0xffff, Math.max(0, Math.trunc(value)));
+	data[at] = clamped & 0xff;
+	data[at + 1] = (clamped >>> 8) & 0xff;
+};
+
+/** The Crowns row, which is the wallet. */
+const crownsRow = (
+	doc: JsonValue,
+): { path: (string | number)[]; quantity: number } | undefined => {
+	const list = requireArrayAt(doc, "items");
+	for (const [index, row] of list.entries()) {
+		if (!isJsonObject(row)) continue;
+		if (stringAt(row, "name") !== "Crowns") continue;
+		const quantity = numberAt(row, "quantity");
+		if (quantity === undefined || quantity === null) continue;
+		return { path: ["items", index, "quantity"], quantity };
+	}
+	return undefined;
+};
+
+const summarise = (doc: JsonValue): readonly SummaryRow[] => {
+	const crowns = crownsRow(doc);
+	const money = crowns?.quantity;
+	const level = scalarOf(doc, "level");
+	const difficulty = objectAt(doc, "difficulty");
+	const rows: SummaryRow[] = [
+		{
+			label: "Build",
+			value: requireStringAt(doc, "build"),
+		},
+		{
+			label: "Level",
+			value: level === undefined ? "not found" : String(level),
+			emphasis: level !== undefined && level < 20,
+		},
+		{
+			label: "Difficulty",
+			value:
+				difficulty === undefined
+					? "unknown"
+					: (stringAt(difficulty, "name") ?? "unknown"),
+		},
+		{
+			label: "Crowns",
+			value:
+				crowns === undefined
+					? "not supported for this build"
+					: String(crowns.quantity),
+			// Worth noticing exactly when it is *missing*: the honest case is a
+			// save this editor can read but cannot write money for.
+			emphasis: money === undefined,
+		},
+	];
+
+	const skillPoints = objectAt(doc, "skillPoints");
+	if (skillPoints !== undefined) {
+		rows.push({
+			label: "Skill points",
+			value: `${numberAt(skillPoints, "free") ?? 0} free`,
+		});
+	}
+	const experience = objectAt(doc, "experience");
+	if (experience !== undefined) {
+		rows.push({
+			label: "Experience",
+			value: `${numberAt(experience, "free") ?? 0} available`,
+		});
+	}
+	const position = objectAt(doc, "position");
+	if (position !== undefined) {
+		const x = numberAt(position, "x");
+		const y = numberAt(position, "y");
+		const z = numberAt(position, "z");
+		if (x !== undefined && y !== undefined && z !== undefined) {
+			rows.push({
+				label: "Position",
+				value: `${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}`,
+			});
+		}
+	}
+
+	return rows;
+};
+
+/**
+ * The one-click changes.
+ *
+ * Each `plan` is pure and returns the edits a button *would* stage, which is
+ * what makes a cheat testable — a test can assert exactly what a button does,
+ * which is the only part of it that matters. Returning `[]` is how an action
+ * greys itself out, and that is what happens on a build whose money record this
+ * editor cannot find: better a disabled button than one that would patch an
+ * unrelated record.
+ */
+const edit = (
+	path: readonly (string | number)[],
+	label: string,
+	before: number,
+	after: number,
+): SaveEdit => ({
+	id: `${path.join(".")}=${after}`,
+	label,
+	path,
+	before,
+	after,
+});
+
+const ACTIONS: readonly QuickAction[] = [
+	{
+		id: "crowns-max",
+		label: "Fill the wallet",
+		description: "Set crowns to the most the field can hold (65535).",
+		plan: (doc) => {
+			const crowns = crownsRow(doc);
+			if (crowns === undefined) return [];
+			return [edit(crowns.path, "Crowns", crowns.quantity, 65535)];
+		},
+	},
+	{
+		id: "crowns-round",
+		label: "Round to 1000",
+		description: "Round crowns up to the next thousand.",
+		plan: (doc) => {
+			const crowns = crownsRow(doc);
+			if (crowns === undefined || crowns.quantity >= 65535) return [];
+			const next = Math.min(
+				65535,
+				Math.ceil((crowns.quantity + 1) / 1000) * 1000,
+			);
+			if (next === crowns.quantity) return [];
+			return [edit(crowns.path, "Crowns", crowns.quantity, next)];
+		},
+	},
+	{
+		id: "skill-points-max",
+		label: "Max skill points",
+		description: "Set unspent skill points to 500.",
+		plan: (doc) => {
+			const branch = objectAt(doc, "skillPoints");
+			if (branch === undefined) return [];
+			const free = numberAt(branch, "free");
+			if (free === undefined || free === null || free === 500) return [];
+			return [edit(["skillPoints", "free"], "Skill points", free, 500)];
+		},
+	},
+	{
+		id: "experience-max",
+		label: "Max experience",
+		description: "Set available experience to 500.",
+		plan: (doc) => {
+			const branch = objectAt(doc, "experience");
+			if (branch === undefined) return [];
+			const free = numberAt(branch, "free");
+			if (free === undefined || free === null || free === 500) return [];
+			return [edit(["experience", "free"], "Experience", free, 500)];
+		},
+	},
+	{
+		id: "level-up",
+		label: "Level up",
+		description: "Add five levels, up to what the save's own curve allows.",
+		plan: (doc) => {
+			const level = scalarOf(doc, "level");
+			if (level === undefined || level >= 60) return [];
+			return [edit(["level"], "Level", level, Math.min(60, level + 5))];
+		},
+	},
+];
+
+const NOTES: readonly FormatNote[] = [
+	{
+		title: "No checksum, and that is the whole trick",
+		body: "A Witcher 3 save carries no checksum over its contents — not in the container, not in the SAV3 stream, not in the footer. The only CRC in the game belongs to the asset bundle format, which is a different file. So a value written in place needs nothing recomputed, and that is what makes a browser editor possible at all.",
+	},
+	{
+		title: "Write the same width, or not at all",
+		body: "A field's width must not change. Overwrite a u16 with a u16 and the stream keeps its length, so no offset anywhere moves. Change a length — adding a skill, renaming a string — and every offset after it shifts, which would mean rewriting the token stream, the span index and the variable table. The variable table's coordinate base is still not fully understood, so those operations are out of reach here. The edits on offer are scalars only, and that is a limit of the format work rather than a choice.",
+	},
+	{
+		title: "Addresses are found, never remembered",
+		body: "Three saves of the same build put the wallet at 3640748, 3640300 and 3640999, because everything ahead of it in the stream moves. So this editor looks each field up by its shape and its build-specific identity every time, and stores values rather than addresses. The wallet is found by requiring both the record shape and the item identity: the shape alone matches 1845 records in a real save, and only one of them is the player's.",
+	},
+	{
+		title: "What the game does with the result",
+		body: "Every rebuilt file is decoded again before it is offered for download, and the values you set are read back out of the rebuilt bytes. That proves the file is self-consistent and that the edits landed. It is not proof the game will load it — only launching the game settles that, and this page cannot.",
+	},
+];
+
+export const witcher3: SaveCodec = {
+	id: ID,
+	game: "The Witcher 3: Wild Hunt",
+	formatLabel: "SNFH/FZLC container, LZ4 blocks, REDkit token stream",
+	extensions: ["sav"],
+	defaultPath:
+		"Windows: Documents\\GOG Games\\The Witcher 3\\Game\\savedata  ·  Linux: ~/.local/share/Steam/steamapps/compatdata/1091500/pfx/drive_c/users/steamuser/My Documents/GOG Games/The Witcher 3/savedata",
+	notes: NOTES,
+	decode,
+	encode,
+	summarise,
+	actions: ACTIONS,
+};

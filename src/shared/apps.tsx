@@ -10,6 +10,7 @@ import {
 	Moon,
 	Palette,
 	Rocket,
+	Sword,
 	Swords,
 	TrainFront,
 	Zap,
@@ -47,6 +48,7 @@ const LUCIDE_ICONS: Record<string, LucideIcon> = {
 	Palette,
 	Rocket,
 	Swords,
+	Sword,
 	TrainFront,
 	Zap,
 };
