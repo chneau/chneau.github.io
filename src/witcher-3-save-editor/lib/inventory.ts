@@ -18,8 +18,9 @@
  * `0f 00 01`), and the trailing field is zero; there is no self-describing
  * durability/upgrade field. Any per-instance detail (durability, upgrade level,
  * affixes) lives in the native item entity or the `SItemUniqueId` of the
- * equipped slots, which is not decoded here. `ITEM_FIELDS` in `./catalog` is
- * what the engine *calls* those fields, for when that layer is written.
+ * equipped slots, which is not decoded here. The `itemFields` section of
+ * `generated/names.json` (see `./catalog`) is what the engine *calls* those
+ * fields, for when that layer is written.
  *
  * A save holds **many** such lists — the player's inventory, and the item slots
  * of actors, containers and merchants. `readInventory` decodes records wherever

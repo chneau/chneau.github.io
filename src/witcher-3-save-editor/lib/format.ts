@@ -306,14 +306,17 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		}
 	}
 
+	// Both counters live in one small array, so the lookup is built once rather
+	// than searched again per iteration: `points` is walked as a map, not as a
+	// list, so the cost does not grow with however many counters a save carries.
+	const counters = new Map(found.points.map((p) => [p.kind, p]));
 	for (const [key, kind] of [
 		["skillPoints", "skill"],
 		["experience", "exp"],
 	] as const) {
 		const branch = objectAt(doc, key);
-		if (branch === undefined) continue;
-		const points = found.points.find((p) => p.kind === kind);
-		if (points === undefined) continue;
+		const points = counters.get(kind);
+		if (branch === undefined || points === undefined) continue;
 		const free = numberAt(branch, "free");
 		const used = numberAt(branch, "used");
 		if (free !== undefined && free !== null) {
