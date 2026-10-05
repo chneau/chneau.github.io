@@ -374,10 +374,7 @@ describe("caps and the projection contract", () => {
 		const json = JSON.stringify(found);
 		expect(json).not.toContain("offset");
 		expect(json).not.toContain("Offset");
-		const walk = (
-			value: unknown,
-			key: string | undefined,
-		): void => {
+		const walk = (value: unknown, key: string | undefined): void => {
 			if (Array.isArray(value)) {
 				for (const item of value) walk(item, key);
 				return;

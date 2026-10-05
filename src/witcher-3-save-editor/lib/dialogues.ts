@@ -124,7 +124,7 @@ export const DIALOG_SAMPLE_LIMIT = 32;
 export const ATTITUDE_SAMPLE_LIMIT = 48;
 
 /** The attitude name that carries no information, excluded from the sample. */
-export const NEUTRAL_ATTITUDE = "AIA_Neutral";
+const NEUTRAL_ATTITUDE = "AIA_Neutral";
 
 /** The `MANU` name of the block whose columns are the attitude triples. */
 const ATTITUDES_BLOCK = "attitudes";
@@ -163,7 +163,7 @@ type ExternalDialogBlock = {
 };
 
 /** One dialogue reference, flattened to a single guid. */
-export type PendingDialog = {
+type PendingDialog = {
 	/** the speaker/scene tag name, or `null` when the `MANU` index resolves to nothing */
 	readonly speaker: string | null;
 	/** the 16-byte dialogue id, as 32 lowercase hex digits */
@@ -178,7 +178,7 @@ export type PendingDialog = {
 };
 
 /** The pending external-scene dialog references of one save. */
-export type PendingDialogs = {
+type PendingDialogs = {
 	/** `ExternalDialog` blocks found */
 	readonly blockCount: number;
 	/** distinct guids across all blocks — greater than `blockCount` when a block carries several */
@@ -194,7 +194,7 @@ export type PendingDialogs = {
 };
 
 /** One `(group, group, attitude)` row of the global attitude table. */
-export type AttitudePair = {
+type AttitudePair = {
 	/** the row's first group name, or `null` when it does not resolve */
 	readonly group: string | null;
 	/** the row's second group name, or `null` when it does not resolve */
@@ -204,14 +204,14 @@ export type AttitudePair = {
 };
 
 /** One distinct attitude name and how many rows carry it. */
-export type AttitudeValueCount = {
+type AttitudeValueCount = {
 	/** the resolved `AIA_*` name */
 	readonly attitude: string;
 	readonly count: number;
 };
 
 /** The global attitude-group matrix of one save. */
-export type AttitudeMatrix = {
+type AttitudeMatrix = {
 	/** rows in `attitudes`, i.e. the number of group×group pairs; `null` when the block is absent */
 	readonly groupCount: number | null;
 	/** keys in `parentGroups`, i.e. the groups this playthrough used; `null` when absent */
@@ -231,7 +231,7 @@ export type AttitudeMatrix = {
 };
 
 /** Both readings of one save, from one token walk. */
-export type DialogueRead = {
+type DialogueRead = {
 	readonly dialogs: PendingDialogs;
 	readonly attitudes: AttitudeMatrix;
 };
@@ -263,14 +263,11 @@ export const resolveCName = (
  * The same rule for a `ReflectedValue`, which renders a `CName` as the text
  * `CName(index)` rather than carrying its bytes.
  */
-const cnameText = (
-	names: readonly string[],
-	text: string,
-): string | null => {
+const cnameText = (names: readonly string[], text: string): string | null => {
 	const match = text.match(/CName\((\d+)\)/);
 	if (match === null) return null;
 	const index = Number(match[1]);
-	return index >= 1 ? names[index - 1] ?? null : null;
+	return index >= 1 ? (names[index - 1] ?? null) : null;
 };
 
 /** Every node of the forest, flattened, with each node's span end indexed. */
@@ -465,7 +462,8 @@ const readPendingDialogs = (
 const rootNamed = (
 	roots: readonly ObjectNode[],
 	name: string,
-): ObjectNode | undefined => roots.find((node) => node.span.token.name === name);
+): ObjectNode | undefined =>
+	roots.find((node) => node.span.token.name === name);
 
 /**
  * One array column of a top-level block, resolved to names.
@@ -580,9 +578,7 @@ const readAttitudeMatrix = (
 		groupCount: first === undefined ? null : rows,
 		parentGroupCount: parentKeys?.length ?? null,
 		distinctParentCount:
-			parentNames === undefined
-				? null
-				: new Set(parentNames).size,
+			parentNames === undefined ? null : new Set(parentNames).size,
 		unresolvedRowCount: unresolved,
 		nonNeutralCount: nonNeutral,
 		valueCounts: [...histogram]
@@ -603,11 +599,19 @@ const readAttitudeMatrix = (
  * 250,640 on 52586 — and both readings need it, so they are read together
  * rather than by two calls that each walk the stream. The span index is built
  * once for the same reason.
+ *
+ * `names`, `scan` and `roots` may be supplied by a caller that has already read
+ * them; this is what lets the codec share one walk and one object tree across
+ * every reader rather than paying ~490 ms and a ~246 ms tree build here per save.
  */
-export const readDialogues = (data: Uint8Array): DialogueRead => {
-	const names = readNameTable(data).names;
-	const tokens = parseTokens(data, names).tokens;
-	const tree = indexTree(readObjectTree(data).roots);
+export const readDialogues = (
+	data: Uint8Array,
+	names: readonly string[] = readNameTable(data).names,
+	scan?: readonly Token[],
+	roots?: readonly ObjectNode[],
+): DialogueRead => {
+	const tokens = scan ?? parseTokens(data, names).tokens;
+	const tree = indexTree(roots ?? readObjectTree(data).roots);
 	return {
 		dialogs: readPendingDialogs(names, tokens, tree),
 		attitudes: readAttitudeMatrix(data, names, tokens, tree.roots),

@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import { decompressContainer } from "../lib/container";
 import {
 	ATTITUDE_SAMPLE_LIMIT,
 	DIALOG_SAMPLE_LIMIT,
 	readDialogues,
 	resolveCName,
 } from "../lib/dialogues";
-import { decompressContainer } from "../lib/container";
 import { FIXTURE_TIMEOUT_MS, largeSave, smallSave } from "./fixtures";
 
 /**
@@ -91,9 +91,9 @@ describe("pending external-scene dialogs", () => {
 			`names speakers through the save's own table on ${fixture.name}`,
 			() => {
 				const { dialogs } = readDialogues(fixture.load());
-				expect(dialogs.sample.slice(0, 3).map((row) => row.speaker)).toEqual(
-					[...fixture.speakers],
-				);
+				expect(dialogs.sample.slice(0, 3).map((row) => row.speaker)).toEqual([
+					...fixture.speakers,
+				]);
 				// A CName is a 1-based index into this save's MANU, so the same
 				// speaker is a different number on each build: `priscilla` is 3275
 				// on 52586 and absent from the small save's table entirely.
@@ -127,30 +127,32 @@ describe("pending external-scene dialogs", () => {
 				);
 				// The dropped rows are still counted: a capped list that reported
 				// its own length as the total would under-report the save.
-				expect(dialogs.sample.length).toBeLessThanOrEqual(
-					dialogs.guidCount,
-				);
+				expect(dialogs.sample.length).toBeLessThanOrEqual(dialogs.guidCount);
 				expect(dialogs.guidCount).toBe(fixture.guids);
 			},
 			FIXTURE_TIMEOUT_MS,
 		);
 
-		test(`carries no offset into the document on ${fixture.name}`, () => {
-			const { dialogs, attitudes } = readDialogues(fixture.load());
-			const serialised = JSON.stringify({ dialogs, attitudes });
-			expect(serialised).not.toContain("offset");
-			expect(serialised).not.toContain("spanEnd");
-			// A byte address would show up as a large bare integer; the only
-			// numbers this module emits are counts, `dialogsCount`, and hex.
-			for (const row of dialogs.sample) {
-				expect(Object.keys(row).sort()).toEqual([
-					"dialogsCount",
-					"guid",
-					"hasQuestBlockReference",
-					"speaker",
-				]);
-			}
-		}, FIXTURE_TIMEOUT_MS);
+		test(
+			`carries no offset into the document on ${fixture.name}`,
+			() => {
+				const { dialogs, attitudes } = readDialogues(fixture.load());
+				const serialised = JSON.stringify({ dialogs, attitudes });
+				expect(serialised).not.toContain("offset");
+				expect(serialised).not.toContain("spanEnd");
+				// A byte address would show up as a large bare integer; the only
+				// numbers this module emits are counts, `dialogsCount`, and hex.
+				for (const row of dialogs.sample) {
+					expect(Object.keys(row).sort()).toEqual([
+						"dialogsCount",
+						"guid",
+						"hasQuestBlockReference",
+						"speaker",
+					]);
+				}
+			},
+			FIXTURE_TIMEOUT_MS,
+		);
 	}
 });
 
@@ -165,8 +167,16 @@ describe("the multi-guid block", () => {
 			// only the first, and `guidCount` would be 152 rather than 155.
 			expect(pairs.length).toBeGreaterThan(0);
 			for (const row of pairs) expect(row.dialogsCount).toBe(2);
-			expect(dialogs.sample.some((row) => row.guid === "192ba9bb039bf049a76b1f650bb11048")).toBe(true);
-			expect(dialogs.sample.some((row) => row.guid === "0123a0f078bc434d8088e91e26d96635")).toBe(true);
+			expect(
+				dialogs.sample.some(
+					(row) => row.guid === "192ba9bb039bf049a76b1f650bb11048",
+				),
+			).toBe(true);
+			expect(
+				dialogs.sample.some(
+					(row) => row.guid === "0123a0f078bc434d8088e91e26d96635",
+				),
+			).toBe(true);
 			// Both come from the same block, so both are referenced and both count.
 			expect(pairs.every((row) => row.hasQuestBlockReference)).toBe(true);
 		},
@@ -179,9 +189,7 @@ describe("the multi-guid block", () => {
 			const { dialogs } = readDialogues(decompressContainer(smallSave()).data);
 			expect(dialogs.blocksWithMultipleGuids).toBe(0);
 			expect(dialogs.guidCount).toBe(dialogs.blockCount);
-			expect(
-				dialogs.sample.every((row) => row.dialogsCount === 1),
-			).toBe(true);
+			expect(dialogs.sample.every((row) => row.dialogsCount === 1)).toBe(true);
 		},
 		FIXTURE_TIMEOUT_MS,
 	);
@@ -280,7 +288,9 @@ describe("the global attitude-group matrix", () => {
 	test(
 		"is a group-to-group table, not a per-NPC attitude",
 		() => {
-			const { attitudes } = readDialogues(decompressContainer(smallSave()).data);
+			const { attitudes } = readDialogues(
+				decompressContainer(smallSave()).data,
+			);
 			// The distinction is worth a test because getting it wrong is the
 			// likeliest way this module is mislabelled downstream: the columns
 			// are group names on both sides, and no row is keyed by an entity.
