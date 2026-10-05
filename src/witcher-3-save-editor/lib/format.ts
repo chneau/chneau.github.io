@@ -88,12 +88,7 @@ import { buildContainer } from "./container-write";
 import { readFactDB } from "./facts";
 import { readPlayer } from "./player";
 import { questProgress } from "./quests";
-import {
-	type DifficultyScalar,
-	locateWritable,
-	type PatchableScalar,
-	patchScalar,
-} from "./write";
+import { locateWritable, type PatchableScalar, patchScalar } from "./write";
 
 /** Route slug, matching the app's directory name. */
 const ID = "witcher-3-save-editor";
@@ -166,10 +161,25 @@ const readScaffold = (doc: JsonValue): Scaffold | undefined => {
 /** One learned skill, as the page shows it. */
 type SkillRow = { readonly name: string; readonly level: number | null };
 
-const difficultyName = (difficulty: DifficultyScalar | undefined): string => {
-	if (difficulty === undefined) return "unknown";
-	const match = difficulty.choices.find((c) => c.index === difficulty.value);
-	return match?.label ?? `index ${difficulty.value}`;
+/**
+ * The label for a difficulty index, read out of the document's own `choices`.
+ *
+ * Computed rather than stored: a difficulty's name is a function of its index
+ * and this save's name table, so a document that carried both would hold two
+ * fields for one fact and could be made to disagree with itself.
+ */
+const difficultyLabel = (doc: JsonValue): string => {
+	const branch = objectAt(doc, "difficulty");
+	if (branch === undefined) return "unknown";
+	const index = numberAt(branch, "index");
+	if (index === undefined || index === null) return "unknown";
+	if (!Array.isArray(branch.choices)) return `index ${index}`;
+	for (const choice of branch.choices) {
+		if (!isJsonObject(choice)) continue;
+		if (numberAt(choice, "index") !== index) continue;
+		return stringAt(choice, "label") ?? `index ${index}`;
+	}
+	return `index ${index}`;
 };
 
 /** The readable projection. Every field here is a function of the bytes. */
@@ -197,7 +207,25 @@ const project = (container: SaveContainer): JsonValue => {
 		level: found.level?.value ?? null,
 		difficulty: {
 			index: found.difficulty?.value ?? null,
-			name: difficultyName(found.difficulty),
+			// Deliberately no `name` here. It is derived from `index` and this
+			// save's `choices`, so storing it would be a second document field
+			// over one underlying fact: setting `index` to another difficulty left
+			// `name` reading "Hard" while the file said "Easy", and the round-trip
+			// check called the rebuild unsound. Measured, then removed. The label
+			// is computed where it is needed, in `summarise`.
+			//
+			// This is the same mistake as exposing both `money` and the Crowns
+			// item's quantity, and it has the same fix: a derived value does not
+			// belong in the document.
+			// The difficulties this build knows, with the `MANU` index each is
+			// written as. Carried in the document rather than looked up at action
+			// time so the quick actions can resolve an index from the save alone,
+			// and so the two are guaranteed to agree: both come from this build's
+			// own name table, and the round-trip check compares them.
+			choices: (found.difficulty?.choices ?? []).map((choice) => ({
+				label: choice.label,
+				index: choice.index,
+			})),
 		},
 		skillPoints: skill ? { free: skill.free, used: skill.used } : null,
 		experience: experience
@@ -378,7 +406,6 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 	const crowns = crownsRow(doc);
 	const money = crowns?.quantity;
 	const level = scalarOf(doc, "level");
-	const difficulty = objectAt(doc, "difficulty");
 	const rows: SummaryRow[] = [
 		{
 			label: "Build",
@@ -389,13 +416,7 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 			value: level === undefined ? "not found" : String(level),
 			emphasis: level !== undefined && level < 20,
 		},
-		{
-			label: "Difficulty",
-			value:
-				difficulty === undefined
-					? "unknown"
-					: (stringAt(difficulty, "name") ?? "unknown"),
-		},
+		{ label: "Difficulty", value: difficultyLabel(doc) },
 		{
 			label: "Crowns",
 			value:
@@ -523,6 +544,61 @@ const ACTIONS: readonly QuickAction[] = [
 	},
 ];
 
+/**
+ * A "Play on X" action per difficulty the game is known to have.
+ *
+ * Difficulty is a `u16` holding a `MANU` index, not an enum ordinal, and there is
+ * no global list of indices: they differ per game build. Measured — build `52586`
+ * knows Easy/NotSet/Medium/Hard while `8559a` knows Hardcore/NotSet, with *no
+ * overlap* on Hardcore. So each action looks its own index up in the save's own
+ * name table at plan time and stages nothing when that build has never heard of
+ * the difficulty, which is what greys the button out.
+ *
+ * The action list is necessarily fixed — `SaveCodec.actions` is a static array —
+ * and these are actions rather than a dropdown because the shared workbench is a
+ * generic JSON inspector with no notion of an enum. Adding one would mean forking
+ * a variant into `src/shared/` for every save editor on the site, which AGENTS.md
+ * explicitly warns against. An action is the contract's own vocabulary, and its
+ * `plan` is pure, so "which difficulties can this save reach" is asserted in a
+ * test rather than merely rendered.
+ */
+const DIFFICULTIES = ["Easy", "Medium", "Hard", "Hardcore", "NotSet"] as const;
+
+const difficultyIndexFor = (
+	doc: JsonValue,
+	label: string,
+): number | undefined => {
+	const branch = objectAt(doc, "difficulty");
+	if (branch === undefined || !Array.isArray(branch.choices)) return undefined;
+	for (const choice of branch.choices) {
+		if (!isJsonObject(choice)) continue;
+		if (stringAt(choice, "label") !== label) continue;
+		const index = numberAt(choice, "index");
+		if (index === undefined) continue;
+		return index;
+	}
+	return undefined;
+};
+
+const difficultyActions: readonly QuickAction[] = DIFFICULTIES.map((label) => ({
+	id: `difficulty-${label.toLowerCase()}`,
+	label: `Play on ${label}`,
+	description: `Set the difficulty to ${label}.`,
+	plan: (doc) => {
+		const index = difficultyIndexFor(doc, label);
+		if (index === undefined) return [];
+		const branch = objectAt(doc, "difficulty");
+		const current =
+			branch === undefined ? undefined : numberAt(branch, "index");
+		// Nothing to stage when the save is already on this difficulty: staging a
+		// no-op edit would put a line in the tray that changes nothing.
+		if (current === undefined || current === index) return [];
+		return [
+			edit(["difficulty", "index"], `Difficulty: ${label}`, current, index),
+		];
+	},
+}));
+
 const NOTES: readonly FormatNote[] = [
 	{
 		title: "No checksum, and that is the whole trick",
@@ -553,5 +629,5 @@ export const witcher3: SaveCodec = {
 	decode,
 	encode,
 	summarise,
-	actions: ACTIONS,
+	actions: [...ACTIONS, ...difficultyActions],
 };

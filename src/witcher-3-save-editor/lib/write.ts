@@ -107,7 +107,12 @@ type DifficultyChoice = {
  * The distinction is not cosmetic: writing the ordinal `3` where the save
  * expects an index would silently set some other difficulty entirely, or none.
  */
-export type DifficultyScalar = PatchableScalar & {
+/**
+ * Not exported: it is part of `WritableSave`'s shape, which is all a consumer
+ * needs, and nothing outside this module names it. `WritableSave` is the
+ * contract; a constituent type does not become a second one.
+ */
+type DifficultyScalar = PatchableScalar & {
 	readonly choices: readonly DifficultyChoice[];
 };
 
