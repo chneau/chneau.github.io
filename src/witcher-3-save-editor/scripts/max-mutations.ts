@@ -25,7 +25,8 @@ if (input === undefined || output === undefined) {
 
 const doc = await witcher3.decode(new Uint8Array(readFileSync(input)));
 const action = witcher3.actions.find((entry) => entry.id === "mutations-max");
-if (action === undefined) throw new Error("this codec has no mutations-max action");
+if (action === undefined)
+	throw new Error("this codec has no mutations-max action");
 const edits = action.plan(doc);
 const file = await witcher3.encode(applyEdits(doc, edits));
 writeFileSync(output, file);

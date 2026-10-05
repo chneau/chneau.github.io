@@ -37,14 +37,17 @@ import { FIXTURE_TIMEOUT_MS, largeSave, smallSave } from "./fixtures";
  * The two saves are two builds, and the difference between them is a contract
  * rather than noise:
  *
- *  - `8559a` decodes progression and finds no wallet. Its build's item records
- *    use a different shape, and it holds none of the records `locateMoney` looks
- *    for. The editor must say so in words and offer no money edit.
- *  - `52586` decodes both.
+ *  - Their item records carry **different tag pairs** — `76 00 77 00` against
+ *    `72 00 74 00` — so a reader that hardcodes either one reads nothing on the
+ *    other. `discoverTagPair` recovers the pair from the save, which is why both
+ *    now decode a full inventory, a wallet and their durability figures.
+ *  - Their **record counts differ** (164 against 626 in the player's bag), so any
+ *    test addressing an item by a hard-coded index is asserting against a
+ *    different item on the other fixture. Item paths are located by name.
  *
  * A test that only used the larger file would pass while the smaller one — a save
- * a player is quite likely to have, from an earlier patch of the game — offered
- * a wallet button that patched an unrelated record.
+ * a player is quite likely to have, from an earlier patch of the game — reported
+ * an empty inventory, which is what this suite was written to prevent.
  */
 
 /** The document as an object, read through a narrowing helper rather than a cast. */
@@ -77,13 +80,13 @@ const planFor = (
 
 describe("decoding a real save", () => {
 	test(
-		"reads the small save's progression and refuses to guess at its wallet",
+		"reads the small save's progression, inventory and wallet",
 		async () => {
 			const doc = await witcher3.decode(smallSave());
 			expect({
 				format: asObject(doc).format,
 				game: asObject(doc).game,
-				build: asObject(doc).build,
+				saveVersion: asObject(doc).saveVersion,
 				level: getAtPath(doc, ["level"]),
 				difficulty: rowValue(doc, "Difficulty"),
 				skillPoints: getAtPath(doc, ["skillPoints"]),
@@ -95,25 +98,24 @@ describe("decoding a real save", () => {
 			}).toEqual({
 				format: "witcher-3-save-editor",
 				game: "The Witcher 3: Wild Hunt",
-				// Not a guess: `locateMoney` found nothing, and the codec says the
-				// build is unrecognised rather than pretending the field is zero.
-				build: "unrecognised",
+				saveVersion: "66/29/164",
 				level: 4,
 				difficulty: "Hardcore",
 				skillPoints: { free: 9, used: 0 },
 				experience: { free: 17, used: 3000 },
 				chunks: 1,
 				headerSize: 3084,
-				items: 0,
-				// Fewer than the 167 slots the player record holds, because the codec
-				// reports only the skills whose level was read: a slot with no level is
-				// a slot the save has not filled in, and listing it as level 0 would be
-				// claiming a skill the character does not have.
+				// 164, not 0. This build's item records carry the tag pair
+				// `76 00 77 00` and the reader used to require `72 00 74 00`, so it
+				// found nothing in this save at all. `discoverTagPair` now recovers
+				// the pair from the save's own bytes.
+				items: 164,
 				// All 167 are listed, of which 148 carry a level: the other 19
 				// omit the field from the stream and are reported as `null` rather
 				// than filtered out, because the list is addressed by index.
 				skills: 167,
 			});
+			expect(rowValue(doc, "Crowns")).toBe("397");
 		},
 		FIXTURE_TIMEOUT_MS,
 	);
@@ -123,7 +125,7 @@ describe("decoding a real save", () => {
 		async () => {
 			const doc = await witcher3.decode(largeSave());
 			expect({
-				build: asObject(doc).build,
+				saveVersion: asObject(doc).saveVersion,
 				level: getAtPath(doc, ["level"]),
 				difficulty: rowValue(doc, "Difficulty"),
 				skillPoints: getAtPath(doc, ["skillPoints"]),
@@ -132,13 +134,16 @@ describe("decoding a real save", () => {
 				items: arrayAt(doc, "items")?.length,
 				skills: arrayAt(doc, "skills")?.length,
 			}).toEqual({
-				build: "52586",
+				saveVersion: "66/29/164",
 				level: 7,
 				difficulty: "Hard",
 				skillPoints: { free: 14, used: 0 },
 				experience: { free: 702, used: 6000 },
 				chunks: 5,
-				items: 615,
+				// 626, the list's own declared count. It read 615 before, because the
+				// record anchor required `f32 -1.0` and that dropped every item with a
+				// real durability — this save's sword and armour among them.
+				items: 626,
 				// All 167 are listed, of which 148 carry a level: the other 19
 				// omit the field from the stream and are reported as `null` rather
 				// than filtered out, because the list is addressed by index.
@@ -247,19 +252,56 @@ describe("decoding a real save", () => {
 
 describe("the summary", () => {
 	test(
-		"says in words that the wallet is unsupported on this build",
+		"reports the wallet on both builds, because both are readable now",
+		async () => {
+			// This used to assert the opposite. The `8559a` build's item records
+			// carry the tag pair `76 00 77 00`, and the reader required `72 00 74
+			// 00`, so it decoded *zero* items from this save — no wallet, no
+			// inventory, and a summary that said the wallet was unsupported. The
+			// tag pair is now recovered from the save's own bytes
+			// (`lib/inventory`), so both fixtures read.
+			//
+			// The honest-degradation contract survives where it still applies: a
+			// save with no Crowns record must say so rather than claim zero, which
+			// the next test covers with a hand-built document.
+			for (const [name, bytes, crowns] of [
+				["8559a", smallSave(), "397"],
+				["52586", largeSave(), "2996"],
+			] as const) {
+				const doc = await witcher3.decode(bytes);
+				const row = witcher3
+					.summarise(doc)
+					.find((entry) => entry.label === "Crowns");
+				expect({
+					name,
+					crowns: row?.value,
+					// Emphasis marks a wallet this codec cannot *write*. Reading one
+					// on a second build is the fix, so neither is emphasised.
+					emphasis: row?.emphasis,
+				}).toEqual({ name, crowns, emphasis: false });
+			}
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"says in words when a save carries no wallet at all",
 		async () => {
 			// The honest-degradation contract, in the one place a player reads it. A
 			// zero here would be a claim about the player's money that nobody
-			// measured, and an empty string would look like a bug.
-			const doc = await witcher3.decode(smallSave());
-			expect(rowValue(doc, "Crowns")).toBe("not supported for this build");
-			const crowns = witcher3
-				.summarise(doc)
-				.find((row) => row.label === "Crowns");
-			// Worth noticing exactly when it is *missing*: this is the case of a save
-			// the editor can read but cannot write money for.
-			expect(crowns?.emphasis).toBe(true);
+			// measured, and an empty string would look like a bug. Reached with a
+			// document rather than a fixture, because no committed save lacks a
+			// Crowns record — the unsupported-build case was what used to produce
+			// it, and that case no longer exists.
+			const rows = witcher3.summarise({
+				saveVersion: "66/29/164",
+				items: [],
+			});
+			expect(rows.find((row) => row.label === "Crowns")).toEqual({
+				label: "Crowns",
+				value: "not supported for this build",
+				emphasis: true,
+			});
 		},
 		FIXTURE_TIMEOUT_MS,
 	);
@@ -269,13 +311,17 @@ describe("the summary", () => {
 		async () => {
 			const doc = await witcher3.decode(smallSave());
 			expect({
-				build: rowValue(doc, "Build"),
+				saveVersion: rowValue(doc, "Save version"),
 				level: rowValue(doc, "Level"),
 				difficulty: rowValue(doc, "Difficulty"),
 				skillPoints: rowValue(doc, "Skill points"),
 				experience: rowValue(doc, "Experience"),
 			}).toEqual({
-				build: "unrecognised",
+				// The `SAV3` version, read from the header. It is the same on both
+				// fixtures because they are different *builds* that share a save
+				// version — which is exactly why this stopped claiming to be a
+				// build id.
+				saveVersion: "66/29/164",
 				level: "4",
 				difficulty: "Hardcore",
 				skillPoints: "9 free",
@@ -289,9 +335,9 @@ describe("the summary", () => {
 		// A document the inspector has edited is not a save any more, and the
 		// summary is asked to describe it anyway. Reporting "0 free" for a
 		// missing branch would be a statement about the player nobody measured.
-		const rows = witcher3.summarise({ build: "52586", items: [] });
+		const rows = witcher3.summarise({ saveVersion: "66/29/164", items: [] });
 		expect(rows.map((row) => row.label)).toEqual([
-			"Build",
+			"Save version",
 			"Level",
 			"Difficulty",
 			"Crowns",
@@ -299,7 +345,7 @@ describe("the summary", () => {
 		// "not found" rather than "0": a zero would be a claim about the player's
 		// progress that nothing in this document supports.
 		expect(rows.map((row) => row.value)).toEqual([
-			"52586",
+			"66/29/164",
 			"not found",
 			"unknown",
 			"not supported for this build",
@@ -351,13 +397,22 @@ describe("the round trip", () => {
 			// nothing else moved.
 			const file = largeSave();
 			const doc = await witcher3.decode(file);
-			const edited = setAtPath(doc, ["items", 13, "quantity"], 40_000);
+			// The wallet row, located by name rather than by index. A hard-coded
+			// index silently starts pointing at a different item the moment the
+			// reader finds more records than it used to, which is exactly what
+			// fixing the durability filter did — this test edited `items.13` for
+			// months and would now have edited whichever record moved into slot 13.
+			const crowns = (arrayAt(doc, "items") ?? []).findIndex(
+				(row) => isJsonObject(row) && row.name === "Crowns",
+			);
+			if (crowns < 0) throw new Error("the fixture has no Crowns record");
+			const edited = setAtPath(doc, ["items", crowns, "quantity"], 40_000);
 			const verdict = await verifyRoundTrip(witcher3, file, edited, true);
 			expect(verdict.kind).toBe("semantic");
 
 			const rebuilt = await witcher3.encode(edited);
 			const back = await witcher3.decode(rebuilt);
-			expect(getAtPath(back, ["items", 13, "quantity"])).toBe(40_000);
+			expect(getAtPath(back, ["items", crowns, "quantity"])).toBe(40_000);
 			// Everything the edit did not touch still reads as it did.
 			expect({
 				level: getAtPath(back, ["level"]),
@@ -368,7 +423,7 @@ describe("the round trip", () => {
 				level: 7,
 				skillPoints: { free: 14, used: 0 },
 				experience: { free: 702, used: 6000 },
-				items: 615,
+				items: 626,
 			});
 		},
 		FIXTURE_TIMEOUT_MS,
@@ -509,14 +564,66 @@ describe("the quick actions", () => {
 	);
 
 	test(
-		"offer no wallet edits at all on the build whose records are unknown",
+		"plan the wallet edits on the second build too, against its own records",
 		async () => {
-			// `[]` is how an action greys itself out, and this is the case it exists
-			// for. Offering a wallet button here would patch one of the 1,845 records
-			// the shape alone matches — of which exactly one is the player's.
+			// This asserted the opposite for as long as the reader required the
+			// `52586` tag pair: on the `8559a` build it found no records at all, so
+			// there was no wallet to offer. The point of the test — that the edits are
+			// aimed at *this* save's own Crowns record — now holds on both, and is
+			// worth more: the quantity is that save's own (397, not 2996) and the path
+			// is its own row.
 			const doc = await witcher3.decode(smallSave());
-			expect(planFor("crowns-max", doc)).toEqual([]);
-			expect(planFor("crowns-round", doc)).toEqual([]);
+			const crowns = (arrayAt(doc, "items") ?? []).findIndex(
+				(row) => isJsonObject(row) && row.name === "Crowns",
+			);
+			if (crowns < 0) throw new Error("the fixture has no Crowns record");
+			expect(planFor("crowns-max", doc)).toEqual([
+				{
+					id: `items.${crowns}.quantity=65535`,
+					label: "Crowns",
+					path: ["items", crowns, "quantity"],
+					before: 397,
+					after: 65_535,
+				},
+			]);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"aims the wallet edit at the player's own record, not the first match in the save",
+		async () => {
+			// This replaced a test that asserted the wallet was *unavailable* on the
+			// second build, which was true only while the reader required one build's
+			// tag pair. The hazard it was written to guard against is still real and
+			// is the one that matters: this save holds 67 `Crowns` records across all
+			// its containers (2,009 item records in total), and exactly one is the
+			// player's. An edit aimed at the wrong one would quietly change a
+			// merchant's stock.
+			//
+			// So the property is asserted rather than the absence: the staged path is
+			// the player's own row, and it is the only `Crowns` row in the document.
+			for (const [name, bytes, before] of [
+				["8559a", smallSave(), 397],
+				["52586", largeSave(), 2996],
+			] as const) {
+				const doc = await witcher3.decode(bytes);
+				const crownsRows = (arrayAt(doc, "items") ?? [])
+					.map((row, index) => ({ row, index }))
+					.filter(({ row }) => isJsonObject(row) && row.name === "Crowns");
+				const planned = planFor("crowns-max", doc);
+				expect({
+					name,
+					crownsRowsInPlayerInventory: crownsRows.length,
+					path: planned[0]?.path,
+					before: planned[0]?.before,
+				}).toEqual({
+					name,
+					crownsRowsInPlayerInventory: 1,
+					path: ["items", crownsRows[0]?.index ?? -1, "quantity"],
+					before,
+				});
+			}
 		},
 		FIXTURE_TIMEOUT_MS,
 	);

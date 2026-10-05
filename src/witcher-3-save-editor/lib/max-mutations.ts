@@ -28,7 +28,6 @@
  */
 
 import type { SaveContainer } from "./container";
-import { buildContainer } from "./container-write";
 import { readU32 } from "./inner";
 import { readNameTable } from "./names";
 import { readObjectTree } from "./objects";
@@ -194,7 +193,9 @@ const rechunk = (
 };
 
 const findField = (
-	fields: readonly { name: string; value: ReflectedValue; offset: number }[] | undefined,
+	fields:
+		| readonly { name: string; value: ReflectedValue; offset: number }[]
+		| undefined,
 	name: string,
 ): { name: string; value: ReflectedValue; offset: number } | undefined =>
 	fields?.find((field) => field.name === name);
@@ -273,10 +274,12 @@ export const maxMutationsInPayload = (
 	let total = 0;
 	/** The type index of `EPlayerMutationType`, read off the mutations themselves. */
 	let enumTypeIndex: number | undefined;
-	const progressGrowth: { offset: number; width: number; within: number }[] = [];
+	const progressGrowth: { offset: number; width: number; within: number }[] =
+		[];
 	for (const item of mutationsField.value.items ?? []) {
 		const typeField = findField(item.fields, "type");
-		enumTypeIndex ??= typeField === undefined ? undefined : u16(data, typeField.offset - 6);
+		enumTypeIndex ??=
+			typeField === undefined ? undefined : u16(data, typeField.offset - 6);
 		const type = enumName(names, typeField?.value);
 		if (type === "EPMT_MutationMaster") continue;
 		const progress = findField(item.fields, "progress");
@@ -365,7 +368,8 @@ export const maxMutationsInPayload = (
 	const { offset: manuStart, end: namesEnd } = namesEndOf(data);
 	const extraNames = nameBytesOf(usedNames);
 	const allInserts: Insert[] = [...inserts];
-	if (extraNames.length > 0) allInserts.push({ at: namesEnd, bytes: extraNames });
+	if (extraNames.length > 0)
+		allInserts.push({ at: namesEnd, bytes: extraNames });
 
 	const { out, shiftAt } = splice(data, allInserts);
 	const totalAll = total + extraNames.length;
@@ -402,14 +406,21 @@ export const maxMutationsInPayload = (
 			out[at + 1] = (value >>> 8) & 0xff;
 		}
 	}
-	writeU32(out, out.length - 6, (readU32(data, data.length - 6) ?? 0) + totalAll);
+	writeU32(
+		out,
+		out.length - 6,
+		(readU32(data, data.length - 6) ?? 0) + totalAll,
+	);
 	updateSpanIndex(data, out, allInserts);
 
 	return { data: out, chunks: rechunk(container, out.length) };
 };
 
-/** Max mutations and rebuild the whole file. */
-export const maxMutations = (container: Resizable): Uint8Array => {
-	const { data, chunks } = maxMutationsInPayload(container);
-	return buildContainer(chunks, data);
-};
+/*
+ * A `maxMutations(container)` wrapper — this module's function with the whole
+ * file rebuilt and returned as bytes — used to stand here, and is gone. Nothing
+ * called it: the codec takes the resized payload and the new chunk records from
+ * `maxMutationsInPayload` and builds the container itself, because it has to
+ * patch values *after* the resize and so cannot hand the finished file back from
+ * here. `buildContainer` is called exactly once, by the codec.
+ */

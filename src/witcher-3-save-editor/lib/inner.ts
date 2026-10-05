@@ -28,11 +28,26 @@
  * The three typecodes are version-dependent — published tooling carries
  * (54, 10, 162) and has disabled its own assertion over them. **Nothing asserts
  * on them**, and nothing should: a hard check would reject a valid newer save.
- * Nothing reads them here either, because no consumer of this module wants them;
- * the layout is recorded so that a future header reader need not re-derive it,
- * and so that the constant 16 is not mistaken for a field the file states. It is
- * not — 4 + 3 * 4 = 16 for every save in this format, which is why `tokens.ts`
- * starts its walk there rather than reading the offset from anywhere.
+ * They are *read* here, by {@link readSaveVersion}, and that is the whole of
+ * their contract: reported, never validated. The layout is recorded so that the
+ * reader need not re-derive it, and so that the constant 16 is not mistaken for
+ * a field the file states. It is not — 4 + 3 * 4 = 16 for every save in this
+ * format, which is why `tokens.ts` starts its walk there rather than reading the
+ * offset from anywhere.
+ *
+ * ## The typecodes are the save version, not the game build
+ *
+ * They do not identify which build wrote the save. Measured across the two
+ * fixtures here, `52586` and `8559a` both report `66/29/164`, while the two
+ * builds use item-record tag pairs that differ (`72 00 74 00` against
+ * `76 00 77 00` — see `./inventory`). So a build id cannot be recovered from the
+ * file at all; the game build appears in the *filename*
+ * (`ManualSave_52586_…`), which is a name and not a fact about the bytes.
+ *
+ * Anything that needs to distinguish builds therefore has to recover it
+ * structurally, by discovering each build's own record layout the way
+ * `discoverTagPair` does. `52586`/`8559a`/`f949c` appearing in a code comment is
+ * a label for a fixture, not a value any reader produces.
  *
  * The reads here are deliberately *not* the shared `ByteReader`. The inner
  * stream is a different byte space from the file on disk (it is the
@@ -85,6 +100,30 @@ export const readAscii = (
 		out += String.fromCharCode(...data.subarray(i, Math.min(i + 32, end)));
 	}
 	return out;
+};
+
+/** The `SAV3` header magic, which every save in this format opens with. */
+const HEADER_MAGIC = "SAV3";
+
+/**
+ * The save's own format version, as `"66/29/164"`.
+ *
+ * Reported, never validated — see the note above on why nothing asserts on these
+ * and why they are not a build id. A buffer too short to hold the header, or one
+ * whose first four bytes are not `SAV3`, reads as `"unknown"` rather than
+ * throwing: this feeds a summary row, and a save that fails here has already been
+ * rejected by the container layer with a message that names the real problem.
+ */
+export const readSaveVersion = (data: Uint8Array): string => {
+	if (data.length < 16 || readAscii(data, 0, 4) !== HEADER_MAGIC) {
+		return "unknown";
+	}
+	const codes = [readU32(data, 4), readU32(data, 8), readU32(data, 12)];
+	// `readU32` answers `undefined` past the end, which the length guard above
+	// rules out for a real header; the filter is here so a caller can never
+	// render "undefined" into a summary row.
+	const numbers = codes.filter((code): code is number => code !== undefined);
+	return numbers.length === 3 ? numbers.join("/") : "unknown";
 };
 
 /** Magic at the very end of the decompressed stream. */

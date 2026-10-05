@@ -1,26 +1,62 @@
 /**
  * The inventory item records and their names.
  *
- * Items are not tokens. Each is a **30-byte** record in the player-entity (and
- * other container) blobs:
+ * Items are not tokens. Each is a record in the player-entity (and other
+ * container) blobs, laid out as:
  *
- *     [u16 nameIdx] [11 bytes: per-item id/flags] 72 00 74 00
- *     [u16 quantity] f32(-1.0) [u16 slot] [5 bytes]
+ *     [u16 nameIdx] [11 bytes: per-item id/flags] <tag pair, 4 bytes>
+ *     [u16 quantity] f32 durability [u16 slot] [variable tail]
  *
- * The `u16` **13 bytes before** the `72 00 74 00` anchor is a 1-based `MANU`
- * index: `names[nameIdx - 1]` is the item's template name. On the reference save
- * that yields `Crowns`, `Orens`, `Florens`, `Deer hide`, `Timber`, `Wolf Armor
+ * The `u16` **13 bytes before** the tag pair is a 1-based `MANU` index:
+ * `names[nameIdx - 1]` is the item's template name. On the reference save that
+ * yields `Crowns`, `Orens`, `Florens`, `Deer hide`, `Timber`, `Wolf Armor
  * schematic`, `Venom extract`, … — real item names, resolved from the save's own
  * name table, no game files needed.
  *
- * The record exposes **name, quantity and slot only**. Its 11-byte id/flags
- * block is almost constant across items (a `u16` that varies, then `02 10 01` or
- * `0f 00 01`), and the trailing field is zero; there is no self-describing
- * durability/upgrade field. Any per-instance detail (durability, upgrade level,
- * affixes) lives in the native item entity or the `SItemUniqueId` of the
- * equipped slots, which is not decoded here. The `itemFields` section of
- * `generated/names.json` (see `./catalog`) is what the engine *calls* those
- * fields, for when that layer is written.
+ * ## The tag pair is discovered, not hardcoded
+ *
+ * The four tag bytes are **per build**, not per save version. Measured across
+ * seven reference saves in the source decoder, with every other byte of the
+ * record shape unchanged:
+ *
+ * | build   | save version | tag pair   | records |
+ * | ------- | ------------ | ---------- | ------: |
+ * | `52586` | 66/29/164    | `72 00 74 00` | 1,845 |
+ * | `8559a` | 66/29/164    | `76 00 77 00` |   621 |
+ * | `11c607`| 66/29/164    | `54 00 55 00` | 11,781 |
+ * | `f949c` | 64/27/163    | `86 00 88 00` | 12,795 |
+ *
+ * Note that `8559a` and `52586` share a save version and differ in tag pair, so
+ * the pair tracks the build. A scanner that hardcodes `72 00 74 00` reads **zero**
+ * items on four of those seven saves — which is exactly what this reader did
+ * until `discoverTagPair` was written, and the reason the second fixture in
+ * `./tests` reported an empty inventory rather than an empty *player*.
+ *
+ * The pair is recovered from the save's own bytes by {@link discoverTagPair}, so
+ * a build nobody has seen still reads. When it cannot be recovered the reader
+ * finds nothing and the page says so, rather than matching on a pair borrowed
+ * from a different build and reporting unrelated records as items.
+ *
+ * ## Durability is at `+6` past the pair, and `-1.0` means "none"
+ *
+ * `GetItemDurability` returns a float and `GetItemDurabilityRatio` returns `-1`
+ * when the item has none, so the field is the item's current durability with the
+ * engine's own "no durability" sentinel. This reader used to *require* `f32
+ * -1.0` as part of its anchor test, which dropped every item that had a real
+ * durability — measured at 11 of the player's 626 records and 543 of the save's
+ * 2,009 container records (27.0%), the player's own sword and armour among them.
+ * The requirement is gone and the value is reported instead; the record counts
+ * now match the lists' own declared counts.
+ *
+ * ## What the record still does not expose
+ *
+ * The 11-byte id/flags block is almost constant across items (a `u16` that
+ * varies, then `02 10 01` or `0f 00 01`) and the tail's lead byte is not a
+ * constant either, so neither is interpreted here. Upgrade levels and rolled
+ * affixes live in the tail's ability array, which the source decoder's grammar
+ * parses for 97.1% of records; that is not ported, so `itemFields` in
+ * `generated/names.json` (see `./catalog`) is still only what the engine *calls*
+ * those fields.
  *
  * A save holds **many** such lists — the player's inventory, and the item slots
  * of actors, containers and merchants. `readInventory` decodes records wherever
@@ -38,45 +74,131 @@ export type InventoryItem = {
 	readonly quantity: number;
 	/** the `u16` slot index at the end of the record */
 	readonly slot: number;
-	/** absolute offset of the `72 00 74 00` anchor in the decompressed stream */
+	/**
+	 * Current durability, or `null` when the item has none.
+	 *
+	 * `null` is the engine's own `-1.0` sentinel meaning "no durability" — the
+	 * quantity of a potion, a diagram, a book — and not a missing field. A
+	 * damaged sword reads a number; requiring `-1.0` to recognise the record used
+	 * to hide exactly those.
+	 */
+	readonly durability: number | null;
+	/** absolute offset of the record's tag pair in the decompressed stream */
 	readonly offset: number;
 };
+
+/** The four per-build tag bytes that mark an item record. */
+type TagPair = readonly [number, number, number, number];
+
+/** `f32 -1.0`, the engine's "this item has no durability" sentinel. */
+const MINUS_ONE_BYTES = [0x00, 0x00, 0x80, 0xbf] as const;
 
 const u16 = (data: Uint8Array, at: number): number =>
 	(data[at] ?? 0) | ((data[at + 1] ?? 0) << 8);
 
-/** Does an item record anchor start at `at`? `72 00 74 00` then `f32 -1.0`. */
-const isAnchor = (data: Uint8Array, at: number): boolean =>
-	data[at] === 0x72 &&
-	data[at + 1] === 0x00 &&
-	data[at + 2] === 0x74 &&
-	data[at + 3] === 0x00 &&
-	data[at + 6] === 0x00 &&
-	data[at + 7] === 0x00 &&
-	data[at + 8] === 0x80 &&
-	data[at + 9] === 0xbf;
+const f32 = (data: Uint8Array, at: number): number =>
+	new DataView(data.buffer, data.byteOffset + at, 4).getFloat32(0, true);
+
+const isMinusOne = (data: Uint8Array, at: number): boolean =>
+	MINUS_ONE_BYTES.every((byte, i) => data[at + i] === byte);
+
+const pairAt = (data: Uint8Array, at: number): TagPair => [
+	data[at] ?? 0,
+	data[at + 1] ?? 0,
+	data[at + 2] ?? 0,
+	data[at + 3] ?? 0,
+];
+
+const samePair = (a: TagPair, b: TagPair): boolean =>
+	a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
+
+/**
+ * How many records must agree before a candidate tag pair is believed.
+ *
+ * The hunt counts pairs over the whole stream, and a pair that resolved once
+ * could be a coincidence in a 5 MB buffer. 8 is well under the smallest real
+ * figure measured (621 on the `8559a` build, which is the smallest of the seven
+ * reference saves) and well over anything a coincidence reaches.
+ */
+const MIN_RECORDS_FOR_PAIR = 8;
+
+/**
+ * Recover this build's item-record tag pair from the save's own bytes.
+ *
+ * The search shape is the strict one — a `MANU` name that resolves at `-13`, six
+ * zero bytes, then `f32 -1.0` at `+6` — because the durability sentinel is the
+ * one four-byte value in the record that is known to be a constant, and a shape
+ * built from known constants cannot drift. The most frequent pair wins.
+ *
+ * Returns `undefined` when the save holds no records of this shape, which is the
+ * honest answer for a save whose build has a different record layout: the
+ * reader then reports no items instead of matching another build's pair.
+ */
+export const discoverTagPair = (
+	data: Uint8Array,
+	names: readonly string[] = readNameTable(data).names,
+): TagPair | undefined => {
+	const counts = new Map<string, { pair: TagPair; count: number }>();
+	for (let at = 16; at + 23 < data.length; at += 1) {
+		// The id/flags block's padding is six zero bytes before the tag pair, and
+		// they hold on every record measured.
+		let zeros = true;
+		for (let i = at - 6; i < at; i += 1) {
+			if (data[i] !== 0) {
+				zeros = false;
+				break;
+			}
+		}
+		if (!zeros || !isMinusOne(data, at + 6)) continue;
+		if (names[u16(data, at - 13) - 1] === undefined) continue;
+		const pair = pairAt(data, at);
+		const key = pair.join(",");
+		const seen = counts.get(key);
+		if (seen === undefined) counts.set(key, { pair, count: 1 });
+		else seen.count += 1;
+	}
+	let best: { pair: TagPair; count: number } | undefined;
+	for (const candidate of counts.values()) {
+		if (candidate.count < MIN_RECORDS_FOR_PAIR) continue;
+		if (best === undefined || candidate.count > best.count) best = candidate;
+	}
+	return best?.pair;
+};
+
+/** Does an item record start its tag pair at `at`? */
+const isAnchor = (data: Uint8Array, at: number, pair: TagPair): boolean =>
+	samePair(pairAt(data, at), pair);
 
 /**
  * Every inventory record in `[from, to)` whose name resolves, in offset order.
  * `names` defaults to the save's own `MANU` table.
+ *
+ * `tagPair` defaults to the pair {@link discoverTagPair} recovers from this save.
+ * It is a parameter so the 290 calls `readContainers` makes do not repeat the
+ * whole-stream hunt, and so a caller that has already discovered the pair pays
+ * for it once.
  */
 const readInventory = (
 	data: Uint8Array,
 	names: readonly string[] = readNameTable(data).names,
 	from = 16,
 	to = data.length,
+	tagPair: TagPair | undefined = discoverTagPair(data, names),
 ): readonly InventoryItem[] => {
+	if (tagPair === undefined) return [];
 	const items: InventoryItem[] = [];
 	const start = Math.max(from, 13);
 	const end = Math.min(to, data.length - 14);
 	for (let at = start; at <= end; at += 1) {
-		if (!isAnchor(data, at)) continue;
+		if (!isAnchor(data, at, tagPair)) continue;
 		const name = names[u16(data, at - 13) - 1];
 		if (name === undefined || name === "") continue;
+		const durability = f32(data, at + 6);
 		items.push({
 			name,
 			quantity: u16(data, at + 4),
 			slot: data[at + 11] ?? 0,
+			durability: durability === -1 ? null : durability,
 			offset: at,
 		});
 	}
@@ -122,6 +244,7 @@ const readInventory = (
 export const playerInventory = (
 	data: Uint8Array,
 	names: readonly string[] = readNameTable(data).names,
+	tagPair: TagPair | undefined = discoverTagPair(data, names),
 ): readonly InventoryItem[] | undefined => {
 	const token = parseTokens(data, names).tokens.find(
 		(t) =>
@@ -147,7 +270,7 @@ export const playerInventory = (
 	};
 	walk(tree.roots);
 	if (span === undefined) return undefined;
-	return readInventory(data, names, span.offset, span.end);
+	return readInventory(data, names, span.offset, span.end, tagPair);
 };
 
 /**
@@ -226,6 +349,10 @@ export const readContainers = (
 			t.name === "levelManager" && t.value?.type === "handle:W3LevelManager",
 	);
 
+	// One whole-stream hunt for the build's tag pair, shared by all ~290 frames
+	// rather than repeated per frame.
+	const tagPair = discoverTagPair(data, names);
+
 	return spans.map((span) => {
 		const inside = tokens.filter(
 			(t) => t.offset >= span.offset && t.offset < span.end,
@@ -248,7 +375,7 @@ export const readContainers = (
 			offset: span.offset,
 			size: span.end - span.offset,
 			label,
-			items: readInventory(data, names, span.offset, span.end),
+			items: readInventory(data, names, span.offset, span.end, tagPair),
 		};
 	});
 };
