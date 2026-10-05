@@ -87,13 +87,19 @@ import { addItemsToPayload } from "./add-item";
 import { localizedString, questTitle } from "./catalog";
 import { decompressContainer, type SaveContainer } from "./container";
 import { buildContainer } from "./container-write";
+import { readDialogues } from "./dialogues";
+import { readEntityFlags } from "./entities";
 import { readFactDB } from "./facts";
 import { readSaveVersion } from "./inner";
 import { readContainers } from "./inventory";
+import { readJournal } from "./journal";
 import { maxMutationsInPayload } from "./max-mutations";
+import { readObjectTree } from "./objects";
 import { readPlayer } from "./player";
+import { questStepDetail } from "./quest-steps";
 import { questProgress } from "./quests";
 import { experienceToNextLevel, type LevelDefinition } from "./stats";
+import { readUnlocksFromScan } from "./unlocks";
 import { locateWritable, type PatchableScalar, patchScalar } from "./write";
 
 /** Route slug, matching the app's directory name. */
@@ -213,8 +219,33 @@ const difficultyLabel = (doc: JsonValue): string => {
 const project = (container: SaveContainer): JsonValue => {
 	const found = locateWritable(container.data);
 	const saveVersion = readSaveVersion(container.data);
+	// One object tree and one token walk, shared by every reader below.
+	//
+	// Measured on the large fixture: the walk is 834 ms and the tree build 246 ms,
+	// against 1,081 / 280 / 492 ms that four readers each walking for themselves
+	// cost on top of it. Everything downstream is handed these rather than
+	// recomputing them.
+	const entityRoots = readObjectTree(container.data).roots;
+	const dialogueRead = readDialogues(
+		container.data,
+		found.scan.names,
+		found.scan.tokens,
+		entityRoots,
+	);
 	const skill = found.points.find((p) => p.kind === "skill");
 	const experience = found.points.find((p) => p.kind === "exp");
+	// Read once for both quest views. `readFactDB` scans for the `SBDF` magic and
+	// then walks every declared record, so calling it twice is two full passes over
+	// 3,997 records on the large fixture for one answer.
+	const facts = readFactDB(container.data);
+	// The journal needs the object tree's roots and the name table, both of which
+	// the other readers have already paid for; passing them keeps this read to the
+	// ~27 ms of span walking instead of another 246 ms tree build and 98 ms name
+	// read.
+	const journal = readJournal(container.data, {
+		names: found.scan.names,
+		roots: entityRoots,
+	});
 
 	return {
 		format: ID,
@@ -324,13 +355,12 @@ const project = (container: SaveContainer): JsonValue => {
 				: { template: player.template, x: player.x, y: player.y, z: player.z };
 		})(),
 		quests: (() => {
-			const db = readFactDB(container.data);
-			if (db === undefined) return [];
+			if (facts === undefined) return [];
 			// Sorted by title so the list reads as a journal rather than as the
 			// order the engine happened to write its facts in, and capped because
 			// a late-game save holds hundreds: the summary row carries the true
 			// count and the tree view carries the rest.
-			return questProgress(db.facts)
+			return questProgress(facts.facts)
 				.map((q) => ({
 					id: q.id,
 					title: questTitle(q.id) ?? q.id,
@@ -341,6 +371,32 @@ const project = (container: SaveContainer): JsonValue => {
 				.sort((a, b) => a.title.localeCompare(b.title))
 				.slice(0, 200);
 		})(),
+		// The per-step detail behind `quests`, from the same fact DB. `state` above
+		// is the fact-name heuristic and is **inferred**: the game's journal
+		// disagrees with it on roughly a quarter of comparable quests, which is why
+		// `journal` is a separate branch rather than a replacement here.
+		questSteps:
+			facts === undefined
+				? []
+				: questStepDetail(facts.facts)
+						.slice(0, 60)
+						.map((quest) => ({
+							id: quest.id,
+							// `null` rather than the raw id echoed back: 10 of 43 quest
+							// ids on the large fixture resolve to no title, and a UI that
+							// cannot tell "no title known" from "the title is mq1036" renders
+							// the id as though it were the game's own wording.
+							title: quest.title ?? null,
+							stepsTotal: quest.stepsTotal,
+							stepsFired: quest.stepsFired,
+							events: quest.events,
+							stepsDropped: quest.stepsDropped,
+							steps: quest.steps,
+							stepNameSample: quest.stepNameSample,
+							stepNamesSampledOut: quest.stepNamesSampledOut,
+							eventTimeSample: quest.eventTimeSample,
+							eventTimesSampledOut: quest.eventTimesSampledOut,
+						})),
 		// Every skill in the array, including the ones with no level field, so this
 		// list's indices line up one-for-one with the save's. Filtering the
 		// un-level-bearing entries out would shift every index after the first of
@@ -400,6 +456,72 @@ const project = (container: SaveContainer): JsonValue => {
 			resistances: found.stats.resistances,
 			levelCurve: found.stats.levelCurve,
 		},
+		// The four read-only features below all read the same decompressed stream
+		// and all want the same token walk, so `locateWritable`'s scan is handed to
+		// each rather than letting four readers walk 250,640 tokens apiece. Measured
+		// on the large fixture: 834 ms for the walk these share, against 1,081 /
+		// 280 / 492 ms that four private walks cost on top of it.
+		//
+		// `readDialogues` and `readEntityFlags` also read the object's span index,
+		// which no one else needs, so that cost stays.
+		// The **authoritative** quest state. The `state` on each row of `quests`
+		// above is the fact-name heuristic and is inferred; this is the game's own
+		// journal, and the two disagree on roughly a quarter of comparable quests
+		// (2 of 7 on 8559a, 7 of 26 on 52586, measured). Every disagreement runs the
+		// same way — the journal records `JS_Success`, the heuristic says in
+		// progress — so the site was under-reporting completion.
+		//
+		// It is a **partial** view and must not be read as "the quests": 17 of 43
+		// fact-side quests on 52586 have no journal entry at all, and 650 of 972
+		// entries have an empty head resource so no quest can be attributed to them.
+		// Both counts are in the branch rather than glossed over.
+		journal: {
+			entries: journal.entries,
+			// A list of `{ status, entries }` rows rather than three named fields,
+			// so a fourth `JS_*` name a future build carries is reported rather than
+			// silently dropped. `JS_Failed` is exactly that case: absent from the
+			// smaller fixture's name table entirely, and present 7 times here.
+			statuses: journal.statuses,
+			unattributed: journal.unattributed,
+			questCount: journal.questCount,
+			quests: journal.quests.map((quest) => ({
+				id: quest.id,
+				// `null`, never the id echoed back: a UI that cannot tell "no title
+				// known" from "the title is mq1036" shows the id as the game's own
+				// wording. Every journal-side id resolves on both fixtures; the
+				// catalogue's gaps are on the fact side (10 of 43 there).
+				title: quest.title ?? null,
+				entries: quest.entries,
+				statuses: quest.statuses,
+				// The precedence-resolved label. `contested` is the signal that a
+				// precedence was applied over conflicting entries — `mq0003` is
+				// `JS_Success` *and* `JS_Active` — so a caller that would rather
+				// render both can see that it has to.
+				rollup: quest.rollup,
+				contested: quest.contested,
+			})),
+			collections: journal.collections,
+			sample: journal.sample.map((entry) => ({
+				// `null` for an unattributable entry, per the same rule as a quest
+				// title. The status is still recorded even when the quest is not.
+				questId: entry.questId ?? null,
+				status: entry.status,
+			})),
+			sampleTruncated: journal.sampleTruncated,
+		},
+		dialogues: dialogueRead.dialogs,
+		attitudes: dialogueRead.attitudes,
+		unlocks: readUnlocksFromScan(
+			container.data,
+			found.scan.names,
+			found.scan.tokens,
+		),
+		entities: readEntityFlags(
+			container.data,
+			found.scan.names,
+			found.scan.tokens,
+			entityRoots,
+		),
 		// The branch the scaffold rides on. Present but empty as far as
 		// `JSON.stringify` is concerned, which is what keeps the round-trip
 		// comparison honest.

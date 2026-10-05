@@ -176,7 +176,9 @@ const strideSample = <T>(items: readonly T[], n: number): readonly T[] => {
 const orderSteps = (steps: readonly OrderedStep[]): readonly OrderedStep[] => {
 	const fired = steps.filter((step) => step.events !== 0);
 	const dormant = steps.filter((step) => step.events === 0);
-	fired.sort((a, b) => a.firstTime - b.firstTime || a.name.localeCompare(b.name));
+	fired.sort(
+		(a, b) => a.firstTime - b.firstTime || a.name.localeCompare(b.name),
+	);
 	dormant.sort((a, b) => a.name.localeCompare(b.name));
 	return [...fired, ...dormant];
 };

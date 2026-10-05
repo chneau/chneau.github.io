@@ -101,7 +101,7 @@ export const CUSTOM_MAP_PIN_LIMIT = 16;
 export const CACHED_WORLD_LIMIT = 16;
 
 /** One list of `CName` tags, with the measurement beside the declaration. */
-export type TagList = {
+type TagList = {
 	/** elements actually walked out of the stream */
 	readonly count: number;
 	/** the length the save declares, or `null` where it declares none */
@@ -115,7 +115,7 @@ export type TagList = {
 };
 
 /** One `QuestMapPinStates` record: which pin, on which objective, shown or not. */
-export type QuestMapPinState = {
+type QuestMapPinState = {
 	/** 16-byte `CGUID` as hex, or `null` when the field is absent */
 	readonly objectiveGuid: string | null;
 	readonly mapPinGuid: string | null;
@@ -124,14 +124,14 @@ export type QuestMapPinState = {
 };
 
 /** The `QuestMapPinStates` list. */
-export type QuestMapPinStates = {
+type QuestMapPinStates = {
 	readonly count: number;
 	readonly declaredCount: number | null;
 	readonly states: readonly QuestMapPinState[];
 };
 
 /** One entry of a `CustomEntityMapPins` / `CustomAgentMapPins` container. */
-export type CustomMapPin = {
+type CustomMapPin = {
 	/** the `…MapPinTag` name */
 	readonly tag: string | null;
 	/** the `…MapPinType` name: `MonsterNest`, `QuestAvailable`, … */
@@ -141,7 +141,7 @@ export type CustomMapPin = {
 };
 
 /** One custom-pin container. */
-export type CustomMapPins = {
+type CustomMapPins = {
 	/**
 	 * Entries walked. **Not** the number of `VL` tokens: each pin is three
 	 * (`Tag`, `Type`, `ShowAlways`), so counting tokens would report 3× — which
@@ -153,7 +153,7 @@ export type CustomMapPins = {
 };
 
 /** One entry of `CachedWorldDataMap`: a level the save knows of. */
-export type CachedWorld = {
+type CachedWorld = {
 	/** the `.w2w` path, verbatim */
 	readonly path: string | null;
 	/** the engine's own "has the player been here" flag, or `null` if absent */
@@ -163,7 +163,7 @@ export type CachedWorld = {
 };
 
 /** The `CachedWorldDataMap` list. */
-export type CachedWorlds = {
+type CachedWorlds = {
 	readonly count: number;
 	readonly declaredCount: number | null;
 	/** how many of the measured entries are `visited = true` */
@@ -259,9 +259,8 @@ const tagListOf = (
 	count: resolved.length,
 	declaredCount,
 	unresolved: resolved.filter((name) => name === null).length,
-	placeholder: resolved.filter(
-		(name) => name !== null && name.startsWith(MISSING_NAME_PREFIX),
-	).length,
+	placeholder: resolved.filter((name) => name?.startsWith(MISSING_NAME_PREFIX))
+		.length,
 	names: resolved.slice(0, TAG_SAMPLE_LIMIT),
 });
 
@@ -488,7 +487,11 @@ const readCachedWorlds = (
 	// discovered *after* the entry, because the three nested containers follow
 	// the path and the visited flag rather than preceding them. Reading them
 	// forward would attribute Novigrad's 42 cached pins to no world at all.
-	const open: { path: string | null; visited: boolean | null; cachedQuestPins: number | null }[] = [];
+	const open: {
+		path: string | null;
+		visited: boolean | null;
+		cachedQuestPins: number | null;
+	}[] = [];
 	for (let index = start + 2; index < tokens.length; index += 1) {
 		const token = tokens[index];
 		if (token?.tag === "BS") {
@@ -547,7 +550,9 @@ export const readUnlocksFromScan = (
 			token.name === "levelManager" &&
 			token.value?.type === "handle:W3LevelManager",
 	);
-	const mapIndex = tokens.findIndex((token) => token.name === "CCommonMapManager");
+	const mapIndex = tokens.findIndex(
+		(token) => token.name === "CCommonMapManager",
+	);
 	if (levelIndex < 0 && mapIndex < 0) return null;
 
 	const player = (name: string): TagList | null =>

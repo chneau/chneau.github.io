@@ -117,7 +117,11 @@ describe("per-quest step detail", () => {
 			for (const { name, load, facts, quests, titled, untitled } of FIXTURES) {
 				const db = readFactDB(decompressContainer(load()).data);
 				if (db === undefined) throw new Error(`${name}: no fact DB`);
-				expect({ name, facts: db.facts.length, terminated: db.terminated }).toEqual({
+				expect({
+					name,
+					facts: db.facts.length,
+					terminated: db.terminated,
+				}).toEqual({
 					name,
 					facts,
 					terminated: true,
@@ -260,7 +264,9 @@ describe("per-quest step detail", () => {
 					// Steps: the cap bites only on `q104` (361 records), and
 					// `stepsDropped` makes the loss explicit rather than silent.
 					expect(quest.steps.length).toBeLessThanOrEqual(MAX_QUEST_STEPS);
-					expect(quest.stepsDropped).toBe(quest.stepsTotal - quest.steps.length);
+					expect(quest.stepsDropped).toBe(
+						quest.stepsTotal - quest.steps.length,
+					);
 					expect(quest.steps.length).toBeLessThanOrEqual(quest.stepsTotal);
 					// Names and timestamps are samples, and both report their omission.
 					expect(quest.stepNameSample.length).toBeLessThanOrEqual(
@@ -290,10 +296,10 @@ describe("per-quest step detail", () => {
 					// sampled, so it loses only the tail of the dormant run. Checked
 					// as the exact figure rather than an inequality, so a change that
 					// quietly starts sampling the list fails here.
-					const keptFired = quest.steps.filter((step) => step.events !== 0).length;
-					expect(keptFired).toBe(
-						Math.min(quest.stepsFired, MAX_QUEST_STEPS),
-					);
+					const keptFired = quest.steps.filter(
+						(step) => step.events !== 0,
+					).length;
+					expect(keptFired).toBe(Math.min(quest.stepsFired, MAX_QUEST_STEPS));
 				}
 			}
 			// The one quest the step cap actually truncates, on the larger save.
