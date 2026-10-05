@@ -159,7 +159,11 @@ const readScaffold = (doc: JsonValue): Scaffold | undefined => {
 };
 
 /** One learned skill, as the page shows it. */
-type SkillRow = { readonly name: string; readonly level: number | null };
+type SkillRow = {
+	readonly name: string;
+	readonly level: number | null;
+	readonly maxLevel: number | null;
+};
 
 /**
  * The label for a difficulty index, read out of the document's own `choices`.
@@ -276,7 +280,14 @@ const project = (container: SaveContainer): JsonValue => {
 		// report `null`, which is the honest answer rather than a zero that looks
 		// editable.
 		skills: found.skills.map(
-			(s): SkillRow => ({ name: s.name, level: s.level ?? null }),
+			(s): SkillRow => ({
+				name: s.name,
+				level: s.level ?? null,
+				// Carried so the action can cap each skill at its own ceiling. It is
+				// a fact about the save, not a constant, so it belongs in the
+				// document; the round-trip check then holds the two in agreement.
+				maxLevel: s.maxLevel ?? null,
+			}),
 		),
 		// The branch the scaffold rides on. Present but empty as far as
 		// `JSON.stringify` is concerned, which is what keeps the round-trip
@@ -533,14 +544,35 @@ const MAX_SKILL_LEVEL = 3;
  */
 const levelBearing = (
 	doc: JsonValue,
-): readonly { index: number; level: number | null }[] => {
+): readonly {
+	index: number;
+	name: string;
+	level: number;
+	maxLevel: number;
+}[] => {
 	const skills = requireArrayAt(doc, "skills");
-	const out: { index: number; level: number | null }[] = [];
+	const out: {
+		index: number;
+		name: string;
+		level: number;
+		maxLevel: number;
+	}[] = [];
 	for (const [index, row] of skills.entries()) {
 		if (!isJsonObject(row)) continue;
 		const level = numberAt(row, "level");
 		if (level === undefined || level === null) continue;
-		out.push({ index, level });
+		// A skill with no `maxLevel` recorded caps at the game's ceiling. That is a
+		// fallback rather than a guess: 148 of 148 skills in both fixtures carry
+		// one, and a skill without it is not something this build produces.
+		const cap = numberAt(row, "maxLevel");
+		out.push({
+			index,
+			// Named so a staged edit reads "S_Sword_1" in the tray rather than
+			// "Skill level" 148 times over, which would make the list unusable.
+			name: stringAt(row, "name") ?? `skill ${index}`,
+			level,
+			maxLevel: cap === undefined || cap === null ? MAX_SKILL_LEVEL : cap,
+		});
 	}
 	return out;
 };
@@ -598,20 +630,25 @@ const ACTIONS: readonly QuickAction[] = [
 	{
 		id: "skills-learn-all",
 		label: "Max every skill",
-		description: `Set every skill in this save to level ${MAX_SKILL_LEVEL}. Each level is a 4-byte value already present in the save, so this resizes nothing.`,
+		description: `Set every skill in this save to its own maximum — level ${MAX_SKILL_LEVEL} at the top of the tree, less for the skills that cap lower. Each level is a 4-byte value already present in the save, so this resizes nothing.`,
 		plan: (doc) => {
 			const skills = levelBearing(doc);
 			if (skills.length === 0) return [];
-			// Only the ones that would change. Staging 148 edits to write the value
+			// Each skill is written to *its own* ceiling rather than a blanket 3.
+			// Measured on a real save: 39 skills cap at 1, three at 2 and 106 at 3,
+			// so writing 3 to all of them would push 42 past the maximum the game
+			// itself records for them.
+			//
+			// Only the ones that would change: staging 148 edits to write the value
 			// a skill already holds would put a wall of no-ops in the tray.
 			return skills
-				.filter((skill) => skill.level !== MAX_SKILL_LEVEL)
+				.filter((skill) => skill.level !== skill.maxLevel)
 				.map((skill) =>
 					edit(
 						["skills", skill.index, "level"],
-						"Skill level",
-						skill.level ?? 0,
-						MAX_SKILL_LEVEL,
+						skill.name,
+						skill.level,
+						skill.maxLevel,
 					),
 				);
 		},

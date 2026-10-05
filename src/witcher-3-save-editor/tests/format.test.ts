@@ -706,6 +706,14 @@ describe("the codec describes itself", () => {
 	});
 });
 
+/**
+ * `numberAt` yields `undefined` for a JSON `null`, so "absent" has to be tested
+ * for both or every filter written as `=== null` silently matches nothing — which
+ * is exactly how the blank-slot test first passed while asserting nothing.
+ */
+const absent = (value: number | null | undefined): boolean =>
+	value === undefined || value === null;
+
 describe("skills", () => {
 	/**
 	 * A skill's level is a 4-byte `Int32` inside an element already present in the
@@ -745,17 +753,16 @@ describe("skills", () => {
 			const edits =
 				witcher3.actions.find((a) => a.id === "skills-learn-all")?.plan(doc) ??
 				[];
-			// A fresh save sits at 0 or 1, so every one of the 148 differs from 3
-			// and all of them stage. The point of the count is that it equals the
-			// number of level-bearing skills — a short count would mean some write
-			// was skipped.
-			expect(edits).toHaveLength(148);
-			for (const edit of edits) {
-				expect(edit.after).toBe(3);
-			}
+			// 132 stage, not 148: the sixteen skills already at level 1 are the ones
+			// whose own maximum is 1, so they are already where they would be put.
+			// The count matters — a short count would mean a write was skipped.
+			expect(edits).toHaveLength(132);
 			expect(new Set(edits.map((edit) => [...edit.path].join("."))).size).toBe(
-				148,
+				132,
 			);
+			for (const edit of edits) {
+				expect(typeof edit.after).toBe("number");
+			}
 		},
 		FIXTURE_TIMEOUT_MS,
 	);
@@ -776,12 +783,57 @@ describe("skills", () => {
 			expect(verdict.kind).toBe("semantic");
 
 			const back = await witcher3.decode(await witcher3.encode(folded));
-			const levels = skillLevels(back).filter(
-				(level): level is number => level !== null,
+			const rows = requireArrayAt(back, "skills");
+			const capped = rows.filter(
+				(row) => isJsonObject(row) && !absent(numberAt(row, "level")),
 			);
-			expect(levels).toHaveLength(148);
-			// Every one at the ceiling, not just the ones that were staged.
-			expect(levels.filter((level) => level === 3)).toHaveLength(148);
+			expect(capped).toHaveLength(148);
+			// Every one at *its own* ceiling, not just the ones that were staged.
+			for (const row of capped) {
+				if (!isJsonObject(row)) throw new Error("not a row");
+				expect(numberAt(row, "level")).toBe(numberAt(row, "maxLevel"));
+			}
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"caps each skill at its own maximum, not at 3",
+		async () => {
+			// This is the defect the "what about the skills with no level" question
+			// surfaced: `maxLevel` is per-skill, and a blanket 3 would push 42 of the
+			// 148 past the ceiling the save itself records.
+			const doc = await witcher3.decode(largeSave());
+			const rows = requireArrayAt(doc, "skills");
+			const caps = new Map<number, number>();
+			for (const row of rows) {
+				if (!isJsonObject(row)) continue;
+				if (absent(numberAt(row, "level"))) continue;
+				const cap = numberAt(row, "maxLevel");
+				if (cap === undefined || cap === null) continue;
+				caps.set(cap, (caps.get(cap) ?? 0) + 1);
+			}
+			// The spread is the point: it is not uniform, so a constant would be
+			// wrong for whichever group it did not fit.
+			expect([...caps.entries()].sort((a, b) => a[0] - b[0])).toEqual([
+				[1, 39],
+				[2, 3],
+				[3, 106],
+			]);
+
+			const edits =
+				witcher3.actions.find((a) => a.id === "skills-learn-all")?.plan(doc) ??
+				[];
+			// Nothing staged may exceed the skill's own cap.
+			for (const edit of edits) {
+				const index = edit.path[1];
+				if (typeof index !== "number") throw new Error("no index");
+				const row = rows[index];
+				if (row === undefined || !isJsonObject(row)) {
+					throw new Error("no row");
+				}
+				expect(edit.after).toBeLessThanOrEqual(numberAt(row, "maxLevel") ?? 3);
+			}
 		},
 		FIXTURE_TIMEOUT_MS,
 	);
@@ -974,6 +1026,39 @@ describe("difficulty", () => {
 			// rebuild unsound. Measured, then removed — the same lesson as `money`.
 			expect("name" in branch).toBe(false);
 			expect(Array.isArray(branch.choices)).toBe(true);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"gives a blank skill slot a null level rather than a fake zero",
+		async () => {
+			// Nineteen of the 167 array entries are not skills at all: they are
+			// 3-byte empty structs — a presence byte and a `u16` terminator, with
+			// no fields. Reporting them as level 0 would offer to edit a field that
+			// is not in the stream, and writing one would move every offset after
+			// it. So they report `null`, and no action touches them.
+			const doc = await witcher3.decode(largeSave());
+			const rows = requireArrayAt(doc, "skills");
+			const blanks = rows.filter(
+				(row) =>
+					isJsonObject(row) &&
+					absent(numberAt(row, "level")) &&
+					absent(numberAt(row, "maxLevel")),
+			);
+			expect(blanks).toHaveLength(19);
+			const edits =
+				witcher3.actions.find((a) => a.id === "skills-learn-all")?.plan(doc) ??
+				[];
+			for (const edit of edits) {
+				const index = edit.path[1];
+				if (typeof index !== "number") throw new Error("no index");
+				const row = rows[index];
+				if (row === undefined || !isJsonObject(row)) {
+					throw new Error("no row");
+				}
+				expect(absent(numberAt(row, "level"))).toBe(false);
+			}
 		},
 		FIXTURE_TIMEOUT_MS,
 	);
