@@ -92,6 +92,15 @@ type PatchableSkill = {
 	readonly level?: number;
 	readonly levelOffset?: number;
 	readonly isNew?: boolean;
+	/**
+	 * The highest level this skill may reach, as the save itself records it.
+	 *
+	 * Not a constant, and not 3 for everything: measured on a real save, 39
+	 * skills cap at 1, three cap at 2 and 106 cap at 3. So "max every skill"
+	 * has to write each skill's own ceiling, and a blanket 3 would push 42 of
+	 * them past the maximum the game itself will honour.
+	 */
+	readonly maxLevel?: number;
 };
 
 /** One difficulty the save itself knows about, and where its value lives. */
@@ -444,6 +453,18 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 						: Number(levelMember.value.text) || 0,
 				levelOffset: levelMember?.offset,
 				isNew: member(item, "isNew")?.text === "true",
+				// Read only where the skill has a level to cap: a skill with no
+				// level field is an empty slot (measured: 19 of 167 in a real save
+				// are 3-byte blank structs with no fields at all), not a skill
+				// waiting to be levelled, and giving it a maximum would offer to
+				// write a field that does not exist.
+				maxLevel:
+					levelMember === undefined
+						? undefined
+						: (() => {
+								const cap = Number(member(item, "maxLevel")?.text);
+								return Number.isFinite(cap) && cap > 0 ? cap : undefined;
+							})(),
 			};
 		},
 	);
