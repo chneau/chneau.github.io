@@ -87,7 +87,14 @@ export const useThrottledSnapshots = <S extends readonly object[]>(
 				for (const unsubscribe of unsubscribes) unsubscribe();
 			};
 		},
-		[stores, intervalMs],
+		// `cache` is declared because the subscriber writes through it, and the
+		// invariant that makes this subscription survivable is exactly that it
+		// never changes identity: it is the object returned by a `useState`
+		// lazy initialiser and nothing ever calls the setter, so listing it
+		// here cannot re-subscribe. `getSnapshot` already depended on it for the
+		// same reason; declaring it here says the same thing about the write
+		// side rather than leaving it implied.
+		[cache, stores, intervalMs],
 	);
 
 	return useSyncExternalStore(subscribeThrottled, getSnapshot, getSnapshot);

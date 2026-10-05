@@ -89,7 +89,10 @@ export const EquipmentEditor = ({
 	const [unlocked, setUnlocked] = useState(
 		staged?.unlockedSockets ?? original.unlockedSockets,
 	);
-	const [sockets, setSockets] = useState(
+	// Lazy: `socketList` walks the whole socket array, and the value is only
+	// ever read on the first render — recomputing it on every later one is work
+	// thrown away.
+	const [sockets, setSockets] = useState(() =>
 		socketList(staged?.socketItems ?? original.socketItems),
 	);
 	const [search, setSearch] = useState("");

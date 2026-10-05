@@ -608,7 +608,12 @@ export const WeatherTab = () => {
 								}}
 								style={{
 									opacity: draggedIndex === index ? 0.5 : 1,
-									transition: "all 0.3s",
+									// Only these two change on this row: the dragged row
+									// fades, and the drop target grows an accent rule. A
+									// `transition: all` would make the browser watch every
+									// property of the row and the subtree inside it, and
+									// recompute styles on changes it never animates.
+									transition: "opacity 0.3s, border-top 0.3s",
 									cursor: "move",
 								}}
 							>

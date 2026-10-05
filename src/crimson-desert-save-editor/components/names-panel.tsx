@@ -32,6 +32,18 @@ type PanelProps = {
 const PAGE_SIZE = 25;
 
 /**
+ * The fallback for a save with no companion roster.
+ *
+ * Module-level because the `matches` memo depends on this list, and an inline
+ * `?? []` is a fresh array on every render — so the filter re-ran on every
+ * keystroke in the one case where there is nothing to filter. Note that
+ * `matches` returns `rows` itself when the query is empty, so this array is
+ * handed to the render tree as-is; it must therefore never be written to, and
+ * nothing here does.
+ */
+const NO_ROWS: readonly CompanionNameRow[] = [];
+
+/**
  * The names the player has given their pets, horses and camp crew.
  *
  * A name is a field the game only stores once it has been set, so most of the
@@ -51,7 +63,7 @@ export const NamesPanel = ({
 	const [notice, setNotice] = useState("");
 
 	const limit = description?.nameLimit ?? 32;
-	const rows = description?.rows ?? [];
+	const rows = description?.rows ?? NO_ROWS;
 	const matches = useMemo(() => {
 		const needle = query.trim().toLowerCase();
 		if (!needle) return rows;

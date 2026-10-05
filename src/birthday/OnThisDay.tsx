@@ -38,11 +38,58 @@ const resolveLanguage = (language: string): string => {
 	return SUPPORTED_LANGUAGES.includes(lang) ? lang : "en";
 };
 
+/**
+ * One day's answer, resolved.
+ *
+ * `events` is the list to render (`[]` while nothing is known yet), and
+ * `loading` says whether the network is still the source of truth.
+ */
+type DayAnswer = {
+	events: WikiEvent[];
+	loading: boolean;
+	error: boolean;
+};
+
+/**
+ * Asks Wikimedia for one day and returns the events to render.
+ *
+ * Outside the effect on purpose: the effect then only wires a promise to state,
+ * and the answer — cache hit, spinner, error or list — is decided during render
+ * rather than arriving one frame late from inside an `await`.
+ */
+const fetchDay = async (
+	language: string,
+	mm: string,
+	dd: string,
+	signal: AbortSignal,
+): Promise<WikiEvent[]> => {
+	const res = await fetch(
+		`https://api.wikimedia.org/feed/v1/wikipedia/${language}/onthisday/selected/${mm}/${dd}`,
+		{ signal },
+	);
+	if (!res.ok) throw new Error("Failed to fetch");
+	const data: unknown = await res.json();
+	const { selected } = OnThisDayResponseSchema.parse(data);
+
+	// Two entries can share a year and a summary, so dedupe on the pair used as
+	// the React key: without this the duplicate-key warning fires and one row is
+	// dropped.
+	const seen = new Set<string>();
+	const selectedEvents: WikiEvent[] = [];
+	for (const event of selected) {
+		if (selectedEvents.length >= MAX_EVENTS) break;
+		const text = event.text.trim();
+		if (text.length === 0) continue;
+		const key = `${event.year}:${text}`;
+		if (seen.has(key)) continue;
+		seen.add(key);
+		selectedEvents.push({ year: event.year, text, pages: event.pages });
+	}
+	return selectedEvents;
+};
+
 export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 	const { t, i18n } = useTranslation();
-	const [events, setEvents] = useState<WikiEvent[]>([]);
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState(false);
 
 	// Resolved once and used for both the request URL and the attribution link,
 	// so the credit always names the edition actually rendered.
@@ -51,66 +98,67 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 		[i18n.language],
 	);
 
+	const mm = month.toString().padStart(2, "0");
+	const dd = day.toString().padStart(2, "0");
+	const cacheKey = `${finalLang}-${mm}-${dd}`;
+
+	/**
+	 * Re-validated on the way out: the mirror is written by the cache, but a
+	 * stale or hand-edited entry must degrade to a fresh fetch rather than
+	 * render junk. This is read during render because the cache is already in
+	 * memory — a cache hit is an answer, not a thing to wait for, so reading it
+	 * in an effect would paint one frame of "nothing happened on this day"
+	 * before showing the events.
+	 */
+	const cached = useMemo(() => {
+		const parsed = WikiEventsSchema.safeParse(dataStore.wikiCache[cacheKey]);
+		return parsed.success ? parsed.data : null;
+	}, [cacheKey]);
+
+	/**
+	 * Only what the network answered, tagged with the day it answers. The tag is
+	 * what lets the render below tell a resolved day from an unresolved one, so
+	 * a stale answer for a previously viewed day is never shown for this one.
+	 */
+	const [fetched, setFetched] = useState<{
+		cacheKey: string;
+		answer: DayAnswer;
+	} | null>(null);
+
+	const answered = fetched !== null && fetched.cacheKey === cacheKey;
+	const { events, loading, error } =
+		answered && fetched
+			? fetched.answer
+			: cached
+				? { events: cached, loading: false, error: false }
+				: { events: [] as WikiEvent[], loading: true, error: false };
+
 	useEffect(() => {
+		// A valid mirror entry is already the rendered answer, so there is
+		// nothing to fetch for this day.
+		if (cached) return;
+
 		const controller = new AbortController();
-		const fetchEvents = async () => {
-			const mm = month.toString().padStart(2, "0");
-			const dd = day.toString().padStart(2, "0");
-			const cacheKey = `${finalLang}-${mm}-${dd}`;
-
-			// Re-validate on the way out: the mirror is written by the cache, but
-			// a stale or hand-edited entry must degrade to a fresh fetch rather
-			// than render junk.
-			const cached = WikiEventsSchema.safeParse(dataStore.wikiCache[cacheKey]);
-			if (cached.success) {
-				setEvents(cached.data);
-				setLoading(false);
-				setError(false);
-				return;
-			}
-
-			setLoading(true);
-			setError(false);
-			try {
-				const res = await fetch(
-					`https://api.wikimedia.org/feed/v1/wikipedia/${finalLang}/onthisday/selected/${mm}/${dd}`,
-					{ signal: controller.signal },
-				);
-				if (!res.ok) throw new Error("Failed to fetch");
-				const data: unknown = await res.json();
-				const { selected } = OnThisDayResponseSchema.parse(data);
-
-				// Two entries can share a year and a summary, so dedupe on the
-				// pair used as the React key: without this the duplicate-key
-				// warning fires and one row is dropped.
-				const seen = new Set<string>();
-				const selectedEvents: WikiEvent[] = [];
-				for (const event of selected) {
-					if (selectedEvents.length >= MAX_EVENTS) break;
-					const text = event.text.trim();
-					if (text.length === 0) continue;
-					const key = `${event.year}:${text}`;
-					if (seen.has(key)) continue;
-					seen.add(key);
-					selectedEvents.push({ year: event.year, text, pages: event.pages });
-				}
-
+		fetchDay(finalLang, mm, dd, controller.signal)
+			.then((selectedEvents) => {
 				// Goes through the cache, which is what validates, bounds, ages
 				// out and persists it. A payload it refuses is not cached.
 				dataStore.wikiCache[cacheKey] = selectedEvents;
-				setEvents(selectedEvents);
-			} catch (err) {
+				setFetched({
+					cacheKey,
+					answer: { events: selectedEvents, loading: false, error: false },
+				});
+			})
+			.catch((err: unknown) => {
 				if (err instanceof Error && err.name === "AbortError") return;
 				console.error(err);
-				setError(true);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchEvents();
+				setFetched({
+					cacheKey,
+					answer: { events: [], loading: false, error: true },
+				});
+			});
 		return () => controller.abort();
-	}, [month, day, finalLang]);
+	}, [cacheKey, cached, finalLang, mm, dd]);
 
 	if (error) {
 		return (

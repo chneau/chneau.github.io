@@ -45,6 +45,17 @@ const PAGE_SIZE = 25;
 const kindOrder: QuestKind[] = ["quest", "mission", "stage", "gauge"];
 
 /**
+ * The fallback for a save whose quest table has not been read yet.
+ *
+ * Module-level because the `matches` memo depends on this list, and an inline
+ * `?? []` is a fresh array on every render — so a filter over tens of thousands
+ * of rows would re-run on every keystroke. This section is the one that reads
+ * its table lazily, so the empty case is the *common* one here, not the rare
+ * one. Nothing mutates it; the panel only filters it.
+ */
+const NO_ENTRIES: readonly QuestEntry[] = [];
+
+/**
  * Quest progress: the four state tables, one row each.
  *
  * The stages alone run to tens of thousands of rows, so this is the one section
@@ -93,7 +104,7 @@ export const QuestsPanel = ({
 		};
 	}, [session]);
 
-	const entries = description?.entries ?? [];
+	const entries = description?.entries ?? NO_ENTRIES;
 
 	/** Staged state of every row, folded out of the grouped edits. */
 	const staged = useMemo(() => {

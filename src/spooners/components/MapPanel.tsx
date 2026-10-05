@@ -269,7 +269,15 @@ export const MapPanel = ({
 	initialView,
 }: Props) => {
 	const mapRef = useRef<LeafletMap | null>(null);
-	const [legendOpen, setLegendOpen] = useState(!compact);
+	/**
+	 * The legend starts collapsed on phones and open elsewhere, and the visitor's
+	 * own toggle must survive every later render. `null` means "no decision yet",
+	 * so the answer follows `compact` — which is what a viewport change flips —
+	 * until the visitor says otherwise; a `useState(!compact)` would instead keep
+	 * whatever the first render happened to see.
+	 */
+	const [legendOverride, setLegendOverride] = useState<boolean | null>(null);
+	const legendOpen = legendOverride ?? !compact;
 
 	return (
 		<Box
@@ -442,7 +450,7 @@ export const MapPanel = ({
 					size="lg"
 					aria-label="Show map legend"
 					style={{ position: "absolute", bottom: 12, left: 12, zIndex: 800 }}
-					onClick={() => setLegendOpen(true)}
+					onClick={() => setLegendOverride(true)}
 				>
 					<Info size={16} />
 				</ActionIcon>
@@ -516,7 +524,7 @@ export const MapPanel = ({
 							size="xs"
 							aria-label="Hide map legend"
 							style={{ position: "absolute", top: 4, right: 4 }}
-							onClick={() => setLegendOpen(false)}
+							onClick={() => setLegendOverride(false)}
 						>
 							<X size={12} />
 						</ActionIcon>

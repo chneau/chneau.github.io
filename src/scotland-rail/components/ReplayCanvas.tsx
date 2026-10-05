@@ -9,7 +9,12 @@ import {
 	RAIL_PATHS,
 	STATIONS,
 } from "../data/geography";
-import { CATEGORIES, type TrainService, VIEW_BOUNDS } from "../data/types";
+import {
+	CATEGORIES,
+	type TrainService,
+	VIEW_BOUNDS,
+	type ViewPreset,
+} from "../data/types";
 import { drawSmoothPath } from "../engine/curve";
 import { createProjection } from "../engine/projection";
 import { derivedStore, railActions, railStore } from "../store";
@@ -131,11 +136,50 @@ export const ReplayCanvas = () => {
 	const lastAnnouncedSelectionRef = useRef<string | null>(null);
 
 	const canvasRef = useRef<HTMLCanvasElement | null>(null);
-	const staticCanvasRef = useRef<HTMLCanvasElement | null>(null);
+	// Created while rendering, not lazily inside the bake effect: the
+	// dynamic-frame effect draws from this canvas, so a ref the bake happened
+	// to fill first would make the two effects order-dependent for no reason.
+	const [staticCanvas] = useState<HTMLCanvasElement | null>(() =>
+		typeof document === "undefined" ? null : document.createElement("canvas"),
+	);
 
-	// Interactive Zoom and Pan state
-	const [zoom, setZoom] = useState<number>(1);
-	const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+	// Interactive Zoom and Pan state.
+	//
+	// Zoom and pan live in one state object alongside the preset they belong
+	// to, and switching preset is adjusted while rendering rather than in an
+	// effect. The camera-follow effect below reads the camera, so a reset that
+	// happened in an effect would let it run once against the bounds the user
+	// just left.
+	const [camera, setCamera] = useState<{
+		preset: ViewPreset;
+		zoom: number;
+		pan: { x: number; y: number };
+	}>({ preset: viewPreset, zoom: 1, pan: { x: 0, y: 0 } });
+	if (camera.preset !== viewPreset) {
+		// The camera is only meaningful relative to the preset's bounds, so
+		// switching between the Scotland and Europe view presets starts it over
+		// rather than leaving the user panned and zoomed off the new bounds.
+		setCamera({ preset: viewPreset, zoom: 1, pan: { x: 0, y: 0 } });
+	}
+	const { zoom, pan } = camera;
+
+	// Narrow wrappers, so the wheel, drag, touch and button handlers below can
+	// read and write one field of the camera without rebuilding the other.
+	const setZoom = (next: number | ((prev: number) => number)) =>
+		setCamera((prev) => ({
+			...prev,
+			zoom: typeof next === "function" ? next(prev.zoom) : next,
+		}));
+	const setPan = (
+		next:
+			| { x: number; y: number }
+			| ((prev: { x: number; y: number }) => { x: number; y: number }),
+	) =>
+		setCamera((prev) => ({
+			...prev,
+			pan: typeof next === "function" ? next(prev.pan) : next,
+		}));
+
 	const [ready, setReady] = useState(false);
 	const isDraggingRef = useRef<boolean>(false);
 	const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -192,20 +236,6 @@ export const ReplayCanvas = () => {
 		);
 	}, [activeTrains, selectedServiceId]);
 
-	// Reset zoom and pan when preset changes.
-	//
-	// The dependency array was `[]`, which ran this once on mount and never again:
-	// the comment described the intent and the code did the opposite, so switching
-	// between the Scotland and Europe view presets left the camera wherever the user
-	// had panned and zoomed it — often off the new bounds entirely.
-	//
-	// `viewPreset` is the input here because it changes `VIEW_BOUNDS`, and the
-	// camera state is only meaningful relative to those bounds.
-	useEffect(() => {
-		setZoom(1);
-		setPan({ x: 0, y: 0 });
-	}, [viewPreset]);
-
 	// Camera Follow Selected Train
 	useEffect(() => {
 		if (!settings.cameraFollowTrain || !selectedServiceId) return;
@@ -228,12 +258,13 @@ export const ReplayCanvas = () => {
 		const targetPanY = rect.height / 2 - trainScreen.y;
 
 		// Smooth ease toward the train, but bail out once converged. Returning
-		// `prev` avoids an allocation and a re-render on every idle frame.
-		setPan((prev) => {
-			const dx = (targetPanX - prev.x) * 0.15;
-			const dy = (targetPanY - prev.y) * 0.15;
+		// `prev` untouched avoids an allocation and a re-render on every idle
+		// frame.
+		setCamera((prev) => {
+			const dx = (targetPanX - prev.pan.x) * 0.15;
+			const dy = (targetPanY - prev.pan.y) * 0.15;
 			if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return prev;
-			return { x: prev.x + dx, y: prev.y + dy };
+			return { ...prev, pan: { x: prev.pan.x + dx, y: prev.pan.y + dy } };
 		});
 	}, [
 		selectedServiceId,
@@ -277,7 +308,7 @@ export const ReplayCanvas = () => {
 	// cached bitmap in the draw effect below.
 	useEffect(() => {
 		const canvas = canvasRef.current;
-		if (!canvas) return;
+		if (!canvas || !staticCanvas) return;
 
 		const width = dimensions.width;
 		const height = dimensions.height;
@@ -290,10 +321,6 @@ export const ReplayCanvas = () => {
 		if (canvas.width !== backingWidth) canvas.width = backingWidth;
 		if (canvas.height !== backingHeight) canvas.height = backingHeight;
 
-		if (!staticCanvasRef.current) {
-			staticCanvasRef.current = document.createElement("canvas");
-		}
-		const staticCanvas = staticCanvasRef.current;
 		// One extra grid cell of slack on every side so translating the bitmap
 		// to follow the live pan never exposes an unpainted edge.
 		const bakeWidth = width + STATIC_MARGIN * 2;
@@ -496,12 +523,20 @@ export const ReplayCanvas = () => {
 				sCtx.shadowBlur = 0;
 			}
 		}
-	}, [viewPreset, zoom, bakeX, bakeY, quantizedTime, settings, dimensions]);
+	}, [
+		viewPreset,
+		zoom,
+		bakeX,
+		bakeY,
+		quantizedTime,
+		settings,
+		dimensions,
+		staticCanvas,
+	]);
 
 	// Render dynamic frame
 	useEffect(() => {
 		const canvas = canvasRef.current;
-		const staticCanvas = staticCanvasRef.current;
 		if (!canvas || !staticCanvas) return;
 
 		const ctx = canvas.getContext("2d");
@@ -718,6 +753,7 @@ export const ReplayCanvas = () => {
 		timeOffset,
 		settings,
 		reducedMotion,
+		staticCanvas,
 	]);
 
 	// Native wheel listener so preventDefault() is honoured (React's onWheel is passive).
@@ -728,7 +764,12 @@ export const ReplayCanvas = () => {
 		const onWheel = (e: WheelEvent) => {
 			e.preventDefault();
 			const zoomFactor = e.deltaY < 0 ? 1.15 : 0.87;
-			setZoom((prev) => Math.min(8, Math.max(0.6, prev * zoomFactor)));
+			// `setCamera`, not the `setZoom` wrapper: this listener is registered
+			// once, and only the setter itself is stable enough to leave out.
+			setCamera((prev) => ({
+				...prev,
+				zoom: Math.min(8, Math.max(0.6, prev.zoom * zoomFactor)),
+			}));
 		};
 
 		canvas.addEventListener("wheel", onWheel, { passive: false });
