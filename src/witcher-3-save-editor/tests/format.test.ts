@@ -745,14 +745,16 @@ describe("skills", () => {
 			const edits =
 				witcher3.actions.find((a) => a.id === "skills-learn-all")?.plan(doc) ??
 				[];
-			// 132 sit at 0; the 16 already at 1 stage nothing, because a wall of
-			// no-op edits in the tray is noise.
-			expect(edits).toHaveLength(132);
+			// A fresh save sits at 0 or 1, so every one of the 148 differs from 3
+			// and all of them stage. The point of the count is that it equals the
+			// number of level-bearing skills — a short count would mean some write
+			// was skipped.
+			expect(edits).toHaveLength(148);
 			for (const edit of edits) {
-				expect(edit.after).toBe(1);
+				expect(edit.after).toBe(3);
 			}
 			expect(new Set(edits.map((edit) => [...edit.path].join("."))).size).toBe(
-				132,
+				148,
 			);
 		},
 		FIXTURE_TIMEOUT_MS,
@@ -778,8 +780,8 @@ describe("skills", () => {
 				(level): level is number => level !== null,
 			);
 			expect(levels).toHaveLength(148);
-			// Every one, not just the ones that were staged.
-			expect(levels.filter((level) => level === 1)).toHaveLength(148);
+			// Every one at the ceiling, not just the ones that were staged.
+			expect(levels.filter((level) => level === 3)).toHaveLength(148);
 		},
 		FIXTURE_TIMEOUT_MS,
 	);
@@ -837,6 +839,15 @@ describe("skills", () => {
 		},
 		FIXTURE_TIMEOUT_MS,
 	);
+
+	test("caps the level at what the game has, and says so", async () => {
+		const action = witcher3.actions.find((a) => a.id === "skills-learn-all");
+		if (action === undefined) throw new Error("no such action");
+		// A skill's level runs 0 to 3, so "max" is 3 and there is nothing above
+		// it. The number is in the description because the page shows it.
+		expect(action.label).toBe("Max every skill");
+		expect(action.description).toContain("level 3");
+	});
 
 	test(
 		"plans nothing once every skill is already where it would be put",

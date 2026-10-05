@@ -506,6 +506,22 @@ const edit = (
 });
 
 /**
+ * The level "Max every skill" writes.
+ *
+ * A skill's level runs 0 (not learned) to 3 in this game, so 3 is the ceiling
+ * and there is nothing above it to clamp against. It is a named constant rather
+ * than a literal in three places because the action, its description and its
+ * tests all quote it, and a change to the game's progression should be one edit
+ * rather than three that can drift apart.
+ *
+ * Nothing here *enforces* the ceiling: the field is a plain `Int32` and will
+ * hold any value. Writing 6 would work and would write a level the game does not
+ * have, which is why the constant states the game's rule rather than the
+ * format's tolerance.
+ */
+const MAX_SKILL_LEVEL = 3;
+
+/**
  * Every skill in the save that carries a level, as `[index, current]` pairs.
  *
  * The indices are the document's, which line up one-for-one with the save's own
@@ -581,22 +597,21 @@ const ACTIONS: readonly QuickAction[] = [
 	},
 	{
 		id: "skills-learn-all",
-		label: "Learn every skill",
-		description:
-			"Set every skill in this save to level 1. Each level is a 4-byte value already present in the save, so this resizes nothing.",
+		label: "Max every skill",
+		description: `Set every skill in this save to level ${MAX_SKILL_LEVEL}. Each level is a 4-byte value already present in the save, so this resizes nothing.`,
 		plan: (doc) => {
 			const skills = levelBearing(doc);
 			if (skills.length === 0) return [];
 			// Only the ones that would change. Staging 148 edits to write the value
 			// a skill already holds would put a wall of no-ops in the tray.
 			return skills
-				.filter((skill) => skill.level !== 1)
+				.filter((skill) => skill.level !== MAX_SKILL_LEVEL)
 				.map((skill) =>
 					edit(
 						["skills", skill.index, "level"],
 						"Skill level",
 						skill.level ?? 0,
-						1,
+						MAX_SKILL_LEVEL,
 					),
 				);
 		},
