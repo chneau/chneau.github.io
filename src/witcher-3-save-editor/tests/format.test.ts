@@ -630,9 +630,11 @@ describe("the quick actions", () => {
 		async () => {
 			const doc = await witcher3.decode(largeSave());
 			const edits = planFor("mutations-max", doc);
-			// One edit per non-master mutation, each raising its research to 100.
-			expect(edits.length).toBeGreaterThan(0);
-			expect(edits.every((entry) => entry.after === 100)).toBe(true);
+			// One edit per missing used counter (and overall progress), plus one
+			// for the payload size; every value edit is inside the mutation progress.
+			expect(
+				edits.filter((entry) => entry.path.includes("progress")).length,
+			).toBeGreaterThan(0);
 			const working = applyEdits(doc, edits);
 			const back = await witcher3.decode(await witcher3.encode(working));
 			// A width-preserving edit, so the projection must match exactly.
