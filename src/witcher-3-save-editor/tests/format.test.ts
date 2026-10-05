@@ -1047,6 +1047,34 @@ describe("difficulty", () => {
 					absent(numberAt(row, "maxLevel")),
 			);
 			expect(blanks).toHaveLength(19);
+			// They are named for what they are. "skill 72" would put a skill on the
+			// page that the save does not contain; there is no field to resolve a
+			// name from, so the index is the whole of the identification.
+			expect(
+				blanks.map((row) =>
+					isJsonObject(row) ? stringAt(row, "name") : undefined,
+				),
+			).toEqual([
+				"empty slot 0",
+				"empty slot 29",
+				"empty slot 72",
+				"empty slot 73",
+				"empty slot 74",
+				"empty slot 75",
+				"empty slot 76",
+				"empty slot 77",
+				"empty slot 78",
+				"empty slot 80",
+				"empty slot 81",
+				"empty slot 83",
+				"empty slot 85",
+				"empty slot 100",
+				"empty slot 121",
+				"empty slot 122",
+				"empty slot 125",
+				"empty slot 151",
+				"empty slot 158",
+			]);
 			const edits =
 				witcher3.actions.find((a) => a.id === "skills-learn-all")?.plan(doc) ??
 				[];

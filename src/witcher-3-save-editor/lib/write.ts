@@ -439,14 +439,28 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 	const skillsValue = member(ability, "skills");
 	const skills: PatchableSkill[] = (skillsValue?.items ?? []).map(
 		(item, index) => {
-			const skillType = Number(member(item, "skillType")?.text ?? -1);
+			const skillTypeMember = item.fields?.find((f) => f.name === "skillType");
+			const skillType = Number(skillTypeMember?.value.text ?? -1);
 			const levelMember = item.fields?.find((f) => f.name === "level");
+			// An entry with no `skillType` field at all is not a skill: measured, 19
+			// of the 167 array entries are 3-byte empty structs — a presence byte
+			// and a `u16` terminator, nothing else. They sit at *fixed* indices
+			// (0, 29, 72-78, 80, 81, 83, 85, 100, 121, 122, 125, 151, 158 — the
+			// same in every save of this build), so they read as reserved slots in a
+			// fixed-size table rather than entries that happen to be empty.
+			//
+			// Naming them "skill N" would put a skill on the page that does not
+			// exist. There is nothing in the save to name them by, so the index is
+			// the whole of the identification and the label says so.
+			const name =
+				skillTypeMember === undefined
+					? `empty slot ${index}`
+					: skillType >= 1
+						? (names[skillType - 1] ?? `skill ${skillType}`)
+						: `skill ${index}`;
 			return {
 				index,
-				name:
-					skillType >= 1
-						? (names[skillType - 1] ?? `skill ${skillType}`)
-						: `skill ${index}`,
+				name,
 				level:
 					levelMember === undefined
 						? undefined
