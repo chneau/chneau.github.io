@@ -83,6 +83,7 @@ import type {
 	SummaryRow,
 } from "../../shared/save/types";
 import { addItemsToPayload } from "./add-item";
+import { maxMutationsInPayload } from "./max-mutations";
 import { localizedString, questTitle } from "./catalog";
 import { decompressContainer, type SaveContainer } from "./container";
 import { buildContainer } from "./container-write";
@@ -427,8 +428,30 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 
 	// Re-derive every address from the payload rather than trusting one from
 	// the document: the offsets are per-save and cannot survive being stored.
-	const payload = scaffold.payload.slice();
-	const found = locateWritable(payload);
+	let payload = scaffold.payload.slice();
+	let chunks = scaffold.chunks;
+	let found = locateWritable(payload);
+
+	// "Max all mutations" is a resize, not a value patch: the `*Used` fields the
+	// engine recomputes from are absent at 0, so they have to be inserted. When
+	// the document asks for more than the save has, rebuild the ability manager
+	// first and re-derive every offset from the grown payload.
+	const requestedMutations = requireArrayAt(doc, "mutations");
+	const wantsMutationResize = found.mutations.some((mutation, index) => {
+		const row = requestedMutations[index];
+		if (row === undefined || !isJsonObject(row)) return false;
+		const progress = objectAt(row, "progress");
+		if (progress === undefined) return false;
+		return ["redUsed", "blueUsed", "greenUsed", "skillpointsUsed"].some(
+			(key) => (numberAt(progress, key) ?? 0) !== (mutation.progress?.[key] ?? 0),
+		);
+	});
+	if (wantsMutationResize) {
+		const resized = maxMutationsInPayload({ data: payload, chunks });
+		payload = resized.data;
+		chunks = resized.chunks;
+		found = locateWritable(payload);
+	}
 
 	const apply = (target: PatchableScalar | undefined, key: string): void => {
 		if (target === undefined) return;
@@ -536,15 +559,12 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 			});
 		}
 		if (requests.length > 0) {
-			const { data, chunks } = addItemsToPayload(
-				{ data: payload, chunks: scaffold.chunks },
-				requests,
-			);
-			return buildContainer(chunks, data) as Bytes;
+			const added = addItemsToPayload({ data: payload, chunks }, requests);
+			return buildContainer(added.chunks, added.data) as Bytes;
 		}
 	}
 
-	const rebuilt = buildContainer(scaffold.chunks, payload);
+	const rebuilt = buildContainer(chunks, payload);
 	return rebuilt as Bytes;
 };
 
@@ -792,29 +812,74 @@ const ACTIONS: readonly QuickAction[] = [
 		id: "mutations-max",
 		label: "Max all mutations",
 		description:
-			"Fully research every Blood-and-Wine mutation by setting its progress to 100. Once a mutation's overallProgress is >= 0 the engine returns it directly (GetMutationResearchProgress), so this unlocks them without spending mutagens or skill points. Width-preserving: no resizing, works on any save that has the mutation catalogue.",
+			"Fully research every Blood-and-Wine mutation. The engine recomputes progress from the four *Used counters, so this inserts each Used field (= its Required) into the save and sets progress to 100 — exactly what the game's own console `mutall` does. Resizing: it adds the fields, so the file grows.",
 		plan: (doc) => {
 			const mutations = requireArrayAt(doc, "mutations");
 			const edits: SaveEdit[] = [];
+			const colors = new Set<string>();
+			let inserts = 0;
 			mutations.forEach((row, index) => {
 				if (!isJsonObject(row)) return;
 				const progress = objectAt(row, "progress");
 				if (progress === undefined) return;
 				const name = stringAt(row, "name") ?? `mutation ${index}`;
 				// `EPMT_MutationMaster` is derived from how many other mutations
-				// are researched, not from its own progress, so leave it alone.
+				// are researched, and the game itself writes no `*Used` for it.
 				if (name === "EPMT_MutationMaster") return;
-				const before = numberAt(progress, "overallProgress");
-				if (before === undefined || before === null || before === 100) return;
-				edits.push(
-					edit(
-						["mutations", index, "progress", "overallProgress"],
-						`${name} research`,
-						before,
-						100,
-					),
-				);
+				for (const color of ["red", "blue", "green", "skillpoints"]) {
+					const required = numberAt(progress, `${color}Required`);
+					if (required === undefined || required === null || required <= 0) {
+						continue;
+					}
+					const used = numberAt(progress, `${color}Used`) ?? 0;
+					if (used >= required) continue;
+					edits.push(
+						edit(
+							["mutations", index, "progress", `${color}Used`],
+							`${name} ${color}`,
+							used,
+							required,
+						),
+					);
+					inserts += 1;
+					colors.add(color);
+				}
+				const overall = numberAt(progress, "overallProgress");
+				if (overall !== undefined && overall !== null && overall < 100) {
+					edits.push(
+						edit(
+							["mutations", index, "progress", "overallProgress"],
+							`${name} progress`,
+							overall,
+							100,
+						),
+					);
+				}
 			});
+			// Every `*Used` is a new 12-byte field, and any colour used at least
+			// once appends its name to `MANU`. The document carries the payload
+			// size, so it has to predict the growth or the rebuild reads back a
+			// length the edits did not.
+			if (inserts > 0) {
+				const added =
+					inserts * 12 +
+					[...colors].reduce((sum, color) => sum + 1 + `${color}Used`.length, 0);
+				const container = objectAt(doc, "container");
+				const payloadBytes =
+					container === undefined
+						? undefined
+						: numberAt(container, "payloadBytes");
+				if (payloadBytes !== undefined && payloadBytes !== null) {
+					edits.push(
+						edit(
+							["container", "payloadBytes"],
+							"Payload size",
+							payloadBytes,
+							payloadBytes + added,
+						),
+					);
+				}
+			}
 			return edits;
 		},
 	},
