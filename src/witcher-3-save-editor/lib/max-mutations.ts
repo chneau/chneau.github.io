@@ -19,6 +19,12 @@
  * `EPMT_MutationMaster` is skipped: its progress is derived from the count of
  * the others, and the game never writes `*Used` for it (verified against a
  * save the engine itself maxed).
+ *
+ * The saved enum `equippedMutation` (the one active mutation) is also written:
+ * it lives between `isMutationSystemEnabled` and `mutations`, so it is inserted
+ * just before the array — outside it, hence not part of the `mutations` growth.
+ * Only one mutation is active at a time, so this is a single value, given by the
+ * `equip` argument (the game's own maxing console command also equips).
  */
 
 import type { SaveContainer } from "./container";
@@ -30,7 +36,7 @@ import { type ReflectedValue, reflectValue } from "./reflect";
 import { parseTokens } from "./tokens";
 
 type Resizable = {
-	readonly data: Uint8Array;
+	readonly data: Uint8Array<ArrayBuffer>;
 	readonly chunks: SaveContainer["chunks"];
 };
 
@@ -115,11 +121,11 @@ type Insert = { readonly at: number; readonly bytes: Uint8Array };
 const splice = (
 	data: Uint8Array,
 	inserts: readonly Insert[],
-): { out: Uint8Array; shiftAt: (at: number) => number } => {
+): { out: Uint8Array<ArrayBuffer>; shiftAt: (at: number) => number } => {
 	const sorted = [...inserts].sort((a, b) => a.at - b.at);
 	let total = 0;
 	for (const insert of sorted) total += insert.bytes.length;
-	const out = new Uint8Array(data.length + total);
+	const out: Uint8Array<ArrayBuffer> = new Uint8Array(data.length + total);
 	let src = 0;
 	let dst = 0;
 	for (const insert of sorted) {
@@ -211,7 +217,11 @@ const WANTED_USED = [
 /** The resized payload and its chunk table. */
 export const maxMutationsInPayload = (
 	container: Resizable,
-): { readonly data: Uint8Array; readonly chunks: SaveContainer["chunks"] } => {
+	equip: string = "EPMT_MutationMaster",
+): {
+	readonly data: Uint8Array<ArrayBuffer>;
+	readonly chunks: SaveContainer["chunks"];
+} => {
 	const data = container.data;
 	const names = readNameTable(data).names;
 	const { tokens } = parseTokens(data, names);
@@ -250,11 +260,24 @@ export const maxMutationsInPayload = (
 	const usedNames: string[] = [];
 	const indexOfName = new Map<string, number>();
 	for (const [i, name] of names.entries()) indexOfName.set(name, i + 1);
+	/** Reuse a `MANU` name, appending it to the table if the save lacks it. */
+	const intern = (name: string): number => {
+		const existing = indexOfName.get(name);
+		if (existing !== undefined) return existing;
+		usedNames.push(name);
+		const index = names.length + usedNames.length;
+		indexOfName.set(name, index);
+		return index;
+	};
 	const inserts: Insert[] = [];
 	let total = 0;
+	/** The type index of `EPlayerMutationType`, read off the mutations themselves. */
+	let enumTypeIndex: number | undefined;
 	const progressGrowth: { offset: number; width: number; within: number }[] = [];
 	for (const item of mutationsField.value.items ?? []) {
-		const type = enumName(names, findField(item.fields, "type")?.value);
+		const typeField = findField(item.fields, "type");
+		enumTypeIndex ??= typeField === undefined ? undefined : u16(data, typeField.offset - 6);
+		const type = enumName(names, typeField?.value);
 		if (type === "EPMT_MutationMaster") continue;
 		const progress = findField(item.fields, "progress");
 		if (progress === undefined) continue;
@@ -268,12 +291,7 @@ export const maxMutationsInPayload = (
 			const record = new Uint8Array(12);
 			const typeIndex = u16(data, required.offset - 6);
 			const value = u32(data, required.offset);
-			let nameIndex = indexOfName.get(usedName);
-			if (nameIndex === undefined) {
-				usedNames.push(usedName);
-				nameIndex = names.length + usedNames.length;
-				indexOfName.set(usedName, nameIndex);
-			}
+			const nameIndex = intern(usedName);
 			record[0] = nameIndex & 0xff;
 			record[1] = (nameIndex >>> 8) & 0xff;
 			record[2] = typeIndex & 0xff;
@@ -294,18 +312,60 @@ export const maxMutationsInPayload = (
 			});
 		}
 	}
+	/** Only the `*Used` records live inside the `mutations` array. */
+	const usedTotal = total;
+	// Nothing to do when every counter is already maxed: the rebuild is only
+	// reached for a real resize, and the caller sizes the document from that.
 	if (inserts.length === 0) {
 		return { data, chunks: container.chunks };
 	}
+
+	// `equippedMutation` is the saved enum naming the one mutation that is active.
+	// It sits between `isMutationSystemEnabled` and `mutations` in the class, so it
+	// goes just before the `mutations` field — outside the array, which is why it
+	// is not part of `usedTotal`. The enum itself is stored as its `MANU` index.
+	const existingEquip = findField(object.fields, "equippedMutation");
+	let equippedRecord: Insert | undefined;
+	const equipValue = indexOfName.get(equip);
+	if (
+		existingEquip === undefined &&
+		enumTypeIndex !== undefined &&
+		equipValue !== undefined
+	) {
+		// A field record is an 8-byte header plus its value, so an enum with a
+		// 2-byte value is 10 bytes — not the 12 of an `Int32` `*Used` record.
+		const record = new Uint8Array(10);
+		const nameIndex = intern("equippedMutation");
+		record[0] = nameIndex & 0xff;
+		record[1] = (nameIndex >>> 8) & 0xff;
+		record[2] = enumTypeIndex & 0xff;
+		record[3] = (enumTypeIndex >>> 8) & 0xff;
+		writeU32(record, 4, 6);
+		record[8] = equipValue & 0xff;
+		record[9] = (equipValue >>> 8) & 0xff;
+		equippedRecord = { at: mutationsField.offset - 8, bytes: record };
+		total += record.length;
+	}
+	const patches: Insert[] =
+		existingEquip !== undefined && equipValue !== undefined
+			? [
+					{
+						at: existingEquip.offset,
+						bytes: new Uint8Array([
+							equipValue & 0xff,
+							(equipValue >>> 8) & 0xff,
+						]),
+					},
+				]
+			: [];
+	if (equippedRecord !== undefined) inserts.push(equippedRecord);
 
 	// The names are appended to `MANU`, which sits after the ability manager, so
 	// they shift by the object's growth.
 	const { offset: manuStart, end: namesEnd } = namesEndOf(data);
 	const extraNames = nameBytesOf(usedNames);
-	const allInserts: Insert[] = [
-		...inserts,
-		{ at: namesEnd, bytes: extraNames },
-	];
+	const allInserts: Insert[] = [...inserts];
+	if (extraNames.length > 0) allInserts.push({ at: namesEnd, bytes: extraNames });
 
 	const { out, shiftAt } = splice(data, allInserts);
 	const totalAll = total + extraNames.length;
@@ -315,7 +375,14 @@ export const maxMutationsInPayload = (
 	// `abilityManager` `PORP` length is the object value length, so it grows by
 	// the same total.
 	writeU32(out, shiftAt(token.offset + 8), token.value.bytes.length + total);
-	writeU32(out, shiftAt(mutationsField.offset - 4), mutationsField.value.width + total + 4);
+	writeU32(
+		out,
+		shiftAt(mutationsField.offset - 4),
+		mutationsField.value.width + usedTotal + 4,
+	);
+	for (const patch of patches) {
+		out.set(patch.bytes, shiftAt(patch.at));
+	}
 	for (const progress of progressGrowth) {
 		writeU32(
 			out,
