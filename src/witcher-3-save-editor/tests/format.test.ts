@@ -585,6 +585,47 @@ describe("the quick actions", () => {
 	);
 
 	test(
+		"stock every carried mutagen and the skill points lab research spends",
+		async () => {
+			const doc = await witcher3.decode(largeSave());
+			const plan = planFor("mutation-research-kit", doc);
+			// The points, then one edit per carried mutagen — never a "Recipe for
+			// Mutagen N", whose name also contains "Mutagen".
+			expect(plan[0]?.path).toEqual(["skillPoints", "free"]);
+			const itemEdits = plan.filter((entry) => entry.path[0] === "items");
+			expect(itemEdits.length).toBeGreaterThan(0);
+			expect(itemEdits.every((entry) => entry.after === 50)).toBe(true);
+			expect(
+				itemEdits.some((entry) => entry.label === "Greater mutagen blue"),
+			).toBe(true);
+			expect(itemEdits.some((entry) => /recipe/i.test(entry.label))).toBe(
+				false,
+			);
+			// Every edit is a value already in the save, so the stream keeps its
+			// length; re-decoding proves the writes landed.
+			const back = await witcher3.decode(
+				await witcher3.encode(applyEdits(doc, plan)),
+			);
+			const points = objectAt(back, "skillPoints");
+			expect(points === undefined ? undefined : numberAt(points, "free")).toBe(
+				500,
+			);
+			const greater = requireArrayAt(back, "items").find(
+				(row) =>
+					isJsonObject(row) && stringAt(row, "name") === "Greater mutagen blue",
+			);
+			expect(
+				greater === undefined || !isJsonObject(greater)
+					? undefined
+					: numberAt(greater, "quantity"),
+			).toBe(50);
+			// And it greys itself out once the save is already stocked.
+			expect(planFor("mutation-research-kit", back)).toEqual([]);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
 		"are pure: no plan touches the document it was given",
 		async () => {
 			// A plan that mutated its input would leave the working document
@@ -693,6 +734,7 @@ describe("the codec describes itself", () => {
 			"crowns-max",
 			"crowns-round",
 			"skill-points-max",
+			"mutation-research-kit",
 			"experience-max",
 			"skills-learn-all",
 			"skills-reset",
