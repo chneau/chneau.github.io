@@ -793,11 +793,24 @@ const readLevelCurveAt = (doc: JsonValue): readonly LevelDefinition[] => {
 	return curve;
 };
 
-/** The Crowns row, which is the wallet. */
+/**
+ * The Crowns row, which is the wallet.
+ *
+ * Reads `items` with the defensive `arrayAt`, not the throwing `requireArrayAt`,
+ * because this is reached from `summarise` — whose whole documented contract is
+ * that an absent field produces no row rather than an error. With the throwing
+ * reader, `summarise` crashed on any document that had lost `items` ("`items`
+ * must be an array") instead of reporting the wallet as unsupported, which is the
+ * honest answer it already prints for a build whose wallet record it cannot find.
+ *
+ * `encode` and the quick actions still use the throwing reader on purpose: they
+ * *write*, and a document missing the list they write into is one they must
+ * refuse rather than silently half-apply.
+ */
 const crownsRow = (
 	doc: JsonValue,
 ): { path: (string | number)[]; quantity: number } | undefined => {
-	const list = requireArrayAt(doc, "items");
+	const list = arrayAt(doc, "items") ?? [];
 	for (const [index, row] of list.entries()) {
 		if (!isJsonObject(row)) continue;
 		if (stringAt(row, "name") !== "Crowns") continue;

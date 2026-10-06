@@ -353,6 +353,35 @@ describe("the summary", () => {
 		// And the two progression rows really are absent rather than zeroed.
 		expect(rows.some((row) => row.label === "Skill points")).toBe(false);
 	});
+
+	test("describes a document with no item list instead of throwing", async () => {
+		// This used to throw. `crownsRow` read `items` with the throwing
+		// `requireArrayAt` while the rest of `summarise` degraded, so a document
+		// that had lost `items` crashed the summary — on its *first* row, before any
+		// of the honest degradation above could run. `encode` still refuses such a
+		// document, which is right: it writes into that list. `summarise` only
+		// reads, so "not supported for this build" is the correct answer and was
+		// already the wording for a wallet it cannot locate.
+		// Each spelled as its own `JsonValue` rather than inferred as one union of
+		// three: an inferred array widens the first element to `items?: undefined`,
+		// and `undefined` is not a `JsonValue` — the very rule this projection is
+		// held to. The annotation is the test saying what shape it means.
+		const docs: readonly JsonValue[] = [
+			{ saveVersion: "66/29/164" },
+			{ saveVersion: "66/29/164", items: null },
+			{ saveVersion: "66/29/164", items: "not an array" },
+		];
+		for (const doc of docs) {
+			const rows = witcher3.summarise(doc);
+			expect(rows.find((row) => row.label === "Crowns")?.value).toBe(
+				"not supported for this build",
+			);
+			// And the rows that do not depend on `items` are still reported.
+			expect(rows.find((row) => row.label === "Save version")?.value).toBe(
+				"66/29/164",
+			);
+		}
+	});
 });
 
 describe("the round trip", () => {
