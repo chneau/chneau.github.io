@@ -66,7 +66,7 @@
 
 import { readNameTable } from "./names";
 import { type ObjectNode, readObjectTree } from "./objects";
-import { parseTokens } from "./tokens";
+import { parseTokens, type Token } from "./tokens";
 
 export type InventoryItem = {
 	/** template name, from the save's `MANU` table */
@@ -306,9 +306,11 @@ const hexOf = (bytes: Uint8Array): string =>
 export const readContainers = (
 	data: Uint8Array,
 	names: readonly string[] = readNameTable(data).names,
+	scan?: readonly Token[],
+	roots?: readonly ObjectNode[],
 ): readonly InventoryContainer[] => {
-	const tokens = parseTokens(data, names).tokens;
-	const tree = readObjectTree(data);
+	const tokens = scan ?? parseTokens(data, names).tokens;
+	const tree = roots ?? readObjectTree(data).roots;
 
 	const spans: { offset: number; end: number }[] = [];
 	const collect = (nodes: readonly ObjectNode[]): void => {
@@ -319,7 +321,7 @@ export const readContainers = (
 			collect(node.children);
 		}
 	};
-	collect(tree.roots);
+	collect(tree);
 	spans.sort((a, b) => a.offset - b.offset);
 
 	// idTag -> community, from the registry entry that shares the idTag.
@@ -353,16 +355,45 @@ export const readContainers = (
 	// rather than repeated per frame.
 	const tagPair = discoverTagPair(data, names);
 
-	return spans.map((span) => {
-		const inside = tokens.filter(
-			(t) => t.offset >= span.offset && t.offset < span.end,
-		);
-		const tag = inside.find((t) => t.name === "idTag" && t.value !== undefined);
-		const hex = tag?.value === undefined ? "" : hexOf(tag.value.bytes);
-		const isPlayer =
-			player !== undefined &&
-			player.offset >= span.offset &&
-			player.offset < span.end;
+	// Which span holds each `idTag`, in **one** pass over the token list.
+	//
+	// This used to be `tokens.filter(...)` inside the loop below — a scan of every
+	// token per span, so O(spans × tokens). Measured on the 5 MB fixture that was
+	// 290 × 250,640; on a 15 MB reference save it is ~6,500 spans against ~700,000
+	// tokens and the whole decode took **52 seconds**. It is a single merge now,
+	// because `spans` and `tokens` are both in offset order: one cursor advances
+	// through the spans as the tokens pass, so each token is looked at once.
+	// `spans.map` rather than `new Array(n).fill("")`: the latter infers `any[]`
+	// and silently loses the element type, so the `community.get(hex)` below stops
+	// typechecking for a reason that looks unrelated to this line.
+	const tagHexBySpan: string[] = spans.map(() => "");
+	let cursor = 0;
+	for (const token of tokens) {
+		while (cursor < spans.length && (spans[cursor]?.end ?? 0) <= token.offset) {
+			cursor += 1;
+		}
+		const span = spans[cursor];
+		if (span === undefined || token.offset < span.offset) continue;
+		// The first `idTag` inside a frame labels it; later ones belong to nested
+		// entities and must not overwrite it.
+		if (
+			token.name === "idTag" &&
+			token.value !== undefined &&
+			tagHexBySpan[cursor] === ""
+		) {
+			tagHexBySpan[cursor] = hexOf(token.value.bytes);
+		}
+	}
+	const playerSpan =
+		player === undefined
+			? -1
+			: spans.findIndex(
+					(span) => player.offset >= span.offset && player.offset < span.end,
+				);
+
+	return spans.map((span, spanIndex) => {
+		const hex = tagHexBySpan[spanIndex] ?? "";
+		const isPlayer = spanIndex === playerSpan;
 		const comm = community.get(hex);
 		const label = isPlayer
 			? "player"

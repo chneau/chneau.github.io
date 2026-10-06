@@ -339,7 +339,15 @@ const project = (container: SaveContainer): JsonValue => {
 		// merchant's or NPC's stock is readable rather than a bare offset. The
 		// player's list is `items` above; including it here would be two document
 		// fields over one list, which the round-trip check would rightly reject.
-		containers: readContainers(container.data)
+		// The scan and the tree are handed in rather than rebuilt: this reader
+		// otherwise walks the stream a second time (measured at ~1.3 s on the 5 MB
+		// fixture on its own) and rebuilds the object tree a third.
+		containers: readContainers(
+			container.data,
+			found.scan.names,
+			found.scan.tokens,
+			entityRoots,
+		)
 			.filter((c) => c.label !== "player" && c.items.length > 0)
 			.map((c) => ({
 				label: c.label,
@@ -349,7 +357,7 @@ const project = (container: SaveContainer): JsonValue => {
 				})),
 			})),
 		position: (() => {
-			const player = readPlayer(container.data);
+			const player = readPlayer(container.data, found.scan.tokens);
 			return player === undefined
 				? null
 				: { template: player.template, x: player.x, y: player.y, z: player.z };
