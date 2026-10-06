@@ -8,6 +8,8 @@ import {
 	readContainers,
 } from "../lib/inventory";
 import { readNameTable } from "../lib/names";
+import { readObjectTree } from "../lib/objects";
+import { parseTokens } from "../lib/tokens";
 import { FIXTURE_TIMEOUT_MS, largeSave, smallSave } from "./fixtures";
 
 /**
@@ -171,6 +173,27 @@ describe("the item record reader", () => {
 				nulls: values.filter((value) => value === null).length,
 				numbers: values.filter((value) => typeof value === "number").length,
 			}).toEqual({ negative: 0, nulls: 615, numbers: 11 });
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"a shared scan gives byte-identical containers to a private one",
+		() => {
+			// `readContainers` takes an optional token walk and object tree so the
+			// codec does not rebuild either. That is a performance path, so a bug in
+			// it would change *what* is read, not raise anything — and the labels
+			// especially, since the idTag-to-span attribution is now a single merge
+			// over the tokens rather than a scan per span.
+			for (const bytes of [smallSave(), largeSave()]) {
+				const data = decompressContainer(bytes).data;
+				const names = readNameTable(data).names;
+				const tokens = parseTokens(data, names).tokens;
+				const roots = readObjectTree(data).roots;
+				expect(readContainers(data, names, tokens, roots)).toEqual(
+					readContainers(data),
+				);
+			}
 		},
 		FIXTURE_TIMEOUT_MS,
 	);
