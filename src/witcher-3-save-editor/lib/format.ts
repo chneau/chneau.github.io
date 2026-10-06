@@ -357,35 +357,42 @@ const project = (container: SaveContainer): JsonValue => {
 		quests: (() => {
 			if (facts === undefined) return [];
 			// Sorted by title so the list reads as a journal rather than as the
-			// order the engine happened to write its facts in, and capped because
-			// a late-game save holds hundreds: the summary row carries the true
-			// count and the tree view carries the rest.
-			// The journal's own answer per quest id, joined here so a caller can
-			// read one row's two sources side by side. `null` where the journal has
-			// no entry for the quest: absence, not a verdict — 17 of 43 rows on
-			// `52586` and 3 of 10 on `8559a` are in that state, and a UI that
-			// cannot tell "the journal says nothing" from "the journal says the
-			// quest is not done" is exactly the confusion this field exists to
-			// remove.
-			const rollupById = new Map(
-				journal.quests.map((quest) => [quest.id, quest.rollup]),
-			);
+			// order the engine happened to write its facts in.
+			//
+			// **Not capped, and it used to be capped at 200.** The cap silently
+			// broke the summary: it compared this (capped) list against the
+			// journal's (uncapped) one, so on a save with more than 200 quests the
+			// disagreement row counted a subset while the totals beside it counted
+			// the whole — two rows describing different populations, with nothing
+			// saying so. The rows are small (~150 bytes) and a save's quest count is
+			// bounded by the number of distinct quest ids in its fact table, so
+			// carrying all of them costs tens of kilobytes on a document already
+			// measured in hundreds.
+			//
+			// There is deliberately no per-quest `journalStatus` here. It was a
+			// materialised join against `journal.quests[].rollup`, which is the same
+			// fact stored twice, and the summary then read that copy for one row and
+			// the journal's own copy for another — so editing either through the
+			// inspector made the two rows contradict each other. The join belongs in
+			// `questSummaryRows`, where it is computed rather than stored.
 			return questProgress(facts.facts)
 				.map((q) => ({
 					id: q.id,
-					title: questTitle(q.id) ?? q.id,
+					// `null` rather than the id echoed back, matching `questSteps` and
+					// `journal.quests`. Ten of 43 ids here resolve to no title, and a
+					// UI that cannot tell "no title known" from "the title is mq1036"
+					// renders the id as though the game had written it.
+					title: questTitle(q.id) ?? null,
 					// Named for where it comes from rather than what it is: this is
 					// the `_done` / `_failed` / `_accepted` **fact-name** heuristic in
 					// `./quests`, not the game's record of the quest. It disagrees
 					// with the journal on 2 of 7 comparable quests here and 7 of 26
 					// on the larger fixture, always the same way round.
 					inferredState: q.state,
-					journalStatus: rollupById.get(q.id) ?? null,
 					done: q.done,
 					total: q.total,
 				}))
-				.sort((a, b) => a.title.localeCompare(b.title))
-				.slice(0, 200);
+				.sort((a, b) => (a.title ?? a.id).localeCompare(b.title ?? b.id));
 		})(),
 		// The per-step detail behind `quests`, from the same fact DB, so it is the
 		// heuristic's evidence rather than a second reading: `inferredState` above
@@ -845,10 +852,23 @@ const JOURNAL_EQUIVALENT: Readonly<Record<string, string>> = {
 /**
  * The journal's figures, and the disagreement count, from the document alone.
  *
- * Returned separately from `summarise` so the comparison it needs — each quest
- * row's `inferredState` against its own `journalStatus` — is read from the
- * document and never re-derived from the readers, which is what keeps the round
- * trip honest.
+ * **Both rows are computed over `journal.quests`**, which is the only way they can
+ * be guaranteed to describe the same population. This used to count
+ * `recorded`/`succeeded` over the journal's list and `comparable`/`disagree` over
+ * `quests[].journalStatus` — a *copy* of the journal's roll-up materialised on the
+ * fact-side row — so the two rows read the same fact from two places and a
+ * document edited between them made the rows contradict each other. The join is
+ * computed here now, and `quests[]` no longer stores its half of it.
+ *
+ * An entry is comparable only when the fact side has a quest with the same id
+ * *and* the journal actually classified it:
+ *
+ *  - no fact-side row means the fact heuristic says nothing, which is not a
+ *    disagreement;
+ *  - a roll-up of `"unresolved"` means the journal's own status name was not one
+ *    this codec knows, which is *also* absence of a reading, not a verdict — it
+ *    was being counted as a disagreement, so a build with a fifth `JS_*` name
+ *    would have overstated the gap on every quest carrying it.
  */
 const questSummaryRows = (doc: JsonValue): readonly SummaryRow[] => {
 	const journal = objectAt(doc, "journal");
@@ -859,7 +879,15 @@ const questSummaryRows = (doc: JsonValue): readonly SummaryRow[] => {
 	// supports. Measured against a save this codec decodes, the branch is always
 	// present.
 	if (journal === undefined) return [];
-	const questRows = arrayAt(doc, "quests") ?? [];
+	const inferredById = new Map<string, string>();
+	for (const row of arrayAt(doc, "quests") ?? []) {
+		if (!isJsonObject(row)) continue;
+		const id = stringAt(row, "id");
+		const inferred = stringAt(row, "inferredState");
+		if (id !== undefined && inferred !== undefined) {
+			inferredById.set(id, inferred);
+		}
+	}
 	let comparable = 0;
 	let disagree = 0;
 	let succeeded = 0;
@@ -867,20 +895,15 @@ const questSummaryRows = (doc: JsonValue): readonly SummaryRow[] => {
 	for (const quest of arrayAt(journal, "quests") ?? []) {
 		if (!isJsonObject(quest)) continue;
 		recorded += 1;
-		if (stringAt(quest, "rollup") === "succeeded") succeeded += 1;
-	}
-	for (const row of questRows) {
-		if (!isJsonObject(row)) continue;
-		const status = stringAt(row, "journalStatus");
-		// No journal entry is absence of an answer, not an answer of absence, so
-		// those rows are excluded from the comparison rather than counted as
-		// agreement.
-		if (status === undefined) continue;
+		const rollup = stringAt(quest, "rollup");
+		if (rollup === undefined) continue;
+		if (rollup === "succeeded") succeeded += 1;
+		if (rollup === "unresolved") continue;
+		const id = stringAt(quest, "id");
+		const inferred = id === undefined ? undefined : inferredById.get(id);
+		if (inferred === undefined) continue;
 		comparable += 1;
-		const inferred = stringAt(row, "inferredState");
-		if (inferred !== undefined && JOURNAL_EQUIVALENT[inferred] !== status) {
-			disagree += 1;
-		}
+		if (JOURNAL_EQUIVALENT[inferred] !== rollup) disagree += 1;
 	}
 	return [
 		{

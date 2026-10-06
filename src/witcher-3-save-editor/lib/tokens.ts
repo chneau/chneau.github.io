@@ -209,9 +209,23 @@ type GameTimeRead = {
  */
 const FRAMED_INT32_MEMBER = 8;
 
-/** Bytes an `m_seconds` frame is, once the member is written. See {@link readGameTime}. */
+/** Bytes a `GameTime` frame is in each of its three shapes. See {@link readGameTime}. */
+const GAME_TIME_EMPTY = 3;
 const GAME_TIME_SIZED = 15;
 const GAME_TIME_INLINE = 11;
+
+/**
+ * Does a frame of `width` bytes starting at `o` close on the `u16 0` terminator
+ * the struct grammar ends with?
+ *
+ * A struct's members are written until a zero-length member marks the end, so a
+ * candidate reading that does not land on one is not a reading. This is a
+ * *necessary* condition and deliberately not a sufficient one — the stream is
+ * full of zero bytes — which is why the caller also checks the known member
+ * type.
+ */
+const runsTo = (data: Uint8Array, o: number, width: number): boolean =>
+	u16(data, o + width - 2) === 0;
 
 /**
  * Read the `GameTime` struct value at `o`: its width, and its `m_seconds`.
@@ -238,23 +252,29 @@ const GAME_TIME_INLINE = 11;
  * inline frames are the clock values — `timeRemaining`, `time` and
  * `recentDialogOrCutsceneEndGameTime`.
  *
- * The tag correlation is *not* the discriminator, because `valueWidth` is called
- * without one; it is what makes the byte-level rule below believable rather than
- * a curve fit.
+ * The tag **is** the discriminator, and `framed` is how it arrives. No rule over
+ * the bytes alone can be: an *inline* frame holding exactly `m_seconds === 8`
+ * satisfies the sized test too, because that 8 lands where the size field would
+ * be and the two bytes after the member are zero. Measured — choosing sized there
+ * reports the frame as 15 bytes wide and reads four bytes past it, so the
+ * following token disappears and every token after it shifts. That is the silent
+ * desynchronisation this walker must never do, and it is not hypothetical: it was
+ * reproduced by constructing the frame.
  *
- * The reading is chosen by each shape having to close on its own `u16 0`
- * terminator, and the inline shape is only reached when the sized one cannot,
- * because the stream is full of zero bytes and a terminator test alone is not
- * exclusive: an inline frame whose seconds read as a size finds a `00 00` at
- * 354 bytes out twice on the large fixture. Requiring the size field to be
- * exactly {@link FRAMED_INT32_MEMBER} is what separates them, since the member's
- * type is known.
+ * `framed` is `true` for an `AVAL`/`PORP` value, `false` for a `VL`/`OP` value,
+ * and `undefined` when neither is known (a value nested inside an array or a
+ * handle, which is unobserved for `GameTime`). The tag is known at every direct
+ * call site, so the ambiguous case is decided by the frame rather than guessed:
  *
- * One value stays indistinguishable: an *inline* frame holding exactly
- * `m_seconds === 8` also satisfies the sized test. It does not occur on either
- * fixture (the eight inline frames hold 354, 6861, 941690, 1062611, 77612,
- * 2610590, 2635781 and 34419), and choosing sized there would read four bytes
- * past the frame as the value.
+ *   - `true`  → the empty form, else the sized form
+ *   - `false` → the empty form, else the inline form
+ *   - `undefined` → the byte-level rule, as a last resort
+ *
+ * The byte-level rule requires the size field to be exactly
+ * {@link FRAMED_INT32_MEMBER}, since the member's type is known to be `Int32`;
+ * a terminator test alone is not exclusive because the stream is full of zero
+ * bytes, and an inline frame whose seconds read as a size finds a `00 00` at 354
+ * bytes out twice on the large fixture.
  *
  * The 11-byte inline shape is what the reference decoder's own dump of
  * `timeManger.time` shows (`docs/re-engineering/12-player-world.md`), and the
@@ -265,19 +285,37 @@ const GAME_TIME_INLINE = 11;
 const readGameTime = (
 	data: Uint8Array,
 	o: number,
+	framed?: boolean,
 ): GameTimeRead | undefined => {
 	// A presence byte, not the value: a struct records whether it is there.
 	if (u8(data, o) !== 0) return undefined;
 	// Terminator straight after the presence byte: every member is at its
-	// default, and an `Int32` default is zero.
-	if (u16(data, o + 1) === 0) return { width: 3, seconds: 0 };
+	// default, and an `Int32` default is zero. True of every shape, so it needs
+	// no framing.
+	if (u16(data, o + 1) === 0) return { width: GAME_TIME_EMPTY, seconds: 0 };
+
+	if (framed === true) {
+		return runsTo(data, o, GAME_TIME_SIZED) &&
+			u32(data, o + 5) === FRAMED_INT32_MEMBER
+			? { width: GAME_TIME_SIZED, seconds: i32(data, o + 9) }
+			: undefined;
+	}
+	if (framed === false) {
+		return runsTo(data, o, GAME_TIME_INLINE)
+			? { width: GAME_TIME_INLINE, seconds: i32(data, o + 5) }
+			: undefined;
+	}
+
+	// No frame to go on — only reachable for a value nested inside an array or a
+	// handle. Fall back to the byte rule, sized first, and accept that an inline
+	// `m_seconds === 8` is indistinguishable here.
 	if (
 		u32(data, o + 5) === FRAMED_INT32_MEMBER &&
-		u16(data, o + GAME_TIME_SIZED - 2) === 0
+		runsTo(data, o, GAME_TIME_SIZED)
 	) {
 		return { width: GAME_TIME_SIZED, seconds: i32(data, o + 9) };
 	}
-	if (u16(data, o + GAME_TIME_INLINE - 2) === 0) {
+	if (runsTo(data, o, GAME_TIME_INLINE)) {
 		return { width: GAME_TIME_INLINE, seconds: i32(data, o + 5) };
 	}
 	return undefined;
@@ -293,13 +331,16 @@ const valueWidth = (
 	type: string,
 	o: number,
 	depth = 0,
+	framed?: boolean,
 ): number | undefined => {
 	if (depth > 8) return undefined;
 	if (ENUM_TYPES.has(type)) return 2;
 	const fixed = FIXED_WIDTHS.get(type);
 	if (fixed !== undefined) return fixed;
 	// Measured, not tabulated: a struct's width is a function of its members.
-	if (type === "GameTime") return readGameTime(data, o)?.width;
+	// `framed` is the enclosing record's tag, which is what decides between the
+	// sized and inline `GameTime` shapes; see `readGameTime`.
+	if (type === "GameTime") return readGameTime(data, o, framed)?.width;
 	if (type === "StringAnsi") return 1 + u8(data, o);
 	if (type === "String" || type === "CEntityTemplate") {
 		const header = u8(data, o);
@@ -318,14 +359,20 @@ const valueWidth = (
 		if (count > 1_000_000) return undefined;
 		let at = o + 4;
 		for (let i = 0; i < count; i += 1) {
-			const w = valueWidth(data, elem, at, depth + 1);
+			const w = valueWidth(data, elem, at, depth + 1, framed);
 			if (w === undefined) return undefined;
 			at += w;
 		}
 		return at - o;
 	}
 	if (type.startsWith("handle:") || type.startsWith("soft:")) {
-		return valueWidth(data, type.slice(type.indexOf(":") + 1), o, depth + 1);
+		return valueWidth(
+			data,
+			type.slice(type.indexOf(":") + 1),
+			o,
+			depth + 1,
+			framed,
+		);
 	}
 	return undefined;
 };
@@ -336,6 +383,7 @@ const renderValue = (
 	type: string,
 	o: number,
 	width: number,
+	framed?: boolean,
 ): TokenValue => {
 	const bytes = data.slice(o, o + width);
 	const hex = (n: number): string =>
@@ -359,8 +407,10 @@ const renderValue = (
 		case "GameTime": {
 			// A struct holding one `Int32`, so the number it is worth is a
 			// second count and not the bytes of the frame. `valueWidth` measured
-			// those bytes to reach here, so the same reader reads the member.
-			const read = readGameTime(data, o);
+			// those bytes to reach here, so the same reader reads the member —
+			// with the same `framed`, or the two could disagree about which shape
+			// they were looking at.
+			const read = readGameTime(data, o, framed);
 			text = read === undefined ? hex(0) : String(read.seconds);
 			break;
 		}
@@ -434,7 +484,9 @@ const readToken = (
 		const len = u32(data, o + 8);
 		if (len > data.length - o) return undefined;
 		const type = name(typeIdx);
-		const typeWidth = valueWidth(data, type, o + 12);
+		// `AVAL`/`PORP` declares its value's length, so a struct inside it is
+		// written sized — `framed: true` is that fact, not a guess.
+		const typeWidth = valueWidth(data, type, o + 12, 0, true);
 		const w = typeWidth !== undefined && typeWidth <= len ? typeWidth : len;
 		return {
 			offset: o,
@@ -442,7 +494,7 @@ const readToken = (
 			size: 12 + len,
 			name: name(nameIdx),
 			detail: `len=${len}`,
-			value: renderValue(data, type, o + 12, w),
+			value: renderValue(data, type, o + 12, w, true),
 		};
 	}
 	if (hasMagic(data, o, "BLCK")) {
@@ -484,7 +536,10 @@ const readToken = (
 		const nameIdx = i16(data, o + 2);
 		const typeIdx = i16(data, o + 4);
 		const type = name(typeIdx);
-		const w = valueWidth(data, type, o + 6);
+		// `VL`/`OP` carries no length, so a struct inside it is written inline —
+		// `framed: false`. This is the case a byte-level rule got wrong whenever
+		// the clock happened to read 8, which desynchronised the walk.
+		const w = valueWidth(data, type, o + 6, 0, false);
 		if (w === undefined) {
 			unhandled.set(type, (unhandled.get(type) ?? 0) + 1);
 			return undefined;
@@ -494,7 +549,7 @@ const readToken = (
 			tag,
 			size: 6 + w,
 			name: name(nameIdx),
-			value: renderValue(data, type, o + 6, w),
+			value: renderValue(data, type, o + 6, w, false),
 		};
 	}
 	if (hasMagic(data, o, "BS")) {

@@ -39,14 +39,28 @@
  * resolving or a resolved one stopped. These are the numbers the change was
  * measured against, and they are unchanged.
  *
- * ## The one value that stays ambiguous
+ * ## The ambiguity, and why it no longer matters
  *
  * An *inline* frame holding exactly `m_seconds === 8` also satisfies the sized
- * test, because 8 is both a plausible second count and the framed width of an
- * `Int32` member. It does not occur on either fixture — the eight inline frames
- * hold 354, 6861, 941690, 1062611, 77612, 2610590, 2635781 and 34419 — and this
- * file asserts that, so the ambiguity is a measured non-occurrence on this data
- * rather than an unstated assumption.
+ * test over the bytes alone, because 8 is both a plausible second count and the
+ * framed width of an `Int32` member. It occurred on neither fixture — the eight
+ * inline frames hold 354, 6861, 941690, 1062611, 77612, 2610590, 2635781 and
+ * 34419 — but "does not occur on these two saves" is not a guarantee, and the
+ * cost of being wrong was the silent desync described above. It *was* wrong:
+ * constructing such a frame made the walk report it as 15 bytes, read four bytes
+ * past it, and lose the token that followed.
+ *
+ * The fix is that the width no longer guesses. The enclosing record's tag is
+ * threaded in as `framed` — `true` for `AVAL`/`PORP`, which declare their value's
+ * length and write the struct sized; `false` for `VL`/`OP`, which do not and
+ * write it inline — so the shape is *known* at every direct call site rather than
+ * inferred from bytes that can coincide. `readGameTime`'s byte-level rule survives
+ * only for a value nested inside an array or a handle, where no frame is known
+ * and `GameTime` has not been observed.
+ *
+ * The test below constructs the ambiguous frame and asserts both that it sizes as
+ * 11 and that the token after it survives, which is the disproof of the old
+ * behaviour rather than an assertion that the input never arises.
  *
  * The costs are real: the large fixture decodes ~1.2 s and the small ~0.3 s, and
  * the walk is ~250,000 tokens. `FIXTURE_TIMEOUT_MS` is required.
@@ -383,22 +397,59 @@ describe("the three GameTime shapes, and which of them each save carries", () =>
 		{ timeout: FIXTURE_TIMEOUT_MS },
 	);
 
-	test(
-		"the ambiguous value — an inline frame holding exactly 8 seconds — occurs on neither fixture",
-		() => {
-			// 8 is both a plausible second count and the framed byte width of an
-			// `Int32` member, so it is the one value that cannot be told apart.
-			// Asserting its absence is what makes the rest of the split sound.
-			for (const file of [largeSave(), smallSave()]) {
-				const walk = walkOf(file);
-				const inline = gameTimes(walk).filter(
-					(token) => token.value?.bytes.length === 11,
-				);
-				expect(inline.map((token) => token.value?.text)).not.toContain("8");
-			}
-		},
-		{ timeout: FIXTURE_TIMEOUT_MS },
-	);
+	test("an inline frame holding exactly 8 seconds is sized inline, and the walk does not slip", () => {
+		// The disproof of the old behaviour, built rather than waited for. The
+		// frame is a `VL` — which carries no length — holding a `GameTime` whose
+		// `m_seconds` is exactly 8, followed by a `BS` token. Before the tag was
+		// threaded in, the byte-level rule saw that 8 where a `u32` size would go,
+		// called it the sized shape, reported the token as 21 bytes, and read
+		// 1396834304 as its value; the `BS` at 33 was then never found.
+		//
+		// A synthetic buffer rather than a fixture, because the whole point is
+		// that the committed saves do not contain the case. `parseTokens` takes
+		// the name table as an argument, so no `MANU` has to be built: index 1 is
+		// the property and index 2 is the type.
+		const names = ["foo", "GameTime"];
+		const frame = (seconds: number): Uint8Array => {
+			const b = new Uint8Array(64);
+			const u16 = (at: number, value: number): void => {
+				b[at] = value & 0xff;
+				b[at + 1] = (value >> 8) & 0xff;
+			};
+			b[16] = 0x56; // "VL"
+			b[17] = 0x4c;
+			u16(18, 1); // nameIdx -> "foo"
+			u16(20, 2); // typeIdx -> "GameTime"
+			b[22] = 0x00; // the struct's presence byte
+			u16(23, 1); // member name
+			u16(25, 2); // member type
+			new DataView(b.buffer).setInt32(27, seconds, true);
+			u16(31, 0); // terminator
+			b[33] = 0x42; // "BS" — the token that used to be lost
+			b[34] = 0x53;
+			u16(35, 1);
+			return b;
+		};
+
+		for (const seconds of [9, 8]) {
+			const walk = parseTokens(frame(seconds), names, { from: 16 });
+			expect({
+				seconds,
+				frames: walk.tokens.map((token) => ({
+					tag: token.tag,
+					size: token.size,
+					text: token.value?.text,
+					width: token.value?.bytes.length,
+				})),
+			}).toEqual({
+				seconds,
+				frames: [
+					{ tag: "VL", size: 17, text: String(seconds), width: 11 },
+					{ tag: "BS", size: 4, text: undefined, width: undefined },
+				],
+			});
+		}
+	});
 });
 
 describe("entities.ts reports the value instead of refusing it", () => {
@@ -460,16 +511,40 @@ describe("entities.ts reports the value instead of refusing it", () => {
 			// 22 of the large fixture's 820 notable entities are newly notable
 			// because of this fix, and every one of them is a `GameTime` that is
 			// set — 798 was the count when the value was unreadable.
+			//
+			// This used to assert `Number(reading.value) !== 0` over the entity
+			// *sample*, and that loop never ran: the 24 sampled entities contain no
+			// `fullRespawnTime` at all (35 entities write a non-zero one and none of
+			// them is promoted or named), so the assertion this test is named for
+			// was vacuous. The claim is now made against the flag's own histogram,
+			// which does carry it, and the emptiness of the sample is asserted
+			// rather than silently relied on.
 			const walk = walkOf(largeSave());
 			const report = readEntityFlags(walk.data, walk.names);
 			expect(report.entitiesWithNotableFlags).toBe(820);
 			expect(report.namedEntitiesWithNotableFlags).toBe(264);
-			const readings = report.sample.flatMap((sample) =>
-				sample.flags.filter((flag) => flag.name === "fullRespawnTime"),
+
+			const respawn = report.flags.find(
+				(flag) => flag.name === "fullRespawnTime",
 			);
-			for (const reading of readings) {
-				expect(Number(reading.value)).not.toBe(0);
+			expect(respawn?.state).toBe("written");
+			if (respawn?.state !== "written") {
+				throw new Error("fullRespawnTime is not written");
 			}
+			// 579 entities, 33 distinct second counts, and zero the commonest by a
+			// wide margin — so the reader is separating "no respawn pending" from a
+			// real time rather than collapsing both to a number.
+			expect(respawn.entities).toBe(579);
+			expect(respawn.distinctValues).toBe(33);
+			expect(respawn.values[0]).toEqual({ value: "0", entities: 544 });
+			expect(respawn.values.some((entry) => entry.value !== "0")).toBe(true);
+
+			// And the sample cannot exercise it, which is why the assertion above
+			// is the one that carries the claim.
+			const sampled = report.sample.flatMap((entity) =>
+				entity.flags.filter((flag) => flag.name === "fullRespawnTime"),
+			);
+			expect(sampled).toEqual([]);
 		},
 		{ timeout: FIXTURE_TIMEOUT_MS },
 	);
