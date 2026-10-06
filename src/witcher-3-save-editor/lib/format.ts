@@ -765,12 +765,12 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		}
 		if (requests.length > 0) {
 			const added = addItemsToPayload({ data: payload, chunks }, requests);
-			return buildContainer(added.chunks, added.data) as Bytes;
+			return buildContainer(added.chunks, added.data);
 		}
 	}
 
 	const rebuilt = buildContainer(chunks, payload);
-	return rebuilt as Bytes;
+	return rebuilt;
 };
 
 const writeInt32 = (data: Uint8Array, at: number, value: number): void => {

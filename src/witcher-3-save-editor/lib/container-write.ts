@@ -31,6 +31,7 @@
  * game's value and says so.
  */
 
+import type { Bytes } from "../../shared/save/bytes";
 import type { ChunkRecord, SaveContainer } from "./container";
 import { lz4CompressBlock } from "./lz4-write";
 
@@ -49,10 +50,22 @@ const ascii = (value: string): Uint8Array => new TextEncoder().encode(value);
  * that a `decompressedSize` column copied from the original stays correct and
  * the `SC` span index (which addresses the decompressed stream) is untouched.
  */
+/**
+ * Rebuild the whole `.sav` from a chunk table and a decompressed payload.
+ *
+ * Returns `Bytes` — `Uint8Array<ArrayBuffer>` — because it allocates a fresh
+ * `ArrayBuffer` and every byte of the file goes into it. The narrower type
+ * matters: `decode` takes `Bytes` (WebCrypto will not accept a `SharedArrayBuffer`),
+ * so the old `Uint8Array` annotation forced callers to write `as Bytes`, which is
+ * a cast between two of *our* types rather than over a third party's — the kind
+ * AGENTS.md says buys silence and owes the next reader a lie. The scripts are
+ * where it surfaced: `add-item.ts` could not feed its own output back to `decode`
+ * without one.
+ */
 export const buildContainer = (
 	original: readonly ChunkRecord[],
 	payload: Uint8Array,
-): Uint8Array => {
+): Bytes => {
 	const blocks = original.map((chunk, index) => {
 		const start = offsetOf(original, index);
 		const end = start + chunk.decompressedSize;
