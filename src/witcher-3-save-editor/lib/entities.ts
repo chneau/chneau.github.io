@@ -172,9 +172,11 @@ const FLAG_VALUE_CAP = 8;
 /**
  * How many distinct `ContainerManagerSaveInfo` masks the histogram keeps.
  *
- * The large fixture has 18 distinct mask values over 6,884 records and the small
- * one 12 over 257. The cap keeps the common ones and {@link
- * GenericContainerState.distinctMasks} carries the true total.
+ * The large fixture has 19 distinct mask values over 6,884 records and the small
+ * one 12 over 257. (This said 18, which was wrong — the figure is
+ * `distinctMasks`, and the histogram it caps is never the whole of it.) The cap
+ * keeps the common ones and {@link GenericContainerState.distinctMasks} carries
+ * the true total.
  */
 const CONTAINER_MASK_CAP = 8;
 

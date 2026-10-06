@@ -426,8 +426,14 @@ const readQuestMapPinStates = (
  * the names are matched on the `…MapPinTag` / `…MapPinType` /
  * `…MapPinShowAlways` suffix rather than hardcoded per container: `52586`'s
  * table has `CustomEntityMapPinShowAlways` at a *different* index from
- * `CustomAgentMapPinShowAlways`, and `8559a`'s has neither (measured: both
- * containers are empty there), so the identity of a field is its suffix.
+ * `CustomAgentMapPinShowAlways`, and `8559a`'s has neither, so the identity of a
+ * field is its suffix.
+ *
+ * The element width is **two or three tokens**, depending on whether the build's
+ * name table carries a `…MapPinShowAlways` at all — `f949c` and `11c607` write
+ * `{Tag, Type}` elements, the two committed fixtures write `{Tag, Type,
+ * ShowAlways}`. This is read from the tokens rather than assumed; see the stride
+ * comment below.
  */
 const readCustomMapPins = (
 	tokens: readonly Token[],
@@ -440,21 +446,26 @@ const readCustomMapPins = (
 	const declared = countOf(tokens[start + 1]);
 	const pins: CustomMapPin[] = [];
 	let index = start + 2;
+	// The element is **not** a fixed three tokens. A build that has no
+	// `…MapPinShowAlways` in its name table writes two (`Tag`, `Type`), and a
+	// stride of 3 then lands the next read on that pin's `Tag`, fails the
+	// `MapPinType` guard, and stops — reporting one pin out of four on `f949c`
+	// and one out of thirteen on `11c607_7ea3e400`, with no error and a
+	// `declaredCount` sitting right there saying so. The third token is optional
+	// and the stride has to follow it.
 	while (index < tokens.length) {
 		const tag = tokens[index];
 		if (tag?.tag === "BS") break;
 		const type = tokens[index + 1];
 		if (type === undefined || !type.name.endsWith("MapPinType")) break;
 		const always = tokens[index + 2];
+		const hasShowAlways = always?.name.endsWith("MapPinShowAlways") === true;
 		pins.push({
 			tag: resolveTag(names, cnameIndex(tag)),
 			type: resolveTag(names, cnameIndex(type)),
-			showAlways:
-				always?.name.endsWith("MapPinShowAlways") === true
-					? boolOf(always)
-					: null,
+			showAlways: hasShowAlways ? boolOf(always) : null,
 		});
-		index += 3;
+		index += hasShowAlways ? 3 : 2;
 	}
 	return {
 		count: pins.length,

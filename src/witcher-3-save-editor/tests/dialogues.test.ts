@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { decompressContainer } from "../lib/container";
 import {
 	ATTITUDE_SAMPLE_LIMIT,
+	attitudeRows,
 	DIALOG_SAMPLE_LIMIT,
 	readDialogues,
 	resolveCName,
@@ -312,4 +313,113 @@ describe("the global attitude-group matrix", () => {
 		},
 		FIXTURE_TIMEOUT_MS,
 	);
+});
+
+/**
+ * The attitude columns' counting rules, driven from constructed columns.
+ *
+ * Both are unreachable from the committed saves — every measured save has three
+ * equal-length columns and no unresolved value — and both were wrong before they
+ * were separated from the reading:
+ *
+ *  - the zip was bounded by the **shortest** column, so rows a longer column
+ *    carried were dropped from every count instead of being reported unresolved,
+ *    contradicting the function's own doc comment.
+ *  - a row whose attitude CName did not resolve was counted as **non-neutral**
+ *    and emitted into `sample` with `attitude: null`, though `nonNeutralCount`
+ *    means rows carrying a name other than `AIA_Neutral`.
+ *
+ * These are the only tests that cover either, which is why the accounting was
+ * extracted into a function that takes three arrays rather than a save.
+ */
+describe("the attitude columns' accounting", () => {
+	const NEUTRAL = "AIA_Neutral";
+
+	test("runs to the longest column and reports the shortfall as unresolved", () => {
+		// Column two stops one row early and the values column one row later, so
+		// three rows are short somewhere and the old `Math.min` would have counted
+		// two of them at all.
+		const tallied = attitudeRows(
+			["g1", "g2", "g3"],
+			["h1", "h2"],
+			["AIA_Friendly", "AIA_Hostile", "AIA_Neutral"],
+		);
+		expect({
+			groupCount: tallied.groupCount,
+			unresolved: tallied.unresolvedRowCount,
+			// Every row carries a resolved attitude, so all three are non-neutral
+			// bar the one that names `AIA_Neutral` itself.
+			nonNeutral: tallied.nonNeutralCount,
+			values: tallied.valueCounts,
+		}).toEqual({
+			groupCount: 3,
+			unresolved: 1,
+			nonNeutral: 2,
+			values: [
+				{ attitude: "AIA_Friendly", count: 1 },
+				{ attitude: "AIA_Hostile", count: 1 },
+				{ attitude: "AIA_Neutral", count: 1 },
+			],
+		});
+		// The two rows with a resolved name are sampled; the third is neutral.
+		expect(tallied.sample).toEqual([
+			{ group: "g1", against: "h1", attitude: "AIA_Friendly" },
+			{ group: "g2", against: "h2", attitude: "AIA_Hostile" },
+		]);
+	});
+
+	test("does not count an unresolved attitude as non-neutral", () => {
+		// The values column is longer than the two name columns and the first entry
+		// is `null` — the shape a `CName(0)` takes. Only the second row carries a
+		// real non-neutral name.
+		const tallied = attitudeRows(
+			["g1", "g2"],
+			["h1", "h2"],
+			[null, "AIA_Hostile", "AIA_Friendly"],
+		);
+		expect({
+			nonNeutral: tallied.nonNeutralCount,
+			unresolved: tallied.unresolvedRowCount,
+			// A null is tallied under a placeholder so the histogram still accounts
+			// for the row, rather than being dropped from it.
+			values: tallied.valueCounts,
+		}).toEqual({
+			nonNeutral: 2,
+			// Row 1's attitude is null, and row 3 has no names.
+			unresolved: 2,
+			values: [
+				{ attitude: "<unresolved>", count: 1 },
+				{ attitude: "AIA_Friendly", count: 1 },
+				{ attitude: "AIA_Hostile", count: 1 },
+			],
+		});
+		// The null-attitude row is absent from the sample — it has no name to show.
+		// The third row is sampled even though its *names* are missing, because
+		// `nonNeutralCount` is a statement about the attitude column: a row that
+		// carries a real attitude name is non-neutral, and its missing counterparts
+		// are what `unresolvedRowCount` reports.
+		expect(tallied.sample).toEqual([
+			{ group: "g2", against: "h2", attitude: "AIA_Hostile" },
+			{ group: null, against: null, attitude: "AIA_Friendly" },
+		]);
+	});
+
+	test("a neutral row is counted but never sampled", () => {
+		const tallied = attitudeRows(
+			["g1", "g2"],
+			["h1", "h2"],
+			[NEUTRAL, "AIA_Friendly"],
+		);
+		expect({
+			groupCount: tallied.groupCount,
+			unresolved: tallied.unresolvedRowCount,
+			nonNeutral: tallied.nonNeutralCount,
+			sample: tallied.sample,
+		}).toEqual({
+			groupCount: 2,
+			unresolved: 0,
+			nonNeutral: 1,
+			sample: [{ group: "g2", against: "h2", attitude: "AIA_Friendly" }],
+		});
+	});
 });

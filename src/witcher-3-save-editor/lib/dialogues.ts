@@ -532,8 +532,22 @@ const readActorAttitudeCount = (
  *
  * Zipped positionally because the three columns are parallel arrays of equal
  * length and the file says nothing else about which row belongs to which pair.
- * A row short of either name column is not invented and not dropped from the
+ * A row short of either name column is not invented and is not dropped from the
  * counts — it is counted in `unresolvedRowCount` and `valueCounts`.
+ *
+ * Two things in that paragraph the code used to contradict, both fixed:
+ *
+ *  - the zip was bounded by the **shortest** column, so a longer column's extra
+ *    rows were dropped from every count rather than being reported unresolved.
+ *    The bound is the longest column now and a short one contributes `null`,
+ *    which is what `unresolvedRowCount` is for.
+ *  - a row whose attitude CName did not resolve counted as **non-neutral**,
+ *    though `nonNeutralCount` is documented as rows carrying a name other than
+ *    `AIA_Neutral` — an unresolved value is not a name. It was also emitted into
+ *    `sample` with `attitude: null`. Neither happens now.
+ *
+ * Every save measured has three equal-length columns and no unresolved value, so
+ * both were latent; the tests drive them from constructed columns.
  */
 const readAttitudeMatrix = (
 	data: Uint8Array,
@@ -549,7 +563,52 @@ const readAttitudeMatrix = (
 	const parentKeys = readColumn(data, names, tokens, parents, "1");
 	const parentNames = readColumn(data, names, tokens, parents, "2");
 
-	const rows = Math.min(
+	// The longest column, not the shortest: a row that a shorter column does not
+	// reach is unresolved rather than absent, and bounding by the shortest is what
+	// silently dropped it from every count.
+	const tallied = attitudeRows(first, second, values);
+
+	return {
+		groupCount: first === undefined ? null : tallied.groupCount,
+		parentGroupCount: parentKeys?.length ?? null,
+		distinctParentCount:
+			parentNames === undefined ? null : new Set(parentNames).size,
+		unresolvedRowCount: tallied.unresolvedRowCount,
+		nonNeutralCount: tallied.nonNeutralCount,
+		valueCounts: tallied.valueCounts,
+		actorAttitudeCount: readActorAttitudeCount(
+			tokens,
+			rootNamed(roots, ACTOR_ATTITUDES_BLOCK),
+		),
+		sample: tallied.sample,
+	};
+};
+
+/**
+ * The counting half of the attitude matrix, over the three parallel columns.
+ *
+ * Separated from the reading so it can be tested without a save: every measured
+ * save has three equal-length columns and no unresolved value, so the two rules
+ * this encodes are unreachable from the fixtures and were both wrong.
+ *
+ *  - the zip runs to the **longest** column, so a row a shorter column does not
+ *    reach is reported unresolved rather than dropped from every count.
+ *  - a row whose attitude did not resolve is **not** non-neutral: `nonNeutralCount`
+ *    means rows carrying a name other than `AIA_Neutral`, and a `null` is not a
+ *    name. It is also kept out of `sample`, which is a sample of named rows.
+ */
+export const attitudeRows = (
+	first: readonly (string | null)[] | undefined,
+	second: readonly (string | null)[] | undefined,
+	values: readonly (string | null)[] | undefined,
+): {
+	readonly groupCount: number;
+	readonly unresolvedRowCount: number;
+	readonly nonNeutralCount: number;
+	readonly valueCounts: readonly { attitude: string; count: number }[];
+	readonly sample: readonly AttitudePair[];
+} => {
+	const rows = Math.max(
 		first?.length ?? 0,
 		second?.length ?? 0,
 		values?.length ?? 0,
@@ -567,27 +626,19 @@ const readAttitudeMatrix = (
 		}
 		const key = attitude ?? "<unresolved>";
 		histogram.set(key, (histogram.get(key) ?? 0) + 1);
-		if (attitude === NEUTRAL_ATTITUDE) continue;
+		if (attitude === null || attitude === NEUTRAL_ATTITUDE) continue;
 		nonNeutral += 1;
 		if (sample.length < ATTITUDE_SAMPLE_LIMIT) {
 			sample.push({ group, against, attitude });
 		}
 	}
-
 	return {
-		groupCount: first === undefined ? null : rows,
-		parentGroupCount: parentKeys?.length ?? null,
-		distinctParentCount:
-			parentNames === undefined ? null : new Set(parentNames).size,
+		groupCount: rows,
 		unresolvedRowCount: unresolved,
 		nonNeutralCount: nonNeutral,
 		valueCounts: [...histogram]
 			.map(([attitude, count]) => ({ attitude, count }))
 			.sort((a, b) => (a.attitude < b.attitude ? -1 : 1)),
-		actorAttitudeCount: readActorAttitudeCount(
-			tokens,
-			rootNamed(roots, ACTOR_ATTITUDES_BLOCK),
-		),
 		sample,
 	};
 };

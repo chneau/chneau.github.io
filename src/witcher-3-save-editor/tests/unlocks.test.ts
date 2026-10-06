@@ -15,7 +15,7 @@
 import { describe, expect, test } from "bun:test";
 import { decompressContainer } from "../lib/container";
 import { readNameTable } from "../lib/names";
-import { parseTokens } from "../lib/tokens";
+import { parseTokens, type Token } from "../lib/tokens";
 import {
 	CACHED_WORLD_LIMIT,
 	CUSTOM_MAP_PIN_LIMIT,
@@ -413,4 +413,111 @@ describe("the reader's own entry points", () => {
 		},
 		FIXTURE_TIMEOUT_MS,
 	);
+});
+
+/**
+ * The custom-map-pin element is **two or three tokens**, and this is the only
+ * test that covers the two-token case.
+ *
+ * Both committed fixtures happen to write `{Tag, Type, ShowAlways}`, so the
+ * fixtures cannot exercise a build that writes `{Tag, Type}` — and the reader
+ * used to hard-code a stride of 3, which on such a build walked into the next
+ * pin, failed its own `MapPinType` guard and stopped. Measured on the reference
+ * corpus: `f949c` declares 4 entity pins and 13 agent pins and the reader
+ * reported **1 and 1**, with `declaredCount` sitting right there disagreeing and
+ * nothing raising. `11c607` declares 2 and 15 and reported 1 and 1.
+ *
+ * The fixture for this test is therefore synthetic tokens rather than a save:
+ * `readUnlocksFromScan` takes the walk, so a hand-built list drives exactly the
+ * branch the committed saves cannot reach, and constructing it is what makes the
+ * two-token stride assertable at all.
+ */
+describe("the custom-map-pin stride", () => {
+	const names = ["TagA", "TypeB"];
+	const cname = (index: number): Token["value"] => ({
+		type: "CName",
+		text: `CName(${index})`,
+		bytes: new Uint8Array([index & 0xff, (index >> 8) & 0xff]),
+	});
+	const token = (
+		tag: Token["tag"],
+		name: string,
+		value?: Token["value"],
+	): Token => ({ tag, name, offset: 0, size: 6, value });
+
+	/** A `CustomEntityMapPins` container of `count` pins, with or without `ShowAlways`. */
+	const containerOf = (
+		count: number,
+		withShowAlways: boolean,
+	): readonly Token[] => {
+		const tokens: Token[] = [
+			token("BS", "CCommonMapManager"),
+			token("BS", "CustomEntityMapPins"),
+			token("VL", "CustomEntityMapPinsSize", {
+				type: "Uint32",
+				text: String(count),
+				bytes: new Uint8Array([count, 0, 0, 0]),
+			}),
+		];
+		for (let i = 0; i < count; i += 1) {
+			tokens.push(token("VL", "CustomEntityMapPinTag", cname(1)));
+			tokens.push(token("VL", "CustomEntityMapPinType", cname(2)));
+			if (withShowAlways) {
+				tokens.push(
+					token("VL", "CustomEntityMapPinShowAlways", {
+						type: "Bool",
+						text: "true",
+						bytes: new Uint8Array([1]),
+					}),
+				);
+			}
+		}
+		tokens.push(token("BS", "SomethingElse"));
+		return tokens;
+	};
+
+	test("reads every pin when the element is two tokens", () => {
+		// The regression. Before the stride followed the tokens, each of these
+		// reported `count: 1` against the `declaredCount` shown here.
+		for (const count of [1, 4, 13]) {
+			const unlocks = readUnlocksFromScan(
+				new Uint8Array(0),
+				names,
+				containerOf(count, false),
+			);
+			const pins = unlocks?.customEntityMapPins;
+			expect({
+				count,
+				read: pins?.count,
+				declared: pins?.declaredCount,
+				listed: pins?.pins.length,
+				// The absent field is `null` rather than a guessed default.
+				showAlways: pins?.pins[0]?.showAlways,
+			}).toEqual({
+				count,
+				read: count,
+				declared: count,
+				listed: count,
+				showAlways: null,
+			});
+		}
+	});
+
+	test("still reads every pin when the element is three tokens", () => {
+		// The shape both fixtures use, so the fix cannot have regressed it.
+		for (const count of [1, 4, 13]) {
+			const unlocks = readUnlocksFromScan(
+				new Uint8Array(0),
+				names,
+				containerOf(count, true),
+			);
+			const pins = unlocks?.customEntityMapPins;
+			expect({
+				count,
+				read: pins?.count,
+				listed: pins?.pins.length,
+				showAlways: pins?.pins[0]?.showAlways,
+			}).toEqual({ count, read: count, listed: count, showAlways: true });
+		}
+	});
 });
