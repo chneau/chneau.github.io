@@ -133,14 +133,18 @@ the `immortalityFlags` bit meanings are not recoverable from the game's scripts.
 
 Two of those refusals are load-bearing rather than modesty:
 
-- **Quest completion is projected twice, from two sources, because they
-  disagree.** The fact-name heuristic and the game's own journal disagree on about
-  a quarter of comparable quests, always the same way — the journal records
-  success and the heuristic says in progress. The journal is authoritative, so it
-  sits beside the heuristic, which is labelled inferred. It is still a *partial*
-  view: 17 of 43 quests on one fixture have no journal entry at all, and 650 of
-  972 entries cannot be attributed to a quest. Both counts are in the document
-  rather than glossed over.
+- **Quest completion is read from two sources, because they disagree.** The
+  fact-name heuristic and the game's own journal disagree on about a quarter of
+  comparable quests, always the same way — the journal records success and the
+  heuristic says in progress. The journal is authoritative, so the heuristic's
+  field is named `inferredState` and the summary reports how many comparable
+  quests the two disagree on rather than leaving a reader to pick. The journal's
+  per-quest answer is stored once, in `journal.quests[]`; a copy on each quest row
+  was two fields over one fact, and editing one made the summary's own two rows
+  contradict each other. It is still a *partial* view: 17 of 43 quests on one
+  fixture have no journal entry at all, and 650 of 972 entries cannot be
+  attributed to a quest. Both counts are in the document rather than glossed
+  over.
 - **Enum values resolve through each save's own `MANU` table, never by ordinal.**
   The same resistance is index 90 on one build and 240 on another, so an ordinal
   lookup would name most of them wrongly on one of the two.
