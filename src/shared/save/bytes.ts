@@ -398,10 +398,16 @@ export const toHexRows = (
 	bytesPerRow = 16,
 	limit = 4096,
 ): readonly HexRow[] => {
+	// A `bytesPerRow` of 0 makes the loop below advance by nothing and never
+	// terminate — measured, it hangs rather than throwing. The one caller passes a
+	// literal 16, so this is not reachable from the UI today; it is guarded because
+	// the function is exported from the shared framework and a future caller
+	// computing the width from a container can plausibly reach zero.
+	const stride = Math.max(1, Math.floor(bytesPerRow));
 	const rows: HexRow[] = [];
 	const end = Math.min(bytes.length, limit);
-	for (let at = 0; at < end; at += bytesPerRow) {
-		const slice = bytes.subarray(at, Math.min(at + bytesPerRow, end));
+	for (let at = 0; at < end; at += stride) {
+		const slice = bytes.subarray(at, Math.min(at + stride, end));
 		rows.push({
 			offset: at,
 			hex: [...slice].map((byte) => byte.toString(16).padStart(2, "0")),
