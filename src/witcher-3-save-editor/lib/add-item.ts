@@ -24,6 +24,7 @@
  * The Witcher 3 settles that.
  */
 
+import type { Bytes } from "../../shared/save/bytes";
 import type { SaveContainer } from "./container";
 import { buildContainer } from "./container-write";
 import { readU32 } from "./inner";
@@ -338,7 +339,7 @@ export const addItemsToPayload = (
 export const addItems = (
 	container: Resizable,
 	requests: readonly AddItemRequest[],
-): Uint8Array => {
+): Bytes => {
 	const { data, chunks } = resize(container, requests);
 	return buildContainer(chunks, data);
 };

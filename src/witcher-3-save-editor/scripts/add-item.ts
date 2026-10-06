@@ -6,10 +6,12 @@
  *     --item "Greater mutagen red:50" --item "Greater mutagen green:50" \
  *     [--template "Greater mutagen blue"]
  *
- * This is the writer's one resizing operation: it appends names to `MANU`, inserts
- * native inventory records and repairs the frame sizes, the `SC` span index and
- * the container. See `lib/add-item.ts`. It reads the input and writes a **new**
- * file; the input is never modified.
+ * It appends names to `MANU`, inserts native inventory records and repairs the
+ * frame sizes, the `SC` span index and the container. See `lib/add-item.ts`. It
+ * reads the input and writes a **new** file; the input is never modified.
+ *
+ * One of the writer's **two** resizing operations, not the only one — this said
+ * "the one" until `max-mutations.ts` grew its real-insert path.
  *
  * Read-only on the input; the output path is the only file written.
  */
@@ -17,6 +19,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { addItems } from "../lib/add-item";
 import { decompressContainer } from "../lib/container";
+import { witcher3 } from "../lib/format";
 
 const args = process.argv.slice(2);
 const positional = args.filter((arg) => !arg.startsWith("--"));
@@ -50,9 +53,29 @@ const requests = items.map((spec) => {
 
 const container = decompressContainer(new Uint8Array(readFileSync(input)));
 const file = addItems(container, requests);
+
+// Read it back before writing it, which the page does and this script did not.
+// A weaker check than the page's whole-document comparison, and it says so: the
+// document the action would produce is this script's business to build and the
+// page already builds it, so what is asserted here is the part that matters for
+// a hand-run tool — the result parses, and the items asked for are in it.
+const reread = await witcher3.decode(file);
+const present = new Set(
+	(reread as { items: readonly { name: string }[] }).items.map(
+		(item) => item.name,
+	),
+);
+for (const request of requests) {
+	if (!present.has(request.name)) {
+		throw new Error(
+			`the rebuilt save has no item named ${JSON.stringify(request.name)}; not writing it`,
+		);
+	}
+}
+
 writeFileSync(output, file);
 console.log(
 	`added ${requests.length} item(s) to ${output} (${file.length} bytes): ${requests
 		.map((r) => `${r.name} x${r.quantity}`)
-		.join(", ")}`,
+		.join(", ")}, read back clean`,
 );
