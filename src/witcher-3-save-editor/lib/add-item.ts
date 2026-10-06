@@ -121,6 +121,28 @@ const maxItemId = (
 };
 
 const appendNameBytes = (names: readonly string[]): Uint8Array => {
+	for (const name of names) {
+		// A `MANU` name is a **one-byte** length then that many bytes, and nothing
+		// bounded the length before it was written. A 300-character name wrapped to
+		// `300 & 0xff = 44`: the rebuilt table parsed a 44-character name, resolved
+		// the new item to it, and left 256 orphan bytes between the last name and
+		// `ENOD` — which the *next* resize then measured as the end of the table and
+		// inserted into the middle of. A character above `0xff` truncates the same
+		// way. Refusing is the only honest option: the format cannot carry it, and a
+		// written-and-corrupt name is worse than a refused action.
+		if (name.length > 0xff) {
+			throw new Error(
+				`a MANU name is at most 255 bytes, but this one is ${name.length}: ${JSON.stringify(name.slice(0, 40))}…`,
+			);
+		}
+		for (let i = 0; i < name.length; i += 1) {
+			if (name.charCodeAt(i) > 0xff) {
+				throw new Error(
+					`a MANU name is latin-1, and ${JSON.stringify(name)} has a character above 0xff at index ${i}`,
+				);
+			}
+		}
+	}
 	let length = 0;
 	for (const name of names) length += 1 + name.length;
 	const bytes = new Uint8Array(length);

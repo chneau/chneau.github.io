@@ -32,7 +32,7 @@ import { readU32 } from "./inner";
 import { readNameTable } from "./names";
 import { readObjectTree } from "./objects";
 import { type ReflectedValue, reflectValue } from "./reflect";
-import { parseTokens } from "./tokens";
+import { parseTokens, type Token } from "./tokens";
 
 type Resizable = {
 	readonly data: Uint8Array<ArrayBuffer>;
@@ -226,20 +226,45 @@ export const maxMutationsInPayload = (
 	const data = container.data;
 	const names = readNameTable(data).names;
 	const { tokens } = parseTokens(data, names);
-	const token = tokens.find((t) => {
-		const bytes = t.value?.bytes;
-		return (
-			t.name === "abilityManager" &&
-			bytes !== undefined &&
-			bytes.length > 8 &&
-			bytes[0] === 0 &&
-			bytes[1] === 1 &&
-			names[((bytes[6] ?? 0) | ((bytes[7] ?? 0) << 8)) - 1] ===
-				"W3PlayerAbilityManager"
-		);
-	});
+
+	// The player's ability manager is the nearest `W3PlayerAbilityManager`
+	// **before** `levelManager`, which occurs exactly once and only on the player.
+	//
+	// This used to be `tokens.find(...)` — the first match in the whole stream —
+	// and that is the wrong object on a save with many NPC managers. Measured:
+	// `11c607` holds **817** `abilityManager` tokens and `f949c` 794, and on both
+	// the first one belongs to an NPC 2.3 MB from the player's. The resize then
+	// inserted `*Used` fields into the NPC's object, grew the stream by the wrong
+	// amount (394 bytes against a predicted 310), and every edit read back `null`
+	// because `locateWritable` reads the player's object — the rebuild is refused
+	// as unsound, and had it been downloaded it would not have been the file asked
+	// for. The two agreed on the committed fixtures only because those saves have
+	// few enough managers that the player's is first.
+	const levelIndex = tokens.findIndex(
+		(t) =>
+			t.name === "levelManager" && t.value?.type === "handle:W3LevelManager",
+	);
+	let token: Token | undefined;
+	for (let i = levelIndex - 1; i >= 0; i -= 1) {
+		const candidate = tokens[i];
+		if (candidate === undefined || candidate.name !== "abilityManager") {
+			continue;
+		}
+		const bytes = candidate.value?.bytes;
+		if (bytes === undefined || bytes.length <= 8 || bytes[0] !== 0) continue;
+		if (
+			names[((bytes[6] ?? 0) | ((bytes[7] ?? 0) << 8)) - 1] !==
+			"W3PlayerAbilityManager"
+		) {
+			continue;
+		}
+		token = candidate;
+		break;
+	}
 	if (token?.value === undefined) {
-		throw new Error("no player ability manager in this save");
+		throw new Error(
+			"no player ability manager in this save: the player is identified by the `levelManager` that occurs once, and the ability manager before it is not a `W3PlayerAbilityManager`",
+		);
 	}
 	const valueAt = token.offset + 12;
 	const object = reflectValue(
@@ -257,17 +282,36 @@ export const maxMutationsInPayload = (
 		throw new Error("the player ability manager has no mutations array");
 	}
 
-	// Which `*Used` names are needed, and at what MANU index.
-	const usedNames: string[] = [];
+	// `indexOfName` is the save's own table, for lookups of names that already
+	// exist (the `EPMT_MutationMaster` index the equipped record needs).
 	const indexOfName = new Map<string, number>();
 	for (const [i, name] of names.entries()) indexOfName.set(name, i + 1);
-	/** Reuse a `MANU` name, appending it to the table if the save lacks it. */
+	// `interned` is the names **this run appended**, kept apart on purpose — see
+	// `intern` below.
+	const interned = new Map<string, number>();
+	const usedNames: string[] = [];
+	/**
+	 * Append a `MANU` entry for `name` and return its 1-based index.
+	 *
+	 * Appends even when the name is already in the table, and that is the whole
+	 * point. It used to reuse the existing index, which made the writer's growth
+	 * disagree with the *plan's* prediction: the plan counts `1 + name.length` for
+	 * every name the resize needs, and on the reference saves all five (`redUsed`,
+	 * `blueUsed`, `greenUsed`, `skillpointsUsed`, `equippedMutation`) are already
+	 * interned, so the writer grew the stream 60 bytes less than the plan said and
+	 * `verifyRoundTrip` refused the rebuild as unsound.
+	 *
+	 * A duplicate symbol is harmless: `MANU` is a symbol pool and two entries with
+	 * the same text resolve to the same string through different indices. Within
+	 * one resize each distinct name is appended once, because `interned` records
+	 * the new index immediately, so the cost is bounded by the five names above.
+	 */
 	const intern = (name: string): number => {
-		const existing = indexOfName.get(name);
-		if (existing !== undefined) return existing;
+		const already = interned.get(name);
+		if (already !== undefined) return already;
 		usedNames.push(name);
 		const index = names.length + usedNames.length;
-		indexOfName.set(name, index);
+		interned.set(name, index);
 		return index;
 	};
 	const inserts: Insert[] = [];
@@ -284,11 +328,24 @@ export const maxMutationsInPayload = (
 		if (type === "EPMT_MutationMaster") continue;
 		const progress = findField(item.fields, "progress");
 		if (progress === undefined) continue;
+		// A `*Used` field that the stream already carries must not be inserted
+		// again. The loop below walks the `*Required` siblings, and every one of
+		// them got a `*Used` written for it regardless of whether that field was
+		// already there — so a partially-researched save (the two `11c607` files
+		// already hold 12 `*Used` fields) got 12 duplicate records, growing the
+		// stream by 144 bytes the plan had not predicted and leaving *two*
+		// `redUsed` fields whose offsets disagreed: the reader takes the first
+		// (`member` → `find`) and the writer patched the last (`Object.fromEntries`),
+		// so the value the user asked for read back as the old one.
+		const present = new Set(
+			(progress.value.fields ?? []).map((field) => field.name),
+		);
 		let within = 0;
 		for (const required of progress.value.fields ?? []) {
 			if (!required.name.endsWith("Required")) continue;
 			const usedName = `${required.name.slice(0, -"Required".length)}Used`;
 			if (!(WANTED_USED as readonly string[]).includes(usedName)) continue;
+			if (present.has(usedName)) continue;
 			// The used record is 12 bytes, identical to the required one but with
 			// the used name and the same value.
 			const record = new Uint8Array(12);

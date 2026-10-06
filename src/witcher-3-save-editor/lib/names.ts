@@ -75,6 +75,31 @@ const indexOfMagic = (data: Uint8Array, magic: string, from = 0): number => {
 };
 
 /**
+ * Where the name records end, by walking them: the offset the declared number of
+ * length-prefixed names lands on, or `-1` when the walk runs out first.
+ *
+ * A walk rather than a byte search because the delimiter can occur *inside* a
+ * name — `XENODY` contains `ENOD` — and the search then stops four bytes early
+ * and reports a truncated table. The walk is bounded by the buffer and each step
+ * advances by at least one byte, so a corrupt length cannot spin it.
+ */
+const walkNameTable = (
+	data: Uint8Array,
+	offset: number,
+	declaredCount: number,
+): number => {
+	let at = offset + NAME_TABLE_HEADER_BYTES;
+	for (let i = 0; i < declaredCount; i += 1) {
+		const length = data[at] ?? 0;
+		if (length === 0) return -1;
+		const start = at + 1;
+		if (start + length > data.length) return -1;
+		at = start + length;
+	}
+	return at;
+};
+
+/**
  * Read the `MANU` name table.
  *
  * ## The walk is defensive, because a length byte is the only thing standing
@@ -112,7 +137,25 @@ export const readNameTable = (data: Uint8Array): NameTable => {
 			`no ${JSON.stringify(MANU_MAGIC)} name table in ${data.length} bytes`,
 		);
 	}
-	const endOffset = indexOfMagic(data, ENOD_MAGIC, offset + 4);
+	const declaredCount = readU32(data, offset + 4) ?? 0;
+	// The end marker is located by **walking the names**, not by the first raw
+	// occurrence of `ENOD`: a name may contain those four bytes (`XENODY`), and the
+	// raw search then stops inside it and reports a truncated table. The walk is
+	// self-delimiting — each name is a length byte and that many bytes — so the
+	// position it lands on is the only `ENOD` that is the end marker. A declared
+	// count that is wrong lands somewhere else, and the raw search is the fallback
+	// precisely because it is the more forgiving of a damaged table.
+	// The names end on a `u32` pad, so the walk lands four bytes short of the
+	// marker; searching *from* the walk position is what makes the placement
+	// matter. A table the walk could not finish (`-1`) falls back to the header,
+	// which is the more forgiving read a damaged table needs.
+	const walked = walkNameTable(data, offset, declaredCount);
+	let endOffset = indexOfMagic(
+		data,
+		ENOD_MAGIC,
+		walked >= 0 ? walked : offset + 4,
+	);
+	if (endOffset < 0) endOffset = indexOfMagic(data, ENOD_MAGIC, offset + 4);
 	if (endOffset < 0) {
 		throw new Error(
 			`${JSON.stringify(MANU_MAGIC)} at ${offset} is not closed by ${JSON.stringify(
@@ -120,7 +163,6 @@ export const readNameTable = (data: Uint8Array): NameTable => {
 			)}`,
 		);
 	}
-	const declaredCount = readU32(data, offset + 4) ?? 0;
 
 	const names: string[] = [];
 	let at = offset + NAME_TABLE_HEADER_BYTES;

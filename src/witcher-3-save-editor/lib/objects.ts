@@ -97,7 +97,12 @@ const resolveSpan = (
 	}[] = [];
 	for (const header of [0, 6, 10, 4]) {
 		const start = off - size - BASE - header;
-		if (start < 0 || start >= data.length) continue;
+		// `start + size > data.length` is checked here and not only at the call
+		// site because the SC branch above enforces exactly this bound and the
+		// fallback did not, so a corrupt variable table could produce a span that
+		// runs past the buffer. `buildObjectTree` then never pops it — it absorbs
+		// every later span as a child — and every consumer slices by `span.end`.
+		if (start < 0 || size <= 0 || start + size > data.length) continue;
 		const token = readTokenAt(data, names, start);
 		if (token === undefined) continue;
 		const exact =
@@ -234,7 +239,15 @@ export const readObjectTree = (data: Uint8Array): ObjectTree => {
 	// binary-searched these rows, would be wrong *silently*: the values are
 	// small, plausible, and typecheck.
 	const footer = readFooter(data).variableTableOffset;
-	const count = readU32(data, footer) ?? 0;
+	// The declared count is **attacker-controlled** and must be bounded by what the
+	// buffer can hold. Unbounded, a 36-byte file declaring `0xffffffff` records
+	// looped ~4.3 billion times and hung the tab for about 100 seconds — measured,
+	// and reachable through `./format`'s `readObjectTree(container.data)` on every
+	// decode. The SC branch above is implicitly bounded by its exact-length check;
+	// this one was not bounded at all. Each record is 8 bytes at `footer + 4`.
+	const declaredCount = readU32(data, footer) ?? 0;
+	const fits = Math.max(0, Math.floor((data.length - footer - 4) / 8));
+	const count = Math.min(declaredCount, fits);
 	const spans: Span[] = [];
 	let unresolved = 0;
 	for (let i = 0; i < count; i += 1) {
@@ -248,7 +261,11 @@ export const readObjectTree = (data: Uint8Array): ObjectTree => {
 	return {
 		...tree,
 		nodes: spans.length,
-		declared: count,
+		// The file's own figure, not the capped one — `facts.ts` reports its
+		// `declaredCount` the same way. `resolved + unresolved` falling short of it
+		// is the honest signal that the table claims more records than the buffer
+		// can hold, which is the state the cap exists to survive rather than hide.
+		declared: declaredCount,
 		resolved: spans.length,
 		unresolved,
 	};

@@ -32,7 +32,23 @@ type QuestProgress = {
 	readonly state: QuestState;
 };
 
-const QUEST_ID = /^(mq|sq|q)(\d{3,4})(?:_|$)/i;
+/*
+ * The id must be followed by **anything that is not a letter or a digit** — `_`,
+ * a control byte, or the end of the name.
+ *
+ * The control byte is the case that matters: `q203\x1f_what_happend` is a real
+ * fact name in the reference corpus (the decoder's docs record it, and
+ * `./quest-steps`' header cites it as the reason names are carried verbatim). It
+ * was dropped by both quest readers when the separator had to be `_` or the end,
+ * so `q203` counted 91 steps where the save holds 92 — silently, and only on the
+ * saves carrying the name.
+ *
+ * Spelled as "not alphanumeric" rather than as a control-character class on
+ * purpose: `[\x00-\x1f]` is a lint error *and* a fair one, while this says the
+ * same thing and also keeps `mq1234x` from being read as `mq1234`, which the old
+ * pattern rejected and a bare "not a digit" lookahead would have accepted.
+ */
+const QUEST_ID = /^(mq|sq|q)(\d{3,4})(?=[^0-9a-z]|$)/i;
 const FAILED = /_fail(?:ed|ure)?$/i;
 const COMPLETED = /_(?:completed?|done|closed|success|finished)$/i;
 const ACCEPTED = /_accepted$/i;
