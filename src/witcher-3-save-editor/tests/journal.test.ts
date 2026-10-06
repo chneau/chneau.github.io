@@ -292,8 +292,12 @@ describe("journal — the game's own quest record", () => {
 					],
 				},
 			]);
-			// And they are not quests: a collection contributes no quest row.
-			expect(large.questCount).toBe(large.quests.length);
+			// And they are not quests: a collection contributes no quest row. The
+			// line here used to be `expect(large.questCount).toBe(large.quests.length)`
+			// — a field asserted equal to the sibling it was copied from, which is
+			// the definition of the duplicate that has now been removed. There is no
+			// `questCount` to assert against; the meaningful statement is the one
+			// below it.
 			expect(large.quests.some((q) => q.id.startsWith("JH"))).toBe(false);
 		},
 		FIXTURE_TIMEOUT_MS,

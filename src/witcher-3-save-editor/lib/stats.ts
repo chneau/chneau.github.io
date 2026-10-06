@@ -254,9 +254,18 @@ const requiredTotalExpAt = (
 export const experienceToNextLevel = (
 	curve: readonly LevelDefinition[],
 	level: number | null,
-	experience: { free: number | null; used: number } | null,
+	// `used` is nullable because the document reports `null` when the save carries
+	// no `used` field at all — the same rule as `free`. A caller must not fold that
+	// to `0` and compare, which would read as "the counter disagrees with the
+	// curve" rather than "this save does not carry the field".
+	experience: { free: number | null; used: number | null } | null,
 ): number | null => {
-	if (level === null || experience === null || experience.free === null) {
+	if (
+		level === null ||
+		experience === null ||
+		experience.free === null ||
+		experience.used === null
+	) {
 		return null;
 	}
 	// `requiredTotalExpAt`, not the raw row: past level 50 the table has no row and

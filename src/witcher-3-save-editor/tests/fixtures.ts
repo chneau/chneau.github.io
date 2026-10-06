@@ -4,19 +4,24 @@
  *
  * Not a test file itself — `bun test` does not collect it — so the suites share
  * one definition of the pair rather than each re-deriving the path and the
- * read. The expensive half (decompressing, walking 228,000 token values) is
- * *not* cached here on purpose: a cache would let one suite's decode be
- * measured against another's, and a test that reads what another test wrote is
- * a test that passes for the wrong reason.
+ * read. The expensive half (decompressing, walking ~250,000 token values on the
+ * larger of the pair) is *not* cached here on purpose: a cache would let one
+ * suite's decode be measured against another's, and a test that reads what
+ * another test wrote is a test that passes for the wrong reason.
  *
  * ## What the pair is for
  *
  * The two saves are two game builds, and the difference between them is the
  * point rather than incidental:
  *
- *  - `8559a` is one chunk and 299 KB. Progression decodes; the wallet does not,
- *    because that build's item records use a different shape and hold zero
- *    records of the shape `locateMoney` looks for.
+ *  - `8559a` is one chunk and 299 KB, and its item records carry a different
+ *    four-byte tag pair, so a reader that hardcoded the other build's pair read
+ *    **zero** items from it. It was the fixture that caught that: the reader now
+ *    recovers the pair per save and this build decodes a full inventory and a
+ *    wallet (`Crowns` 397). What is still build-specific is the crowns **identity**
+ *    `locateMoney` filters on, so `locateMoney` returns `undefined` here — not
+ *    because the shape differs, as this note used to claim, but because its
+ *    identity constant is the `52586` one.
  *  - `52586` is five chunks and 1.3 MB, and both progression and money decode.
  *
  * So the smaller fixture is the default for anything about the container or the
@@ -31,8 +36,8 @@ import type { Bytes } from "../../shared/save/bytes";
 const SAVES = join(import.meta.dir, "..", "saves");
 
 /**
- * Bun's default per-test timeout is 5 s, and the 1.3 MB fixture walks roughly
- * 228,000 token values on the way to a document. Two tests in this suite rode
+ * Bun's default per-test timeout is 5 s, and the 1.3 MB fixture walks 250,640
+ * token values on the way to a document. Two tests in this suite rode
  * the default before it was raised, which is a flake waiting for a slower
  * machine rather than a stable pass, so every fixture test states its own.
  */

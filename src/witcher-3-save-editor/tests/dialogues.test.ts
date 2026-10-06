@@ -21,9 +21,12 @@ import { FIXTURE_TIMEOUT_MS, largeSave, smallSave } from "./fixtures";
  *
  *  1. **The multi-guid block is read.** A block that declares two dialogs writes
  *     two guids, and the reference reader's fixed 44-byte window dropped the
- *     second. `guidCount` exceeding `blockCount` by exactly 4 is the shape of
- *     that defect being absent — a reader that lost the extras would report 152
- *     and 152.
+ *     second. Two different counts describe that, and this comment used to run
+ *     them together: **4 blocks carry more than one guid** (so the guid *slots*
+ *     exceed the blocks by 4), while the **distinct** guids exceed the blocks by
+ *     **3** — 152 blocks, 155 guids — because one dialog is referenced from two
+ *     blocks. The assertion below is the distinct one, so it says 3. A reader that
+ *     lost the extras would report 152 and 152.
  *  2. **No offset reaches the output.** A document field carrying a byte address
  *     is invalid the moment the save is rebuilt, so the key is asserted absent
  *     rather than left to review.

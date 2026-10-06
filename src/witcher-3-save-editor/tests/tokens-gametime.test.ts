@@ -397,18 +397,26 @@ describe("the three GameTime shapes, and which of them each save carries", () =>
 		{ timeout: FIXTURE_TIMEOUT_MS },
 	);
 
-	test("an inline frame holding exactly 8 seconds is sized inline, and the walk does not slip", () => {
-		// The disproof of the old behaviour, built rather than waited for. The
-		// frame is a `VL` — which carries no length — holding a `GameTime` whose
-		// `m_seconds` is exactly 8, followed by a `BS` token. Before the tag was
-		// threaded in, the byte-level rule saw that 8 where a `u32` size would go,
-		// called it the sized shape, reported the token as 21 bytes, and read
-		// 1396834304 as its value; the `BS` at 33 was then never found.
+	test("an ambiguous inline 8-second frame is sized inline, and the walk does not slip", () => {
+		// The disproof of the old behaviour, and it has to be built to *both*
+		// conditions that made it ambiguous — this test used to miss the second one
+		// and passed with the fix deleted, which is a test that could not fail.
 		//
-		// A synthetic buffer rather than a fixture, because the whole point is
-		// that the committed saves do not contain the case. `parseTokens` takes
-		// the name table as an argument, so no `MANU` has to be built: index 1 is
-		// the property and index 2 is the type.
+		// A `VL` carries no length, so its `GameTime` is written inline; the old
+		// byte rule tried the *sized* shape first and needed two things to reject it:
+		// a `u32` at `o+5` that is not 8, **and** a non-zero `u16` at `o+13` (the
+		// sized shape's terminator). An `m_seconds` of exactly 8 satisfies the first,
+		// so the second must be zero too — which means the two bytes four past the
+		// frame have to be `00 00`. The `BS` that follows therefore carries a
+		// `nameIdx` of 0.
+		//
+		// With both conditions met the byte rule reports the frame as 15 bytes and
+		// reads 1396834304 as its value, and the `BS` at 33 is never found. Only the
+		// frame's *tag* separates them, which is what `framed` carries.
+		//
+		// A synthetic buffer rather than a fixture, because the committed saves do
+		// not contain the case. `parseTokens` takes the name table as an argument, so
+		// no `MANU` has to be built: index 1 is the property and index 2 the type.
 		const names = ["foo", "GameTime"];
 		const frame = (seconds: number): Uint8Array => {
 			const b = new Uint8Array(64);
@@ -424,10 +432,14 @@ describe("the three GameTime shapes, and which of them each save carries", () =>
 			u16(23, 1); // member name
 			u16(25, 2); // member type
 			new DataView(b.buffer).setInt32(27, seconds, true);
-			u16(31, 0); // terminator
+			u16(31, 0); // the member's terminator, at o+9
 			b[33] = 0x42; // "BS" — the token that used to be lost
 			b[34] = 0x53;
-			u16(35, 1);
+			// `nameIdx` 0, so the two bytes at `o+13` are `00 00` and the sized test
+			// cannot reject itself on the terminator. This is the line that makes the
+			// frame ambiguous; without it the old byte rule happens to get it right
+			// and the test proves nothing.
+			u16(35, 0);
 			return b;
 		};
 

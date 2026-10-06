@@ -133,20 +133,20 @@ describe("the item record reader", () => {
 				});
 				// Every one is a plausible fraction of a weapon's or armour's life,
 				// never the sentinel itself and never nonsense.
+				//
+				// `inRange` is an **actual** value, unlike before: this compared the
+				// same expression to itself on both sides, and the whole suite stayed
+				// green with every durability set to `-2`. The filter above removes the
+				// `null`s, so `durability` is a number here.
 				for (const item of durable) {
+					const durability = item.durability;
+					if (durability === null) {
+						throw new Error(`${item.name} survived the null filter`);
+					}
 					expect({
 						name: item.name,
-						sane:
-							item.durability !== null &&
-							item.durability > 0 &&
-							item.durability < 1000,
-					}).toEqual({
-						name: item.name,
-						sane:
-							item.durability !== null &&
-							item.durability > 0 &&
-							item.durability < 1000,
-					});
+						inRange: durability > 0 && durability < 1000,
+					}).toEqual({ name: item.name, inRange: true });
 				}
 			}
 		},
