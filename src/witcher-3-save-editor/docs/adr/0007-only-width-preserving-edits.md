@@ -31,7 +31,9 @@ bytes, the rebuilt container re-parses, and every value reads back correctly.
 
 **What it rules out, and why that is not fixable by effort.** Changing a length
 means rewriting the `AVAL` length field, the enclosing `BLCK`/`SS` frame sizes,
-the `SC` span index (up to 79,339 entries) and the variable table (6,864
+the `SC` span index (20,031 to 200,764 entries across the seven reference
+saves — this said "up to 79,339", which is the `52586` build's figure and
+understates the larger saves by about 2.5×) and the variable table (6,864
 entries) — whose coordinate base the decoder's own notes record as *not fully
 understood*: residuals spread across roughly `[2960, 3130]` and `field1` is not
 `absoluteEnd + const`. Separately, the decompressed stream is only about 72–77%

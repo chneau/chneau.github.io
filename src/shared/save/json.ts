@@ -192,8 +192,18 @@ export const setAtPath = (
 		}
 		const next = root.slice();
 		const existing = next[head];
-		next[head] =
-			rest.length === 0 ? value : setAtPath(existing ?? null, rest, value);
+		// The same rule the object branch below enforces, and it was missing here:
+		// an index past the end — or at the end — is not a path that resolves, so
+		// it must not be invented. Writing it made the engine's own array extend
+		// and fill the gap with `null`, which is precisely the "invent a key the
+		// game never wrote" this function's doc warns about, and the round-trip
+		// check cannot catch it: the invented holes are in the document it compares
+		// against. `getAtPath` on the same path already reports `undefined`, so the
+		// two disagreed.
+		if (existing === undefined) {
+			throw new Error(`Index ${head} is not present in this save.`);
+		}
+		next[head] = rest.length === 0 ? value : setAtPath(existing, rest, value);
 		return next;
 	}
 	if (!isJsonObject(root)) {

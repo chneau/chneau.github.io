@@ -72,7 +72,9 @@ describe("the read-only ported features", () => {
 					),
 					entities: numberAt(branchOf(doc, "entities"), "entities"),
 					journalEntries: numberAt(branchOf(doc, "journal"), "entries"),
-					journalQuests: numberAt(branchOf(doc, "journal"), "questCount"),
+					// `journal.quests.length`, not a `questCount` field: there is no
+					// such field, because it was a copy of this length.
+					journalQuests: arrayAt(branchOf(doc, "journal"), "quests")?.length,
 					questStepQuests: arrayAt(doc, "questSteps")?.length,
 				}).toEqual({
 					name,

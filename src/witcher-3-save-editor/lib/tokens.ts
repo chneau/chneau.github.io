@@ -33,25 +33,29 @@
  * `names[nameIndex]`, so every name it reported was off by one — a defect that
  * typechecks and lints and produces a plausible wrong answer.
  *
- * On the reference save every one of the 121,473 `BLCK` records is immediately
- * followed by an `AVAL`, so the pair reads as one property assignment: `BLCK`
- * names the property and `AVAL` supplies its value. That adjacency is what makes
- * the two shapes legible as a pair, and it is why `BLCK` is a fixed 10 bytes.
+ * On every tracked save each `BLCK` record is immediately followed by an `AVAL`
+ * — measured, 0 exceptions, over 5,224 to 121,584 records per save — so the pair
+ * reads as one property assignment: `BLCK` names the property and `AVAL` supplies
+ * its value. That adjacency is what makes the two shapes legible as a pair, and
+ * it is why `BLCK` is a fixed 10 bytes.
  *
  * ## Validation
  *
  * The grammar was confirmed against `Atvaark/W3SavegameEditor` and against the
  * tags in `witcher3.exe` (4.0.4), which compares the same literal 4-byte
- * constants. Measured coverage on the tracked saves is 79–90% of the
- * decompressed stream, up from ~34% for the two-shape `AVAL`/`BLCK` grammar
- * this file replaced. The source repository's `docs/tokens.md` records the
- * measurements and the parts still unsolved (the `(size, offset)` index tables
- * at the end of the stream, and a handful of variable-width values).
+ * constants. Measured coverage across the seven tracked saves is **71–77%** of
+ * the decompressed stream, up from ~34% for the two-shape `AVAL`/`BLCK` grammar
+ * this file replaced. (This said 79–90%; every save measured is between 71.33%
+ * and 77.22%, and ADR-0007's "about 72–77%" is the correct figure.) The source
+ * repository's `docs/tokens.md` records the measurements and the parts still
+ * unsolved (the `(size, offset)` index tables at the end of the stream, and a
+ * handful of variable-width values).
  *
  * ## What is measured, and what is not
  *
- * The walk starts at the **first `AVAL` in the stream** (offset 1,680,951 in
- * the reference save); the bytes before that are a different structure carrying
+ * The walk starts at the **first `AVAL` in the stream** — 1,677,468 to 1,834,633
+ * across the tracked saves, not a single offset; the bytes before that are a
+ * different structure carrying
  * pointers, which is most of why a "two record shapes" grammar only ever reached
  * a third of the stream. Three fields remain **undecoded**, and no code here
  * claims otherwise: the second name index of an `AVAL`/`PORP`/`VL`/`OP` record

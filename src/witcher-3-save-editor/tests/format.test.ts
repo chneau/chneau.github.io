@@ -101,7 +101,14 @@ describe("decoding a real save", () => {
 				saveVersion: "66/29/164",
 				level: 4,
 				difficulty: "Hardcore",
-				skillPoints: { free: 9, used: 0 },
+				// `used: null` on this build while `free` is a number: the game
+				// omits a counter at zero, so there is no `used` field in the stream
+				// for the skill points, and `null` is that absence. It reported `0`
+				// here until the rule the `free` line already followed was applied to
+				// `used` as well — a zero is a claim about the player, and `encode`
+				// refuses to write the field because it does not exist.
+				skillPoints: { free: 9, used: null },
+				// The experience counter *does* carry `used`, so it is a number.
 				experience: { free: 17, used: 3000 },
 				chunks: 1,
 				headerSize: 3084,
@@ -137,7 +144,7 @@ describe("decoding a real save", () => {
 				saveVersion: "66/29/164",
 				level: 7,
 				difficulty: "Hard",
-				skillPoints: { free: 14, used: 0 },
+				skillPoints: { free: 14, used: null },
 				experience: { free: 702, used: 6000 },
 				chunks: 5,
 				// 626, the list's own declared count. It read 615 before, because the
@@ -450,7 +457,7 @@ describe("the round trip", () => {
 				items: arrayAt(back, "items")?.length,
 			}).toEqual({
 				level: 7,
-				skillPoints: { free: 14, used: 0 },
+				skillPoints: { free: 14, used: null },
 				experience: { free: 702, used: 6000 },
 				items: 626,
 			});
@@ -822,11 +829,17 @@ describe("the quick actions", () => {
 				const doc = await witcher3.decode(bytes);
 				const before = JSON.stringify(doc);
 				for (const action of witcher3.actions) {
-					expect({ label, action: action.id }).toEqual({
+					// Checked **per action**, so a failure names the one that did it. The
+					// loop used to run `expect({label, action: id}).toEqual(same)` — three
+					// values against themselves — and only checked the document at the
+					// end, which could not say which plan had mutated it.
+					const beforeAction = JSON.stringify(doc);
+					action.plan(doc);
+					expect({
 						label,
 						action: action.id,
-					});
-					action.plan(doc);
+						unchanged: JSON.stringify(doc) === beforeAction,
+					}).toEqual({ label, action: action.id, unchanged: true });
 				}
 				expect({ label, unchanged: JSON.stringify(doc) === before }).toEqual({
 					label,
@@ -844,10 +857,15 @@ describe("the quick actions", () => {
 			// the list growing a duplicate each time.
 			const doc = await witcher3.decode(smallSave());
 			for (const action of witcher3.actions) {
-				expect({ action: action.id }).toEqual({ action: action.id });
-				expect(JSON.stringify(action.plan(doc))).toBe(
-					JSON.stringify(action.plan(doc)),
-				);
+				// The comparison is the assertion; `expect({action: id}).toEqual(same)`
+				// sat above it and could not fail, so a failure could not say which
+				// action was not idempotent.
+				const first = JSON.stringify(action.plan(doc));
+				const second = JSON.stringify(action.plan(doc));
+				expect({ action: action.id, same: first === second }).toEqual({
+					action: action.id,
+					same: true,
+				});
 			}
 		},
 		FIXTURE_TIMEOUT_MS,

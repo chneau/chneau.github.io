@@ -500,7 +500,7 @@ const readSavedMutations = (
 /**
  * Every writable field in one save, discovered rather than assumed.
  *
- * The token walk is the expensive part — around 228,000 values over a 15 MB
+ * The token walk is the expensive part — around 665,000 tokens over a 15 MB
  * stream — and the decoder's own readers each trigger their own walk, so five
  * of them cost five times as much as they need to. This does one walk and
  * answers every question from it.

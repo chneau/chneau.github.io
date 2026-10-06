@@ -80,6 +80,28 @@ describe("setAtPath", () => {
 		);
 	});
 
+	test("refuses an array index the save never had, rather than padding it", () => {
+		// The object case above was covered from the start; the array case was not,
+		// and it did not throw. `setAtPath` wrote the index anyway, so the engine
+		// extended the array and filled the gap with `null` — the exact "invent a
+		// key the game never wrote" the function's own doc warns about. Worse, the
+		// round-trip check cannot see it: the invented holes are in the document it
+		// compares the rebuild against, so a codec that serialises the document
+		// directly reports `semantic` and offers the corrupted file.
+		const inventory = getAtPath(SAMPLE, ["inventory"]);
+		const length = Array.isArray(inventory) ? inventory.length : -1;
+		expect(() => setAtPath(SAMPLE, ["inventory", length + 3], null)).toThrow(
+			/not present/,
+		);
+		// Exactly at the end is the same thing: not a path, and an append by another
+		// name. Inventing an element that way is still inventing it.
+		expect(() => setAtPath(SAMPLE, ["inventory", length], null)).toThrow(
+			/not present/,
+		);
+		// It throws rather than padding, so the original is untouched either way.
+		expect(getAtPath(SAMPLE, ["inventory"])).toHaveLength(length);
+	});
+
 	test("an empty path replaces the document", () => {
 		expect(setAtPath(SAMPLE, [], { fresh: true })).toEqual({ fresh: true });
 	});

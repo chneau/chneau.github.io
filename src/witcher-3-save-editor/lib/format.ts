@@ -313,19 +313,24 @@ const project = (container: SaveContainer): JsonValue => {
 				index: choice.index,
 			})),
 		},
+		// `null` for a counter the save does not carry at all: a zero is omitted by
+		// the game, so there is no byte to write and a staged edit would read back
+		// differently. That rule was applied to `free` and **not** to `used`, so on
+		// four of the seven reference saves — every `52586` and `8559a`, where
+		// `usedOffset` is 0 and there is no `used` field in the stream — the document
+		// reported `used: 0`. A zero is a claim about the player; `null` is the
+		// honest answer, and it is also why `encode` guards the write on
+		// `usedOffset > 0`: the field it was told to write does not exist.
 		skillPoints: skill
 			? {
-					// `null` when the save does not carry the field at all: a zero is
-					// omitted by the game, so there is no byte to write and a staged
-					// edit would read back differently.
 					free: skill.freeOffset > 0 ? skill.free : null,
-					used: skill.used,
+					used: skill.usedOffset > 0 ? skill.used : null,
 				}
 			: null,
 		experience: experience
 			? {
 					free: experience.freeOffset > 0 ? experience.free : null,
-					used: experience.used,
+					used: experience.usedOffset > 0 ? experience.used : null,
 				}
 			: null,
 		// The wallet is not a separate field. It is the `u16` quantity of the
@@ -416,11 +421,18 @@ const project = (container: SaveContainer): JsonValue => {
 		// The per-step detail behind `quests`, from the same fact DB, so it is the
 		// heuristic's evidence rather than a second reading: `inferredState` above
 		// is derived from these very records.
+		//
+		// **Capped, unlike `quests`.** Each row here carries a step list and two
+		// samples and is kilobytes where a `quests` row is ~150 bytes, so the cap is
+		// not the same trade. It used to be a bare `60`, unnamed and unflagged — the
+		// only cap in these readers written as a literal — which left a reader unable
+		// to tell a large save from a truncated one: 3 of the 7 reference saves have
+		// 181–184 quests and show 60, and the two fixtures happen to be under it.
 		questSteps:
 			facts === undefined
 				? []
 				: questStepDetail(facts.facts)
-						.slice(0, 60)
+						.slice(0, QUEST_STEPS_LIMIT)
 						.map((quest) => ({
 							id: quest.id,
 							// `null` rather than the raw id echoed back: 10 of 43 quest
@@ -525,7 +537,9 @@ const project = (container: SaveContainer): JsonValue => {
 			// smaller fixture's name table entirely, and present 7 times here.
 			statuses: journal.statuses,
 			unattributed: journal.unattributed,
-			questCount: journal.questCount,
+			// No `questCount`: it was `quests.length` copied into a second field, and
+			// a single inspector edit made the document contradict itself. A reader
+			// wants the number reads `quests.length`.
 			quests: journal.quests.map((quest) => ({
 				id: quest.id,
 				// `null`, never the id echoed back: a UI that cannot tell "no title
@@ -1007,7 +1021,9 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 				? null
 				: {
 						free: free === undefined || free === null ? null : free,
-						used: numberAt(experience, "used") ?? 0,
+						// `null` when the counters' `used` field is absent, which
+						// `numberAt` already reports as `undefined`.
+						used: numberAt(experience, "used") ?? null,
 					},
 		);
 		rows.push({
@@ -1056,6 +1072,18 @@ const edit = (
 	before,
 	after,
 });
+
+/**
+ * How many quests' step detail the document carries.
+ *
+ * Named rather than a literal, and named here rather than in `./quest-steps`,
+ * because it is a *projection* decision: the reader returns every quest and this
+ * is what the document keeps. Bigger than `MAX_QUEST_STEPS` (the per-quest step
+ * cap) by two orders of magnitude, and smaller than the fact-side `quests` list
+ * on a large save — 3 of the 7 reference saves hold 181–184 quests and show the
+ * first 60 here.
+ */
+const QUEST_STEPS_LIMIT = 60;
 
 /**
  * The `container` edits a **resizing** action has to stage.

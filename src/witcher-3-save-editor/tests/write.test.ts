@@ -246,12 +246,22 @@ describe("patching a scalar in place", () => {
 
 describe("locating the wallet", () => {
 	test(
-		"returns nothing on a build whose item records have a different shape",
+		"returns nothing on a build whose crowns identity it does not hold",
 		() => {
-			// The honest-degradation contract, at the layer that decides it. This
-			// build contains *zero* records of the shape the wallet is found by, so
-			// the only correct answer is "not here" — a guess here would write over
-			// one of the 1,845 unrelated records the shape alone matches.
+			// The honest-degradation contract, at the layer that decides it. The name
+			// and comment here used to say this build holds *zero* records of the right
+			// shape and that the refusal comes from the shape — both false. Measured:
+			// `8559a` holds 621 strict-shape records and 164 player items, and its
+			// `Crowns` item reads 397 through the document. What refuses is the
+			// **identity**: `locateMoney` filters on the `52586` constant
+			// `06 94 4f 0f`, and this build's crowns record carries `d4 07 ff 21`. The
+			// 1,845 the comment quoted is the *other* build's record count.
+			//
+			// The distinction matters: "I do not know this build's record shape" and "I
+			// know the shape and not this build's item identity" call for different
+			// work. Dropping the identity filter makes this test fail by finding a
+			// record, which is what shows the identity — not the shape — is what is
+			// load-bearing here.
 			const payload = decompressContainer(smallSave()).data;
 			expect(locateMoney(payload)).toBeUndefined();
 			expect(locateWritable(payload).money).toBeUndefined();

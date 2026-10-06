@@ -432,18 +432,21 @@ describe("immortalityFlags, and what it refuses to say", () => {
 		// counter. That is the evidence the field is a bit set at all. The one
 		// exception is the zero 15 entities carry, which sets no bit and is exactly
 		// what "no immortality mode claimed" looks like.
+		//
+		// This used to clear all 32 bits of the value in a loop and assert the
+		// remainder was `0` — true of every `int32` on the planet, so it checked
+		// nothing while its comment called it the evidence. What carries the claim is
+		// the shape below: strip the one bit that sits outside the documented mask and
+		// a power of two is all that is left.
 		for (const row of imm.values) {
 			const value = Number(row.value);
-			let rest = value;
-			let bits = 0;
-			for (let bit = 0; bit < 32; bit += 1) {
-				rest &= ~(2 ** bit);
-				bits += (value >>> bit) & 1;
-			}
-			expect(rest).toBe(0);
-			// `0` is allowed and is counted as 15 entities; everything else must be
-			// non-empty, i.e. must set at least one bit.
-			if (value !== 0) expect(bits).toBeGreaterThan(0);
+			const withoutTopBit = value & ~(2 ** 24);
+			const powerOfTwo =
+				withoutTopBit === 0 || (withoutTopBit & (withoutTopBit - 1)) === 0;
+			expect({ value: row.value, powerOfTwo }).toEqual({
+				value: row.value,
+				powerOfTwo: true,
+			});
 			// And nothing sets a bit between the documented 0–23 and the top: the only
 			// bit outside the mask that occurs anywhere is 24.
 			for (let bit = 0; bit < 32; bit += 1) {

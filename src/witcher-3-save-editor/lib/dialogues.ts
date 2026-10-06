@@ -50,8 +50,11 @@
  * `dialogsCount` is not always 1. A block that declares two dialogs writes two
  * `guid` values, and the block's span grows from 44 B to 66 B (88 B for three,
  * on the larger reference saves). The reference `readDialogs` fixed the window
- * at `offset + 44` and read one `guid`, so it dropped the second — on 52586
- * that is 4 blocks and 4 of 155 guids, 2.6% of the table, gone silently.
+ * at `offset + 44` and read one `guid`, so it dropped the second — on 52586 that
+ * is **4 blocks** with more than one guid, so 4 of the 156 guid *slots* go
+ * silently. (The table's distinct-guid count is 155, not 156: one dialog is
+ * referenced from two blocks, which is why "blocks with extras" and "guids minus
+ * blocks" are 4 and 3 rather than the same number.)
  * Here the window comes from the engine's own span index (the `SC` table read
  * by `./objects`), which is the only thing in the format that states a `BS`
  * frame's extent; `BS` carries no size of its own. A window derived from the

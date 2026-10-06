@@ -251,10 +251,18 @@ export type SaveJournal = {
 	readonly statuses: readonly JournalStatusCount[];
 	/** entries no quest id could be read from, by reason */
 	readonly unattributed: JournalUnattributed;
-	/** quests with at least one attributed entry; 8 on `8559a`, 29 on `52586` */
+	/**
+	 * Quests with at least one attributed entry; 8 on `8559a`, 29 on `52586`.
+	 *
+	 * There is deliberately no sibling `questCount`. There was one, defined as
+	 * `quests.length` one line below — the same fact in two fields, which this
+	 * codebase has removed twice before (`difficulty.name`, `quests[].journalStatus`).
+	 * It reached the document and the generic inspector edits any leaf, so a single
+	 * keystroke on it made the document self-contradictory and the round-trip check
+	 * refuse the rebuild at a character offset that named nothing. A caller that
+	 * wants the number reads `quests.length`.
+	 */
 	readonly quests: readonly JournalQuest[];
-	/** `quests.length`, for callers that only want the number */
-	readonly questCount: number;
 	/** the unnamed guid collections, with their counts */
 	readonly collections: readonly JournalCollection[];
 	/**
@@ -548,7 +556,6 @@ export const readJournal = (
 			),
 		unattributed,
 		quests,
-		questCount: quests.length,
 		collections: readCollections(nodes),
 		sample,
 		sampleTruncated: attributed > JOURNAL_SAMPLE_LIMIT,

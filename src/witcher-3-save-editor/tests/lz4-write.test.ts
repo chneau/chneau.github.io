@@ -210,14 +210,21 @@ describe("LZ4 compressor", () => {
 					);
 					const original = lz4DecompressBlock(stored, chunk.decompressedSize);
 					const recompressed = lz4CompressBlock(original);
+					// The real check, with the label folded into it so a failure names
+					// the chunk. A separate `expect({label, chunk, bytes}).toEqual(same)`
+					// used to stand here, comparing three values to themselves: it could
+					// not fail and named nothing.
 					expect({
 						label,
 						chunk: chunk.index,
-						bytes: original.length,
-					}).toEqual({ label, chunk: chunk.index, bytes: original.length });
-					expect([
-						...lz4DecompressBlock(recompressed, original.length),
-					]).toEqual([...original]);
+						roundTripped: [
+							...lz4DecompressBlock(recompressed, original.length),
+						],
+					}).toEqual({
+						label,
+						chunk: chunk.index,
+						roundTripped: [...original],
+					});
 				}
 			}
 		},

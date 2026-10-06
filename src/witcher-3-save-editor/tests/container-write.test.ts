@@ -163,14 +163,24 @@ describe("the container writer", () => {
 				const before = parseContainer(file).chunks;
 				const rebuilt = buildContainer(before, decompressContainer(file).data);
 				const after = parseContainer(rebuilt).chunks;
+				// Compression is allowed to differ from the original — this LZ4 makes no
+				// attempt to match the game's — so there is nothing to compare the
+				// compressed column *to*. What is a contract is that the rebuilt table
+				// describes the rebuilt file: the blocks tile it exactly after the
+				// header. (The assertion here used to compare
+				// `after.map(compressedSize)` with itself, which cannot fail, while its
+				// comment claimed to check the decompressed column that the *next*
+				// assertion actually checks.)
 				expect({
 					label,
-					compressed: after.map((chunk) => chunk.compressedSize),
+					// header + every block, which must be the whole file with no gap and
+					// no overrun.
+					tiles: after.reduce((sum, chunk) => sum + chunk.compressedSize, 0),
+					fileBytes: rebuilt.length - parseContainer(rebuilt).headerSize,
 				}).toEqual({
 					label,
-					// Compression is allowed to differ; only the decompressed column is
-					// a contract.
-					compressed: after.map((chunk) => chunk.compressedSize),
+					tiles: rebuilt.length - parseContainer(rebuilt).headerSize,
+					fileBytes: rebuilt.length - parseContainer(rebuilt).headerSize,
 				});
 				expect({
 					label,

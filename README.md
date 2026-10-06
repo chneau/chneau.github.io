@@ -142,8 +142,11 @@ Two of those refusals are load-bearing rather than modesty:
   per-quest answer is stored once, in `journal.quests[]`; a copy on each quest row
   was two fields over one fact, and editing one made the summary's own two rows
   contradict each other. It is still a *partial* view: 17 of 43 quests on one
-  fixture have no journal entry at all, and 650 of 972 entries cannot be
-  attributed to a quest. Both counts are in the document rather than glossed
+  fixture have no journal entry at all, and 935 of 972 entries cannot be
+  attributed to a quest — 650 whose head resource is empty, 285 whose resource
+  names a `.journal` container that is not a quest. (This said "650 of 972",
+  which is only the empty-resource class and understates the unattributable
+  fraction by about 30%.) Both counts are in the document rather than glossed
   over.
 - **Enum values resolve through each save's own `MANU` table, never by ordinal.**
   The same resistance is index 90 on one build and 240 on another, so an ordinal
