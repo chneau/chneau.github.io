@@ -67,6 +67,21 @@ export type LevelDefinition = {
 	readonly requiredTotalExp: number | null;
 	/** skill points granted on reaching it */
 	readonly addedSkillPoints: number | null;
+	/**
+	 * Experience one level costs, once the curve runs out.
+	 *
+	 * On the sentinel row (`level === -1`) this is the **per-level increment for
+	 * levels above the table**, which is what makes New Game+ levels computable
+	 * from the save alone. Measured: the sentinel holds `2000`, the table's last
+	 * explicit row is level 50 at `requiredTotalExp = 84000`, and a level-55
+	 * character's `experience.used` is exactly `84000 + 5 × 2000 = 94000` — which
+	 * is the identity `experienceToNextLevel` checks, so the synthesis is the
+	 * save's own arithmetic rather than a curve fit.
+	 *
+	 * `1` on every other row, which is why it was easy to leave out: it looks like
+	 * a constant until the table ends.
+	 */
+	readonly requiredExp: number | null;
 };
 
 /** First member of a struct/object value with this name. */
@@ -159,6 +174,7 @@ export const readLevelCurve = (
 		level: scalar(item, "number") ?? -1,
 		requiredTotalExp: orNull(scalar(item, "requiredTotalExp")),
 		addedSkillPoints: orNull(scalar(item, "addedSkillPoints")),
+		requiredExp: orNull(scalar(item, "requiredExp")),
 	}));
 
 /**
@@ -174,6 +190,49 @@ const levelDefinitionFor = (
 	level: number,
 ): LevelDefinition | undefined =>
 	curve.find((definition) => definition.level === level);
+
+/**
+ * Cumulative experience required to *be* `level`, synthesising past the table.
+ *
+ * The saved curve stops at level 50; a New Game+ character goes beyond it, and
+ * a lookup that only found explicit rows returned `null` for every such save —
+ * which the summary rendered as "not derivable" for three of the seven reference
+ * saves, all at level 55.
+ *
+ * The sentinel row (`level === -1`) is what the game inserts for exactly this:
+ * its `requiredExp` is the per-level increment **above** the table, so
+ * `requiredTotalExp(L) = requiredTotalExp(last) + (L - last) × sentinel.requiredExp`.
+ * Checked against the save rather than assumed: a level-55 character's
+ * `experience.used` is `84000 + 5 × 2000 = 94000` exactly, which is the identity
+ * the caller verifies.
+ *
+ * `null` when the table has no explicit row above 0, no sentinel, or the level is
+ * *below* the table (which would mean a gap, not an extension).
+ */
+const requiredTotalExpAt = (
+	curve: readonly LevelDefinition[],
+	level: number,
+): number | null => {
+	const explicit = levelDefinitionFor(curve, level);
+	if (explicit !== undefined) return explicit.requiredTotalExp;
+	if (level <= 0) return null;
+	const sentinel = curve.find(
+		(definition) => definition.level < 0 && definition.requiredExp !== null,
+	);
+	if (sentinel === undefined || sentinel.requiredExp === null) return null;
+	let highest: LevelDefinition | undefined;
+	for (const definition of curve) {
+		if (definition.level <= 0 || definition.requiredTotalExp === null) continue;
+		if (highest === undefined || definition.level > highest.level) {
+			highest = definition;
+		}
+	}
+	if (highest === undefined || highest.requiredTotalExp === null) return null;
+	if (level <= highest.level) return null;
+	return (
+		highest.requiredTotalExp + (level - highest.level) * sentinel.requiredExp
+	);
+};
 
 /**
  * Experience still owed before the next level, or `null` when it cannot be
@@ -197,21 +256,16 @@ export const experienceToNextLevel = (
 	level: number | null,
 	experience: { free: number | null; used: number } | null,
 ): number | null => {
-	if (level === null || experience === null) return null;
-	const current = levelDefinitionFor(curve, level);
-	const next = levelDefinitionFor(curve, level + 1);
-	if (
-		current === undefined ||
-		next === undefined ||
-		current.requiredTotalExp === null ||
-		next.requiredTotalExp === null ||
-		experience.free === null
-	) {
+	if (level === null || experience === null || experience.free === null) {
 		return null;
 	}
-	if (experience.used !== current.requiredTotalExp) return null;
-	return Math.max(
-		0,
-		next.requiredTotalExp - current.requiredTotalExp - experience.free,
-	);
+	// `requiredTotalExpAt`, not the raw row: past level 50 the table has no row and
+	// the value is synthesised from the sentinel. Both ends use it, so the current
+	// level's requirement cannot come from one source and the next level's from
+	// another.
+	const current = requiredTotalExpAt(curve, level);
+	const next = requiredTotalExpAt(curve, level + 1);
+	if (current === null || next === null) return null;
+	if (experience.used !== current) return null;
+	return Math.max(0, next - current - experience.free);
 };

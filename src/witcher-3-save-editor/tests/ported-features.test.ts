@@ -138,10 +138,14 @@ describe("the read-only ported features", () => {
 					(leaf) => `${leaf.path.join(".")}=${String(leaf.value)}`,
 				),
 			}).toEqual({
-				// The decompressed payload length, which the projection carries
-				// deliberately: a resizing edit changes it, so `encode` and the
-				// resizing actions all agree about it. A size, not a position.
-				large: ["container.payloadBytes=5108325"],
+				// Both are **sizes**, not positions, and both are deliberate: the
+				// decompressed payload length and the chunk unit a resizing edit
+				// re-splits by. A byte offset in this format is a seven-digit address
+				// like 3,640,999 or 12,932,081, and none appears.
+				large: [
+					"container.payloadBytes=5108325",
+					"container.chunkBytes=1048576",
+				],
 			});
 
 			const steps = (arrayAt(doc, "questSteps") ?? []).filter(isJsonObject);

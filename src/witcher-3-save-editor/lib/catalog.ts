@@ -69,7 +69,16 @@ const STRINGS: Readonly<Record<string, string>> = names.strings;
  * capitalisation.
  */
 export const questTitle = (questId: string): string | undefined => {
-	const direct = QUEST_TITLES[questId];
+	// `Object.hasOwn`, not a bare index: `QUEST_TITLES` is a plain object from a
+	// JSON import, so `QUEST_TITLES["constructor"]` is `Object.prototype`'s
+	// constructor — a function, not a title and not `undefined`. The contract
+	// above promises `undefined` for an unresolved id. `questIdOf` cannot produce
+	// such an id, but `localizedString` below takes a key straight from a save's
+	// `MANU` table, which *can* hold a name like `constructor`, so the same fix
+	// applies to both.
+	const direct = Object.hasOwn(QUEST_TITLES, questId)
+		? QUEST_TITLES[questId]
+		: undefined;
 	if (direct !== undefined) return direct;
 	const wanted = questId.toLowerCase();
 	for (const [id, title] of Object.entries(QUEST_TITLES)) {
@@ -86,4 +95,4 @@ export const questTitle = (questId: string): string | undefined => {
  * `skill_name_mutation_10`, so this returns `Euphoria`.
  */
 export const localizedString = (key: string): string | undefined =>
-	STRINGS[key];
+	Object.hasOwn(STRINGS, key) ? STRINGS[key] : undefined;

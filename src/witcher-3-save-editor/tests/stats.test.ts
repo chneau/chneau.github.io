@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { arrayAt, getAtPath, isJsonObject, type JsonValue } from "../../shared";
-import { objectAt } from "../../shared/save/json";
+import { numberAt, objectAt } from "../../shared/save/json";
 import { witcher3 } from "../lib/format";
 import type { ReflectedValue } from "../lib/reflect";
 import { experienceToNextLevel, readLevelCurve } from "../lib/stats";
@@ -129,11 +129,25 @@ describe("the character sheet", () => {
 					level: -1,
 					requiredTotalExp: -1,
 					addedSkillPoints: 1,
+					// The sentinel's whole point: it is the per-level increment for
+					// levels *above* the table, which is what makes a New Game+
+					// character's "XP to next level" derivable at all.
+					requiredExp: 2000,
 				},
 				// No `requiredTotalExp` on this row in this save: a field at its
 				// default is not written to the stream, so it is reported absent.
-				second: { level: 1, requiredTotalExp: null, addedSkillPoints: null },
-				third: { level: 2, requiredTotalExp: 1000, addedSkillPoints: 1 },
+				second: {
+					level: 1,
+					requiredTotalExp: null,
+					addedSkillPoints: null,
+					requiredExp: null,
+				},
+				third: {
+					level: 2,
+					requiredTotalExp: 1000,
+					addedSkillPoints: 1,
+					requiredExp: 1,
+				},
 			});
 		},
 		FIXTURE_TIMEOUT_MS,
@@ -162,8 +176,32 @@ describe("the character sheet", () => {
 					// is 1000 less the banked amount.
 					row: `${1000 - expFree} XP`,
 				});
-				// And the identity the arithmetic rests on holds on both.
-				expect({ name, expUsed, level }).toEqual({ name, expUsed, level });
+				// The identity the arithmetic rests on, read out of the **document**
+				// rather than from the fixture table: the experience counter's `used`
+				// equals the curve's cumulative requirement for the character's own
+				// level. This line used to be
+				// `expect({ name, expUsed, level }).toEqual({ name, expUsed, level })`
+				// — the same object on both sides, which is a test that cannot fail
+				// and therefore tested nothing while claiming to check exactly this.
+				const curve = (
+					arrayAt(objectAt(doc, "stats"), "levelCurve") ?? []
+				).filter(isJsonObject);
+				const levelFromDocument = numberAt(doc, "level");
+				const usedFromDocument = numberAt(objectAt(doc, "experience"), "used");
+				const row = curve.find(
+					(entry) => numberAt(entry, "level") === levelFromDocument,
+				);
+				expect({
+					name,
+					level: levelFromDocument,
+					used: usedFromDocument,
+					requiredTotalExp: numberAt(row ?? null, "requiredTotalExp"),
+				}).toEqual({
+					name,
+					level,
+					used: expUsed,
+					requiredTotalExp: expUsed,
+				});
 			}
 		},
 		FIXTURE_TIMEOUT_MS,

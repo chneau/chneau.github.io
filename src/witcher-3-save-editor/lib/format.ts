@@ -254,13 +254,24 @@ const project = (container: SaveContainer): JsonValue => {
 			chunks: container.chunks.length,
 			headerSize: container.headerSize,
 			payloadBytes: container.data.length,
+			// The decompressed size of the first chunk, which is the unit both
+			// resizing writers re-split by (`rechunk`), so a resizing action can
+			// predict the chunk count its edit will produce. Without it the plan
+			// staged `payloadBytes` but not `chunks`, and the rebuild read back a
+			// *different document* — 2 chunks against the 1 it predicted — which
+			// the round-trip check correctly called unsound. Measured on the
+			// single-chunk `8559a` fixture, where any growth at all yields 2 chunks;
+			// on the 5-chunk `52586` the count happens not to move, which is why the
+			// suite did not catch it.
+			chunkBytes: container.chunks[0]?.decompressedSize ?? 0,
 			// Deliberately absent: the file's compressed size. Re-encoding does
 			// not reproduce the game's exact LZ4 output, so that number is
 			// different on every rebuild even with no edits at all — and a field
 			// that moves on every rebuild is exactly what the workbench's
-			// round-trip check reads as an unsound file. The payload length, the
-			// chunk count and the header size are all stable under a width-
-			// preserving edit, so those are safe to show.
+			// round-trip check reads as an unsound file. The payload length and
+			// header size are stable under a width-preserving edit, and the chunk
+			// count is stable for every edit except the two resizing actions, which
+			// now predict it.
 		},
 		// The save's own `SAV3` version, read from the header rather than inferred
 		// from what this editor happens to recognise.
@@ -803,6 +814,11 @@ const readLevelCurveAt = (doc: JsonValue): readonly LevelDefinition[] => {
 			level,
 			requiredTotalExp: numberAt(row, "requiredTotalExp") ?? null,
 			addedSkillPoints: numberAt(row, "addedSkillPoints") ?? null,
+			// Carried because the summary needs it: the sentinel row's `requiredExp`
+			// is the per-level increment past the table, and dropping it here made
+			// "XP to next level" un-derivable for any character above level 50 — the
+			// field survived `project` and then vanished on the way back.
+			requiredExp: numberAt(row, "requiredExp") ?? null,
 		});
 	}
 	return curve;
@@ -1042,6 +1058,56 @@ const edit = (
 });
 
 /**
+ * The `container` edits a **resizing** action has to stage.
+ *
+ * A width-preserving edit leaves the decompressed stream the same length, so
+ * `container` does not move and no action mentions it. An edit that grows the
+ * stream moves two fields, and a plan that stages only one of them makes the
+ * rebuild read back a different document — which the workbench reports as an
+ * unsound file with no indication of which field disagreed.
+ *
+ *  - `payloadBytes` is the new length, which the caller knows because it computed
+ *    exactly what it inserted.
+ *  - `chunks` moves when the growth crosses a chunk boundary. Both resizing
+ *    writers re-split the payload by the **first chunk's decompressed size**
+ *    (`rechunk`), which is why `project` carries `chunkBytes`; the new count is
+ *    `ceil(next / chunkBytes)`, the same arithmetic the writer performs. Measured
+ *    on the single-chunk `8559a` fixture, where any growth yields 2 chunks and the
+ *    plan used to predict 1.
+ *
+ * Staged only when the value actually moves, matching every other action's
+ * convention that a plan stages no no-ops.
+ */
+const payloadGrowthEdits = (
+	doc: JsonValue,
+	added: number,
+): readonly SaveEdit[] => {
+	const container = objectAt(doc, "container");
+	if (container === undefined) return [];
+	const payloadBytes = numberAt(container, "payloadBytes");
+	if (payloadBytes === undefined || payloadBytes === null) return [];
+	const next = payloadBytes + added;
+	const edits: SaveEdit[] = [
+		edit(["container", "payloadBytes"], "Payload size", payloadBytes, next),
+	];
+	const chunks = numberAt(container, "chunks");
+	const chunkBytes = numberAt(container, "chunkBytes");
+	if (
+		chunks !== undefined &&
+		chunks !== null &&
+		chunkBytes !== undefined &&
+		chunkBytes !== null &&
+		chunkBytes > 0
+	) {
+		const count = Math.ceil(next / chunkBytes);
+		if (count !== chunks) {
+			edits.push(edit(["container", "chunks"], "Chunk count", chunks, count));
+		}
+	}
+	return edits;
+};
+
+/**
  * The level "Max every skill" writes.
  *
  * A skill's level runs 0 (not learned) to 3 in this game, so 3 is the ceiling
@@ -1109,7 +1175,11 @@ const ACTIONS: readonly QuickAction[] = [
 		description: "Set crowns to the most the field can hold (65535).",
 		plan: (doc) => {
 			const crowns = crownsRow(doc);
-			if (crowns === undefined) return [];
+			// Already at the ceiling: stage nothing, which is what greys the button
+			// out. Without this the button stayed enabled and staged a no-op
+			// `65535 → 65535`, which the tray then listed as a change — every other
+			// "set to X" action here guards its own no-op the same way.
+			if (crowns === undefined || crowns.quantity >= 65535) return [];
 			return [edit(crowns.path, "Crowns", crowns.quantity, 65535)];
 		},
 	},
@@ -1191,7 +1261,14 @@ const ACTIONS: readonly QuickAction[] = [
 					if (required === undefined || required === null || required <= 0) {
 						continue;
 					}
-					const used = numberAt(progress, `${color}Used`) ?? 0;
+					// A `*Used` the stream already carries is **patched in place**: no
+					// length change and no `MANU` entry. Only an absent one costs the
+					// 12-byte record and appends its name, so only an absent one is
+					// counted here — the writer skips a present field for the same
+					// reason, and a plan that counted both grew the predicted payload
+					// past what the resize actually produced.
+					const usedValue = numberAt(progress, `${color}Used`);
+					const used = usedValue ?? 0;
 					if (used >= required) continue;
 					edits.push(
 						edit(
@@ -1201,8 +1278,10 @@ const ACTIONS: readonly QuickAction[] = [
 							required,
 						),
 					);
-					inserts += 1;
-					colors.add(color);
+					if (usedValue === undefined || usedValue === null) {
+						inserts += 1;
+						colors.add(color);
+					}
 				}
 				const overall = numberAt(progress, "overallProgress");
 				if (overall !== undefined && overall !== null && overall < 100) {
@@ -1251,21 +1330,7 @@ const ACTIONS: readonly QuickAction[] = [
 						(sum, color) => sum + 1 + `${color}Used`.length,
 						0,
 					);
-				const container = objectAt(doc, "container");
-				const payloadBytes =
-					container === undefined
-						? undefined
-						: numberAt(container, "payloadBytes");
-				if (payloadBytes !== undefined && payloadBytes !== null) {
-					edits.push(
-						edit(
-							["container", "payloadBytes"],
-							"Payload size",
-							payloadBytes,
-							payloadBytes + added,
-						),
-					);
-				}
+				edits.push(...payloadGrowthEdits(doc, added));
 			}
 			return edits;
 		},
@@ -1311,27 +1376,12 @@ const ACTIONS: readonly QuickAction[] = [
 					after: [...items, ...rows],
 				},
 			];
-			// The insert grows the decompressed stream, and `container.payloadBytes`
-			// is a projection of exactly that, so the document has to say the new
-			// size or the rebuild reads back a length the edits did not predict.
-			const container = objectAt(doc, "container");
-			const payloadBytes =
-				container === undefined
-					? undefined
-					: numberAt(container, "payloadBytes");
-			if (payloadBytes !== undefined && payloadBytes !== null) {
-				const added =
-					rows.length * 30 +
-					rows.reduce((sum, row) => sum + 1 + row.name.length, 0);
-				edits.push(
-					edit(
-						["container", "payloadBytes"],
-						"Payload size",
-						payloadBytes,
-						payloadBytes + added,
-					),
-				);
-			}
+			// The insert grows the decompressed stream, so the document has to say
+			// the new size — and the new chunk count, which the growth can move.
+			const added =
+				rows.length * 30 +
+				rows.reduce((sum, row) => sum + 1 + row.name.length, 0);
+			edits.push(...payloadGrowthEdits(doc, added));
 			return edits;
 		},
 	},

@@ -179,10 +179,24 @@ const i32 = (data: Uint8Array, at: number): number => {
 	const v = u32(data, at);
 	return v > 0x7fffffff ? v - 0x1_0000_0000 : v;
 };
+/*
+ * `f32`/`f64` are bounded to the **view**, not to `data.buffer`.
+ *
+ * A `DataView` over the parent buffer reads outside the slice a caller handed in
+ * — on a `subarray` that is bytes the caller never offered — and throws
+ * `RangeError` when the range runs past the parent, which is a throw the contract
+ * says must not happen. `NaN` rather than a throw for the short case: the callers
+ * reject the value on its width immediately afterwards, so it is never rendered,
+ * and a throw here would be reachable from a corrupt save.
+ */
 const f32 = (data: Uint8Array, at: number): number =>
-	new DataView(data.buffer, data.byteOffset + at, 4).getFloat32(0, true);
+	at >= 0 && at + 4 <= data.length
+		? new DataView(data.buffer, data.byteOffset + at, 4).getFloat32(0, true)
+		: Number.NaN;
 const f64 = (data: Uint8Array, at: number): number =>
-	new DataView(data.buffer, data.byteOffset + at, 8).getFloat64(0, true);
+	at >= 0 && at + 8 <= data.length
+		? new DataView(data.buffer, data.byteOffset + at, 8).getFloat64(0, true)
+		: Number.NaN;
 
 const hexBytes = (data: Uint8Array, at: number, length: number): string =>
 	Array.from(data.subarray(at, at + length), (b) =>
@@ -375,7 +389,17 @@ export const reflectValue = (
 	length: number,
 	depth = 0,
 ): ReflectedValue | undefined => {
-	if (depth > MAX_DEPTH || offset < 0 || offset + length > data.length) {
+	// `length < 0` is a real input, not a typo: the array branch below hands each
+	// element `offset + length - cursor`, which goes negative once the cursor has
+	// passed the declared end, and a negative length made the `offset + length`
+	// bound *smaller* than the offset — passing a guard whose whole job is to
+	// reject the read.
+	if (
+		depth > MAX_DEPTH ||
+		offset < 0 ||
+		length < 0 ||
+		offset + length > data.length
+	) {
 		return undefined;
 	}
 
@@ -467,8 +491,15 @@ export const reflectValue = (
 		};
 	}
 
+	// A scalar whose fixed width does not fit the declared `length` is not a value
+	// of this type and length, and the doc above says so. Returning it anyway was
+	// worse than a wrong number: `f32`/`f64` build their `DataView` over
+	// `data.buffer`, so a one-byte `length` still produced a four- or eight-byte
+	// read — and on a `subarray` view that read lands in the *parent* buffer,
+	// outside the slice the caller handed in. Enforcing `width <= length` here is
+	// what makes the width the caller is promised the width actually read.
 	const scalar = readScalar(data, type, offset);
-	if (scalar) return scalar;
+	if (scalar !== undefined && scalar.width <= length) return scalar;
 
 	// An unrecognised type is a struct or a class written inline. A `struct`
 	// value is a presence byte then properties; a `class` value adds the
