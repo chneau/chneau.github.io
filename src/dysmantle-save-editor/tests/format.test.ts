@@ -2,12 +2,15 @@ import { describe, expect, test } from "bun:test";
 import {
 	applyEdits,
 	type Bytes,
+	base64Decode,
+	bytesEqual,
 	effectiveEdits,
 	getAtPath,
 	isJsonObject,
 	type JsonValue,
 	setAtPath,
 	verifyRoundTrip,
+	zlibInflate,
 } from "../../shared";
 import { decodeToJson, dysmantle, encodeFromJson } from "../lib/format";
 import { projectXml, unprojectXml, XML_DECLARATION } from "../lib/xml";
@@ -250,6 +253,111 @@ const planFor = (id: string, doc: JsonValue = DOC) => {
 const indexOfArray = (doc: JsonValue, arrayId: string): number =>
 	arraysOf(doc).findIndex((entry) => entry.id === arrayId);
 
+/* ------------------------------------------------------------------ *
+ * Reading a container back, for the write-path assertions
+ *
+ * ## Why this suite walks the format itself
+ *
+ * Everything below is about the *mutation* side: that writing a file back
+ * leaves the parts the codec does not own untouched. Asserting that through
+ * `decodeToJson` alone would be circular, because the scaffold is written by
+ * the same code that reads it — a walk that dropped or reordered a segment
+ * would carry the damage through its own document and read back equal.
+ *
+ * So the helpers here re-implement the framing, the way `containerBytes`
+ * assembles it. Two independent implementations agreeing is evidence; one
+ * implementation agreeing with itself is a tautology. That is why these are
+ * duplicated rather than imported, and why they are written without reference
+ * to `lib/format.ts`'s own walk.
+ * ------------------------------------------------------------------ */
+
+/** One segment's location and content, read straight out of the bytes. */
+type ReadSegment = {
+	readonly name: string;
+	/** Offset of the total-length field. */
+	readonly totalAt: number;
+	/** Offset of the content-length field. */
+	readonly lengthAt: number;
+	readonly contentStart: number;
+	readonly contentEnd: number;
+	readonly content: Bytes;
+};
+
+/** Latin-1 view of a container: byte offsets and character offsets coincide. */
+const latin1Of = (bytes: Bytes): string => {
+	let out = "";
+	for (const byte of bytes) out += String.fromCharCode(byte);
+	return out;
+};
+
+const u32At = (bytes: Bytes, at: number): number =>
+	new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(
+		at,
+		true,
+	);
+
+/**
+ * Walks a container's segment list independently of `lib/format.ts`.
+ *
+ * Returns an empty list for a container whose header does not parse, so a
+ * malformed rebuild shows up as "no segments here" and the assertion about it
+ * fails on the thing the reader cares about.
+ */
+const readSegmentsOf = (container: Bytes): readonly ReadSegment[] => {
+	const text = latin1Of(container);
+	// `10TONS_CONTAINER\0`, then `VERSION\0` + u32 and `FILE_SIZE\0` + u32.
+	const magicEnd = text.indexOf("\0");
+	if (magicEnd < 0) return [];
+	let at = magicEnd + 1;
+	for (const _field of ["VERSION", "FILE_SIZE"]) {
+		const end = text.indexOf("\0", at);
+		if (end < 0) return [];
+		at = end + 1 + 4;
+	}
+	const segments: ReadSegment[] = [];
+	while (text.startsWith("SEGMENT\0", at)) {
+		const totalAt = at + "SEGMENT\0".length;
+		const nameStart = totalAt + 4;
+		const nameEnd = text.indexOf("\0", nameStart);
+		if (nameEnd < 0) return segments;
+		const lengthAt = nameEnd + 1;
+		const contentStart = lengthAt + 4;
+		const contentEnd = contentStart + u32At(container, lengthAt);
+		if (contentEnd > container.length) return segments;
+		segments.push({
+			name: text.slice(nameStart, nameEnd),
+			totalAt,
+			lengthAt,
+			contentStart,
+			contentEnd,
+			content: container.subarray(contentStart, contentEnd),
+		});
+		at = contentEnd + "SEGMENT_END\0".length;
+	}
+	return segments;
+};
+
+/** The inflated container of a `.save` file. */
+const containerOf = async (file: Bytes): Promise<Bytes> =>
+	new Uint8Array(await zlibInflate(file.subarray(12)));
+
+const segmentNamed = (container: Bytes, name: string): ReadSegment => {
+	const found = readSegmentsOf(container).find(
+		(segment) => segment.name === name,
+	);
+	if (found === undefined) throw new Error(`no ${name} segment`);
+	return found;
+};
+
+/**
+ * Bytes as lowercase hex, for an assertion that has to name *where* two byte
+ * strings parted rather than only that they did.
+ */
+const hexOf = (bytes: Bytes, from = 0, to = bytes.length): string =>
+	Array.from(bytes.subarray(from, to))
+		.map((byte) => byte.toString(16).padStart(2, "0"))
+		.join(" ");
+
 describe("the XML projection", () => {
 	test("reads a profile into the shared model", () => {
 		expect(profileOf(DOC).id).toBeUndefined();
@@ -463,6 +571,209 @@ describe("the container codec", () => {
 	});
 });
 
+describe("the write path", () => {
+	/** The rebuilt file's inflated container, for a given document. */
+	const rebuiltContainerOf = async (doc: JsonValue): Promise<Bytes> =>
+		containerOf(await encodeFromJson(doc));
+
+	test("the scaffold is the container with the profile's own bytes removed", async () => {
+		// Read straight from the document rather than through a helper the codec
+		// shares with its own writer: `base64Decode` is the only thing between
+		// them, and that is a shared primitive with its own tests.
+		const scaffold = base64Decode(scaffoldOf(DOC));
+		const container = await containerOf(SAVE);
+		const xml = segmentNamed(container, "xml");
+
+		// Assembled here rather than compared in pieces: the scaffold is the
+		// container with the profile's bytes *and the two lengths that describe
+		// them* taken out, so the only honest comparison is against a blob built
+		// that way here. Comparing only the byte range before the profile would
+		// miss those two fields — which are inside it — and comparing the whole
+		// thing would miss nothing but say less about where the difference is.
+		const expected = new Uint8Array(container.length - PROFILE_XML.length);
+		expected.set(container.subarray(0, xml.contentStart), 0);
+		expected.set(container.subarray(xml.contentEnd), xml.contentStart);
+		// The two lengths, zeroed, which is what makes the blob a fixed point.
+		for (const at of [xml.totalAt, xml.lengthAt]) {
+			new DataView(expected.buffer).setUint32(at, 0, true);
+		}
+		expect(bytesEqual(scaffold, expected)).toBe(true);
+		expect(hexOf(scaffold)).toBe(hexOf(expected));
+		// And the two lengths in that segment's header are zeroed, which is what
+		// makes the blob independent of the profile it will be rebuilt around.
+		expect(scaffold.length).toBe(container.length - PROFILE_XML.length);
+		expect(u32At(scaffold, xml.lengthAt)).toBe(0);
+		expect(u32At(scaffold, xml.totalAt)).toBe(0);
+	});
+
+	test("the scaffold carries every world segment, uninterpreted and intact", async () => {
+		const container = await containerOf(SAVE);
+		const scaffold = base64Decode(scaffoldOf(DOC));
+		const names = readSegmentsOf(container).map((segment) => segment.name);
+		expect(names).toEqual([
+			"xml",
+			"bin",
+			"STAGE_PERSISTENCY&stages/island/index.xml&puid1",
+		]);
+		for (const name of names) {
+			const before = segmentNamed(container, name);
+			const after = segmentNamed(scaffold, name);
+			// The profile's segment is emptied by design; the other two are the
+			// world, and they are the reason this editor is allowed to write a file
+			// back at all.
+			if (name !== "xml") {
+				expect(bytesEqual(after.content, before.content)).toBe(true);
+				expect(hexOf(after.content)).toBe(hexOf(before.content));
+			} else {
+				expect(after.content.length).toBe(0);
+			}
+		}
+	});
+
+	test("writing a document back copies the world segments byte for byte", async () => {
+		// The central claim of the whole codec, asserted without going through the
+		// codec's own reader: rebuild after an edit, walk the result, and compare
+		// each segment's content against the file that was opened.
+		const working = applyEdits(DOC, effectiveEdits(planFor("max-level"), DOC));
+		const before = await containerOf(SAVE);
+		const after = await rebuiltContainerOf(working);
+
+		const beforeSegments = readSegmentsOf(before);
+		const afterSegments = readSegmentsOf(after);
+		// Same segments, same order, same names — a rebuild that dropped one or
+		// renamed one is a different file, not a different encoding.
+		expect(afterSegments.map((segment) => segment.name)).toEqual(
+			beforeSegments.map((segment) => segment.name),
+		);
+		for (const [index, original] of beforeSegments.entries()) {
+			const rebuilt = afterSegments[index];
+			if (rebuilt === undefined) throw new Error("a segment went missing");
+			expect(rebuilt.totalAt).toBe(original.totalAt);
+			expect(rebuilt.lengthAt).toBe(original.lengthAt);
+			if (original.name === "xml") continue;
+			expect(bytesEqual(rebuilt.content, original.content)).toBe(true);
+		}
+	});
+
+	test("an edit changes the profile's bytes and nothing else in the container", async () => {
+		const working = applyEdits(DOC, effectiveEdits(planFor("max-level"), DOC));
+		const before = await containerOf(SAVE);
+		const after = await rebuiltContainerOf(working);
+		const beforeXml = segmentNamed(before, "xml");
+		const afterXml = segmentNamed(after, "xml");
+
+		// The bytes before the profile are the same bytes, and the bytes after it
+		// are the same bytes — except for the profile segment's own header, where
+		// the two lengths are rewritten to the sizes this rebuild produced. They
+		// are compared separately rather than skipped, so a codec that moved them
+		// somewhere else would fail rather than pass by exclusion.
+		expect(
+			bytesEqual(
+				after.subarray(0, beforeXml.totalAt),
+				before.subarray(0, beforeXml.totalAt),
+			),
+		).toBe(true);
+		expect(
+			bytesEqual(
+				after.subarray(beforeXml.lengthAt + 4, beforeXml.contentStart),
+				before.subarray(beforeXml.lengthAt + 4, beforeXml.contentStart),
+			),
+		).toBe(true);
+		expect(
+			bytesEqual(
+				after.subarray(afterXml.contentEnd),
+				before.subarray(beforeXml.contentEnd),
+			),
+		).toBe(true);
+		// And those two fields were rewritten to the sizes this rebuild produced.
+		expect(u32At(after, afterXml.lengthAt)).toBe(
+			afterXml.contentEnd - afterXml.contentStart,
+		);
+		expect(u32At(after, afterXml.totalAt)).toBe(
+			u32At(after, afterXml.lengthAt) + 8,
+		);
+		// The edit is in there, not lost by the copy above.
+		expect(new TextDecoder().decode(afterXml.content)).toContain(
+			'<node id="experience_level" value="50"/>',
+		);
+	});
+
+	test("the scaffold is a fixed point: a rebuild hands back the same bytes", async () => {
+		// Two different profiles rebuilt into the same scaffold must produce the
+		// same scaffold, or the "39 kB opaque string at the top of the inspector"
+		// would be a second, divergent copy of the save's state.
+		const edited = applyEdits(DOC, effectiveEdits(planFor("unlock-all"), DOC));
+		expect(scaffoldOf(await decodeToJson(await encodeFromJson(DOC)))).toBe(
+			scaffoldOf(DOC),
+		);
+		expect(scaffoldOf(await decodeToJson(await encodeFromJson(edited)))).toBe(
+			scaffoldOf(DOC),
+		);
+	});
+
+	test("encoding is deterministic: the same document gives the same bytes", async () => {
+		const first = await encodeFromJson(DOC);
+		const second = await encodeFromJson(DOC);
+		expect(bytesEqual(first, second)).toBe(true);
+		// Named rather than left as a bare `true`, so a failure says which byte
+		// range parted instead of only that something did.
+		expect(hexOf(first)).toBe(hexOf(second));
+		expect(bytesEqual(first, new Uint8Array(SAVE))).toBe(true);
+	});
+
+	test("every quick action is idempotent on the bytes it produces", async () => {
+		// Twice is the case that matters: a user who clicks "unlock all" twice, or
+		// clicks it, saves, opens the rebuild and clicks it again, must end up
+		// with the same file — not a save whose fields have been re-staged onto
+		// themselves, or whose world has drifted a segment.
+		for (const action of dysmantle.actions) {
+			const once = applyEdits(DOC, effectiveEdits(action.plan(DOC), DOC));
+			const firstBytes = await encodeFromJson(once);
+			// Re-planning against the document the action produced stages nothing:
+			// every target already holds the value the action writes.
+			expect(effectiveEdits(action.plan(once), once)).toEqual([]);
+			const twice = applyEdits(once, effectiveEdits(action.plan(once), once));
+			expect(JSON.stringify(twice)).toBe(JSON.stringify(once));
+			const secondBytes = await encodeFromJson(twice);
+			expect(bytesEqual(secondBytes, firstBytes)).toBe(true);
+			expect(hexOf(secondBytes)).toBe(hexOf(firstBytes));
+		}
+	});
+
+	test("quick actions leave the world alone, whichever is applied", async () => {
+		const before = await containerOf(SAVE);
+		const world = readSegmentsOf(before).filter(
+			(segment) => segment.name !== "xml",
+		);
+		expect(world.length).toBe(2);
+		for (const action of dysmantle.actions) {
+			const working = applyEdits(DOC, effectiveEdits(action.plan(DOC), DOC));
+			const after = readSegmentsOf(await rebuiltContainerOf(working));
+			for (const original of world) {
+				const rebuilt = after.find((segment) => segment.name === original.name);
+				expect(rebuilt).toBeDefined();
+				expect(
+					bytesEqual(rebuilt?.content ?? new Uint8Array(), original.content),
+				).toBe(true);
+			}
+		}
+	});
+
+	test("every action's rebuild is a byte-stable fixed point", async () => {
+		// The round-trip check the workbench offers a rebuilt file, run over what
+		// each action produces: `identical`, not `semantic`, because the
+		// comparison is a rebuild against itself rather than against the original.
+		for (const action of dysmantle.actions) {
+			const working = applyEdits(DOC, effectiveEdits(action.plan(DOC), DOC));
+			const rebuilt = await encodeFromJson(working);
+			const reread = await decodeToJson(rebuilt);
+			expect(await verifyRoundTrip(dysmantle, rebuilt, reread, false)).toEqual({
+				kind: "identical",
+			});
+		}
+	});
+});
+
 describe("the summary", () => {
 	test("reports figures read from names this save actually has", () => {
 		const value = (label: string) =>
@@ -666,6 +977,41 @@ describe("the codec contract", () => {
 		const working = applyEdits(DOC, planFor("max-level"));
 		const verdict = await verifyRoundTrip(dysmantle, SAVE, working, true);
 		expect(verdict.kind).toBe("semantic");
+	});
+
+	/**
+	 * The byte-fidelity claim, stated on the *rebuilt* file rather than the
+	 * original.
+	 *
+	 * `verifyRoundTrip(dysmantle, SAVE, edited, true)` cannot be `identical`
+	 * and is not asked to be: `SAVE` is the untouched file and an edit
+	 * deliberately changes the profile inside it, so `semantic` is the honest
+	 * verdict there (asserted above). What *is* required is that what this
+	 * codec writes is a fixed point of itself — that its output re-encodes to
+	 * the same bytes — otherwise a user who opened a rebuilt file and saved it
+	 * again would drift on every pass, which for a container whose whole point
+	 * is byte fidelity is the failure worth catching.
+	 */
+	test("a rebuilt file re-encodes to the same bytes it was built from", async () => {
+		const rebuilt = await encodeFromJson(DOC);
+		const reread = await decodeToJson(rebuilt);
+		// Byte identity, asserted directly rather than inferred from a verdict.
+		expect(bytesEqual(await encodeFromJson(reread), rebuilt)).toBe(true);
+		expect(await verifyRoundTrip(dysmantle, rebuilt, reread, false)).toEqual({
+			kind: "identical",
+		});
+	});
+
+	test("that holds after an edit too", async () => {
+		const working = applyEdits(DOC, effectiveEdits(planFor("max-level"), DOC));
+		const rebuilt = await encodeFromJson(working);
+		const reread = await decodeToJson(rebuilt);
+		expect(bytesEqual(await encodeFromJson(reread), rebuilt)).toBe(true);
+		// Not `lossless-edit`: the comparison here is a rebuild against *itself*,
+		// so the bytes are identical and there was nothing to edit in between.
+		expect(await verifyRoundTrip(dysmantle, rebuilt, reread, false)).toEqual({
+			kind: "identical",
+		});
 	});
 
 	test("the codec describes itself", () => {

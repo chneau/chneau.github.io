@@ -20,6 +20,7 @@ import {
 	collectLeaves,
 	formatPath,
 	getAtPath,
+	isJsonObject,
 	type JsonValue,
 	setAtPath,
 } from "../save/json";
@@ -237,5 +238,54 @@ describe("verifyRoundTrip", () => {
 		const bytes = new TextEncoder().encode(JSON.stringify(SAMPLE));
 		const verdict = await verifyRoundTrip(reordered, bytes, SAMPLE, true);
 		expect(verdict.kind).toBe("semantic");
+	});
+
+	test("a rebuild whose codec reorders object keys is allowed", async () => {
+		// The same defect the test above leaves uncovered: key order is not part
+		// of a JSON document, so a codec that writes its fields out in another
+		// order — a struct serialised alphabetically, a node tree walked from an
+		// unordered map — has rebuilt the intended document and must not be
+		// reported as broken.
+		const reverseKeys = (value: JsonValue): JsonValue => {
+			if (Array.isArray(value)) return value.map(reverseKeys);
+			if (!isJsonObject(value)) return value;
+			const reordered: { [key: string]: JsonValue } = {};
+			// `SAMPLE`'s keys happen to be written in reverse alphabetical order
+			// already, so this is a plain reversal of the document's own order:
+			// nothing about the resulting text matches the input except its
+			// content.
+			for (const key of Object.keys(value).reverse()) {
+				const child = value[key];
+				if (child === undefined) continue;
+				reordered[key] = reverseKeys(child);
+			}
+			return reordered;
+		};
+		const alphabetised = {
+			decode: identity.decode,
+			encode: async (doc: JsonValue) =>
+				new TextEncoder().encode(JSON.stringify(reverseKeys(doc))),
+		};
+		const bytes = new TextEncoder().encode(JSON.stringify(SAMPLE));
+		const verdict = await verifyRoundTrip(alphabetised, bytes, SAMPLE, true);
+		expect(verdict.kind).toBe("semantic");
+	});
+
+	test("a reordered rebuild that loses a value is still refused", async () => {
+		// Order-insensitivity must not become value-insensitivity: the reorder
+		// is permitted, a dropped field under the same reorder is not.
+		const lossy = {
+			decode: identity.decode,
+			encode: async (doc: JsonValue) =>
+				new TextEncoder().encode(
+					JSON.stringify({
+						...(doc as { readonly [key: string]: JsonValue }),
+						tampered: true,
+					}),
+				),
+		};
+		const bytes = new TextEncoder().encode(JSON.stringify(SAMPLE));
+		const verdict = await verifyRoundTrip(lossy, bytes, SAMPLE, true);
+		expect(verdict.kind).toBe("failed");
 	});
 });

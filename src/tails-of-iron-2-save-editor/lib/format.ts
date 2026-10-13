@@ -40,8 +40,15 @@ export const XOR_KEY = 0x81;
 export const decodeToJson = (bytes: Bytes): JsonValue => {
 	const text = new TextDecoder().decode(bytes);
 	const plain = new Uint8Array(text.length);
-	for (const [index, character] of [...text].entries()) {
-		plain[index] = (character.charCodeAt(0) & 0xff) ^ XOR_KEY;
+	// Indexed by code unit, never iterated with `[...text]`. A file this codec
+	// wrote only ever holds code units below 0x100, so the two indexings agree —
+	// but a file handed in from disk need not have been scrambled at all, and a
+	// genuine astral character there is one code point spanning two code units.
+	// Sizing `plain` by `text.length` and filling it by code point would shift
+	// every byte after it and leave a stray zero at the end; one byte per code
+	// unit is what "one byte per character" means here.
+	for (let index = 0; index < text.length; index += 1) {
+		plain[index] = (text.charCodeAt(index) & 0xff) ^ XOR_KEY;
 	}
 	const source = new TextDecoder("utf-8", { fatal: false }).decode(plain);
 	const parsed: unknown = JSON.parse(source);
