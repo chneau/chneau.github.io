@@ -62,8 +62,6 @@ export type FormatNote = {
 };
 
 export type SaveCodec = {
-	/** Route slug, matching the app's directory name. */
-	readonly id: string;
 	/** The game, for the title and the summary header. */
 	readonly game: string;
 	/** The container format, e.g. "GVAS (Unreal Engine 5)". */

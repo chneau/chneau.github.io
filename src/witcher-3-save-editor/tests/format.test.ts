@@ -891,12 +891,10 @@ describe("the quick actions", () => {
 describe("the codec describes itself", () => {
 	test("states the format, the extension and where the file lives", () => {
 		expect({
-			id: witcher3.id,
 			game: witcher3.game,
 			formatLabel: witcher3.formatLabel,
 			extensions: witcher3.extensions,
 		}).toEqual({
-			id: "witcher-3-save-editor",
 			game: "The Witcher 3: Wild Hunt",
 			formatLabel: "SNFH/FZLC container, LZ4 blocks, REDkit token stream",
 			extensions: ["sav"],

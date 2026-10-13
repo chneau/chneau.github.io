@@ -1557,7 +1557,6 @@ const NOTES: readonly FormatNote[] = [
 ];
 
 export const witcher3: SaveCodec = {
-	id: ID,
 	game: "The Witcher 3: Wild Hunt",
 	formatLabel: "SNFH/FZLC container, LZ4 blocks, REDkit token stream",
 	extensions: ["sav"],

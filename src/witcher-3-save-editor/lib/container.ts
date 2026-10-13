@@ -35,7 +35,7 @@
  */
 
 import { ByteReader } from "../../shared/save/bytes";
-import { lz4DecompressBlock } from "./lz4";
+import { lz4DecompressBlock } from "../../shared/save/lz4";
 
 const MAGIC_SNFH = "SNFH";
 const MAGIC_FZLC = "FZLC";

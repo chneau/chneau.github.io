@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { lz4CompressBlock } from "../../shared/save/lz4";
 import {
 	decompressContainer,
 	MAX_DECOMPRESSED_BYTES,
@@ -9,7 +10,6 @@ import {
 	HEADER_SIZE,
 	rebuildFrom,
 } from "../lib/container-write";
-import { lz4CompressBlock } from "../lib/lz4-write";
 import { FIXTURE_TIMEOUT_MS, largeSave, smallSave } from "./fixtures";
 
 /**
@@ -25,7 +25,7 @@ import { FIXTURE_TIMEOUT_MS, largeSave, smallSave } from "./fixtures";
  *
  * So the tests here are about bookkeeping, asserted against the decompressed
  * payload rather than against the compressed bytes — comparing compressed bytes
- * would only prove that two compressors agree, and `lib/lz4-write.ts` is explicit
+ * would only prove that two compressors agree, and `src/shared/save/lz4.ts` is explicit
  * that they are not expected to.
  */
 

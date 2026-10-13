@@ -808,7 +808,6 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 };
 
 export const dysmantle: SaveCodec = {
-	id: "dysmantle-save-editor",
 	game: "DYSMANTLE",
 	formatLabel: "10TONS container, zlib, XML profile",
 	extensions: ["save"],

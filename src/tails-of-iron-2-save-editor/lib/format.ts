@@ -106,7 +106,6 @@ const summarise: (doc: JsonValue) => readonly SummaryRow[] = (doc) => {
 const ACTIONS: readonly QuickAction[] = [];
 
 export const tailsOfIron2: SaveCodec = {
-	id: "tails-of-iron-2-save-editor",
 	game: "Tails of Iron 2",
 	formatLabel: "Unity JSON, XOR 0x81",
 	extensions: ["JSON", "json"],

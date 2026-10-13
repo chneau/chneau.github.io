@@ -32,8 +32,8 @@
  */
 
 import type { Bytes } from "../../shared/save/bytes";
+import { lz4CompressBlock } from "../../shared/save/lz4";
 import type { ChunkRecord, SaveContainer } from "./container";
-import { lz4CompressBlock } from "./lz4-write";
 
 /** 16 fixed header bytes + 256 slots × 12 — but see the note above. */
 export const HEADER_SIZE = 3084;

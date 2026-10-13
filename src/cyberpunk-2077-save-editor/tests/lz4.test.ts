@@ -3,7 +3,7 @@ import {
 	lz4CompressBlock,
 	lz4CompressBound,
 	lz4DecompressBlock,
-} from "../lib/lz4";
+} from "../../shared/save/lz4";
 
 /**
  * LZ4 block codec.

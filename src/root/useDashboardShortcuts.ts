@@ -1,12 +1,16 @@
 import { type RefObject, useEffect, useEffectEvent } from "react";
-import { APPS, type AppEntry } from "../shared";
+import { ALL_APPS, APPS, type AppEntry } from "../shared";
 
 /**
  * The dashboard's own hotkey, as advertised by the command palette and the
- * shared `APP_SWITCH_SHORTCUTS` sheet. Kept as a local literal because
- * `src/shared/apps.tsx` owns the registry and is not ours to change.
+ * shared `APP_SWITCH_SHORTCUTS` sheet. Read from the registry rather than
+ * written here: this used to be a local literal whose comment claimed the
+ * registry was "not ours to change", which is a second copy of the same fact
+ * with a rule attached to keeping it in step. `tests/app-hotkeys.test.ts` asserts this file reads
+ * the registry, so the literal cannot quietly return.
  */
-const HUB_HOTKEY = "0";
+const hub = ALL_APPS[0];
+if (!hub) throw new Error("ALL_APPS must define the hub first");
 
 type DashboardShortcutsOptions = {
 	handleVisit: (href: string) => void;
@@ -99,7 +103,7 @@ export const useDashboardShortcuts = ({
 			// The palette and the app switcher both advertise `0` for the hub
 			// itself. Navigating to the page you are already on would be a
 			// pointless reload, so make the key do the useful thing instead.
-			if (event.key === HUB_HOTKEY) {
+			if (event.key === hub.hotkey) {
 				event.preventDefault();
 				window.scrollTo({ top: 0, behavior: "smooth" });
 				focusSearch();

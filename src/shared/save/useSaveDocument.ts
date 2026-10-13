@@ -14,7 +14,7 @@
  */
 
 import { notifications } from "@mantine/notifications";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Bytes } from "./bytes";
 import { applyEdits, pathKey, stageEdits, withoutPath } from "./edits";
 import { downloadBytes, readFileBytes, rebuiltName } from "./file";
@@ -70,6 +70,22 @@ export const useSaveDocument = (codec: SaveCodec): SaveDocument => {
 	const [building, setBuilding] = useState(false);
 	const [search, setSearch] = useState("");
 	const [tab, setTab] = useState<string | null>("inspect");
+
+	// Staged edits are unsaved work the user cannot recover — the file on disk
+	// is still the original — so leaving the page must warn. The guard is
+	// attached only while there is something to lose, so a loaded save with no
+	// edits navigates away without the browser's generic "leave site?" prompt.
+	useEffect(() => {
+		if (edits.length === 0) return;
+		const warn = (event: BeforeUnloadEvent) => {
+			event.preventDefault();
+			// Browsers ignore the message these days, but `returnValue` is what
+			// historically triggered the prompt and is still required to be set.
+			event.returnValue = "";
+		};
+		window.addEventListener("beforeunload", warn);
+		return () => window.removeEventListener("beforeunload", warn);
+	}, [edits.length]);
 
 	const open = useCallback(
 		async (fileName: string, source: Bytes) => {

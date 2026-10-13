@@ -1,8 +1,10 @@
 import { Box, Grid, Stack } from "@mantine/core";
+import { useState } from "react";
 import { AppNav, SkipLink, useThemeMode } from "../../index";
 import type { Bytes } from "../bytes";
 import type { SaveCodec } from "../types";
 import { useSaveDocument } from "../useSaveDocument";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { SampleLoaderCard } from "./SampleLoaderCard";
 import { SaveHero, SaveLanding } from "./SaveLanding";
 import { QuickChanges, SaveSummary, StagedEdits } from "./SaveSidebar";
@@ -59,6 +61,32 @@ export const SaveWorkbench = ({
 		rebuild,
 	} = useSaveDocument(codec);
 	const theme = useThemeMode();
+
+	// Both actions below throw staged edits away, so both ask first. The
+	// dialogs live here rather than in the two components because one hook
+	// already owns the document, and a second piece of state per button would
+	// be two identical confirmations to keep in step.
+	const [changeFileOpen, setChangeFileOpen] = useState(false);
+	const [clearOpen, setClearOpen] = useState(false);
+
+	// With nothing staged, both actions are harmless and the dialog would only
+	// be in the way; the count is read at click time rather than captured in a
+	// render, so a stale count cannot be named.
+	const confirmLeave = () => {
+		if (edits.length === 0) {
+			reset();
+			return;
+		}
+		setChangeFileOpen(true);
+	};
+
+	const confirmClear = () => {
+		if (edits.length === 0) {
+			clearEdits();
+			return;
+		}
+		setClearOpen(true);
+	};
 
 	if (doc === null || bytes === null || name === null || working === null) {
 		return (
@@ -126,7 +154,7 @@ export const SaveWorkbench = ({
 				byteLength={bytes.length}
 				stagedCount={edits.length}
 				building={building}
-				onChangeFile={reset}
+				onChangeFile={confirmLeave}
 				onRebuild={() => void rebuild()}
 				theme={{ dark: theme.dark, onToggle: theme.toggle }}
 			/>
@@ -145,7 +173,7 @@ export const SaveWorkbench = ({
 								<StagedEdits
 									edits={edits}
 									onRevert={revert}
-									onClear={clearEdits}
+									onClear={confirmClear}
 								/>
 							</Stack>
 						</Grid.Col>
@@ -166,6 +194,40 @@ export const SaveWorkbench = ({
 					</Grid>
 				</Box>
 			</Box>
+
+			{/* Both dialogs mirror the Crimson Desert editor's wording, count and
+					all: a save editor that names the loss it is about to cause is the
+					one thing standing between a misclick and a lost evening's work. */}
+			<ConfirmDialog
+				opened={changeFileOpen}
+				title="Open another save?"
+				body={`Leaving this save discards all ${edits.length} staged change${
+					edits.length === 1 ? "" : "s"
+				}. Rebuild and download the save first if you want to keep them.`}
+				confirmLabel="Discard and leave"
+				cancelLabel="Cancel"
+				dangerous
+				onCancel={() => setChangeFileOpen(false)}
+				onConfirm={() => {
+					setChangeFileOpen(false);
+					reset();
+				}}
+			/>
+
+			<ConfirmDialog
+				opened={clearOpen}
+				title="Discard all changes?"
+				body={`Are you sure you want to discard all ${edits.length} staged change${
+					edits.length === 1 ? "" : "s"
+				}? This action cannot be undone.`}
+				confirmLabel="Discard all"
+				dangerous
+				onCancel={() => setClearOpen(false)}
+				onConfirm={() => {
+					setClearOpen(false);
+					clearEdits();
+				}}
+			/>
 		</Box>
 	);
 };

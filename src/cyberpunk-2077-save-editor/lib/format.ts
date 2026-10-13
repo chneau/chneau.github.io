@@ -747,7 +747,6 @@ const NOTES: readonly FormatNote[] = [
  * page cannot.
  */
 export const cyberpunk2077: SaveCodec = {
-	id: "cyberpunk-2077-save-editor",
 	game: "Cyberpunk 2077",
 	formatLabel: "VASC container, LZ4 chunks, REDengine 4 nodes",
 	extensions: ["dat"],

@@ -491,8 +491,10 @@ describe("quick actions", () => {
 });
 
 describe("the page's own contract", () => {
-	test("identifies itself by the route slug", () => {
-		expect(cyberpunk2077.id).toBe("cyberpunk-2077-save-editor");
+	test("states the extension, the notes and where the file lives", () => {
+		// The route slug used to be a `SaveCodec.id` each codec restated, and
+		// nothing read it: the page already knows which codec it imported, so the
+		// field was a copy of the import statement that could only go stale.
 		expect(cyberpunk2077.extensions).toEqual(["dat"]);
 		expect(cyberpunk2077.notes.length).toBeGreaterThanOrEqual(3);
 		expect(cyberpunk2077.defaultPath).toContain("Cyberpunk 2077");

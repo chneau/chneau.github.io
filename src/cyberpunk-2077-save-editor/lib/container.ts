@@ -48,8 +48,12 @@
  * vocabulary for them and discarding them would corrupt every subsystem it does
  * not understand.
  */
-import { type Bytes, yieldToBrowser } from "../../shared";
-import { lz4CompressBlock, lz4DecompressBlock } from "./lz4";
+import {
+	type Bytes,
+	lz4CompressBlock,
+	lz4DecompressBlock,
+	yieldToBrowser,
+} from "../../shared";
 
 /** How much of the decompressed stream one chunk holds. */
 const CHUNK_SIZE = 0x40000;

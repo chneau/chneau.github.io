@@ -1,5 +1,8 @@
 /**
- * LZ4 block format — the compression the VASC container actually uses.
+ * LZ4 block format — the compression the VASC container actually uses, and the
+ * compression the Witcher 3 container stores as well. Two editors that had
+ * each grown their own decoder, with different error text and different match
+ * copy strategies, now share these three functions.
  *
  * ## Why this file exists rather than a `DecompressionStream`
  *
@@ -296,5 +299,36 @@ export const lz4CompressBlock = (data: Uint8Array): Uint8Array => {
 	end += 1;
 	if (literals >= 15) appendLength(literals - 15);
 	appendLiterals(literals);
+	return output.slice(0, end);
+};
+
+/**
+ * A block that encodes its input as pure literals.
+ *
+ * Conformant — a single token with no match after it is the format's ordinary
+ * answer for incompressible data — so it needs no compressor at all. It is not
+ * the default: on the Witcher 3 reference save it costs 3.8× the file size, where
+ * `lz4CompressBlock` costs slightly *less* than the original. It exists so that
+ * a container's bookkeeping can be proved independently of the compressor, which
+ * is the part that is genuinely easy to get wrong.
+ */
+export const lz4StoredBlock = (data: Uint8Array): Uint8Array => {
+	const output = new Uint8Array(lz4CompressBound(data.length));
+	let end = 0;
+	const appendLength = (value: number): void => {
+		let remaining = value;
+		while (remaining >= 255) {
+			output[end] = 255;
+			end += 1;
+			remaining -= 255;
+		}
+		output[end] = remaining;
+		end += 1;
+	};
+	output[end] = Math.min(data.length, 15) << 4;
+	end += 1;
+	if (data.length >= 15) appendLength(data.length - 15);
+	output.set(data, end);
+	end += data.length;
 	return output.slice(0, end);
 };

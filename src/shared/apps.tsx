@@ -25,10 +25,26 @@ export type AppEntry = {
 	tagColor: string;
 	/** Broad grouping used by the dashboard's category filter. */
 	category: string;
+	/** The prose label for `hotkey`, derived — never hand-written per app. */
 	shortcutKey: string;
+	/** The `KeyboardEvent.key` value that launches the app; from `APP_META`. */
 	hotkey: string;
 	description: string;
 };
+
+/**
+ * The label an app's shortcut is advertised under.
+ *
+ * A single character is a keycap, uppercased the way a keycap is printed, and
+ * reads as `Press Q`. A named key (`Home`, `PageDown`) is already its own
+ * label, so it is passed through — `APP_META` carries one such row today (the
+ * hub, bound to `0`), and the rule stays rather than special-casing it.
+ *
+ * This is what makes `hotkey` the single hand-maintained half of the pair. See
+ * `tests/app-hotkeys.test.tsx`, which asserts the two can never disagree.
+ */
+export const hotkeyLabel = (hotkey: string): string =>
+	hotkey.length === 1 ? `Press ${hotkey.toUpperCase()}` : hotkey;
 
 /**
  * `APP_META` carries the lucide icon as a NAME (it is plain data, importable by
@@ -66,7 +82,7 @@ const toEntry = (meta: AppMeta): AppEntry => ({
 	tag: meta.dashboard.tag,
 	tagColor: meta.dashboard.tagColor,
 	category: meta.dashboard.category,
-	shortcutKey: meta.dashboard.shortcutKey,
+	shortcutKey: hotkeyLabel(meta.dashboard.hotkey),
 	hotkey: meta.dashboard.hotkey,
 	description: meta.dashboard.description,
 });
