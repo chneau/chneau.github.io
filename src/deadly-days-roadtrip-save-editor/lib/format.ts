@@ -486,7 +486,6 @@ const decodedSubsystems = (doc: JsonValue): number => {
 /* -------------------------------------------------------------------------- */
 
 export const deadlyDays: SaveCodec = {
-	id: "deadly-days-roadtrip-save-editor",
 	game: "Deadly Days: Roadtrip",
 	formatLabel: "GVAS (Unreal Engine 5), property tags",
 	extensions: ["sav"],

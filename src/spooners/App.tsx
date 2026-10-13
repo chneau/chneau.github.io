@@ -1,9 +1,10 @@
-import { Box, Button, Skeleton, Stack, Text } from "@mantine/core";
+import { Box, Button, Skeleton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { useCallback, useMemo, useState } from "react";
 import {
-	EmptyState,
+	ErrorState,
+	LoadingState,
 	type ShortcutGroup,
 	SkipLink,
 	useCommandPalette,
@@ -52,22 +53,23 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
 
 /** Shown while the 24 MB cache is still arriving. */
 const AppLoading = () => (
-	<Stack
-		role="status"
-		aria-live="polite"
-		aria-busy="true"
-		align="center"
-		justify="center"
-		h="100vh"
-		gap="sm"
-		p="md"
+	<LoadingState
+		label="Loading pub prices…"
+		style={{
+			display: "flex",
+			flexDirection: "column",
+			alignItems: "center",
+			justifyContent: "center",
+			minHeight: "100vh",
+			gap: "var(--mantine-spacing-sm)",
+			padding: "var(--mantine-spacing-md)",
+		}}
 	>
 		<h1 className="sr-only">Spooners — pub prices on a map</h1>
 		{Array.from({ length: 4 }).map((_, i) => (
 			<Skeleton key={i} height={80} radius="sm" />
 		))}
-		<Text c="dimmed">Loading pub prices…</Text>
-	</Stack>
+	</LoadingState>
 );
 
 /** Shown when the cache could not be read at all; only a retry can help. */
@@ -78,19 +80,24 @@ const AppLoadError = ({
 	message: string | null;
 	onRetry: () => void;
 }) => (
-	<Stack role="alert" align="center" justify="center" h="100vh" m="md">
-		<h1 className="sr-only">Spooners — pub prices on a map</h1>
-		<EmptyState
-			title="We couldn't load the pub prices"
-			body={
-				!navigator.onLine
-					? "You appear to be offline. Reconnect and try again."
-					: (message ??
-						"Something went wrong while loading the data. Please try again.")
-			}
-			action={<Button onClick={onRetry}>Try again</Button>}
-		/>
-	</Stack>
+	<ErrorState
+		title="We couldn't load the pub prices"
+		body={
+			!navigator.onLine
+				? "You appear to be offline. Reconnect and try again."
+				: (message ??
+					"Something went wrong while loading the data. Please try again.")
+		}
+		action={<Button onClick={onRetry}>Try again</Button>}
+		label={<h1 className="sr-only">Spooners — pub prices on a map</h1>}
+		style={{
+			display: "flex",
+			alignItems: "center",
+			justifyContent: "center",
+			minHeight: "100vh",
+			margin: "var(--mantine-spacing-md)",
+		}}
+	/>
 );
 
 /**

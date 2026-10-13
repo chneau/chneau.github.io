@@ -157,7 +157,6 @@ describe("xxHash64", () => {
 
 describe("the CERIMAL codec", () => {
 	test("says what it is", () => {
-		expect(noRestForTheWicked.id).toBe("no-rest-for-the-wicked-save-editor");
 		expect(noRestForTheWicked.extensions).toEqual(["dat"]);
 		expect(noRestForTheWicked.notes.length).toBeGreaterThanOrEqual(3);
 		expect(noRestForTheWicked.notes.length).toBeLessThanOrEqual(4);

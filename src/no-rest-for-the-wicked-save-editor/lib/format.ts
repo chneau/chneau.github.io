@@ -530,7 +530,6 @@ const ACTIONS: readonly QuickAction[] = [
  * on eleven real saves. Everything else here is what the page shows.
  */
 export const noRestForTheWicked: SaveCodec = {
-	id: "no-rest-for-the-wicked-save-editor",
 	game: "No Rest for the Wicked",
 	formatLabel: "CERIMAL, xxHash64-checked",
 	extensions: ["dat"],

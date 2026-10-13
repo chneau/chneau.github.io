@@ -102,7 +102,6 @@ const tinySave = (): Bytes => {
 
 describe("Deadly Days: Roadtrip codec", () => {
 	test("the codec contract is satisfied", () => {
-		expect(deadlyDays.id).toBe("deadly-days-roadtrip-save-editor");
 		expect(deadlyDays.extensions).toEqual(["sav"]);
 		expect(deadlyDays.notes.length).toBeGreaterThanOrEqual(3);
 		expect(deadlyDays.defaultPath).toContain("SaveSlot_DDR_0.sav");

@@ -1,14 +1,18 @@
 import { describe, expect, test } from "bun:test";
+import {
+	lz4CompressBlock,
+	lz4DecompressBlock,
+	lz4StoredBlock,
+} from "../../shared/save/lz4";
 import { parseContainer } from "../lib/container";
-import { lz4DecompressBlock } from "../lib/lz4";
-import { lz4CompressBlock, lz4StoredBlock } from "../lib/lz4-write";
 import { FIXTURE_TIMEOUT_MS, largeSave, smallSave } from "./fixtures";
 
 /**
  * The LZ4 compressor, which is the newest and least trustworthy code in this
  * editor.
  *
- * The decoder next door was written against real saves; the compressor was not
+ * The decoder lives in `src/shared/save/lz4.ts` and was written against real
+ * saves; the compressor was not
  * written against anything at all until this suite existed, and it carries two
  * bugs it had already produced by the time it was finished:
  *
@@ -118,9 +122,11 @@ describe("LZ4 compressor", () => {
 		]);
 		// Four literals plus the three bytes the match claims: the reader believes
 		// the match is 39 bytes long and refuses rather than returning something
-		// plausible.
+		// plausible. The wording is now the shared decoder's — this editor no longer
+		// owns a codec — but the claim is the same one, and it is what the guard
+		// above is protecting.
 		expect(() => lz4DecompressBlock(block, 7)).toThrow(
-			/match of 39 byte\(s\) overruns/,
+			/inflates past the size it declared/,
 		);
 	});
 

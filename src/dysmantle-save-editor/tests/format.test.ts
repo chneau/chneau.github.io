@@ -669,7 +669,6 @@ describe("the codec contract", () => {
 	});
 
 	test("the codec describes itself", () => {
-		expect(dysmantle.id).toBe("dysmantle-save-editor");
 		expect(dysmantle.game).toBe("DYSMANTLE");
 		expect(dysmantle.extensions).toEqual(["save"]);
 		expect(dysmantle.defaultPath).toContain("com.the10tons.dysmantle");

@@ -95,14 +95,30 @@ export type AppMeta = {
 		tagColor: string;
 		/** Broad grouping used by the dashboard's category filter. */
 		category: string;
-		shortcutKey: string;
+		/**
+		 * The `KeyboardEvent.key` value that launches this app, and the ONLY
+		 * hand-maintained half of the pair: `apps.tsx` derives the prose label
+		 * from it. Both used to be written out per app, and nothing forced them
+		 * to agree — a row could advertise "Press Q" while the keydown handler
+		 * compared against a different character, and the mismatch would only
+		 * show up as a shortcut that silently does nothing.
+		 */
 		hotkey: string;
 		description: string;
 	};
 };
 
-/** Every environment, root first, then the sub-apps in dashboard order. */
-export const APP_META: readonly AppMeta[] = [
+/**
+ * Every environment, root first, then the sub-apps in dashboard order.
+ *
+ * `as const satisfies readonly AppMeta[]` rather than a plain annotation: the
+ * annotation widens every `slug` to `string`, and a downstream module that
+ * wants the union of slugs as a type (`analytics.ts`) would get `string` and
+ * lose every check it derives from this table. The `satisfies` keeps each row
+ * validated against `AppMeta` — a missing field or a bad colour still fails
+ * here — while the const assertion keeps the literals.
+ */
+export const APP_META = [
 	{
 		slug: "root",
 		path: "/",
@@ -126,7 +142,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "Hub",
 			tagColor: "gray",
 			category: "Meta",
-			shortcutKey: "Home",
 			hotkey: "0",
 			description: "Personal hub and web apps by chneau.",
 		},
@@ -154,7 +169,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "Senior Full-Stack & Systems",
 			tagColor: "purple",
 			category: "Personal",
-			shortcutKey: "Press 1",
 			hotkey: "1",
 			description:
 				"Senior Full-Stack & Systems Engineer — 10+ years experience across Go, TypeScript, React 19, Python, cloud infrastructure & optimisation.",
@@ -183,7 +197,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "Tracker",
 			tagColor: "blue",
 			category: "Personal",
-			shortcutKey: "Press 2",
 			hotkey: "2",
 			description:
 				"Track birthdays, milestones, biorhythms, zodiac signs, and export calendar events.",
@@ -212,7 +225,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "24h Replay",
 			tagColor: "cyan",
 			category: "Play",
-			shortcutKey: "Press 3",
 			hotkey: "3",
 			description:
 				"Interactive 24-hour time-lapse train replay across Scotland's rail network.",
@@ -247,7 +259,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "100% Client-Side",
 			tagColor: "yellow",
 			category: "Build",
-			shortcutKey: "Press 4",
 			hotkey: "4",
 			description:
 				"Edit Crimson Desert save files — inventory, gear, skills, quests and companions — entirely on your device.",
@@ -281,7 +292,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "Price map",
 			tagColor: "green",
 			category: "Play",
-			shortcutKey: "Press 5",
 			hotkey: "5",
 			description:
 				"See what every pub charges for the same drink or dish — searchable map, cheapest-to-dearest rankings and price distribution charts.",
@@ -310,7 +320,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "XOR 0x81",
 			tagColor: "blue",
 			category: "Saves",
-			shortcutKey: "Press Q",
 			hotkey: "q",
 			description:
 				"Read and edit Tails of Iron 2 save profiles in your browser — decoded, staged and rebuilt on your own device.",
@@ -339,7 +348,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "AES-128-CBC",
 			tagColor: "pink",
 			category: "Saves",
-			shortcutKey: "Press W",
 			hotkey: "w",
 			description:
 				"Decrypt and edit Power Fantasy's AES-encrypted Unity save — blood rubies, heroes, passives and infusions, rebuilt and verified in your browser.",
@@ -368,7 +376,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "CERIMAL",
 			tagColor: "orange",
 			category: "Saves",
-			shortcutKey: "Press E",
 			hotkey: "e",
 			description:
 				"Read Moon Studios' CERIMAL format directly — character, realm and account saves decoded and rebuilt byte for byte, on your own device.",
@@ -397,7 +404,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "zlib + XML",
 			tagColor: "yellow",
 			category: "Saves",
-			shortcutKey: "Press R",
 			hotkey: "r",
 			description:
 				"Unpack DYSMANTLE's container, read its XML profile and restage it — materials, skills, recipes and features, rebuilt in your browser.",
@@ -426,7 +432,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "VASC + LZ4",
 			tagColor: "yellow",
 			category: "Saves",
-			shortcutKey: "Press Y",
 			hotkey: "y",
 			description:
 				"Decode Cyberpunk 2077's VASC container and REDengine node tree — attributes, skills and Street Cred, without WolvenKit or a command line.",
@@ -455,7 +460,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "GVAS (UE5)",
 			tagColor: "orange",
 			category: "Saves",
-			shortcutKey: "Press U",
 			hotkey: "u",
 			description:
 				"Parse Deadly Days' Unreal Engine 5 GVAS save in the browser — currencies, upgrade levels and character progress, verified before download.",
@@ -488,7 +492,6 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "SNFH + SAV3",
 			tagColor: "teal",
 			category: "Saves",
-			shortcutKey: "Press 7",
 			hotkey: "7",
 			description:
 				"Edit Witcher 3 PC saves in your browser — money, level, difficulty, skill points, experience and item quantities, written in place and rebuilt entirely on your device.",
@@ -517,10 +520,9 @@ export const APP_META: readonly AppMeta[] = [
 			tag: "Style guide",
 			tagColor: "indigo",
 			category: "Build",
-			shortcutKey: "Press 6",
 			hotkey: "6",
 			description:
 				"The shared tokens, components and patterns behind every app on this site.",
 		},
 	},
-];
+] as const satisfies readonly AppMeta[];

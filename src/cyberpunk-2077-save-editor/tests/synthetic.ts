@@ -18,8 +18,7 @@
  * file and in `lib/` were written from the same specification but not from shared
  * code.
  */
-import type { Bytes } from "../../shared";
-import { lz4CompressBlock } from "../lib/lz4";
+import { type Bytes, lz4CompressBlock } from "../../shared";
 
 /** Little-endian u32 from an ASCII tag, as the container stores them. */
 const tag = (text: string): number => {

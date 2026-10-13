@@ -22,6 +22,7 @@ import {
 	CommandPalette,
 	createAppTheme,
 	Grain,
+	LoadingState,
 	Skeleton,
 	SkipLink,
 	useCommandPalette,
@@ -94,11 +95,12 @@ const readInitialTab = (): TabKey => {
 const StatisticsSkeleton = () => {
 	const { t } = useTranslation();
 	return (
-		<div
+		<LoadingState
+			label={t("app.loading")}
+			// The design has no caption here, so the label is announced and not
+			// drawn; a visible one would be a visual change, not a fix.
+			hideLabel
 			className="tk-surface"
-			role="status"
-			aria-label={t("app.loading")}
-			aria-busy="true"
 		>
 			<Skeleton height={18} width={160} style={{ marginBottom: 20 }} />
 			<div
@@ -112,7 +114,7 @@ const StatisticsSkeleton = () => {
 					<Skeleton key={id} height={220} radius={18} />
 				))}
 			</div>
-		</div>
+		</LoadingState>
 	);
 };
 

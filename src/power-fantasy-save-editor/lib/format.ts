@@ -785,7 +785,6 @@ const summarise: (doc: JsonValue) => readonly SummaryRow[] = (doc) => {
 let openedIv: Bytes | null = null;
 
 export const powerFantasy: SaveCodec = {
-	id: "power-fantasy-save-editor",
 	game: "Power Fantasy",
 	formatLabel: "AES-128-CBC over Unity JSON",
 	extensions: ["es3"],

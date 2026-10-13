@@ -1,4 +1,5 @@
 import type { CaptureResult, PostHog } from "posthog-js/dist/module.slim";
+import { APP_META } from "./app-meta";
 
 /** Shared PostHog project key; the same across every app. */
 const POSTHOG_KEY = "phc_y32qC29aZS8xjNez6YBKH6r1EdaV6mQHDJd38j9Eiun";
@@ -24,32 +25,22 @@ export type AnalyticsConsent = "granted" | "denied" | "unset";
  * Every app that reports events, so each can be segmented instead of landing in
  * one undifferentiated stream. Also sent as the `app` property.
  *
- * The list is the single source and the union is derived from it. These used to
- * be two declarations — a thirteen-member union here and a seven-entry
- * `KNOWN_APPS` set further down — and the set fell behind as save editors were
- * added: the six newer ones were absent, so `appFromPath` tagged their events
- * `"root"`. Nothing failed, because `mountApp` passes the id explicitly and the
- * wrong fallback was rarely reached. Deriving the type means a new app can only
- * be added in one place, so the two cannot drift apart again.
+ * Derived from `APP_META` rather than listed here. This used to be two
+ * declarations — a thirteen-member union here and a seven-entry `KNOWN_APPS`
+ * set further down — and the set fell behind as save editors were added: the
+ * six newer ones were absent, so `appFromPath` tagged their events `"root"`.
+ * Nothing failed, because `mountApp` passes the id explicitly and the wrong
+ * fallback was rarely reached.
+ *
+ * The import is safe in Node (`app-meta.ts` is plain data with no side
+ * effects — see its own header), so nothing here stops the build-time scripts
+ * from pulling this module in.
  */
-const KNOWN_APPS = [
-	"root",
-	"cv",
-	"birthday",
-	"scotland-rail",
-	"spooners",
-	"design",
-	"crimson-desert-save-editor",
-	"cyberpunk-2077-save-editor",
-	"no-rest-for-the-wicked-save-editor",
-	"power-fantasy-save-editor",
-	"dysmantle-save-editor",
-	"tails-of-iron-2-save-editor",
-	"deadly-days-roadtrip-save-editor",
-	"witcher-3-save-editor",
-] as const;
+type AppSlug = (typeof APP_META)[number]["slug"];
 
-type AnalyticsApp = (typeof KNOWN_APPS)[number];
+const KNOWN_APPS: readonly AppSlug[] = APP_META.map((meta) => meta.slug);
+
+type AnalyticsApp = AppSlug;
 
 /**
  * Flat, JSON-serialisable event properties. `null` / `undefined` values are

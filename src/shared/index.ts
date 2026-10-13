@@ -1,4 +1,4 @@
-export { APP_CATEGORIES, APPS, type AppEntry } from "./apps";
+export { ALL_APPS, APP_CATEGORIES, APPS, type AppEntry } from "./apps";
 export { AppCard } from "./components/AppCard";
 export { AppNav } from "./components/AppNav";
 export { AppSwitcher } from "./components/AppSwitcher";
@@ -10,10 +10,12 @@ export {
 	useCommandPalette,
 } from "./components/CommandPalette";
 export { EmptyState } from "./components/EmptyState";
+export { ErrorState } from "./components/ErrorState";
 export { Footer } from "./components/Footer";
 export { Grain } from "./components/Grain";
 export { HeaderAction } from "./components/HeaderAction";
 export { HeaderOverflow } from "./components/HeaderOverflow";
+export { LoadingState } from "./components/LoadingState";
 export { SchemeToggle } from "./components/SchemeToggle";
 export { Section } from "./components/Section";
 export {
@@ -86,6 +88,10 @@ export {
 	setAtPath,
 	stringAt,
 } from "./save/json";
+// `lz4CompressBound` and `lz4StoredBlock` are deliberately NOT re-exported:
+// nothing in an app calls them. They exist for the codecs' output sizing and
+// for the container-bookkeeping tests, which import them from the module path.
+export { lz4CompressBlock, lz4DecompressBlock } from "./save/lz4";
 export { yieldToBrowser } from "./save/macrotask";
 export { verifyRoundTrip } from "./save/roundtrip";
 export type {

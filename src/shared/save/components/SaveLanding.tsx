@@ -18,6 +18,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { LoadingState } from "../../index";
 import type { SaveCodec } from "../types";
 
 /**
@@ -92,19 +93,24 @@ export const SaveLanding = ({
 					}}
 				>
 					{loading ? (
-						<Stack w="100%" maw={320} gap="md" align="stretch">
-							<Skeleton height={14} width="45%" radius="sm" />
-							<Skeleton height={10} radius="sm" />
-							<Skeleton height={10} width="82%" radius="sm" />
-							<Skeleton height={10} width="64%" radius="sm" />
-							<Divider my="xs" />
-							<Text size="sm" fw={500}>
-								{status || "Reading save"}
-							</Text>
-							<Text size="xs" c="dimmed">
-								Reading happens on this device.
-							</Text>
-						</Stack>
+						// The busy flag moves off the drop target and onto the region
+						// that actually announces the work: the panel is idle while
+						// it waits, and busy during it.
+						<LoadingState label={status || "Reading save"} hideLabel>
+							<Stack w="100%" maw={320} gap="md" align="stretch">
+								<Skeleton height={14} width="45%" radius="sm" />
+								<Skeleton height={10} radius="sm" />
+								<Skeleton height={10} width="82%" radius="sm" />
+								<Skeleton height={10} width="64%" radius="sm" />
+								<Divider my="xs" />
+								<Text size="sm" fw={500}>
+									{status || "Reading save"}
+								</Text>
+								<Text size="xs" c="dimmed">
+									Reading happens on this device.
+								</Text>
+							</Stack>
+						</LoadingState>
 					) : (
 						<Stack align="center" gap="sm">
 							<Box

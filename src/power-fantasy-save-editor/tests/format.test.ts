@@ -512,7 +512,6 @@ const HEROES = [
 
 describe("the codec contract", () => {
 	test("is wired the way the workbench expects", () => {
-		expect(powerFantasy.id).toBe("power-fantasy-save-editor");
 		expect(powerFantasy.game).toBe("Power Fantasy");
 		expect(powerFantasy.extensions).toEqual(["es3"]);
 		expect(powerFantasy.defaultPath).toContain("Lava Lamb Games");
