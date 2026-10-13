@@ -168,9 +168,7 @@ export const App = () => {
 		},
 	];
 
-	const showNoMatch =
-		activeTrains.length === 0 &&
-		(searchQuery.trim().length > 0 || selectedCategory !== "all");
+	const showNoMatch = activeTrains.length === 0;
 
 	return (
 		<Box

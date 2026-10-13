@@ -322,11 +322,16 @@ const CommandPaletteBody = ({
 
 /** Header trigger that opens the command palette. */
 export const CommandPaletteButton = ({ onClick }: { onClick: () => void }) => (
-	<HeaderAction
-		iconOnly
-		label="Search apps and actions"
-		menuLabel="Search apps and actions"
-		onClick={onClick}
-		icon={<Search size={16} />}
-	/>
+	<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+		<HeaderAction
+			iconOnly
+			label="Search apps and actions"
+			menuLabel="Search apps and actions"
+			onClick={onClick}
+			icon={<Search size={16} />}
+		/>
+		<Kbd size="xs" style={{ pointerEvents: "none" }}>
+			⌘K / Ctrl+K
+		</Kbd>
+	</span>
 );

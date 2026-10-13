@@ -51,10 +51,12 @@ export const NoMatchBanner = ({
 					<>
 						No service matches <b>"{searchQuery}"</b>
 					</>
-				) : (
+				) : hasCategoryFilter ? (
 					<>
 						No <b>{categoryLabel}</b> service is running
 					</>
+				) : (
+					<>No active trains at the current time</>
 				)}{" "}
 				at <span className="sr-num">{formatTime(timeOffset)}</span>
 			</span>
@@ -71,6 +73,7 @@ export const NoMatchBanner = ({
 					onClick={() => railActions.setSelectedCategory("all")}
 				/>
 			)}
+			<ClearButton label="Jump to nearest active time" onClick={() => {}} />
 		</div>
 	);
 };
