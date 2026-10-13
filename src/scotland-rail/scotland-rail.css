@@ -126,6 +126,19 @@ body,
 	background: var(--app-surface-2);
 }
 
+/*
+ * A badge that is also a button has to clear 44px on a touch screen, where
+ * there is no cursor to aim with and no hover to reveal the hit area. The
+ * padding that sizes it on a pointer device is not enough on its own, so the
+ * minimum is set on the box rather than on the label.
+ */
+.sr-touch {
+	min-height: 44px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible {
@@ -138,5 +151,40 @@ a:focus-visible,
 	.sr-breathe,
 	.sr-rise {
 		animation: none;
+	}
+}
+
+/*
+ * Phones. The layout was drawn for a wide canvas: the control bar runs its
+ * groups side by side and the panels are fixed 262/344px columns. Below 640px
+ * that leaves the bar wrapping into ragged thirds and the panels claiming half
+ * the screen, so here the bar becomes one column and the panels are handed the
+ * width of the viewport minus the same 16px gutter they are inset by — the
+ * panel components read `--sr-panel-w` rather than hard-coding a width, so the
+ * breakpoint raises them without an `!important` fight over the inline style.
+ */
+@media (max-width: 640px) {
+	.sr-panel {
+		--sr-panel-w: calc(100vw - 32px);
+		--sr-details-w: calc(100vw - 32px);
+	}
+
+	.sr-controls-row,
+	.sr-controls-sub {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 10px;
+	}
+
+	/* The recovery banner is centred on the canvas at the top; it wraps to two
+	 * or three lines at this width, which would carry it down over the stats
+	 * panel inset 72px below the same edge. The panel drops instead — the
+	 * banner is the only route out of an empty map and must stay on top. */
+	.sr-banner {
+		max-width: calc(100vw - 32px);
+	}
+
+	.sr-stats {
+		--sr-panel-top: 148px;
 	}
 }

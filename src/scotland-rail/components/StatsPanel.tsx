@@ -442,12 +442,16 @@ export const StatsPanel = () => {
 
 	return (
 		<div
+			className="sr-panel sr-stats"
 			style={{
 				position: "absolute",
-				top: 72,
+				// Read through a variable so the phone breakpoint can lift the
+				// width and drop the panel below the recovery banner without an
+				// `!important` over an inline style.
+				top: "var(--sr-panel-top, 72px)",
 				left: 16,
 				zIndex: 10,
-				width: 262,
+				width: "var(--sr-panel-w, 262px)",
 				maxWidth: "calc(100vw - 32px)",
 				pointerEvents: "auto",
 			}}

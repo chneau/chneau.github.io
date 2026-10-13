@@ -65,8 +65,11 @@ const NavButton = ({
 			border: "none",
 			borderRadius: 6,
 			color: accented ? palette.accent : palette.text,
-			width: 30,
-			height: 30,
+			// 44px, not 30: this cluster sits in the corner a right thumb
+			// reaches for on a phone, where there is no cursor to aim with and
+			// a miss is a mis-tap on the map underneath, which pans.
+			width: 44,
+			height: 44,
 			cursor: "pointer",
 			display: "flex",
 			alignItems: "center",

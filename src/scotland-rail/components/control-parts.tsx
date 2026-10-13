@@ -69,7 +69,7 @@ export const ReplayClock = ({
 			radius="xl"
 			tt="none"
 			aria-pressed={false}
-			className="sr-press"
+			className="sr-press sr-touch"
 			onClick={() => railActions.setSelectedCategory("all")}
 			style={{
 				fontSize: "0.8rem",
@@ -106,7 +106,7 @@ export const CategoryFilters = ({
 					key={cat}
 					component="button"
 					type="button"
-					className="sr-press"
+					className="sr-press sr-touch"
 					radius="xl"
 					tt="none"
 					aria-pressed={isCatSelected}

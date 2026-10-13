@@ -55,6 +55,10 @@ export const Controls = () => {
 				<Box style={{ padding: "12px 18px" }}>
 					{/* Top Bar: Live Clock, Category Filters, Search and View Selector */}
 					<div
+						// Stacks to one column under the 640px breakpoint, where the
+						// three groups side by side leave each of them about a third
+						// of a phone.
+						className="sr-controls-row"
 						style={{
 							display: "flex",
 							justifyContent: "space-between",
@@ -84,6 +88,7 @@ export const Controls = () => {
 
 					{/* Bottom Controls: Playback buttons & quick jumps */}
 					<div
+						className="sr-controls-sub"
 						style={{
 							display: "flex",
 							justifyContent: "space-between",

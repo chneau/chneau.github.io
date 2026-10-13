@@ -104,7 +104,20 @@ export const AppCard = ({
 	);
 };
 
-/** The keyboard shortcut hint, hidden on touch devices via CSS. */
+/**
+ * The keyboard shortcut hint, hidden on touch devices via CSS.
+ *
+ * The keycap prints the key and only the key, because that is what a keycap
+ * is; `shortcutKey` — the derived `Press Q` prose — rides on it as the
+ * accessible name, so a screen reader announces the shortcut as an
+ * instruction while a sighted visitor still sees a one-glyph keycap.
+ */
 const kbd = (item: AppEntry) => (
-	<kbd className="app-kbd app-card__kbd">{item.hotkey}</kbd>
+	<kbd
+		className="app-kbd app-card__kbd"
+		aria-label={item.shortcutKey}
+		title={item.shortcutKey}
+	>
+		{item.hotkey}
+	</kbd>
 );

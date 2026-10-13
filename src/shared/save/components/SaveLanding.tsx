@@ -18,7 +18,10 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { LoadingState } from "../../index";
+// Imported from the component's own path rather than the shared barrel: the
+// barrel re-exports the save workbench, which lands here, so going through it
+// closes a cycle the bundler has to break by hoisting.
+import { LoadingState } from "../../components/LoadingState";
 import type { SaveCodec } from "../types";
 
 /**
