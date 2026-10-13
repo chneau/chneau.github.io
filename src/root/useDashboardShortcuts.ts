@@ -1,5 +1,5 @@
 import { type RefObject, useEffect, useEffectEvent } from "react";
-import { APPS } from "../shared";
+import { APPS, type AppEntry } from "../shared";
 
 /**
  * The dashboard's own hotkey, as advertised by the command palette and the
@@ -14,6 +14,10 @@ type DashboardShortcutsOptions = {
 	theme: { toggle: () => void };
 	/** True while the shortcuts or palette dialog owns the keyboard. */
 	dialogsOpen: boolean;
+	/** Current result list, so Enter opens the first match away from the input. */
+	filtered?: AppEntry[];
+	/** Opens an app href (visit + navigate). */
+	onOpen?: (href: string) => void;
 };
 
 /** Global keyboard shortcuts for the dashboard: digits, `T`, `/` and `0`. */
@@ -22,6 +26,8 @@ export const useDashboardShortcuts = ({
 	searchRef,
 	theme,
 	dialogsOpen,
+	filtered,
+	onOpen,
 }: DashboardShortcutsOptions) => {
 	// Global shortcuts: digits launch apps, T toggles theme, / focuses search.
 	// The dialogs own the keyboard while they are open — otherwise a digit typed
@@ -42,6 +48,12 @@ export const useDashboardShortcuts = ({
 	// would mean nothing: it cannot change, so listing it would assert a
 	// freshness it is not the thing that provides.
 	const focusSearch = useEffectEvent(() => searchRef.current?.focus());
+	const firstFiltered = useEffectEvent(() => filtered?.[0]);
+	const openFirst = useEffectEvent(() => {
+		const app = firstFiltered();
+		if (!app) return;
+		(onOpen ?? handleVisit)(app.href);
+	});
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) {
@@ -54,6 +66,11 @@ export const useDashboardShortcuts = ({
 				target instanceof HTMLTextAreaElement ||
 				(target instanceof HTMLElement && target.isContentEditable)
 			) {
+				return;
+			}
+			if (event.key === "Enter") {
+				event.preventDefault();
+				openFirst();
 				return;
 			}
 			if (event.key === "/") {

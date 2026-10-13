@@ -638,7 +638,11 @@ export const RoundCard = ({
 							size="compact-xs"
 							variant="subtle"
 							color="red"
-							onClick={onClear}
+							onClick={() => {
+								if (window.confirm("Clear the round?")) {
+									onClear();
+								}
+							}}
 						>
 							Clear
 						</Button>

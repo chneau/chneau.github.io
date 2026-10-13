@@ -1,4 +1,4 @@
-import { Box, Button, Loader, Stack, Text } from "@mantine/core";
+import { Box, Button, Skeleton, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useCallback, useMemo, useState } from "react";
 import {
@@ -59,9 +59,12 @@ const AppLoading = () => (
 		justify="center"
 		h="100vh"
 		gap="sm"
+		p="md"
 	>
 		<h1 className="sr-only">Spooners — pub prices on a map</h1>
-		<Loader />
+		{Array.from({ length: 4 }).map((_, i) => (
+			<Skeleton key={i} height={80} radius="sm" />
+		))}
 		<Text c="dimmed">Loading pub prices…</Text>
 	</Stack>
 );
@@ -79,8 +82,10 @@ const AppLoadError = ({
 		<EmptyState
 			title="We couldn't load the pub prices"
 			body={
-				message ??
-				"Something went wrong while loading the data. Please try again."
+				!navigator.onLine
+					? "You appear to be offline. Reconnect and try again."
+					: (message ??
+						"Something went wrong while loading the data. Please try again.")
 			}
 			action={<Button onClick={onRetry}>Try again</Button>}
 		/>
