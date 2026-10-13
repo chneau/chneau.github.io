@@ -1,5 +1,5 @@
-import { companionLabels } from "@/lib/companions";
-import { editorViewInfo, type SaveView } from "@/lib/inventory";
+import { companionLabels } from "./companions";
+import { editorViewInfo, type SaveView } from "./inventory";
 
 /**
  * Every `SaveView` id, so a URL parameter can be checked against the app before

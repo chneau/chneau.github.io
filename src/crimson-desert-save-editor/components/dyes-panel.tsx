@@ -13,10 +13,14 @@ import {
 } from "@mantine/core";
 import { Paintbrush, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { type DyeChannels, EMPTY_CHANNELS } from "@/components/dye-channels";
-import { DyePartRow } from "@/components/dye-part-row";
-import type { DyeDescription, DyedItem, DyeSlot } from "@/lib/save-engine/dyes";
-import type { DyeEdit } from "@/lib/staged-edits";
+import type {
+	DyeDescription,
+	DyedItem,
+	DyeSlot,
+} from "../lib/save-engine/dyes";
+import type { DyeEdit } from "../lib/staged-edits";
+import { type DyeChannels, EMPTY_CHANNELS } from "./dye-channels";
+import { DyePartRow } from "./dye-part-row";
 
 type PanelProps = {
 	description?: DyeDescription;

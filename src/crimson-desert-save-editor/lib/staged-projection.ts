@@ -14,19 +14,19 @@
  * same rule the parse of a saved record uses, `equipmentStateOf`.
  */
 
-import type { EquipmentEdit, InsertEquipmentEdit } from "@/lib/equipment";
-import type { InventoryRecord } from "@/lib/inventory";
+import type { EquipmentEdit, InsertEquipmentEdit } from "./equipment";
+import type { InventoryRecord } from "./inventory";
 import {
 	equipmentStateOf,
 	type RecordGearState,
-} from "@/lib/save-engine/browser-equipment";
-import type { EquipmentCatalogEntry } from "@/lib/save-engine/data";
+} from "./save-engine/browser-equipment";
+import type { EquipmentCatalogEntry } from "./save-engine/data";
 import type {
 	InsertCatalogItemEdit,
 	InsertItemEdit,
 	QuantityEdit,
 	SaveEdit,
-} from "@/lib/staged-edits";
+} from "./staged-edits";
 
 /** The staged edit that decides this record's quantity, if one has been staged. */
 const quantityEditFor = (

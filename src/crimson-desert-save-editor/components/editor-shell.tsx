@@ -1,16 +1,16 @@
 import { Box, Burger, Drawer, Flex } from "@mantine/core";
 import type { Dispatch, ReactNode, RefObject, SetStateAction } from "react";
-import { DownloadProgressBanner } from "@/components/download-progress-banner";
-import { EditorHeaderActions } from "@/components/editor-header-actions";
-import type { EquipmentCatalog } from "@/components/equipment-details";
-import { SaveFileFooter } from "@/components/save-file-footer";
-import { SaveFileInput } from "@/components/save-file-input";
-import { SaveOverlays } from "@/components/save-overlays";
-import type { EquipmentEdit, InsertEquipmentEdit } from "@/lib/equipment";
-import type { Catalog, ParseResult, SaveView } from "@/lib/inventory";
-import type { ItemKnowledgeMapFile } from "@/lib/save-engine/data";
-import type { SaveEdit } from "@/lib/staged-edits";
 import { AppNav, type Command, SkipLink } from "../../shared";
+import type { EquipmentEdit, InsertEquipmentEdit } from "../lib/equipment";
+import type { Catalog, ParseResult, SaveView } from "../lib/inventory";
+import type { ItemKnowledgeMapFile } from "../lib/save-engine/data";
+import type { SaveEdit } from "../lib/staged-edits";
+import { DownloadProgressBanner } from "./download-progress-banner";
+import { EditorHeaderActions } from "./editor-header-actions";
+import type { EquipmentCatalog } from "./equipment-details";
+import { SaveFileFooter } from "./save-file-footer";
+import { SaveFileInput } from "./save-file-input";
+import { SaveOverlays } from "./save-overlays";
 
 /** The progress the download banner shows while a save is rebuilt. */
 type DownloadProgress = {

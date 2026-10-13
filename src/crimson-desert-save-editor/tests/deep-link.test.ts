@@ -4,9 +4,9 @@
 // so this costs nothing when another suite in the shared Bun process got there first.
 import "../../shared/tests/happy-dom";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { companionLabels } from "@/lib/companions";
-import { readDeepLink } from "@/lib/deep-link";
-import { editorViewInfo } from "@/lib/inventory";
+import { companionLabels } from "../lib/companions";
+import { readDeepLink } from "../lib/deep-link";
+import { editorViewInfo } from "../lib/inventory";
 
 /**
  * `?view=` and `?storage=` are the only attacker-controllable inputs the editor

@@ -1,10 +1,9 @@
 import { type Dispatch, type SetStateAction, useCallback } from "react";
-import type { InventoryFocus } from "@/components/inventory-view";
-import type { CompanionCatalog, CompanionEdit } from "@/lib/companions";
-import type { EquipmentEdit, InsertEquipmentEdit } from "@/lib/equipment";
-import type { ParseResult } from "@/lib/inventory";
-import type { SkillEdit } from "@/lib/skills";
-import * as stagedList from "@/lib/staged-edit-list";
+import type { CompanionCatalog, CompanionEdit } from "../lib/companions";
+import type { EquipmentEdit, InsertEquipmentEdit } from "../lib/equipment";
+import type { ParseResult } from "../lib/inventory";
+import type { SkillEdit } from "../lib/skills";
+import * as stagedList from "../lib/staged-edit-list";
 import type {
 	CompanionRenameEdit,
 	DyeEdit,
@@ -12,7 +11,8 @@ import type {
 	LevelEdit,
 	QuestStateEdit,
 	SaveEdit,
-} from "@/lib/staged-edits";
+} from "../lib/staged-edits";
+import type { InventoryFocus } from "./inventory-view";
 
 /** Which row a freshly staged change belongs to, so the inventory can reveal it. */
 export type StagedTarget = {

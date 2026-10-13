@@ -8,21 +8,21 @@
  * the build fails here rather than at the download.
  */
 
-import type { CompanionEdit } from "@/lib/companions";
-import type { EquipmentEdit, InsertEquipmentEdit } from "@/lib/equipment";
+import type { CompanionEdit } from "./companions";
+import type { EquipmentEdit, InsertEquipmentEdit } from "./equipment";
 import type {
 	CharacterEdit,
 	CharacterPresetEdit,
-} from "@/lib/save-engine/characters";
-import type { CompanionRenameEdit } from "@/lib/save-engine/companion-names";
-import type { DyeEdit } from "@/lib/save-engine/dyes";
+} from "./save-engine/characters";
+import type { CompanionRenameEdit } from "./save-engine/companion-names";
+import type { DyeEdit } from "./save-engine/dyes";
 import type {
 	InsertItemEdit as EngineInsertItemEdit,
 	QuantityEdit as EngineQuantityEdit,
-} from "@/lib/save-engine/edits";
-import type { ItemConditionEdit } from "@/lib/save-engine/item-condition";
-import type { QuestEdit, QuestPresetEdit } from "@/lib/save-engine/quests";
-import type { SkillEdit } from "@/lib/skills";
+} from "./save-engine/edits";
+import type { ItemConditionEdit } from "./save-engine/item-condition";
+import type { QuestEdit, QuestPresetEdit } from "./save-engine/quests";
+import type { SkillEdit } from "./skills";
 
 /** A level, experience or reward-flag change on one row of the level tables. */
 export type LevelEdit = CharacterEdit | CharacterPresetEdit;

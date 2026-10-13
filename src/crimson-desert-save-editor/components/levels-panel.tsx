@@ -15,8 +15,6 @@ import {
 } from "@mantine/core";
 import { TrendingUp, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { PanelPager } from "@/components/panel-pager";
-import { PanelSearchField } from "@/components/panel-search";
 import type {
 	CharacterChange,
 	CharacterDescription,
@@ -24,13 +22,15 @@ import type {
 	CharacterEntry,
 	CharacterKind,
 	CharacterPresetEdit,
-} from "@/lib/save-engine/characters";
+} from "../lib/save-engine/characters";
 import {
 	characterKindLabels,
 	experienceLimit,
 	levelLimit,
-} from "@/lib/save-engine/characters";
-import type { LevelEdit } from "@/lib/staged-edits";
+} from "../lib/save-engine/characters";
+import type { LevelEdit } from "../lib/staged-edits";
+import { PanelPager } from "./panel-pager";
+import { PanelSearchField } from "./panel-search";
 
 type PanelProps = {
 	description?: CharacterDescription;

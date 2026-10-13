@@ -13,14 +13,14 @@ import {
 } from "@mantine/core";
 import { ShieldCheck, TriangleAlert, Undo2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { PanelPager } from "@/components/panel-pager";
-import { PanelSearchField } from "@/components/panel-search";
-import { storageName } from "@/lib/inventory";
+import { storageName } from "../lib/inventory";
 import type {
 	ConditionDescription,
 	ConditionEntry,
 	ItemConditionEdit,
-} from "@/lib/save-engine/item-condition";
+} from "../lib/save-engine/item-condition";
+import { PanelPager } from "./panel-pager";
+import { PanelSearchField } from "./panel-search";
 
 type PanelProps = {
 	description?: ConditionDescription;

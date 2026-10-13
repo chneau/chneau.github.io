@@ -41,22 +41,22 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import type { EquipmentCatalog } from "@/components/equipment-details";
-import { EquipmentEditorDrawer } from "@/components/equipment-editor-drawer";
-import { ItemRow } from "@/components/item-row";
-import { Picture } from "@/components/picture";
-import type { EquipmentEdit, InsertEquipmentEdit } from "@/lib/equipment";
-import abyssGearRules from "@/lib/generated/abyss-gear-compatibility.json";
+import type { EquipmentEdit, InsertEquipmentEdit } from "../lib/equipment";
+import abyssGearRules from "../lib/generated/abyss-gear-compatibility.json";
 import {
 	type Catalog,
 	type GroupedItem,
 	groupRecords,
 	type InventoryRecord,
 	storageName,
-} from "@/lib/inventory";
-import { itemSocketSummary } from "@/lib/item-catalog";
-import { maxEquipmentEdits } from "@/lib/max-equipment";
-import type { QuantityEdit, SaveEdit } from "@/lib/staged-edits";
+} from "../lib/inventory";
+import { itemSocketSummary } from "../lib/item-catalog";
+import { maxEquipmentEdits } from "../lib/max-equipment";
+import type { QuantityEdit, SaveEdit } from "../lib/staged-edits";
+import type { EquipmentCatalog } from "./equipment-details";
+import { EquipmentEditorDrawer } from "./equipment-editor-drawer";
+import { ItemRow } from "./item-row";
+import { Picture } from "./picture";
 
 /** Where a staged change just put something, so the view selects it. */
 export type InventoryFocus = { itemKey: number; slotNo: number | null };

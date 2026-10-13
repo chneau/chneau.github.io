@@ -6,8 +6,8 @@ import {
 	Table,
 	Text,
 } from "@mantine/core";
-import type { DyeChannels } from "@/components/dye-channels";
-import type { DyeDescription, DyeSlot } from "@/lib/save-engine/dyes";
+import type { DyeDescription, DyeSlot } from "../lib/save-engine/dyes";
+import type { DyeChannels } from "./dye-channels";
 
 /** Which of the RGB channels a table column sets; the others are Selects. */
 type ChannelName = "red" | "green" | "blue" | "alpha" | "grime";

@@ -1,8 +1,8 @@
 import { Badge, Box, Button, Group, Table, Text } from "@mantine/core";
 import { PencilLine } from "lucide-react";
 import { memo } from "react";
-import { Picture } from "@/components/picture";
-import type { GroupedItem } from "@/lib/inventory";
+import type { GroupedItem } from "../lib/inventory";
+import { Picture } from "./picture";
 
 type ItemRowProps = {
 	item: GroupedItem;

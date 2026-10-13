@@ -19,7 +19,6 @@ import {
 } from "@mantine/core";
 import { Plus, Search, TriangleAlert, Users, X } from "lucide-react";
 import { useState } from "react";
-import { Picture } from "@/components/picture";
 import {
 	browseCompanions,
 	COMPANION_PAGE_SIZE,
@@ -34,7 +33,8 @@ import {
 	companionPage,
 	queuedWorkers,
 	remainingWorkers,
-} from "@/lib/companions";
+} from "../lib/companions";
+import { Picture } from "./picture";
 
 type PanelProps = {
 	category: CompanionCategory;

@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import type { EquipmentCatalog } from "@/components/equipment-details";
-import type { Catalog, CatalogItem } from "@/lib/inventory";
+import type { Catalog, CatalogItem } from "../lib/inventory";
 import {
 	equipmentCatalogTable,
 	type ItemCatalogFile,
 	type ItemKnowledgeMapFile,
 	itemCatalogTable,
 	itemKnowledgeTable,
-} from "@/lib/save-engine/data";
+} from "../lib/save-engine/data";
+import type { EquipmentCatalog } from "./equipment-details";
 
 /**
  * The item catalog with every piece of equipment folded into it.

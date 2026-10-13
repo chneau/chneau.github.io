@@ -1,5 +1,5 @@
-import type { EquipmentDetails } from "@/lib/equipment";
-import type { EquipmentCatalogFile } from "@/lib/save-engine/data";
+import type { EquipmentDetails } from "../lib/equipment";
+import type { EquipmentCatalogFile } from "../lib/save-engine/data";
 
 /** The workshop reads the generated equipment catalog as the engine types it. */
 export type EquipmentCatalog = EquipmentCatalogFile;

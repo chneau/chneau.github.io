@@ -18,8 +18,8 @@ import {
 	type CompanionNameDescription,
 	type CompanionNameRow,
 	nameRejection,
-} from "@/lib/save-engine/companion-names";
-import type { CompanionRenameEdit } from "@/lib/staged-edits";
+} from "../lib/save-engine/companion-names";
+import type { CompanionRenameEdit } from "../lib/staged-edits";
 
 type PanelProps = {
 	description?: CompanionNameDescription;

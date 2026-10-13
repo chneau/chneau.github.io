@@ -23,9 +23,6 @@
 		"incremental": true,
 		"tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo",
 		"esModuleInterop": true,
-		"types": ["bun"],
-		"paths": {
-			"@/*": ["./src/crimson-desert-save-editor/*"]
-		}
+		"types": ["bun"]
 	}
 }

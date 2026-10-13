@@ -1,7 +1,7 @@
 import { Box } from "@mantine/core";
 import { Package, PawPrint } from "lucide-react";
 import { useState } from "react";
-import { useImage } from "@/lib/image-archive";
+import { useImage } from "../lib/image-archive";
 import { type PictureKind, picturePath, pictureTable } from "./picture-path";
 
 /**

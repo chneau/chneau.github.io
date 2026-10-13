@@ -27,15 +27,15 @@ import {
 	Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import type { CompanionCategory } from "@/lib/companions";
-import { companionLabels } from "@/lib/companions";
+import { Brand } from "../../shared";
+import type { CompanionCategory } from "../lib/companions";
+import { companionLabels } from "../lib/companions";
 import {
 	editorViewInfo,
 	type ParseResult,
 	type SaveView,
 	storageName,
-} from "@/lib/inventory";
-import { Brand } from "../../shared";
+} from "../lib/inventory";
 
 const formatBytes = (bytes: number): string => {
 	if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;

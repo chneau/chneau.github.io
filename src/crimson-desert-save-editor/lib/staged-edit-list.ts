@@ -18,10 +18,10 @@ import {
 	type CompanionSummary,
 	canQueueWorkers,
 	companionStatus,
-} from "@/lib/companions";
-import type { EquipmentEdit, InsertEquipmentEdit } from "@/lib/equipment";
-import type { SkillEdit } from "@/lib/skills";
-import type { SaveEdit } from "@/lib/staged-edits";
+} from "./companions";
+import type { EquipmentEdit, InsertEquipmentEdit } from "./equipment";
+import type { SkillEdit } from "./skills";
+import type { SaveEdit } from "./staged-edits";
 
 /**
  * Replaces every edit a section owns with that section's own view of what is

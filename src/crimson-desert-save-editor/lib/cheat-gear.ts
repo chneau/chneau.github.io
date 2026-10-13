@@ -26,21 +26,21 @@
  * runs the whole set through the engine.
  */
 
-import { planAddition, storageKeys } from "@/lib/add-plan";
-import type { EquipmentDetails } from "@/lib/equipment";
+import { planAddition, storageKeys } from "./add-plan";
+import type { EquipmentDetails } from "./equipment";
 import {
 	type CatalogItem,
 	type InventoryRecord,
 	storageName,
-} from "@/lib/inventory";
-import { maxEquipmentEdits } from "@/lib/max-equipment";
+} from "./inventory";
+import { maxEquipmentEdits } from "./max-equipment";
 import {
 	abyssGearRulesTable,
 	type EquipmentCatalogEntry,
 	equipmentCatalogTable,
 	itemCatalogTable,
-} from "@/lib/save-engine/data";
-import type { SaveEdit } from "@/lib/staged-edits";
+} from "./save-engine/data";
+import type { SaveEdit } from "./staged-edits";
 
 /** Sockets are serialized as five positions whether or not they are filled. */
 const SOCKET_POSITIONS = 5;

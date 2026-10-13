@@ -1,6 +1,6 @@
 import { Alert, Button, Text, TextInput } from "@mantine/core";
-import type { InventoryRecord } from "@/lib/inventory";
-import type { QuantityEdit } from "@/lib/staged-edits";
+import type { InventoryRecord } from "../lib/inventory";
+import type { QuantityEdit } from "../lib/staged-edits";
 
 /**
  * The editor for a stack that has no equipment to refine.
