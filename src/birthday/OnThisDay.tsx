@@ -148,7 +148,10 @@ export const OnThisDay = ({ month, day }: OnThisDayProps) => {
 			// The day changed or the panel went away: there is nobody left to
 			// show an answer to, and it is not a failure to report.
 			if (err instanceof Error && err.name === "AbortError") return;
-			console.error(err);
+			// Prefixed and named, unlike every sibling call site: a bare error
+			// object in a console is unattributable, and this is the only branch
+			// that is worth diagnosing.
+			console.error(`birthday/onthisday: could not fetch ${key}`, err);
 			setAnswer({ cacheKey: key, status: "failed" });
 		}
 	};

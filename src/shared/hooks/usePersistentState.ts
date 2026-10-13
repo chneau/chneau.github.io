@@ -138,7 +138,19 @@ export const subscribePersisted = (
 // Cross-tab sync: another tab writing our key refreshes the shared cache.
 if (typeof window !== "undefined") {
 	window.addEventListener("storage", (event) => {
-		if (event.key == null) return;
+		if (event.key == null) {
+			// `key == null` with `key === null` is `localStorage.clear()` in
+			// another tab, not a write to some key. Returning here left every
+			// store in this tab serving its pre-clear value — and each would
+			// re-persist it on its next write, silently undoing the clear. With
+			// `key === undefined` the event is not about storage at all.
+			if (event.key !== null) return;
+			for (const store of stores.values()) {
+				store.value = UNINITIALIZED;
+				for (const listener of store.listeners) listener();
+			}
+			return;
+		}
 		const store = stores.get(event.key);
 		if (!store) return;
 		let value: unknown =

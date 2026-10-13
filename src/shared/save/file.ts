@@ -36,7 +36,12 @@ export const downloadBytes = (bytes: Bytes, filename: string): void => {
 export const formatBytes = (bytes: number): string => {
 	if (bytes < 1024) return `${bytes} B`;
 	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} kB`;
-	return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+	if (bytes < 1024 * 1024 * 1024)
+		return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+	// No GB branch once meant a 1 GiB save read as "1024.00 MB", which is the
+	// sort of number a user cannot use to tell whether they dropped the right
+	// file — the one job this exists for.
+	return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 };
 
 /**
