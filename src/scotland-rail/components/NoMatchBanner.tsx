@@ -27,7 +27,7 @@ export const NoMatchBanner = ({
 
 	return (
 		<div
-			className="sr-glass sr-rise"
+			className="sr-glass sr-rise sr-banner"
 			// The banner is the only thing on screen distinguishing "filtered to
 			// nothing" from "broken", and it appears when a filter changes — with no
 			// announcement, a screen-reader user gets silence instead of a recovery
@@ -49,6 +49,10 @@ export const NoMatchBanner = ({
 				gap: 12,
 				color: palette.text,
 				maxWidth: "calc(100vw - 32px)",
+				// Narrow screens put the banner directly above the stats panel; this
+				// keeps the row it wraps within the gap it is allowed, and the
+				// stylesheet drops the panel further on the same breakpoint.
+				rowGap: 8,
 			}}
 		>
 			<Search size={16} style={{ color: palette.danger }} />
@@ -101,6 +105,10 @@ const ClearButton = ({
 		style={{
 			color: palette.danger,
 			border: `1px solid ${palette.danger}`,
+			// `xs` is the right type size for a floating strip, but its 24px box
+			// is below the 44px a thumb needs — and this button is the only way
+			// out of an empty map.
+			minHeight: 44,
 		}}
 	>
 		{label}

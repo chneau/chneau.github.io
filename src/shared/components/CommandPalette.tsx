@@ -29,6 +29,12 @@ export type Command = {
 	keywords?: string;
 	/** Single-key launch shortcut, rendered as a keycap. */
 	hotkey?: string;
+	/**
+	 * The derived prose for `hotkey` (`Press Q`). The keycap prints the key; this
+	 * names it as an instruction, so the same guarantee the dashboard card makes
+	 * holds in the palette too.
+	 */
+	shortcutKey?: string;
 	icon?: ReactNode;
 	run: () => void;
 };
@@ -41,6 +47,7 @@ const NAV_COMMANDS: Command[] = ALL_APPS.map((app) => {
 		hint: app.tag,
 		keywords: app.description,
 		hotkey: app.hotkey,
+		shortcutKey: app.shortcutKey,
 		icon: <Icon size={16} />,
 		run: () => {
 			window.location.href = app.href;
@@ -290,7 +297,12 @@ const CommandPaletteBody = ({
 								</Text>
 							) : null}
 							{command.hotkey ? (
-								<Kbd size="xs" style={{ flexShrink: 0 }}>
+								<Kbd
+									size="xs"
+									style={{ flexShrink: 0 }}
+									aria-label={command.shortcutKey}
+									title={command.shortcutKey}
+								>
 									{command.hotkey}
 								</Kbd>
 							) : null}

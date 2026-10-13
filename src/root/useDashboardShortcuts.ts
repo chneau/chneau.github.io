@@ -71,9 +71,14 @@ export const useDashboardShortcuts = ({
 			if (event.defaultPrevented) return;
 			if (dialogsAreOpen()) return;
 			const target = event.target;
+			// `select` belongs beside the text fields: a dropdown is a control the
+			// user is operating, and a digit typed to choose an option is not a
+			// hotkey. Arrow-key navigation inside one is not a letter either, but
+			// `t` and the digit keys select options, so the whole element opts out.
 			if (
 				target instanceof HTMLInputElement ||
 				target instanceof HTMLTextAreaElement ||
+				target instanceof HTMLSelectElement ||
 				(target instanceof HTMLElement && target.isContentEditable)
 			) {
 				return;
@@ -87,7 +92,7 @@ export const useDashboardShortcuts = ({
 				if (
 					target instanceof HTMLElement &&
 					target.closest(
-						"a[href], button, [role='menuitem'], [role='menuitemcheckbox']",
+						"a[href], button, [role='menuitem'], [role='menuitemcheckbox'], [role='option']",
 					)
 				) {
 					return;

@@ -1,7 +1,7 @@
 import { Box, Button, Skeleton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ErrorState,
 	LoadingState,
@@ -255,6 +255,30 @@ export const App = () => {
 		[roundActions],
 	);
 
+	// The 24 MB cache is fetched once on mount, so a visitor who loaded the app
+	// offline is left with the retry screen and no way forward but to reload the
+	// tab by hand. Reconnecting is the signal that the fetch can now succeed.
+	// Only a failed load is retried: a reload that succeeds would tear the map
+	// down behind a loading skeleton on a perfectly working page.
+	//
+	// Registered once and reading the flag through a ref: re-subscribing on
+	// every `error` change tears the listener down and rebuilds it for a
+	// condition that only decides *whether the handler does anything*, not what
+	// it does.
+	const hasError = useRef(false);
+	useEffect(() => {
+		hasError.current = error !== null;
+	}, [error]);
+	useEffect(() => {
+		const onOnline = () => {
+			if (hasError.current) reload();
+		};
+		window.addEventListener("online", onOnline);
+		return () => {
+			window.removeEventListener("online", onOnline);
+		};
+	}, [reload]);
+
 	if (loading) {
 		return <AppLoading />;
 	}
@@ -329,7 +353,7 @@ export const App = () => {
 						onlyComplete={filters.onlyComplete}
 						onOnlyComplete={filters.setOnlyComplete}
 						resolvedBasket={derived.resolvedBasket}
-						onAdd={roundActions.add}
+						onAdd={addItem}
 						onQty={roundActions.setQty}
 						onRemove={roundActions.remove}
 						onClear={roundActions.clear}

@@ -30,13 +30,15 @@ export const ServiceDetails = () => {
 
 	return (
 		<Card
-			className="sr-glass sr-rise sr-scroll"
+			className="sr-glass sr-rise sr-scroll sr-panel"
 			padding="md"
 			style={{
 				position: "absolute",
 				top: 16,
 				right: 16,
-				width: 344,
+				// As in StatsPanel: the phone breakpoint supplies the width rather
+				// than fighting this inline value.
+				width: "var(--sr-details-w, 344px)",
 				maxWidth: "calc(100vw - 32px)",
 				maxHeight: "calc(100dvh - 180px)",
 				overflowY: "auto",

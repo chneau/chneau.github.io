@@ -126,7 +126,9 @@ const Stepper = ({
 			>
 				<Minus size={12} />
 			</ActionIcon>
-			<Text size="sm" fw={700} w={22} ta="center">
+			{/* The stepper's buttons carry their own labels, so the count itself is
+			    the only thing a screen reader hears change after a press. */}
+			<Text size="sm" fw={700} w={22} ta="center" aria-live="polite">
 				{qty}
 			</Text>
 			<ActionIcon
@@ -626,7 +628,14 @@ export const RoundCard = ({
 										flexShrink: 0,
 									}}
 								/>
-								<Text size="xs" c="dimmed" fw={700} tt="uppercase">
+								<Text
+									role="heading"
+									aria-level={2}
+									size="xs"
+									c="dimmed"
+									fw={700}
+									tt="uppercase"
+								>
 									Round
 								</Text>
 							</Group>
@@ -666,7 +675,7 @@ export const RoundCard = ({
 						))}
 						{basket.length ? null : (
 							<Text size="xs" c="dimmed">
-								Nothing yet - search below to build a round, or a single drink.
+								Nothing yet — search below to build a round, or a single drink.
 							</Text>
 						)}
 					</Stack>

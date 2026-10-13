@@ -33,7 +33,9 @@ import {
 	Brand,
 	CommandPaletteButton,
 	EmptyState,
+	ErrorState,
 	HeaderAction,
+	LoadingState,
 	prefersReducedMotion,
 	SchemeToggle,
 	Section,
@@ -543,11 +545,25 @@ export const IndicatorsSection = ({
 				colour and the "online" light looks like ordinary text. The audit panel
 				checks for exactly that collapse.
 			</Text>
-			<Stack gap={6}>
-				<Skeleton width="60%" />
-				<Skeleton width="40%" />
-				<Skeleton width="80%" height={10} />
-			</Stack>
+			<LoadingState label="Loading the indicator set">
+				<Stack gap={6}>
+					<Skeleton width="60%" />
+					<Skeleton width="40%" />
+					<Skeleton width="80%" height={10} />
+				</Stack>
+			</LoadingState>
+			<LoadingState label="Syncing in the background" hideLabel>
+				<Skeleton width="45%" height={10} />
+			</LoadingState>
+			<ErrorState
+				title="The feed did not answer"
+				body="Error states reuse the empty-state panel so a failure and an empty result read as the same kind of card — the difference is the assertive announcement."
+				action={
+					<Button variant="default" size="sm">
+						Retry
+					</Button>
+				}
+			/>
 			<EmptyState
 				icon={<Search size={20} />}
 				title="Nothing here yet"
@@ -727,11 +743,13 @@ export const PatternsSection = () => (
 				</Group>
 				<Badge variant="light">loading</Badge>
 			</Group>
-			<Stack gap={6}>
-				<Skeleton width="70%" />
-				<Skeleton width="90%" />
-				<Skeleton width="50%" />
-			</Stack>
+			<LoadingState label="Loading 3 applications">
+				<Stack gap={6}>
+					<Skeleton width="70%" />
+					<Skeleton width="90%" />
+					<Skeleton width="50%" />
+				</Stack>
+			</LoadingState>
 		</Card>
 		<EmptyState
 			icon={<Search size={20} />}

@@ -219,6 +219,17 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 							);
 						})}
 					</Box>
+					{/* A filtered list with no rows would otherwise be a silently empty
+					    listbox; `role="status"` announces the reason as the query
+					    narrows, which is the only feedback the visitor has. It sits
+					    outside the virtualised spacer so it is not clipped by it. */}
+					{filtered.length === 0 ? (
+						<Box px="sm" py={6}>
+							<Text size="xs" c="dimmed" role="status">
+								No drinks match “{query.trim()}”.
+							</Text>
+						</Box>
+					) : null}
 				</Box>
 				<Box
 					px="sm"
