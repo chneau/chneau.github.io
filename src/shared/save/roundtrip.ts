@@ -13,6 +13,7 @@
 import { type Bytes, bytesEqual, firstDifference } from "./bytes";
 import { describeError } from "./errors";
 import type { JsonValue } from "./json";
+import { isJsonObject } from "./json";
 
 export type RoundTripVerdict =
 	/** Re-encoding the untouched save reproduced it byte for byte. */
@@ -27,6 +28,39 @@ export type RoundTripVerdict =
 	| { readonly kind: "semantic" }
 	/** The rebuilt file does not decode back to the intended document. */
 	| { readonly kind: "failed"; readonly reason: string };
+
+/**
+ * `JSON.stringify` with every object's keys in sorted order, so two documents
+ * that carry the same keys and values compare equal however the codec happened
+ * to write them out.
+ *
+ * Key order is not part of a JSON document — a codec that emits a struct's
+ * fields alphabetically, or that rebuilds a node tree from an unordered map,
+ * decodes back to the document that was intended, and the verdict for that is
+ * `semantic`, not `failed`. Comparing the raw serialisations reported a
+ * correctly-rebuilt save as broken, which is the one answer this function must
+ * never give wrongly.
+ */
+const stableStringify = (value: JsonValue): string => {
+	if (Array.isArray(value)) {
+		return `[${value.map(stableStringify).join(",")}]`;
+	}
+	if (isJsonObject(value)) {
+		const parts: string[] = [];
+		for (const key of Object.keys(value).sort()) {
+			const child = value[key];
+			// An own key always reads back a value; the guard is what
+			// `noUncheckedIndexedAccess` demands, not a claim about the document.
+			if (child === undefined) continue;
+			parts.push(`${JSON.stringify(key)}:${stableStringify(child)}`);
+		}
+		const body = parts.join(",");
+		return `{${body}}`;
+	}
+	// A `JsonValue` scalar always stringifies; the `?? "null"` is only there
+	// because TypeScript cannot tell that from the type alone.
+	return JSON.stringify(value) ?? "null";
+};
 
 /**
  * Verifies a rebuilt file.
@@ -65,10 +99,10 @@ export const verifyRoundTrip = async (
 		};
 	}
 
-	if (JSON.stringify(reread) !== JSON.stringify(document)) {
+	if (stableStringify(reread) !== stableStringify(document)) {
 		const at = firstDifference(
-			new TextEncoder().encode(JSON.stringify(document)),
-			new TextEncoder().encode(JSON.stringify(reread)),
+			new TextEncoder().encode(stableStringify(document)),
+			new TextEncoder().encode(stableStringify(reread)),
 		);
 		return {
 			kind: "failed",

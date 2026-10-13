@@ -124,6 +124,17 @@ const asPathList = (
 	});
 };
 
+/**
+ * The array shapes a document declares, as `[path, extents]` pairs.
+ *
+ * `readDocument` emits each shape as a two-element tuple (`nodes.ts`) and
+ * `writeDocument` consumes exactly that, so this reads the tuple. It used to
+ * read an object `{ path, extents }` and take `path[0]` of what it treated as a
+ * list of paths — a shape this codec never writes. A save holding any
+ * multi-dimensional array therefore decoded fine and then failed to save back
+ * with "This save has no array shape", which is unrecoverable from the
+ * workbench: the payload is only reachable through this function.
+ */
 const asDimensionList = (
 	value: JsonValue | undefined,
 ): readonly (readonly [SavePath, readonly number[]])[] => {
@@ -132,16 +143,22 @@ const asDimensionList = (
 		throw new Error("This document's array shapes are not a list.");
 	}
 	return value.map((entry) => {
-		const pair = asObject(entry, "array shape");
-		const path = asPathList(pair.path, "array shapes");
-		const extents = pair.extents;
-		if (!Array.isArray(extents) || !path[0]) {
+		if (!Array.isArray(entry)) {
+			throw new Error(
+				"This document holds an array shape with no array shape.",
+			);
+		}
+		const [rawPath, extents] = entry;
+		// `asPathList` already validates one path per list entry, so the pair is
+		// handed over as a one-element list rather than re-deriving the rule.
+		const path = asPathList(
+			rawPath === undefined ? undefined : [rawPath],
+			"array shapes",
+		)[0];
+		if (!path || path.length === 0 || !Array.isArray(extents)) {
 			throw new Error("This document holds an array shape without a path.");
 		}
-		return [
-			path[0],
-			extents.map((extent) => asNumber(extent, "an array extent")),
-		];
+		return [path, extents.map((extent) => asNumber(extent, "an array extent"))];
 	});
 };
 
