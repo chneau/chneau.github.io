@@ -423,7 +423,7 @@ const Highlights = ({
 export const StatsPanel = () => {
 	// Throttled: the derived stats are heavy and do not need 60 fps fidelity.
 	const [snap, derivedSnap] = useThrottledSnapshots(railUiStores);
-	const { timeOffset, selectedCategory, searchQuery } = snap;
+	const { timeOffset, selectedCategory, searchQuery, selectedService } = snap;
 	const { activeTrains, filteredServices } = derivedSnap;
 
 	const [unit, setUnit] = useState<Unit>("metric");
@@ -443,6 +443,12 @@ export const StatsPanel = () => {
 	return (
 		<div
 			className="sr-panel sr-stats"
+			// At phone widths both panels are full-bleed and cannot share the
+			// screen; the inspector is the one the visitor opened by tapping a
+			// train, so it takes the slot and the HUD yields. Exposed as an
+			// attribute rather than conditional JSX so the phone rule lives in the
+			// one stylesheet that owns the breakpoint.
+			data-details-open={selectedService ? "true" : undefined}
 			style={{
 				position: "absolute",
 				// Read through a variable so the phone breakpoint can lift the
