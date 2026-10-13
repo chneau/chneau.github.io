@@ -9,8 +9,7 @@
  * equipment catalog the page holds, which is what tells an added item what it
  * is.
  *
- * Run with `bun test` (or `bun run check:test`, the same command with the
- * repository's parallel and timeout settings).
+ * Run with `bun test`.
  */
 
 import { describe, expect, test } from "bun:test";

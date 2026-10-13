@@ -27,7 +27,7 @@ import {
 	Users,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { Brand } from "../../shared";
+import { Brand, formatBytes } from "../../shared";
 import type { CompanionCategory } from "../lib/companions";
 import { companionLabels } from "../lib/companions";
 import {
@@ -36,11 +36,6 @@ import {
 	type SaveView,
 	storageName,
 } from "../lib/inventory";
-
-const formatBytes = (bytes: number): string => {
-	if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-	return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-};
 
 const storageIcon = (key: number): LucideIcon => {
 	if (key === 2) return Backpack;

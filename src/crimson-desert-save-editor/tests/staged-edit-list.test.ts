@@ -6,7 +6,7 @@
  * own entries, one progression change is in effect per download, and a
  * companion is staged only when the roster can take it.
  *
- * Run with `bun test` (or `bun run check:test`).
+ * Run with `bun test`.
  */
 
 import { describe, expect, test } from "bun:test";

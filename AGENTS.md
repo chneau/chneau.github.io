@@ -21,7 +21,7 @@ from a habit carried in from another repository, this file wins.
 | `bun run start:<app>`  | One app in isolation (`cv`, `birthday`, `design`, …)                                |
 | `bun run check`        | **The gate** — clean, Oxlint, Biome, unused exports, tsc                           |
 | `bun run check:fix`    | Formatters and linters only, no typecheck or tests                                  |
-| `bun run check:export` | `ts-unused-exports` — not part of `check`; run it when adding or removing an export |
+| `bun run check:export` | `ts-unused-exports` — runs as part of `bun run check`, last before the typecheck |
 | `bun x react-doctor`   | React correctness, a11y, performance and maintainability — the React gate           |
 | `bun run build`        | Production build of all environments into `dist/`                                   |
 | `bun run deploy`       | Build, then publish `dist/` to GitHub Pages                                         |

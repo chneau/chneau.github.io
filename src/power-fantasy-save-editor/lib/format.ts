@@ -102,12 +102,6 @@ const isTypedRecord = (value: JsonValue | undefined): value is TypedRecord =>
 /** The `{__type: "int", value: n}` record the game uses for every counter. */
 const intRecord = (value: number): JsonValue => ({ __type: "int", value });
 
-/**
- * A fresh IV, for the case where this codec is asked to write a save rather
- * than rebuild one — the same `randomBytes(16)` the original tool drew.
- */
-const randomIv = (): Bytes => crypto.getRandomValues(new Uint8Array(IV_BYTES));
-
 /** The 16 bytes that open every `.es3` file: IV and PBKDF2 salt in one. */
 export const headerIv = (bytes: Bytes): Bytes => {
 	if (bytes.length < MIN_FILE_BYTES) {
@@ -781,6 +775,13 @@ const summarise: (doc: JsonValue) => readonly SummaryRow[] = (doc) => {
  * and the cheats edit. It is written only after a save has decoded cleanly, and
  * `SaveWorkbench` decodes before it ever encodes, so by the time a rebuild runs
  * this holds the header of the file the user actually opened.
+ *
+ * `encode` refuses to run without one. It used to fall back to a fresh random
+ * IV, which is the wrong bytes to write from a codec whose whole promise is
+ * that an untouched save comes back byte for byte: a CBC stream under a new IV
+ * changes every block, and the round-trip the page then reports would be false.
+ * Nothing calls `encode` before `decode`, so the guard only ever turns a silent
+ * wrong file into a loud error.
  */
 let openedIv: Bytes | null = null;
 
@@ -813,7 +814,14 @@ export const powerFantasy: SaveCodec = {
 		openedIv = headerIv(bytes);
 		return doc;
 	},
-	encode: async (doc) => encryptSave(doc, openedIv ?? randomIv()),
+	encode: async (doc) => {
+		if (openedIv === null) {
+			throw new Error(
+				"This codec rebuilds a save it was given, so it has to decode one before it can encode: no initialisation vector has been read yet.",
+			);
+		}
+		return encryptSave(doc, openedIv);
+	},
 	summarise,
 	actions: [
 		cheat,

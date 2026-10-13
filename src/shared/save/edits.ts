@@ -13,10 +13,6 @@ import type { SaveEdit } from "./types";
 /**
  * Folds edits into a document, left to right, so two edits touching the same
  * path compose in the order the user staged them.
- */
-/**
- * Folds edits into a document, left to right, so two edits touching the same
- * path compose in the order the user staged them.
  *
  * `setAtPath` throws when a path does not resolve — a quick action aimed at a
  * field this save version does not carry, say. This runs inside a `useMemo`

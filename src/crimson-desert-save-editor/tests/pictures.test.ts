@@ -14,8 +14,7 @@
  * parses each part's central directory only, so nothing here inflates a picture
  * or looks at artwork bytes.
  *
- * Run with `bun test` (or `bun run check:test`, the same command with the
- * repository's parallel and timeout settings).
+ * Run with `bun test`.
  */
 
 import { describe, expect, test } from "bun:test";

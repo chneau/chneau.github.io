@@ -11,9 +11,10 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { lz4CompressBlock, lz4DecompressBlock } from "../../shared/save/lz4";
 import { describeInventory } from "../lib/save-engine/browser-equipment";
 import { describeCharacters } from "../lib/save-engine/characters";
-import { chacha20, lz4Compress, lz4Decompress } from "../lib/save-engine/codec";
+import { chacha20 } from "../lib/save-engine/codec";
 import { describeCompanions } from "../lib/save-engine/companions";
 import { decodeSave, encodeSave } from "../lib/save-engine/container";
 import { readInventory } from "../lib/save-engine/inventory-reader";
@@ -115,10 +116,15 @@ for (const [name, bytes] of [
 			saveKeyFor(decoded.header.version),
 		),
 	);
-	time(`lz4Decompress (${name})`, 20, () =>
-		lz4Decompress(decoded.compressedPayload, decoded.header.uncompressedSize),
+	time(`lz4DecompressBlock (${name})`, 20, () =>
+		lz4DecompressBlock(
+			decoded.compressedPayload,
+			decoded.header.uncompressedSize,
+		),
 	);
-	time(`lz4Compress (${name})`, 5, () => lz4Compress(decoded.rawPayload));
+	time(`lz4CompressBlock (${name})`, 5, () =>
+		lz4CompressBlock(decoded.rawPayload),
+	);
 	await timeAsync(`decodeSave (${name})`, 10, () => decodeSave(bytes));
 	await timeAsync(`encodeSave (${name})`, 5, () =>
 		encodeSave(decoded.rawPayload, decoded.header),
