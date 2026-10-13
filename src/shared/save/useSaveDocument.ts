@@ -103,7 +103,15 @@ export const useSaveDocument = (codec: SaveCodec): SaveDocument => {
 
 	const onSelectFile = useCallback(
 		(file: File) => {
-			void readFileBytes(file).then((source) => open(file.name, source));
+			void readFileBytes(file)
+				.then((source) => open(file.name, source))
+				.catch((cause) => {
+					setError(
+						cause instanceof Error
+							? cause.message
+							: "The file could not be read as this game's save.",
+					);
+				});
 		},
 		[open],
 	);

@@ -148,7 +148,7 @@ export const CategoryFilters = ({
 /** The service/station search box, with its own clear affordance. */
 export const ServiceSearch = ({ searchQuery }: { searchQuery: string }) => (
 	<TextInput
-		placeholder="Search service or station"
+		placeholder="Service or station"
 		aria-label="Search service or station"
 		value={searchQuery}
 		onChange={(e) => railActions.setSearchQuery(e.currentTarget.value)}

@@ -73,7 +73,7 @@ export const NoMatchBanner = ({
 					onClick={() => railActions.setSelectedCategory("all")}
 				/>
 			)}
-			<ClearButton label="Jump to nearest active time" onClick={() => {}} />
+
 		</div>
 	);
 };

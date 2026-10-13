@@ -36,6 +36,7 @@ export const AppToolbar = ({
 				if (event.key === "Escape") {
 					event.preventDefault();
 					onQueryChange("");
+					onCategoryChange("All");
 					event.currentTarget.blur();
 				} else if (event.key === "Enter" && filtered[0]) {
 					event.preventDefault();
