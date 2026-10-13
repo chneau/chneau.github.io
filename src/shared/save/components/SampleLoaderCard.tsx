@@ -10,9 +10,17 @@ import { Sparkles } from "lucide-react";
  * exactly as a picked file would be.
  */
 export const SampleLoaderCard = ({
+	loading = false,
 	note,
 	onLoad,
 }: {
+	/**
+	 * True while the sample is being fetched or decoded. The card has no error
+	 * channel of its own — `open` reports failures through the workbench's
+	 * status line — so the only thing it can honestly show is that the click
+	 * landed and the work is in flight.
+	 */
+	loading?: boolean;
 	note: string;
 	onLoad: () => void;
 }) => (
@@ -36,6 +44,8 @@ export const SampleLoaderCard = ({
 			</Box>
 			<Button
 				variant="light"
+				loading={loading}
+				disabled={loading}
 				leftSection={<Sparkles size={15} strokeWidth={2} />}
 				onClick={onLoad}
 			>

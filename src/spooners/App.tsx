@@ -1,5 +1,6 @@
 import { Box, Button, Skeleton, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import { useCallback, useMemo, useState } from "react";
 import {
 	EmptyState,
@@ -202,6 +203,25 @@ export const App = () => {
 		setView,
 	);
 
+	/*
+	 * Adding from a pub dialog closes nothing and changes nothing on screen —
+	 * the modal is dismissed and the round is off behind it — so the click used
+	 * to look inert. The notification is the acknowledgement, following the
+	 * "link copied" toast in `AppHeader`. Spooners has no locale bundle (its
+	 * copy is plain British English throughout), so neither does this.
+	 */
+	const addItem = useCallback(
+		(name: string) => {
+			roundActions.add(name);
+			notifications.show({
+				color: "teal",
+				message: `Added ${name} to the round`,
+				autoClose: 2000,
+			});
+		},
+		[roundActions],
+	);
+
 	const { openArea, selectArea } = useAreaSelection({
 		areaPoints: derived.areaPoints,
 		setAreaFilter,
@@ -359,7 +379,7 @@ export const App = () => {
 				cache={data}
 				format={derived.format}
 				onOnlyItem={roundActions.replace}
-				onAddItem={roundActions.add}
+				onAddItem={addItem}
 				valueOpen={valueOpen}
 				onValueClose={() => setValueOpen(false)}
 				settingsOpen={settingsOpen}

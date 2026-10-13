@@ -69,6 +69,24 @@ export const useDashboardShortcuts = ({
 				return;
 			}
 			if (event.key === "Enter") {
+				// Enter already means "activate this" when it is aimed at a
+				// control: a card link, a pin toggle, a chip, or a row in the
+				// app switcher / overflow menu. Swallowing it there both broke
+				// the control and recorded a visit to the first search result,
+				// which never opened — so the control keeps its own behaviour.
+				if (
+					target instanceof HTMLElement &&
+					target.closest(
+						"a[href], button, [role='menuitem'], [role='menuitemcheckbox']",
+					)
+				) {
+					return;
+				}
+				// Only take the key when there is something to open. `preventDefault`
+				// with no result left the keystroke doing nothing at all, which reads
+				// as a broken dashboard.
+				const first = filtered?.[0];
+				if (!first) return;
 				event.preventDefault();
 				openFirst();
 				return;
@@ -87,7 +105,11 @@ export const useDashboardShortcuts = ({
 				focusSearch();
 				return;
 			}
-			const targetApp = APPS.find((app) => app.hotkey === event.key);
+			const targetApp = APPS.find(
+				// Compare lowercased: `event.key` is capitalised when Shift or Caps
+				// Lock is held, and the six letter hotkeys would silently stop firing.
+				(app) => app.hotkey.toLowerCase() === event.key.toLowerCase(),
+			);
 			if (targetApp) {
 				handleVisit(targetApp.href);
 				window.location.href = targetApp.href;

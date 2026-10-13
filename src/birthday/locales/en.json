@@ -95,6 +95,9 @@
 			"subscribe": "Subscribe",
 			"copy": "Copy Link",
 			"copied": "Copied!",
+			"copy_failed": "Could not copy the link",
+			"google_blocked": "Your browser blocked the Google Calendar window. Allow pop-ups for this site.",
+			"exported_one": "Downloaded {{name}}.ics",
 			"exported": "Downloaded birthdays.ics",
 			"calendar_name": "Birthdays",
 			"ics_birthday": "{{name}}'s Birthday",
@@ -134,6 +137,8 @@
 			"notify_blocked": "Notifications are blocked in your browser settings",
 			"notify_simulated": "Birthday simulated",
 			"notify_test_sent": "Test notification sent",
+			"install_failed": "The install prompt is no longer available",
+			"install_dismissed": "Install dismissed",
 			"build": "Build {{date}}"
 		},
 		"countdown": {
@@ -324,6 +329,7 @@
 		"imported_other": "Imported {{count}} birthdays!",
 		"import_invalid": "Invalid JSON: expected an array of valid birthday records",
 		"import_parse_error": "Failed to parse JSON file",
+		"import_read_error": "Could not read the file",
 		"import_title_one": "Replace all birthdays with {{count}} imported entry?",
 		"import_title_other": "Replace all birthdays with {{count}} imported entries?",
 		"import_confirm": "Replace",

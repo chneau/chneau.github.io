@@ -95,6 +95,9 @@
 			"subscribe": "Tāpa’o",
 			"copy": "Tāpiti i te tū’ati",
 			"copied": "Ua tāpitihia !",
+			"copy_failed": "Ua tāpiti te tū’ati",
+			"google_blocked": "Ua tapoko te pūnā i te matapito Google Calendar. E hāRua i nā matapito pop-up i runga i tēnei pae.",
+			"exported_one": "Ua hoʻokuina ʻo {{name}}.ics",
 			"exported": "Ua hoʻokuina ʻo birthdays.ics",
 			"calendar_name": "Nā hō mālie",
 			"ics_birthday": "Te hō mālie o {{name}}",
@@ -134,6 +137,8 @@
 			"notify_blocked": "Ua parahi te parau i nga tauira te hurihuri",
 			"notify_simulated": "Ua fa’ahō’ē te tiara",
 			"notify_test_sent": "Ua hapa te parau o te",
+			"install_failed": "Ua pau te pāpai hoʻono Tāmi",
+			"install_dismissed": "Ua hanaoi ka Tāmi",
 			"build": "I tiku i te {{date}}"
 		},
 		"countdown": {
@@ -324,6 +329,7 @@
 		"imported_other": "Ua import i {{count}} fānaura'a !",
 		"import_invalid": "JSON te noho: ua rapohia te auta o nga parahi fānaura'a tika",
 		"import_parse_error": "Ua fa'aau i te failu JSON",
+		"import_read_error": "Ua tāpe‘a te failu",
 		"import_title_one": "E pau i nga fānaura'a katoa i {{count}} parahi i kenei i importa?",
 		"import_title_other": "E pau i nga fānaura'a katoa i {{count}} parahi i kenei i importa?",
 		"import_confirm": "Pau",

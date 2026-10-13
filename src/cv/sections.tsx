@@ -562,6 +562,12 @@ export const BackToTop = ({ heroInView }: { heroInView: boolean }) => (
 		type="button"
 		className="cv-top no-print"
 		data-visible={!heroInView}
+		// Hidden state is `opacity: 0` + `pointer-events: none`, which leaves
+		// the button in the tab order and in the accessibility tree: Tab at the
+		// top of the page landed on a control nobody can see. Take it out of
+		// both while it is invisible.
+		aria-hidden={heroInView}
+		tabIndex={heroInView ? -1 : 0}
 		onClick={() =>
 			window.scrollTo({
 				top: 0,

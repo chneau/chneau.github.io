@@ -95,6 +95,9 @@
 			"subscribe": "S'abonner",
 			"copy": "Copier Lien",
 			"copied": "Copié !",
+			"copy_failed": "Impossible de copier le lien",
+			"google_blocked": "Votre navigateur a bloqué la fenêtre Google Agenda. Autorisez les fenêtres contextuelles pour ce site.",
+			"exported_one": "{{name}}.ics téléchargé",
 			"exported": "birthdays.ics téléchargé",
 			"calendar_name": "Anniversaires",
 			"ics_birthday": "Anniversaire de {{name}}",
@@ -134,6 +137,8 @@
 			"notify_blocked": "Les notifications sont bloquées dans les paramètres du navigateur",
 			"notify_simulated": "Anniversaire simulé",
 			"notify_test_sent": "Notification de test envoyée",
+			"install_failed": "L’invite d’installation n’est plus disponible",
+			"install_dismissed": "Installation refusée",
 			"build": "Version {{date}}"
 		},
 		"countdown": {
@@ -324,6 +329,7 @@
 		"imported_other": "{{count}} anniversaires importés !",
 		"import_invalid": "JSON invalide : un tableau d'enregistrements d'anniversaire valides est attendu",
 		"import_parse_error": "Échec de l'analyse du fichier JSON",
+		"import_read_error": "Impossible de lire le fichier",
 		"import_title_one": "Remplacer tous les anniversaires par {{count}} entrée importée ?",
 		"import_title_other": "Remplacer tous les anniversaires par {{count}} entrées importées ?",
 		"import_confirm": "Remplacer",

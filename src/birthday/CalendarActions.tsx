@@ -103,6 +103,10 @@ export const CalendarActions = () => {
 			buildIcs([record], summaryFor, record.name),
 			icsFileName(record.name),
 		);
+		// Same confirmation as the whole-calendar export: `downloadText` gives
+		// the browser a file and nothing comes back to prove it arrived, so the
+		// only honest signal is telling the user we handed it over.
+		notify.success(t("app.calendar.exported_one", { name: record.name }));
 	};
 
 	const subscribeICS = () => {
@@ -116,7 +120,13 @@ export const CalendarActions = () => {
 		const googleUrl = `https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(
 			hostedIcsUrl(window.location.origin),
 		)}`;
-		window.open(googleUrl, "_blank", "noopener");
+		// `window.open` returns null when a popup blocker refuses the window,
+		// which is the usual outcome here because the click arrives through a
+		// menu item. Saying nothing leaves the user staring at a menu that did
+		// nothing, so the refusal is reported rather than swallowed.
+		if (window.open(googleUrl, "_blank", "noopener") === null) {
+			notify.warning(t("app.calendar.google_blocked"));
+		}
 	};
 
 	type MenuEntry =
@@ -160,11 +170,19 @@ export const CalendarActions = () => {
 			key: "copy",
 			label: t("app.calendar.copy"),
 			icon: <LinkIcon size={14} />,
-			onClick: () => {
-				void navigator.clipboard.writeText(
-					hostedIcsUrl(window.location.origin),
-				);
-				notify.success(t("app.calendar.copied"));
+			onClick: async () => {
+				// `writeText` rejects when the document is not focused or the
+				// clipboard permission is refused, and a rejected promise is
+				// silent: the toast that follows would otherwise claim a copy
+				// that never happened. Await it, so the toast matches reality.
+				try {
+					await navigator.clipboard.writeText(
+						hostedIcsUrl(window.location.origin),
+					);
+					notify.success(t("app.calendar.copied"));
+				} catch {
+					notify.error(t("app.calendar.copy_failed"));
+				}
 			},
 		},
 	];

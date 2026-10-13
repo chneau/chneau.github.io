@@ -95,6 +95,9 @@
 			"subscribe": "Abonnieren",
 			"copy": "Link kopieren",
 			"copied": "Kopiert!",
+			"copy_failed": "Der Link konnte nicht kopiert werden",
+			"google_blocked": "Ihr Browser hat das Google-Calendar-Fenster blockiert. Erlauben Sie Pop-ups für diese Website.",
+			"exported_one": "{{name}}.ics heruntergeladen",
 			"exported": "birthdays.ics heruntergeladen",
 			"calendar_name": "Geburtstage",
 			"ics_birthday": "Geburtstag von {{name}}",
@@ -134,6 +137,8 @@
 			"notify_blocked": "Benachrichtigungen sind in den Browser-Einstellungen blockiert",
 			"notify_simulated": "Geburtstag simuliert",
 			"notify_test_sent": "Test-Benachrichtigung gesendet",
+			"install_failed": "Die Installationsaufforderung ist nicht mehr verfügbar",
+			"install_dismissed": "Installation abgebrochen",
 			"build": "Version {{date}}"
 		},
 		"countdown": {
@@ -324,6 +329,7 @@
 		"imported_other": "{{count}} Geburtstage importiert!",
 		"import_invalid": "Ungültiges JSON: erwartet wurde ein Array gültiger Geburtstagseinträge",
 		"import_parse_error": "JSON-Datei konnte nicht gelesen werden",
+		"import_read_error": "Die Datei konnte nicht gelesen werden",
 		"import_title_one": "Alle Geburtstage durch {{count}} importierten Eintrag ersetzen?",
 		"import_title_other": "Alle Geburtstage durch {{count}} importierte Einträge ersetzen?",
 		"import_confirm": "Ersetzen",
