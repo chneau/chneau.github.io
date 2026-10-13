@@ -283,7 +283,7 @@ export const App = () => {
 							category={category}
 							onCategoryChange={setCategory}
 							filtered={filtered}
-							onOpen={handleVisit}
+							onOpen={openApp}
 							onRandom={openRandom}
 						/>
 

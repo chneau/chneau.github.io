@@ -50,7 +50,14 @@ export const useDataset = (): DatasetState => {
 				}
 			} catch (error) {
 				if (!cancelled) {
-					setState({ data: null, error: String(error), loading: false });
+					// `String(error)` renders `Error: Could not load the data (HTTP 404)`, which
+					// puts a stack-shaped sentence in front of a visitor. Take the
+					// message when there is one and keep the fallback for the rest.
+					setState({
+						data: null,
+						error: error instanceof Error ? error.message : String(error),
+						loading: false,
+					});
 				}
 			}
 		};

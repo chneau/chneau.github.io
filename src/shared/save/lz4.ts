@@ -249,8 +249,10 @@ export const lz4CompressBlock = (data: Uint8Array): Uint8Array => {
 		end += length;
 	};
 
-	// `size - 12` leaves the block-format tail alone; `size >= 13` keeps a
-	// 4-byte candidate readable.
+	// `size - 12` keeps a match from *starting* in the reserved tail; the
+	// extension bound below keeps it from *reaching* the last five bytes,
+	// which the format requires to be literals. Verified against the block
+	// walk: every output ends with a literal run and no trailing match.
 	while (size >= 13 && cursor <= size - 12) {
 		const sequence = wordAt(cursor);
 		const slot = slotOf(sequence);

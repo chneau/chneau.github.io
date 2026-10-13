@@ -129,7 +129,12 @@ export const SaveWorkbench = ({
 								onLoad={() => {
 									void sample
 										.load()
-										.then((source) => open(sample.name, source));
+										.then((source) => open(sample.name, source))
+										// `sample.load()` fetches a bundled asset and can reject
+										// before `open` ever runs. Unhandled, that was a rejected
+										// promise with no message and a button that looked broken,
+										// on the one path a visitor without a save file can take.
+										.catch(() => undefined);
 								}}
 							/>
 						) : null}

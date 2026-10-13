@@ -24,7 +24,14 @@ import {
 } from "../shared";
 import { DOCX_URL, PDF_URL } from "./content";
 import { useHeroVisibility } from "./hero-visibility";
-import { BackToTop, Body, FooterLinks, HeaderActions, Hero } from "./sections";
+import {
+	BackToTop,
+	Body,
+	copyToClipboard,
+	FooterLinks,
+	HeaderActions,
+	Hero,
+} from "./sections";
 import { CV_THEME_KEY } from "./theme";
 
 declare const BUILD_DATE: string;
@@ -129,11 +136,11 @@ export const App = () => {
 			keywords: "cv url share link",
 			icon: <Copy size={16} />,
 			run: async () => {
-				// `writeText` rejects when the document is not focused or the
-				// permission is refused, and the palette swallows the promise —
-				// so the outcome is reported rather than assumed.
+				// The shared helper, not `navigator.clipboard` directly: it carries
+				// the insecure-context fallback the hero button uses, so both copy
+				// affordances on this page give the same answer.
 				try {
-					await navigator.clipboard.writeText(window.location.href);
+					await copyToClipboard(window.location.href);
 					notifications.show({
 						color: "teal",
 						title: "Link copied",

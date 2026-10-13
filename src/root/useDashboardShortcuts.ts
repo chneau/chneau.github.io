@@ -63,6 +63,12 @@ export const useDashboardShortcuts = ({
 			if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) {
 				return;
 			}
+			// Shift is filtered for single characters only, so `Shift+Q` is a
+			// capital Q and not the hotkey — Caps Lock still works, because the
+			// match below folds case. Shift *is* still honoured for `?`.
+			if (event.shiftKey && event.key.length === 1) return;
+			// A control that handled the key itself keeps it.
+			if (event.defaultPrevented) return;
 			if (dialogsAreOpen()) return;
 			const target = event.target;
 			if (
@@ -88,9 +94,10 @@ export const useDashboardShortcuts = ({
 				}
 				// Only take the key when there is something to open. `preventDefault`
 				// with no result left the keystroke doing nothing at all, which reads
-				// as a broken dashboard.
-				const first = filtered?.[0];
-				if (!first) return;
+				// as a broken dashboard. Read through the effect event: this listener
+				// is registered once, so the prop would be whatever it was when the
+				// effect last ran.
+				if (!firstFiltered()) return;
 				event.preventDefault();
 				openFirst();
 				return;
