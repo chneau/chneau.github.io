@@ -187,4 +187,12 @@ a:focus-visible,
 	.sr-stats {
 		--sr-panel-top: 148px;
 	}
+
+	/* Two full-bleed panels cannot both fit. The inspector is the one the
+	 * visitor opened by tapping a train, so it takes the screen and the
+	 * collapsible HUD yields until they dismiss it — `ServiceDetails` returns
+	 * null with nothing selected, so the attribute clears itself. */
+	.sr-stats[data-details-open="true"] {
+		display: none;
+	}
 }
