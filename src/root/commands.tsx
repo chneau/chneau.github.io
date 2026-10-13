@@ -78,7 +78,7 @@ export const createCommands = ({
 	if (recents.length > 0) {
 		commands.push({
 			id: "clear-recents",
-			label: "Clear recently opened",
+			label: "Clear recently opened (no undo)",
 			keywords: "history reset recents",
 			icon: <X size={16} />,
 			run: clearRecents,

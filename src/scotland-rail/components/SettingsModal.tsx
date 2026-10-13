@@ -75,7 +75,7 @@ const NETWORK_SETTINGS: SettingRow[] = [
 	{
 		key: "cameraFollowTrain",
 		icon: <Crosshair size={15} />,
-		label: "Cab ride",
+		label: "Camera follows train",
 		hint: "Keeps the camera centred on the train you inspect",
 	},
 	{

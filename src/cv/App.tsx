@@ -1,5 +1,5 @@
 import { type MantineColorsTuple, MantineProvider } from "@mantine/core";
-import { FileText, FileType, Keyboard, Moon, Sun } from "lucide-react";
+import { Copy, FileText, FileType, Keyboard, Moon, Printer, Sun } from "lucide-react";
 import { useEffect } from "react";
 import {
 	AppNav,
@@ -105,6 +105,22 @@ export const App = () => {
 			icon: <FileType size={16} />,
 			run: () => window.open(DOCX_URL, "_blank", "noopener,noreferrer"),
 		},
+		{
+			id: "print-save-pdf",
+			label: "Print or save as PDF",
+			hint: "Export",
+			keywords: "cv resume print pdf",
+			icon: <Printer size={16} />,
+			run: () => window.print(),
+		},
+		{
+			id: "copy-cv-link",
+			label: "Copy CV link",
+			hint: "Share",
+			keywords: "cv url share link",
+			icon: <Copy size={16} />,
+			run: () => navigator.clipboard.writeText(window.location.href),
+		},
 	];
 
 	return (
@@ -135,6 +151,7 @@ export const App = () => {
 							title: "Page",
 							shortcuts: [
 								{ keys: ["Esc"], description: "Return to the dashboard" },
+								{ keys: ["Ctrl", "P"], description: "Print or save as PDF" },
 							],
 						},
 					]}

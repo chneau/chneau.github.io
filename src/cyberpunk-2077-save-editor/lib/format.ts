@@ -89,6 +89,9 @@ const KEY_VERSION = "version";
 const KEY_TREE = "tree";
 const KEY_CHARACTER = "character";
 
+/** The non-enumerable property on `version` carrying the node tree. */
+const KEY_TREE_BYTES = "__nodeTree";
+
 /**
  * The container's node names the reference implementation searches for.
  *
@@ -403,9 +406,6 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 	};
 };
 
-/** The non-enumerable property on `version` carrying the node tree. */
-const KEY_TREE_BYTES = "__nodeTree";
-
 /**
  * The document back to bytes.
  *
@@ -439,11 +439,6 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 	if (!isSaveNode(remembered)) {
 		throw new Error(
 			"This save cannot be rebuilt: the node tree behind this document is not readable.",
-		);
-	}
-	if (remembered === undefined) {
-		throw new Error(
-			"This save cannot be rebuilt: this document has no node tree behind it. Open the save from the file again.",
 		);
 	}
 

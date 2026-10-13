@@ -194,7 +194,7 @@ const JobItem = ({ job }: { job: Job }) => (
 			</span>
 		</div>
 		<div className="cv-job-org">
-			<a href={job.orgHref} target="_blank" rel="noreferrer">
+			<a href={job.orgHref} target="_blank" rel="noopener noreferrer">
 				{job.org}
 				<ArrowUpRight className="cv-ext" aria-hidden />
 				<NewTabHint />
@@ -257,7 +257,7 @@ export const Hero = ({ heroRef }: { heroRef: HeroVisibility["heroRef"] }) => (
 					className="cv-status-item"
 					href="https://maps.google.com/?q=Edinburgh,+UK"
 					target="_blank"
-					rel="noreferrer"
+					rel="noopener noreferrer"
 				>
 					<span className="cv-status-dot" aria-hidden />
 					Edinburgh, United Kingdom
@@ -272,11 +272,13 @@ export const Hero = ({ heroRef }: { heroRef: HeroVisibility["heroRef"] }) => (
 		</div>
 
 		<div className="cv-hero-downloads no-print">
-			<a href={PDF_URL} target="_blank" rel="noreferrer">
+			<a href={PDF_URL} target="_blank" rel="noopener noreferrer">
 				Download PDF
+				<NewTabHint />
 			</a>
-			<a href={DOCX_URL} target="_blank" rel="noreferrer">
+			<a href={DOCX_URL} target="_blank" rel="noopener noreferrer">
 				Download DOCX
+				<NewTabHint />
 			</a>
 		</div>
 
@@ -301,7 +303,7 @@ const Expertise = () => (
 								className="cv-tag"
 								href={skillSearchUrl(item)}
 								target="_blank"
-								rel="noreferrer"
+								rel="noopener noreferrer"
 								title={`Search "${item}" projects on GitHub`}
 							>
 								{item}
@@ -335,7 +337,7 @@ const EducationItem = ({
 			<span className="cv-edu-years">{years}</span>
 		</div>
 		<p className="cv-edu-school">
-			<a href={href} target="_blank" rel="noreferrer">
+			<a href={href} target="_blank" rel="noopener noreferrer">
 				{school}
 				<ArrowUpRight className="cv-ext" aria-hidden />
 				<NewTabHint />
@@ -415,7 +417,7 @@ const Publication = () => (
 				className="cv-paper-title"
 				href="https://ieeexplore.ieee.org/document/8477967"
 				target="_blank"
-				rel="noreferrer"
+				rel="noopener noreferrer"
 				title="View on IEEE Xplore"
 			>
 				An Analysis of Indirect Optimisation Strategies for Scheduling
@@ -525,17 +527,17 @@ export const HeaderActions = () => {
 export const FooterLinks = () => (
 	<>
 		<a href="/">Dashboard</a>
-		<a href={PDF_URL} target="_blank" rel="noreferrer">
+		<a href={PDF_URL} target="_blank" rel="noopener noreferrer">
 			Download PDF
 		</a>
-		<a href={DOCX_URL} target="_blank" rel="noreferrer">
+		<a href={DOCX_URL} target="_blank" rel="noopener noreferrer">
 			Download DOCX
 		</a>
-		<a href="https://github.com/chneau" target="_blank" rel="noreferrer">
+		<a href="https://github.com/chneau" target="_blank" rel="noopener noreferrer">
 			<GithubMark />
 			GitHub
 		</a>
-		<a href="https://linkedin.com/in/chneau" target="_blank" rel="noreferrer">
+		<a href="https://linkedin.com/in/chneau" target="_blank" rel="noopener noreferrer">
 			<LinkedinMark />
 			LinkedIn
 		</a>

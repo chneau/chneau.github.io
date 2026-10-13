@@ -22,19 +22,24 @@ export const CopyableCode = ({
 	label: string;
 }) => {
 	const [copied, setCopied] = useState(false);
+	const [failed, setFailed] = useState(false);
 
 	useEffect(() => {
-		if (!copied) return;
-		const timeout = window.setTimeout(() => setCopied(false), 1400);
+		if (!copied && !failed) return;
+		const timeout = window.setTimeout(() => {
+			setCopied(false);
+			setFailed(false);
+		}, 1400);
 		return () => window.clearTimeout(timeout);
-	}, [copied]);
+	}, [copied, failed]);
 
 	const copy = async () => {
 		try {
 			await navigator.clipboard.writeText(value);
 			setCopied(true);
+			setFailed(false);
 		} catch {
-			// Clipboard access can be denied; leave the label unchanged.
+			setFailed(true);
 		}
 	};
 
@@ -48,7 +53,7 @@ export const CopyableCode = ({
 				<Code>{value}</Code>
 			</UnstyledButton>
 			<Text span size="xs" fw={600} c="brand" aria-live="polite">
-				{copied ? "Copied" : ""}
+				{copied ? "Copied" : failed ? "Couldn't copy" : ""}
 			</Text>
 		</Group>
 	);
