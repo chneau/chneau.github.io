@@ -1,5 +1,13 @@
 import { type MantineColorsTuple, MantineProvider } from "@mantine/core";
-import { Copy, FileText, FileType, Keyboard, Moon, Printer, Sun } from "lucide-react";
+import {
+	Copy,
+	FileText,
+	FileType,
+	Keyboard,
+	Moon,
+	Printer,
+	Sun,
+} from "lucide-react";
 import { useEffect } from "react";
 import {
 	AppNav,

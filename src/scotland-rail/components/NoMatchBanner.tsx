@@ -73,7 +73,6 @@ export const NoMatchBanner = ({
 					onClick={() => railActions.setSelectedCategory("all")}
 				/>
 			)}
-
 		</div>
 	);
 };

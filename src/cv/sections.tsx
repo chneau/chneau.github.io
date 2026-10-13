@@ -533,11 +533,19 @@ export const FooterLinks = () => (
 		<a href={DOCX_URL} target="_blank" rel="noopener noreferrer">
 			Download DOCX
 		</a>
-		<a href="https://github.com/chneau" target="_blank" rel="noopener noreferrer">
+		<a
+			href="https://github.com/chneau"
+			target="_blank"
+			rel="noopener noreferrer"
+		>
 			<GithubMark />
 			GitHub
 		</a>
-		<a href="https://linkedin.com/in/chneau" target="_blank" rel="noopener noreferrer">
+		<a
+			href="https://linkedin.com/in/chneau"
+			target="_blank"
+			rel="noopener noreferrer"
+		>
 			<LinkedinMark />
 			LinkedIn
 		</a>

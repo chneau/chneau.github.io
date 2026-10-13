@@ -196,7 +196,14 @@ export const App = () => {
 	}, [handleVisit]);
 
 	const dialogsOpen = shortcuts.opened || palette.opened;
-	useDashboardShortcuts({ handleVisit, searchRef, theme, dialogsOpen });
+	useDashboardShortcuts({
+		handleVisit,
+		searchRef,
+		theme,
+		dialogsOpen,
+		filtered,
+		onOpen: handleVisit,
+	});
 
 	const commands = createCommands({
 		searchRef,
