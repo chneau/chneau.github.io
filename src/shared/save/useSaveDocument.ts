@@ -14,11 +14,11 @@
  */
 
 import { notifications } from "@mantine/notifications";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Bytes } from "./bytes";
-import { applyEdits, pathKey, stageEdits, withoutPath } from "./edits";
+import { applyEditsSafely, pathKey, stageEdits, withoutPath } from "./edits";
 import { downloadBytes, readFileBytes, rebuiltName } from "./file";
-import type { JsonValue } from "./json";
+import { formatPath, type JsonValue } from "./json";
 import { yieldToBrowser } from "./macrotask";
 import {
 	describeVerdict,
@@ -158,10 +158,32 @@ export const useSaveDocument = (codec: SaveCodec): SaveDocument => {
 	// Computed during render rather than stored: the working document is a
 	// function of the loaded save and the staged edits, and keeping it derived
 	// is what stops a render reading a document a previous render changed.
-	const working = useMemo(
-		() => (doc === null ? null : applyEdits(doc, edits)),
+	// `applyEdits` reports rather than throws: see the note there for what an
+	// unresolvable path used to cost. `unapplicable` is the edits that could not
+	// be folded in, surfaced so the workbench can tell the user which staged
+	// edit to revert instead of silently writing a save missing it.
+	const { doc: working, failed: unapplicable } = useMemo(
+		() =>
+			doc === null ? { doc: null, failed: [] } : applyEditsSafely(doc, edits),
 		[doc, edits],
 	);
+
+	// An edit this save cannot carry is skipped rather than thrown, but it must
+	// not be silent: a save written without it is a save the user did not ask
+	// for. One notification per set of unapplicable paths, so a re-render of
+	// the same staged edits does not repeat it.
+	const warnedRef = useRef<string>("");
+	useEffect(() => {
+		const names = unapplicable.map((edit) => formatPath(edit.path)).join(", ");
+		if (names === warnedRef.current) return;
+		warnedRef.current = names;
+		if (names === "") return;
+		notifications.show({
+			color: "red",
+			title: "One change could not be applied",
+			message: `This save does not carry ${names}, so that change was left out. Revert it in the staged list, or open a save from a version that has it.`,
+		});
+	}, [unapplicable]);
 
 	/**
 	 * Which paths have a staged edit, keyed by `pathKey` and not by `formatPath`.

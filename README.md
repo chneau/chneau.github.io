@@ -85,7 +85,8 @@ A 100% client-side, privacy-focused save editor for _Crimson Desert_.
 
 ### 5. 💾 [Save Editors](https://chneau.github.io/#main)
 
-Seven client-side save editors, one per game. Each is a decoder written for that
+Eight client-side save editors, one per game (the table below is the
+authoritative list). Each is a decoder written for that
 format and nothing else: your file is parsed in the tab, changes are staged
 rather than applied, and a rebuilt file is decoded again and compared against
 what you asked for before it is handed over. A rebuild that does not read back
@@ -235,14 +236,14 @@ bun run start:witcher-3-save-editor
 
 ```bash
 bun test         # The whole suite (~1450 tests). Not run by `bun run check` — nothing runs it for you.
-bun run check    # Oxlint, Biome, unused-export check, and tsc. Rewrites files.
+bun run check    # `rm -rf dist out build`, then Oxlint, Biome, unused-export check and tsc. Rewrites files.
 ```
 
 ### Production Build & Deployment
 
 ```bash
 bun run build    # Builds every environment into dist/ (one per APP_META row)
-bun run deploy   # Builds and publishes to GitHub Pages (master branch)
+bun run deploy   # Builds, then publishes dist/ to the master branch — that is the PUBLISHING branch. The source of record is src, so the two are expected to differ.
 ```
 
 ---

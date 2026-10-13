@@ -54,7 +54,12 @@ const readCache = (): RateTable | null => {
 			return null;
 		}
 		return table;
-	} catch {
+	} catch (err) {
+		// Reaching for `localStorage` throws outright in a sandboxed iframe or
+		// under a strict cookie policy, and `getItem` throws when storage is
+		// blocked. Both mean "no cache", not "broken cache" — the app refetches
+		// on every mount and the user never learns why, so say so once.
+		console.error("Spooners: could not read the cached rate table", err);
 		return null;
 	}
 };
@@ -82,8 +87,14 @@ export const useRates = () => {
 			setTable(next);
 			try {
 				window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-			} catch {
-				/* storage full / disabled - rates still work for this session */
+			} catch (err) {
+				// Rates still work for this session; only the cache is lost, and the
+				// next visit pays for it. Worth a line, since the failure is otherwise
+				// invisible and indistinguishable from a first run.
+				console.warn(
+					"Spooners: could not cache the rate table; rates work for this session only",
+					err,
+				);
 			}
 		} catch (err) {
 			setError(String(err));
@@ -161,7 +172,10 @@ export const convert = (
 		const pair = `${from}->${to}`;
 		if (!warned.has(pair)) {
 			warned.add(pair);
-			console.error(`Spooners: no exchange rate for ${pair}, price left as-is`);
+			console.warn(
+				`Spooners: no exchange rate for ${pair}, price left as-is; ` +
+					"call canConvertTo before converting",
+			);
 		}
 		return amount;
 	}

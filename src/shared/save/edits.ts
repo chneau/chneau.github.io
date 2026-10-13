@@ -14,14 +14,47 @@ import type { SaveEdit } from "./types";
  * Folds edits into a document, left to right, so two edits touching the same
  * path compose in the order the user staged them.
  */
+/**
+ * Folds edits into a document, left to right, so two edits touching the same
+ * path compose in the order the user staged them.
+ *
+ * `setAtPath` throws when a path does not resolve — a quick action aimed at a
+ * field this save version does not carry, say. This runs inside a `useMemo`
+ * during render, so an uncaught throw there unmounts the whole editor with the
+ * offending edit still staged and no route back: the only recovery was a page
+ * reload. The edit is therefore skipped and reported, so the editor stays up,
+ * the remaining edits still apply, and `applyEditsSafely`'s caller can name the
+ * path the user has to revert.
+ */
 export const applyEdits = (
 	doc: JsonValue,
 	edits: readonly SaveEdit[],
-): JsonValue =>
-	edits.reduce((current, edit) => {
+): JsonValue => applyEditsSafely(doc, edits).doc;
+
+/** The document plus any edit that could not be applied to it. */
+type ApplyEditsResult = {
+	doc: JsonValue;
+	/** The edits that `applyEdits` would have thrown on, in staging order. */
+	failed: readonly SaveEdit[];
+};
+
+/** `applyEdits`, reporting rather than throwing. See `applyEdits`. */
+export const applyEditsSafely = (
+	doc: JsonValue,
+	edits: readonly SaveEdit[],
+): ApplyEditsResult => {
+	const failed: SaveEdit[] = [];
+	const next = edits.reduce((current, edit) => {
 		if (edit.path.length === 0) return edit.after;
-		return setAtPath(current, edit.path, edit.after);
+		try {
+			return setAtPath(current, edit.path, edit.after);
+		} catch {
+			failed.push(edit);
+			return current;
+		}
 	}, doc);
+	return { doc: next, failed };
+};
 
 /**
  * The document as it stands with `edits` applied — computed, not stored, so a

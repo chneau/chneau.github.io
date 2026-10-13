@@ -382,16 +382,20 @@ const drawRain = (
 	ctx.strokeStyle = "rgba(180, 215, 240, 0.18)";
 	ctx.lineWidth = 1;
 	const timeSec = performance.now() / 1000;
+	// One path, one stroke: each drop was its own `beginPath`/`stroke` pair,
+	// 45 times per frame. The pixels are identical — a stroke draws every
+	// subpath in the path — so this is the same picture for one-tenth the
+	// canvas calls.
+	ctx.beginPath();
 	for (let i = 0; i < 45; i++) {
 		const seedX = (Math.sin(i * 12.9898) * 43758.5453) % 1;
 		const seedY = (Math.cos(i * 78.233) * 43758.5453) % 1;
 		const rx = (seedX * width + timeSec * 60) % width;
 		const ry = (seedY * height + timeSec * 140) % height;
-		ctx.beginPath();
 		ctx.moveTo(rx, ry);
 		ctx.lineTo(rx - 3, ry + 10);
-		ctx.stroke();
 	}
+	ctx.stroke();
 	ctx.restore();
 };
 

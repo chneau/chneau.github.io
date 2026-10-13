@@ -217,7 +217,13 @@ Mantine.
 - A new app means: its environment in `rsbuild.config.ts`, `start:<name>` and
   `build:<name>` scripts, an entry under `src/<name>/`, an `AppEntry` in
   `src/shared/apps.tsx` (which also drives the hotkeys, search, palette and
-  404), its tests, and a README section.
+  404), its six-file `public/icons/<slug>-*` set (`.svg`, `-32`, `-192`,
+  `-512`, `-maskable-512`, `-maskable.svg`, named from the `APP_META` slug —
+  `manifests.test.ts` asserts all six exist and no script generates them), its
+  tests, and a README section.
+- **Two branches, deliberately different.** `src` is the source of record;
+  `master` is the *publishing* branch, holding `dist/` because `deploy` writes
+  it there. `git push origin HEAD:master` is always rejected — push to `src`.
 - **`src/shared/`** holds the design system: `tokens.css`, the theme factory,
   header, app switcher, footer, command palette, `AppCard`, `EmptyState`,
   `Stat`, `SkipLink`, `SchemeToggle`, the shortcut reference, plus
