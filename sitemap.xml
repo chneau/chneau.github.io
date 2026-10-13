@@ -26,6 +26,16 @@
 		<priority>0.7</priority>
 	</url>
 	<url>
+		<loc>https://chneau.github.io/spooners/</loc>
+		<changefreq>weekly</changefreq>
+		<priority>0.7</priority>
+	</url>
+	<url>
+		<loc>https://chneau.github.io/tails-of-iron-2-save-editor/</loc>
+		<changefreq>monthly</changefreq>
+		<priority>0.7</priority>
+	</url>
+	<url>
 		<loc>https://chneau.github.io/power-fantasy-save-editor/</loc>
 		<changefreq>monthly</changefreq>
 		<priority>0.7</priority>
@@ -51,13 +61,8 @@
 		<priority>0.7</priority>
 	</url>
 	<url>
-		<loc>https://chneau.github.io/tails-of-iron-2-save-editor/</loc>
+		<loc>https://chneau.github.io/witcher-3-save-editor/</loc>
 		<changefreq>monthly</changefreq>
-		<priority>0.7</priority>
-	</url>
-	<url>
-		<loc>https://chneau.github.io/spooners/</loc>
-		<changefreq>weekly</changefreq>
 		<priority>0.7</priority>
 	</url>
 	<url>
