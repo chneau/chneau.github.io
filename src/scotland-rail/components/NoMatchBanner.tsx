@@ -28,6 +28,12 @@ export const NoMatchBanner = ({
 	return (
 		<div
 			className="sr-glass sr-rise"
+			// The banner is the only thing on screen distinguishing "filtered to
+			// nothing" from "broken", and it appears when a filter changes — with no
+			// announcement, a screen-reader user gets silence instead of a recovery
+			// route. Its buttons are already in the tab order; this announces them.
+			role="status"
+			aria-live="polite"
 			style={{
 				position: "absolute",
 				top: 16,

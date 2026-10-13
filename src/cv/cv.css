@@ -786,6 +786,40 @@ a:hover .cv-ext {
 
 /* --------------------------------------------------------------- back top -- */
 
+/* The hero's primary actions. Above the fold there was no labelled way to
+   reach the downloads: the only affordances were icon buttons in the header
+   and a link list at the bottom of the page. */
+.cv-hero-downloads {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px;
+	margin-top: 18px;
+}
+
+.cv-hero-downloads a {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 8px 15px;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--surface) 86%, transparent);
+	color: var(--text);
+	font-size: 0.875rem;
+	font-weight: 600;
+	text-decoration: none;
+	transition:
+		color var(--speed) var(--ease),
+		border-color var(--speed) var(--ease),
+		background var(--speed) var(--ease);
+}
+
+.cv-hero-downloads a:hover {
+	color: var(--accent);
+	border-color: var(--accent);
+}
+
 .cv-top {
 	position: fixed;
 	right: 22px;
@@ -794,10 +828,15 @@ a:hover .cv-ext {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 42px;
+	/* Auto width, not a fixed circle: the button carries a visible "Top" label,
+	   and a 42x42 round would clip it on every screen. The label is dropped
+	   below the width the pill stops being worth the space. */
+	min-width: 42px;
 	height: 42px;
+	gap: 6px;
+	padding: 0 12px;
 	border: 1px solid var(--border);
-	border-radius: 50%;
+	border-radius: 999px;
 	background: color-mix(in srgb, var(--surface) 86%, transparent);
 	backdrop-filter: blur(10px);
 	-webkit-backdrop-filter: blur(10px);
@@ -817,6 +856,26 @@ a:hover .cv-ext {
 .cv-top svg {
 	width: 17px;
 	height: 17px;
+	flex: 0 0 auto;
+}
+
+.cv-top-label {
+	font-size: 0.8125rem;
+	font-weight: 600;
+	line-height: 1;
+	letter-spacing: 0.01em;
+}
+
+/* Narrow viewports keep the icon-only circle; the label never wraps or
+   collides with the fixed right edge. */
+@media (max-width: 640px) {
+	.cv-top {
+		width: 42px;
+		padding: 0;
+	}
+	.cv-top-label {
+		display: none;
+	}
 }
 
 .cv-top[data-visible="true"] {

@@ -47,7 +47,14 @@ const NewTabHint = () => <span className="sr-only">(opens in new tab)</span>;
 
 type CopyState = "idle" | "ok" | "error";
 
-const copyToClipboard = async (text: string): Promise<void> => {
+/**
+ * Copy with the insecure-context fallback.
+ *
+ * Exported because the command palette copies the page URL too, and it used
+ * `navigator.clipboard` directly: over plain HTTP the hero button succeeded
+ * (via `execCommand`) while the palette reported a failure, on the same page.
+ */
+export const copyToClipboard = async (text: string): Promise<void> => {
 	if (navigator.clipboard) {
 		await navigator.clipboard.writeText(text);
 		return;

@@ -168,9 +168,12 @@ export const App = () => {
 		},
 	];
 
+	// `searchQuery.trim()`, not `!== ""`: `NoMatchBanner` decides "has a search"
+	// the same way (and the store treats whitespace as no filter), so a restored
+	// `?q=%20` used to render the banner with neither of its recovery buttons.
 	const showNoMatch =
 		activeTrains.length === 0 &&
-		(searchQuery !== "" || selectedCategory !== "all");
+		(searchQuery.trim().length > 0 || selectedCategory !== "all");
 
 	return (
 		<Box

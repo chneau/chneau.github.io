@@ -638,11 +638,11 @@ export const RoundCard = ({
 							size="compact-xs"
 							variant="subtle"
 							color="red"
-							onClick={() => {
-								if (window.confirm("Clear the round?")) {
-									onClear();
-								}
-							}}
+							// No confirmation dialog: `appState` already writes an undo entry for a
+							// clear, and the `UndoBanner` below this button restores it. A
+							// blocking native `confirm` asked twice for one action, and
+							// only here — the sidebar's clear path has never asked at all.
+							onClick={onClear}
 						>
 							Clear
 						</Button>

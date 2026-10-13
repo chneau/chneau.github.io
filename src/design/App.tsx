@@ -229,7 +229,12 @@ export const App = () => {
 			) {
 				return;
 			}
-			const target = APPS.find((app) => app.hotkey === event.key);
+			// Folded, matching the dashboard: `event.key` is capitalised when Shift or
+			// Caps Lock is held, and a case-sensitive compare silently killed the
+			// letter hotkeys on exactly those keyboards.
+			const target = APPS.find(
+				(app) => app.hotkey.toLowerCase() === event.key.toLowerCase(),
+			);
 			if (target) {
 				window.location.href = target.href;
 			} else if (event.key.toLowerCase() === "t") {
