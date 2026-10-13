@@ -1,4 +1,4 @@
-import { Button, CloseButton, TextInput } from "@mantine/core";
+import { Button, CloseButton, Text, TextInput } from "@mantine/core";
 import { Search, Shuffle } from "lucide-react";
 import type { RefObject } from "react";
 import { APP_CATEGORIES, type AppEntry } from "../shared";
@@ -40,7 +40,6 @@ export const AppToolbar = ({
 				} else if (event.key === "Enter" && filtered[0]) {
 					event.preventDefault();
 					onOpen(filtered[0].href);
-					window.location.href = filtered[0].href;
 				}
 			}}
 			placeholder="Search apps, tags and categories…"
@@ -60,6 +59,9 @@ export const AppToolbar = ({
 			rightSectionPointerEvents={query ? "auto" : "none"}
 			size="md"
 		/>
+		<Text size="xs" c="dimmed" mt={4}>
+			Press / to focus
+		</Text>
 		{/* biome-ignore lint/a11y/useSemanticElements: a labelled group of toggle buttons is a valid role="group" composition */}
 		<div className="app-chips" role="group" aria-label="Filter by category">
 			<button
@@ -86,7 +88,6 @@ export const AppToolbar = ({
 			variant="light"
 			leftSection={<Shuffle size={15} />}
 			onClick={onRandom}
-			visibleFrom="sm"
 		>
 			Surprise me
 		</Button>

@@ -91,7 +91,7 @@ export const MapNavControls = ({
 		className="sr-glass"
 		style={{
 			position: "absolute",
-			bottom: 96,
+			top: 80,
 			right: 20,
 			zIndex: 15,
 			display: "flex",

@@ -1,4 +1,4 @@
-import { Button } from "@mantine/core";
+import { Button, Text } from "@mantine/core";
 import { Search } from "lucide-react";
 import type { ReactNode } from "react";
 import { APPS, type AppEntry, EmptyState } from "../shared";
@@ -127,6 +127,11 @@ export const AppLists = ({
 				visitedAt={visitedAt}
 				onTogglePin={onTogglePin}
 			/>
+			{pinned.length === 0 && recent.length === 0 ? (
+				<Text size="sm" c="var(--app-text-muted)" mt="sm">
+					Try Surprise me, or pin anything with the pin on each card.
+				</Text>
+			) : null}
 		</Section>
 	</>
 );

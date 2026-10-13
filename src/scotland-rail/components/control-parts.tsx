@@ -163,7 +163,7 @@ export const ServiceSearch = ({ searchQuery }: { searchQuery: string }) => (
 				/>
 			) : null
 		}
-		style={{ width: 200 }}
+		style={{ minWidth: 0, flex: 1 }}
 		styles={{
 			input: {
 				background: "var(--app-surface-2)",
@@ -275,9 +275,9 @@ export const PlaybackControls = ({
 				aria-label="Playback speed"
 				size="xs"
 				allowDeselect={false}
-				style={{ width: 116 }}
+				style={{ minWidth: 0, flex: 1 }}
 				data={[
-					{ value: "0.5", label: "0.5x (30s/s)" },
+					{ value: "0.5", label: "0.5x (half speed)" },
 					{ value: "1", label: "1x (1m/s)" },
 					{ value: "2", label: "2x (2m/s)" },
 					{ value: "5", label: "5x (5m/s)" },

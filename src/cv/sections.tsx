@@ -111,8 +111,13 @@ const CopyButton = ({ text, label }: { text: string; label: string }) => {
 
 	return (
 		<>
-			<span className="cv-copy-feedback" role="status" data-state={state}>
-				{feedback}
+			<span
+				className="cv-copy-feedback"
+				role="status"
+				aria-live="polite"
+				data-state={state}
+			>
+				{feedback || (state === "ok" ? "Copied" : "")}
 			</span>
 			<button
 				type="button"
@@ -264,6 +269,15 @@ export const Hero = ({ heroRef }: { heroRef: HeroVisibility["heroRef"] }) => (
 					<LocalClock />
 				</span>
 			</div>
+		</div>
+
+		<div className="cv-hero-downloads no-print">
+			<a href={PDF_URL} target="_blank" rel="noreferrer">
+				Download PDF
+			</a>
+			<a href={DOCX_URL} target="_blank" rel="noreferrer">
+				Download DOCX
+			</a>
 		</div>
 
 		<ContactList />
@@ -473,9 +487,10 @@ export const HeaderActions = () => {
 				<span
 					className="cv-copy-feedback cv-copy-feedback--header"
 					role="status"
+					aria-live="polite"
 					data-state={linkCopy.state}
 				>
-					{linkCopy.feedback}
+					{linkCopy.feedback || (linkCopy.state === "ok" ? "Copied" : "")}
 				</span>
 			) : null}
 			<HeaderAction
@@ -485,7 +500,7 @@ export const HeaderActions = () => {
 				label="View or download the raw PDF from GitHub"
 				icon={<FileText size={15} />}
 			>
-				PDF
+				Download PDF
 			</HeaderAction>
 			<HeaderAction
 				href={DOCX_URL}
@@ -493,7 +508,7 @@ export const HeaderActions = () => {
 				label="View or download the raw DOCX from GitHub"
 				icon={<FileType size={15} />}
 			>
-				DOCX
+				Download DOCX
 			</HeaderAction>
 			<HeaderAction
 				iconOnly
@@ -547,5 +562,6 @@ export const BackToTop = ({ heroInView }: { heroInView: boolean }) => (
 		aria-label="Back to top"
 	>
 		<ArrowUp aria-hidden />
+		<span className="cv-top-label">Top</span>
 	</button>
 );
