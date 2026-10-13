@@ -5,8 +5,7 @@
  * by re-reading the output rather than by comparing golden bytes: the container
  * is re-encrypted on write, so the plaintext is the only meaningful contract.
  *
- * Run with `bun test` (or `bun run check:test`, the same command with the
- * repository's parallel and timeout settings).
+ * Run with `bun test`.
  */
 
 import { describe, expect, test } from "bun:test";

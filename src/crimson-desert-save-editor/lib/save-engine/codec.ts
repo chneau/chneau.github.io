@@ -1,8 +1,8 @@
 /**
- * TypeScript port of `public/save-codec.mjs`: ChaCha20 and raw LZ4.
- *
- * The byte-level behaviour (including the conservative safety checks) matches
- * the original JavaScript implementation so existing saves decode identically.
+ * ChaCha20 for the Crimson Desert container, ported byte-for-byte from the
+ * original JavaScript implementation (including its conservative behaviour) so
+ * existing saves decode identically. The raw LZ4 block codec is shared and
+ * imported from `src/shared/save/lz4.ts`.
  * SPDX-License-Identifier: MPL-2.0
  */
 
@@ -223,197 +223,12 @@ export const chacha20 = (
 	return output;
 };
 
-/** Below this many bytes a literal copy is cheaper as a loop than as a view
- * plus `set`; measured crossover on real save data is ~100-128 bytes. */
-const LITERAL_LOOP_LIMIT = 128;
-
-/** Below this many bytes a match copy is cheaper as a loop than as one
- * `copyWithin` call — `copyWithin` takes indices and allocates nothing, so its
- * crossover (~24 bytes) is far lower than the literal copy's. */
-const MATCH_COPY_LIMIT = 24;
-
-/**
- * Copies `length` bytes of literals from `source[start]` into `target[at]`.
- *
- * `target.set(source.subarray(...))` allocates a typed-array view per call, and
- * LZ4 literal runs are overwhelmingly tiny: in a real save 39% of the runs are
- * zero bytes and 49% are a single byte. At those lengths the view costs far
- * more than the copy. Measured crossover is around 128 bytes — a byte loop is
- * 39x faster at one byte and still ahead at 64, while a native memcpy wins
- * above ~100 — so the loop is used below the crossover and `set` above it.
+/*
+ * The raw LZ4 block codec used to be a second copy here, beside the one the
+ * other editors share (`src/shared/save/lz4.ts`). A differential run over 207
+ * inputs — the empty block, incompressible noise, a repeating run and 200
+ * pseudo-random buffers — showed the two compressors byte-identical and each
+ * decompressor able to read the other's output, so the copy is gone: the
+ * container imports the shared implementation, and ChaCha20 below is the only
+ * thing unique to this format. Fixes to the LZ4 safety checks now land once.
  */
-const copyLiterals = (
-	source: Uint8Array,
-	start: number,
-	length: number,
-	target: Uint8Array,
-	at: number,
-): void => {
-	if (length <= 0) return;
-	if (length < LITERAL_LOOP_LIMIT) {
-		for (let index = 0; index < length; index++) {
-			target[at + index] = source[start + index] ?? 0;
-		}
-		return;
-	}
-	target.set(source.subarray(start, start + length), at);
-};
-
-export const lz4Decompress = (
-	data: Uint8Array,
-	expectedSize: number,
-): Uint8Array => {
-	if (!Number.isSafeInteger(expectedSize) || expectedSize < 0) {
-		throw new Error("Invalid LZ4 output size");
-	}
-	// Each length-extension byte adds at most 255 bytes. Reject impossible
-	// declared sizes before allocating from the unauthenticated header field.
-	if (expectedSize > data.length * 255) {
-		throw new Error("LZ4 declared size exceeds possible output");
-	}
-	const output = new Uint8Array(expectedSize);
-	let cursor = 0;
-	let end = 0;
-	// The token loop is inlined (no per-token closure call): this runs once per
-	// sequence across multi-megabyte payloads.
-	while (cursor < data.length) {
-		const token = data[cursor++] ?? 0;
-		let literals = token >>> 4;
-		if (literals === 15) {
-			let extra: number;
-			do {
-				if (cursor >= data.length) throw new Error("Truncated LZ4 length");
-				extra = data[cursor++] ?? 0;
-				literals += extra;
-			} while (extra === 255);
-		}
-		if (cursor + literals > data.length) {
-			throw new Error("LZ4 literal sequence exceeds input");
-		}
-		if (end + literals > expectedSize) {
-			throw new Error("LZ4 output exceeds declared size");
-		}
-		copyLiterals(data, cursor, literals, output, end);
-		cursor += literals;
-		end += literals;
-		if (cursor === data.length) break;
-		if (cursor + 2 > data.length) {
-			throw new Error("Truncated LZ4 match offset");
-		}
-		const offset = (data[cursor] ?? 0) | ((data[cursor + 1] ?? 0) << 8);
-		cursor += 2;
-		if (!offset || offset > end) {
-			throw new Error("Invalid LZ4 match offset");
-		}
-		let match = (token & 15) + 4;
-		if ((token & 15) === 15) {
-			let extra: number;
-			do {
-				if (cursor >= data.length) throw new Error("Truncated LZ4 length");
-				extra = data[cursor++] ?? 0;
-				match += extra;
-			} while (extra === 255);
-		}
-		if (end + match > expectedSize) {
-			throw new Error("LZ4 output exceeds declared size");
-		}
-		// Short matches dominate — 94% of sequences copy 4-32 bytes — and at those
-		// lengths the copyWithin call itself costs more than the bytes it moves
-		// (measured crossover ~24 bytes). A forward byte loop is cheaper there and
-		// is exactly the semantics LZ4 requires for overlapping matches, because
-		// it runs left to right. Longer non-overlapping matches are one memmove.
-		// Longer overlapping ones replicate the pattern by copying at most
-		// `offset` bytes per call, always from `offset` bytes behind the cursor:
-		// that source is either pre-existing or was written by an earlier chunk
-		// of this match, so the phase can never drift (a larger, "doubling"
-		// chunk would read unwritten bytes — attempted and reverted).
-		if (match < MATCH_COPY_LIMIT) {
-			for (let index = 0; index < match; index++) {
-				output[end + index] = output[end - offset + index] ?? 0;
-			}
-		} else if (match <= offset) {
-			output.copyWithin(end, end - offset, end - offset + match);
-		} else {
-			let copied = 0;
-			while (copied < match) {
-				const chunk = Math.min(offset, match - copied);
-				output.copyWithin(
-					end + copied,
-					end - offset + copied,
-					end - offset + copied + chunk,
-				);
-				copied += chunk;
-			}
-		}
-		end += match;
-	}
-	if (end !== expectedSize) {
-		throw new Error(`LZ4 decoded ${end} bytes; expected ${expectedSize}`);
-	}
-	return output;
-};
-
-export const lz4Compress = (data: Uint8Array): Uint8Array => {
-	const size = data.length;
-	const output = new Uint8Array(size + Math.floor(size / 255) + 16);
-	let end = 0;
-	let anchor = 0;
-	let cursor = 0;
-	// A flat hash table (Fibonacci hashing over the 4-byte sequence) instead of
-	// a `Map<number, number>`: same single-candidate match search, but typed-
-	// array reads are an order of magnitude faster for multi-megabyte inputs.
-	// Collisions are harmless: the 4-byte match is verified before extending.
-	const HASH_BITS = 18;
-	const table = new Int32Array(1 << HASH_BITS).fill(-1);
-	const hashOf = (sequence: number): number =>
-		Math.imul(sequence, 0x9e3779b1) >>> (32 - HASH_BITS);
-	const appendLength = (value: number): void => {
-		let remaining = value;
-		while (remaining >= 255) {
-			output[end++] = 255;
-			remaining -= 255;
-		}
-		output[end++] = remaining;
-	};
-	while (size >= 13 && cursor <= size - 12) {
-		const sequence = readU32(data, cursor);
-		const slot = hashOf(sequence);
-		const reference = table[slot] ?? -1;
-		table[slot] = cursor;
-		if (
-			reference < 0 ||
-			cursor - reference > 65535 ||
-			readU32(data, reference) !== sequence
-		) {
-			cursor++;
-			continue;
-		}
-		let matchEnd = cursor + 4;
-		let referenceEnd = reference + 4;
-		while (matchEnd < size - 5 && data[matchEnd] === data[referenceEnd]) {
-			matchEnd++;
-			referenceEnd++;
-		}
-		const literals = cursor - anchor;
-		const match = matchEnd - cursor;
-		output[end++] = (Math.min(literals, 15) << 4) | Math.min(match - 4, 15);
-		if (literals >= 15) appendLength(literals - 15);
-		copyLiterals(data, anchor, literals, output, end);
-		end += literals;
-		const offset = cursor - reference;
-		output[end++] = offset & 255;
-		output[end++] = offset >>> 8;
-		if (match - 4 >= 15) appendLength(match - 4 - 15);
-		cursor = matchEnd;
-		anchor = cursor;
-		for (let index = Math.max(0, cursor - 3); index < cursor; index++) {
-			if (index + 4 <= size) table[hashOf(readU32(data, index))] = index;
-		}
-	}
-	const literals = size - anchor;
-	output[end++] = Math.min(literals, 15) << 4;
-	if (literals >= 15) appendLength(literals - 15);
-	copyLiterals(data, anchor, literals, output, end);
-	end += literals;
-	return output.slice(0, end);
-};

@@ -7,8 +7,7 @@
  * applies, so a staged addition cannot fail at the download because the picker
  * and the applier disagreed.
  *
- * Run with `bun test` (or `bun run check:test`, the same command with the
- * repository's parallel and timeout settings).
+ * Run with `bun test`.
  */
 
 import { describe, expect, test } from "bun:test";

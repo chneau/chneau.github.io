@@ -6,8 +6,7 @@
  * of dropping it silently; these tests pin that the two views of the same
  * payload agree and that a healthy save withholds nothing.
  *
- * Run with `bun test` (or `bun run check:test`, the same command with the
- * repository's parallel and timeout settings).
+ * Run with `bun test`.
  */
 
 import { describe, expect, test } from "bun:test";

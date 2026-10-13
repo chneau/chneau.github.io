@@ -6,13 +6,13 @@
  * Fuzzing shows the codec is robust; these tests freeze that behaviour so a
  * future optimization cannot turn a throw into a silent misread.
  *
- * Run with `bun test` (or `bun run check:test`, the same command with the
- * repository's parallel and timeout settings).
+ * Run with `bun test`.
  */
 
 import { describe, expect, test } from "bun:test";
+import { lz4CompressBlock, lz4DecompressBlock } from "../../shared/save/lz4";
 import { bytesEqual, writeU16, writeU32 } from "../lib/save-engine/bytes";
-import { chacha20, lz4Compress, lz4Decompress } from "../lib/save-engine/codec";
+import { chacha20 } from "../lib/save-engine/codec";
 import { decodeSave, encodeSave } from "../lib/save-engine/container";
 import { fixture, opened } from "./fixtures";
 
@@ -45,41 +45,41 @@ const containerOf = (version: number, payloadSize: number): Uint8Array => {
 
 describe("given malformed LZ4", () => {
 	test("a truncated length extension throws", () => {
-		expect(() => lz4Decompress(new Uint8Array([0xf0]), 100)).toThrow(
+		expect(() => lz4DecompressBlock(new Uint8Array([0xf0]), 100)).toThrow(
 			/Truncated LZ4 length/,
 		);
 	});
 
 	test("a match offset past the output throws", () => {
-		expect(() => lz4Decompress(new Uint8Array([0x00, 0x01, 0x00]), 4)).toThrow(
-			/Invalid LZ4 match offset/,
-		);
+		expect(() =>
+			lz4DecompressBlock(new Uint8Array([0x00, 0x01, 0x00]), 4),
+		).toThrow(/outside the output written so far/);
 	});
 
 	test("literals beyond the declared size throw", () => {
-		expect(() => lz4Decompress(new Uint8Array([0x40, 1, 2, 3, 4]), 2)).toThrow(
-			/exceeds declared size/,
-		);
+		expect(() =>
+			lz4DecompressBlock(new Uint8Array([0x40, 1, 2, 3, 4]), 2),
+		).toThrow(/past the size it declared/);
 	});
 
 	test("an impossible declared size is rejected before allocating", () => {
-		expect(() => lz4Decompress(new Uint8Array(4), 4 * 255 + 1)).toThrow(
-			/declared size exceeds/,
+		expect(() => lz4DecompressBlock(new Uint8Array(4), 4 * 255 + 1)).toThrow(
+			/more output than it can hold/,
 		);
 	});
 
 	test("a negative or fractional declared size throws", () => {
-		expect(() => lz4Decompress(new Uint8Array(4), -1)).toThrow(
-			/Invalid LZ4 output size/,
+		expect(() => lz4DecompressBlock(new Uint8Array(4), -1)).toThrow(
+			/impossible size/,
 		);
-		expect(() => lz4Decompress(new Uint8Array(4), 1.5)).toThrow(
-			/Invalid LZ4 output size/,
+		expect(() => lz4DecompressBlock(new Uint8Array(4), 1.5)).toThrow(
+			/impossible size/,
 		);
 	});
 
 	test("a stream that decodes to the wrong length throws", () => {
-		expect(() => lz4Decompress(new Uint8Array([0x00]), 5)).toThrow(
-			/decoded 0 bytes/,
+		expect(() => lz4DecompressBlock(new Uint8Array([0x00]), 5)).toThrow(
+			/inflated to 0 bytes/,
 		);
 	});
 });
@@ -98,8 +98,10 @@ describe("given the LZ4 codec", () => {
 			pseudoRandom(4096, 1),
 		];
 		for (const input of inputs) {
-			const packed = lz4Compress(input);
-			expect(bytesEqual(lz4Decompress(packed, input.length), input)).toBe(true);
+			const packed = lz4CompressBlock(input);
+			expect(bytesEqual(lz4DecompressBlock(packed, input.length), input)).toBe(
+				true,
+			);
 		}
 	});
 });

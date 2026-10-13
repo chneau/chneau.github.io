@@ -14,6 +14,12 @@
  * environments from it, `apps.tsx` maps it to dashboard entries, and
  * `_genManifests.ts` writes the manifest JSON from it.
  *
+ * `public/sitemap.xml` is a fourth restatement, and it had drifted the
+ * same way: thirteen `<url>` entries for fourteen apps, with
+ * `witcher-3-save-editor` in `APP_META` and shipping, but absent from the
+ * file. Each row now carries its crawl hints, so the sitemap is written
+ * from the table too and an app cannot go missing from it again.
+ *
  * PLAIN DATA ONLY — this module is imported by `rsbuild.config.ts`, which runs
  * in a Node/bundler context. It must not import React, `lucide-react` or any
  * CSS, and it must stay free of side effects.
@@ -88,6 +94,21 @@ export type AppMeta = {
 	jsonLd: AppJsonLd[];
 	/** Extra copies on top of the app's own `manifest.json`. */
 	copies: AppCopy[];
+	/**
+	 * The app's `public/sitemap.xml` entry: the crawl hints for its
+	 * canonical URL.
+	 *
+	 * These used to live in the sitemap alone, which is exactly how the file
+	 * lost an app — which is why they belong on the row the generator reads.
+	 * `changefreq` is the sitemaps.org verbatim; `priority` is serialised
+	 * to the one decimal the format writes (`1` becomes `1.0`).
+	 */
+	sitemap: {
+		/** How often the page is expected to change. */
+		changefreq: string;
+		/** The page's importance relative to the site's other pages. */
+		priority: number;
+	};
 	/** Dashboard-facing fields, mirrored by the app cards and the hotkeys. */
 	dashboard: {
 		title: string;
@@ -137,6 +158,7 @@ export const APP_META = [
 		alternateLocales: [],
 		jsonLd: ["website", "person"],
 		copies: [],
+		sitemap: { changefreq: "weekly", priority: 1 },
 		dashboard: {
 			title: "Dashboard",
 			tag: "Hub",
@@ -164,6 +186,7 @@ export const APP_META = [
 		alternateLocales: [],
 		jsonLd: ["person"],
 		copies: [],
+		sitemap: { changefreq: "monthly", priority: 0.9 },
 		dashboard: {
 			title: "Curriculum Vitae",
 			tag: "Senior Full-Stack & Systems",
@@ -192,6 +215,7 @@ export const APP_META = [
 		alternateLocales: ["de_DE", "es_ES", "fr_FR", "gd_GB", "ty_PF", "zh_CN"],
 		jsonLd: [],
 		copies: [],
+		sitemap: { changefreq: "monthly", priority: 0.7 },
 		dashboard: {
 			title: "Birthday Tracker",
 			tag: "Tracker",
@@ -220,6 +244,7 @@ export const APP_META = [
 		alternateLocales: [],
 		jsonLd: [],
 		copies: [],
+		sitemap: { changefreq: "monthly", priority: 0.7 },
 		dashboard: {
 			title: "A Day in Scottish Rail",
 			tag: "24h Replay",
@@ -254,6 +279,7 @@ export const APP_META = [
 				to: "image-archive",
 			},
 		],
+		sitemap: { changefreq: "monthly", priority: 0.7 },
 		dashboard: {
 			title: "Crimson Desert Save Editor",
 			tag: "100% Client-Side",
@@ -287,6 +313,7 @@ export const APP_META = [
 				to: "data.json",
 			},
 		],
+		sitemap: { changefreq: "weekly", priority: 0.7 },
 		dashboard: {
 			title: "Spooners",
 			tag: "Price map",
@@ -315,6 +342,7 @@ export const APP_META = [
 		alternateLocales: [],
 		jsonLd: [],
 		copies: [],
+		sitemap: { changefreq: "monthly", priority: 0.7 },
 		dashboard: {
 			title: "Tails of Iron 2 Save Editor",
 			tag: "XOR 0x81",
@@ -343,6 +371,7 @@ export const APP_META = [
 		alternateLocales: [],
 		jsonLd: [],
 		copies: [],
+		sitemap: { changefreq: "monthly", priority: 0.7 },
 		dashboard: {
 			title: "Power Fantasy Save Editor",
 			tag: "AES-128-CBC",
@@ -371,6 +400,7 @@ export const APP_META = [
 		alternateLocales: [],
 		jsonLd: [],
 		copies: [],
+		sitemap: { changefreq: "monthly", priority: 0.7 },
 		dashboard: {
 			title: "No Rest for the Wicked Save Editor",
 			tag: "CERIMAL",
@@ -399,6 +429,7 @@ export const APP_META = [
 		alternateLocales: [],
 		jsonLd: [],
 		copies: [],
+		sitemap: { changefreq: "monthly", priority: 0.7 },
 		dashboard: {
 			title: "DYSMANTLE Save Editor",
 			tag: "zlib + XML",
@@ -427,6 +458,7 @@ export const APP_META = [
 		alternateLocales: [],
 		jsonLd: [],
 		copies: [],
+		sitemap: { changefreq: "monthly", priority: 0.7 },
 		dashboard: {
 			title: "Cyberpunk 2077 Save Editor",
 			tag: "VASC + LZ4",
@@ -455,6 +487,7 @@ export const APP_META = [
 		alternateLocales: [],
 		jsonLd: [],
 		copies: [],
+		sitemap: { changefreq: "monthly", priority: 0.7 },
 		dashboard: {
 			title: "Deadly Days Roadtrip Save Editor",
 			tag: "GVAS (UE5)",
@@ -487,6 +520,7 @@ export const APP_META = [
 		alternateLocales: [],
 		jsonLd: [],
 		copies: [],
+		sitemap: { changefreq: "monthly", priority: 0.7 },
 		dashboard: {
 			title: "Witcher 3 Save Editor",
 			tag: "SNFH + SAV3",
@@ -515,6 +549,7 @@ export const APP_META = [
 		alternateLocales: [],
 		jsonLd: [],
 		copies: [],
+		sitemap: { changefreq: "yearly", priority: 0.3 },
 		dashboard: {
 			title: "Design System",
 			tag: "Style guide",

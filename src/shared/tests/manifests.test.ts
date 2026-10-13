@@ -1,17 +1,18 @@
 /**
- * The committed `manifests/*.json` are generated, so the guard is that they
- * still equal the generator's output byte for byte. This is the same shape as
- * `src/birthday/tests/ics.test.ts`: the generator is pure and side-effect free
- * when imported, and the test reads the files that are actually shipped.
+ * The committed `manifests/*.json` and `public/sitemap.xml` are generated, so
+ * the guard is that they still equal the generator's output byte for byte.
+ * This is the same shape as `src/birthday/tests/ics.test.ts`: the generator is
+ * pure and side-effect free when imported, and the test reads the files that
+ * are actually shipped.
  *
  * `_genManifests.ts` writes its output only under `import.meta.main`, so
- * importing `manifestJson` here never touches the tree.
+ * importing `manifestJson` and `sitemapXml` here never touches the tree.
  */
 
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { manifestJson } from "../_genManifests";
+import { manifestJson, sitemapXml } from "../_genManifests";
 import { APP_META } from "../app-meta";
 
 const MANIFEST_DIR = fileURLToPath(
@@ -21,6 +22,13 @@ const MANIFEST_DIR = fileURLToPath(
 const ICON_DIR = fileURLToPath(
 	new URL("../../../public/icons/", import.meta.url),
 );
+
+const SITEMAP_FILE = fileURLToPath(
+	new URL("../../../public/sitemap.xml", import.meta.url),
+);
+
+/** The origin every `<loc>` is built on; `rsbuild.config.ts` knows it too. */
+const SITE_URL = "https://chneau.github.io";
 
 const readManifest = (slug: string): string =>
 	readFileSync(`${MANIFEST_DIR}${slug}.json`, "utf8");
@@ -82,5 +90,44 @@ describe("manifests/*.json", () => {
 		}
 
 		expect(missing).toEqual([]);
+	});
+});
+
+/**
+ * The sitemap used to be hand-maintained, and it had quietly lost an app:
+ * thirteen `<loc>` entries for fourteen `APP_META` rows, with
+ * `witcher-3-save-editor` in neither. Byte equality with the generator is the
+ * guard; the count and the per-app blocks are what make the shape of that
+ * failure legible when a row is added and the file is not regenerated.
+ */
+describe("public/sitemap.xml", () => {
+	const sitemap = readFileSync(SITEMAP_FILE, "utf8");
+
+	test("the committed file is exactly the generator's output", () => {
+		expect(sitemap).toBe(sitemapXml());
+	});
+
+	test("there is one <loc> per app and none the table does not declare", () => {
+		const locs = sitemap.match(/<loc>[^<]*<\/loc>/g) ?? [];
+		expect(locs.length).toBe(APP_META.length);
+		expect([...locs].sort()).toEqual(
+			APP_META.map((meta) => `<loc>${SITE_URL}${meta.path}</loc>`).sort(),
+		);
+	});
+
+	test("each url block carries that app's changefreq and priority", () => {
+		// The values come from `APP_META`, so a reworded hint or a retargeted
+		// `<loc>` would be undone by the next generation; pin the whole block,
+		// `changefreq` before `<priority>`, at the one decimal the format writes.
+		for (const meta of APP_META) {
+			const block = [
+				"\t<url>",
+				`\t\t<loc>${SITE_URL}${meta.path}</loc>`,
+				`\t\t<changefreq>${meta.sitemap.changefreq}</changefreq>`,
+				`\t\t<priority>${meta.sitemap.priority.toFixed(1)}</priority>`,
+				"\t</url>",
+			].join("\n");
+			expect(sitemap, meta.slug).toContain(block);
+		}
 	});
 });

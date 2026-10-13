@@ -1,10 +1,15 @@
 /**
- * Build-time generator for the per-app `manifests/*.json`.
+ * Build-time generator for the per-app `manifests/*.json` and for
+ * `public/sitemap.xml`.
  *
  * These files used to be maintained by hand — 13 near-identical documents each
  * restating a name, a description, a theme colour and a four-icon block — and
  * they had drifted from what `rsbuild.config.ts` actually shipped. They are now
  * derived from `APP_META`, so an app's manifest is one table row.
+ *
+ * The sitemap is the same story one file over: it was hand-maintained, and
+ * it had lost an app (`witcher-3-save-editor` was shipping but never
+ * listed). One `<url>` per row now, in `APP_META` order.
  *
  * The serialiser reproduces `deno fmt --use-tabs`'s JSON output byte for byte
  * (tabs, a short `display_override` array inline, the `icons` array expanded),
@@ -28,6 +33,14 @@ const LINE_WIDTH = 80;
 
 /** `deno fmt --use-tabs` indents with one tab per level. */
 const INDENT = "\t";
+
+/**
+ * The site's canonical origin, the same value `rsbuild.config.ts` builds
+ * its canonical and `og:url` tags from. It is restated rather than
+ * imported: that module *is* the bundler config, so importing it would
+ * drag `@rsbuild/core` and all fourteen environments in here.
+ */
+const SITE_URL = "https://chneau.github.io";
 
 /** Render a value on a single line, whatever its size. */
 const inline = (value: JsonValue): string => {
@@ -116,16 +129,45 @@ export const manifestJson = (meta: AppMeta): string => {
 	return `${render(manifest, 0, 0)}\n`;
 };
 
+/**
+ * `public/sitemap.xml`, serialised exactly as the committed file.
+ *
+ * One `<url>` per app in `APP_META` order — root first, then the apps in
+ * dashboard order — with tab indentation, `changefreq` before
+ * `<priority>`, and the priority at the one decimal the format writes.
+ */
+export const sitemapXml = (): string => {
+	const urls = APP_META.map((meta) =>
+		[
+			`${INDENT}<url>`,
+			`${INDENT}${INDENT}<loc>${SITE_URL}${meta.path}</loc>`,
+			`${INDENT}${INDENT}<changefreq>${meta.sitemap.changefreq}</changefreq>`,
+			`${INDENT}${INDENT}<priority>${meta.sitemap.priority.toFixed(1)}</priority>`,
+			`${INDENT}</url>`,
+		].join("\n"),
+	).join("\n");
+	return [
+		`<?xml version="1.0" encoding="UTF-8"?>`,
+		`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`,
+		urls,
+		"</urlset>",
+		"",
+	].join("\n");
+};
+
 if (import.meta.main) {
-	// Thirteen files, written together rather than one at a time. Each write
-	// names its own path and reads nothing another write produces, so there is
-	// no order to preserve and nothing a serial loop buys; the cost of the
-	// sequential version is thirteen round-trips through the filesystem for no
-	// reason at all.
-	await Promise.all(
-		APP_META.map((meta) =>
+	// Fourteen manifests, written together rather than one at a time. Each
+	// write names its own path and reads nothing another write produces, so
+	// there is no order to preserve and nothing a serial loop buys; the cost
+	// of the sequential version is fourteen round-trips through the
+	// filesystem for no reason at all. The sitemap goes out in the same
+	// batch, and for the same reason.
+	await Promise.all([
+		...APP_META.map((meta) =>
 			Bun.write(`manifests/${meta.slug}.json`, manifestJson(meta)),
 		),
-	);
+		Bun.write("public/sitemap.xml", sitemapXml()),
+	]);
 	console.log(`manifests/ generated (${APP_META.length} files)`);
+	console.log(`public/sitemap.xml generated (${APP_META.length} urls)`);
 }

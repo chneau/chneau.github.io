@@ -62,7 +62,7 @@ type Meta = {
  *
  * `head: false` puts it in `<body>` and `append` leaves it after `#root`, which
  * is what lets `base.css` retire it with a pure CSS sibling rule the moment
- * React renders — no mount hook in thirteen entry files, and no window in which
+ * React renders — no mount hook in any entry file, and no window in which
  * the shell and the app are both on screen.
  */
 const bootShell = [

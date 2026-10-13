@@ -5,6 +5,7 @@
  * async (the original Python uses synchronous `hashlib`/`hmac`).
  */
 
+import { lz4CompressBlock, lz4DecompressBlock } from "../../../shared/save/lz4";
 import {
 	bytesEqual,
 	concatBytes,
@@ -14,7 +15,7 @@ import {
 	writeU16,
 	writeU32,
 } from "./bytes";
-import { chacha20, lz4Compress, lz4Decompress } from "./codec";
+import { chacha20 } from "./codec";
 
 const MAGIC = new Uint8Array([0x53, 0x41, 0x56, 0x45]); // b"SAVE"
 const HEADER_SIZE = 0x80;
@@ -165,7 +166,7 @@ export const decodeSave = async (data: Uint8Array): Promise<DecodeResult> => {
 	if (!constantTimeEqual(actualDigest, header.digest)) {
 		throw new SaveContainerError("HMAC verification failed; refusing to parse");
 	}
-	const raw = lz4Decompress(compressed, header.uncompressedSize);
+	const raw = lz4DecompressBlock(compressed, header.uncompressedSize);
 	return { header, compressedPayload: compressed, rawPayload: raw };
 };
 
@@ -174,7 +175,7 @@ export const encodeSave = async (
 	original: SaveHeader,
 ): Promise<Uint8Array> => {
 	const key = saveKey(original.version);
-	const compressed = lz4Compress(rawPayload);
+	const compressed = lz4CompressBlock(rawPayload);
 	const nonce = crypto.getRandomValues(new Uint8Array(16));
 	const digest = await hmacSha256(key, compressed);
 	const encrypted = chacha20(compressed, nonce, key);
