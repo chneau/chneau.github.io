@@ -212,9 +212,25 @@ export const AppHeader = ({
 						<HeaderAction
 							icon={<Download size={15} />}
 							onClick={async () => {
-								installPrompt.prompt();
+								// `prompt()` rejects when the event has already been
+								// spent (Chrome allows one prompt per event), and an
+								// unawaited rejection surfaces as an unhandled
+								// rejection with nothing shown to the user.
+								try {
+									await installPrompt.prompt();
+								} catch {
+									notify.error(t("app.header.install_failed"));
+									setInstallPrompt(undefined);
+									return;
+								}
 								const { outcome } = await installPrompt.userChoice;
-								if (outcome === "accepted") setInstallPrompt(undefined);
+								// "Dismissed" is a real answer, not a no-op: the event is
+								// consumed either way, so the button must stop offering a
+								// choice the browser will no longer honour.
+								setInstallPrompt(undefined);
+								if (outcome === "dismissed") {
+									notify.info(t("app.header.install_dismissed"));
+								}
 							}}
 						>
 							{t("app.header.install")}

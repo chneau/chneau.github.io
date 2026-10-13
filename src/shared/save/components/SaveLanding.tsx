@@ -11,7 +11,13 @@ import {
 	Title,
 } from "@mantine/core";
 import { FileUp, LockKeyhole, ShieldCheck, TriangleAlert } from "lucide-react";
-import { type DragEvent, type ReactNode, useState } from "react";
+import {
+	type DragEvent,
+	type KeyboardEvent,
+	type ReactNode,
+	useRef,
+	useState,
+} from "react";
 import type { SaveCodec } from "../types";
 
 /**
@@ -44,6 +50,8 @@ export const SaveLanding = ({
 	children?: ReactNode;
 }) => {
 	const [dragging, setDragging] = useState(false);
+	/** The hidden `<input type="file">` the label forwards activation keys to. */
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const take = (file: File | undefined): void => {
 		if (file) onSelectFile(file);
@@ -120,8 +128,15 @@ export const SaveLanding = ({
 								{codec.extensions.map((e) => `.${e}`).join(" · ")} · read
 								entirely in this tab
 							</Text>
-							<label>
+							<label
+								onKeyDown={(event: KeyboardEvent<HTMLLabelElement>) => {
+									if (event.key !== "Enter" && event.key !== " ") return;
+									event.preventDefault();
+									fileInputRef.current?.click();
+								}}
+							>
 								<input
+									ref={fileInputRef}
 									type="file"
 									accept={codec.extensions.map((e) => `.${e}`).join(",")}
 									style={{ display: "none" }}

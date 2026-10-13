@@ -1,8 +1,9 @@
 import { Button, Group } from "@mantine/core";
 import { Download, Plus, RefreshCw, Upload } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmPopover } from "./ConfirmPopover";
+import { notify } from "./notify";
 
 /**
  * The modal's data actions: add, export, import, reset.
@@ -33,6 +34,9 @@ export const ManageDataActions = ({
 }) => {
 	const { t } = useTranslation();
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	// A read of a large file takes long enough to be worth blocking a second
+	// pick, and the state is what disables the button below.
+	const [reading, setReading] = useState(false);
 
 	return (
 		<Group justify="space-between" align="center" wrap="wrap">
@@ -60,8 +64,18 @@ export const ManageDataActions = ({
 						const reader = new FileReader();
 						reader.readAsText(file, "UTF-8");
 						reader.onload = (loaded) => {
+							setReading(false);
 							onReadFile(String(loaded.target?.result ?? ""));
 						};
+						// A read can fail on its own terms — the file vanished
+						// from the filesystem, a permission was revoked mid-read
+						// — and `onload` never fires then, so without this the
+						// button would stay disabled forever, unexplained.
+						reader.onerror = () => {
+							setReading(false);
+							notify.error(t("manage.import_read_error"));
+						};
+						setReading(true);
 					}}
 					style={{ display: "none" }}
 				/>
@@ -83,6 +97,8 @@ export const ManageDataActions = ({
 					<Button
 						variant="default"
 						leftSection={<Upload size={16} />}
+						loading={reading}
+						disabled={reading}
 						onClick={() => fileInputRef.current?.click()}
 					>
 						{t("manage.import_json")}

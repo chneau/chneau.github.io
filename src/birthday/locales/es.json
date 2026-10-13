@@ -95,6 +95,9 @@
 			"subscribe": "Suscribirse",
 			"copy": "Copiar Enlace",
 			"copied": "¡Copiado!",
+			"copy_failed": "No se pudo copiar el enlace",
+			"google_blocked": "Tu navegador bloqueó la ventana de Google Calendar. Permite las ventanas emergentes para este sitio.",
+			"exported_one": "{{name}}.ics descargado",
 			"exported": "birthdays.ics descargado",
 			"calendar_name": "Cumpleaños",
 			"ics_birthday": "Cumpleaños de {{name}}",
@@ -134,6 +137,8 @@
 			"notify_blocked": "Las notificaciones están bloqueadas en los ajustes del navegador",
 			"notify_simulated": "Cumpleaños simulado",
 			"notify_test_sent": "Notificación de prueba enviada",
+			"install_failed": "El aviso de instalación ya no está disponible",
+			"install_dismissed": "Instalación descartada",
 			"build": "Versión {{date}}"
 		},
 		"countdown": {
@@ -324,6 +329,7 @@
 		"imported_other": "¡{{count}} aniversarios importados!",
 		"import_invalid": "JSON no válido: se esperaba un arreglo de registros de aniversario válidos",
 		"import_parse_error": "No se pudo analizar el archivo JSON",
+		"import_read_error": "No se pudo leer el archivo",
 		"import_title_one": "¿Reemplazar todos los aniversarios por {{count}} entrada importada?",
 		"import_title_other": "¿Reemplazar todos los aniversarios por {{count}} entradas importadas?",
 		"import_confirm": "Reemplazar",

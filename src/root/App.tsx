@@ -195,6 +195,18 @@ export const App = () => {
 		window.location.href = app.href;
 	}, [handleVisit]);
 
+	// Enter-to-open has to navigate as well as record: `handleVisit` only
+	// writes the recents and the analytics event, so passing it as `onOpen`
+	// silently recorded a visit to an app that was never opened, and the
+	// search box's Enter stopped working at all.
+	const openApp = useCallback(
+		(href: string) => {
+			handleVisit(href);
+			window.location.href = href;
+		},
+		[handleVisit],
+	);
+
 	const dialogsOpen = shortcuts.opened || palette.opened;
 	useDashboardShortcuts({
 		handleVisit,
@@ -202,7 +214,7 @@ export const App = () => {
 		theme,
 		dialogsOpen,
 		filtered,
-		onOpen: handleVisit,
+		onOpen: openApp,
 	});
 
 	const commands = createCommands({

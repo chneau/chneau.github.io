@@ -1,4 +1,5 @@
 import { type MantineColorsTuple, MantineProvider } from "@mantine/core";
+import { Notifications, notifications } from "@mantine/notifications";
 import {
 	Copy,
 	FileText,
@@ -127,7 +128,26 @@ export const App = () => {
 			hint: "Share",
 			keywords: "cv url share link",
 			icon: <Copy size={16} />,
-			run: () => navigator.clipboard.writeText(window.location.href),
+			run: async () => {
+				// `writeText` rejects when the document is not focused or the
+				// permission is refused, and the palette swallows the promise —
+				// so the outcome is reported rather than assumed.
+				try {
+					await navigator.clipboard.writeText(window.location.href);
+					notifications.show({
+						color: "teal",
+						title: "Link copied",
+						message: "The link to this CV is on your clipboard.",
+					});
+				} catch {
+					notifications.show({
+						color: "red",
+						title: "Could not copy the link",
+						message:
+							"Your browser refused access to the clipboard. Copy the address from the bar instead.",
+					});
+				}
+			},
 		},
 	];
 
@@ -137,6 +157,9 @@ export const App = () => {
 			forceColorScheme={theme.dark ? "dark" : "light"}
 		>
 			<SkipLink />
+			{/* The palette's copy command reports its outcome through
+			    `notify`, which needs the container mounted. */}
+			<Notifications position="top-right" />
 			<div className="cv-root">
 				<div className="no-print">
 					<Grain />

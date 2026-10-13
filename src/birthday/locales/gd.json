@@ -95,6 +95,9 @@
 			"subscribe": "Foillsich",
 			"copy": "Dèan lethbhreac den cheangal",
 			"copied": "Air lethbhreacadh!",
+			"copy_failed": "Cha b’ ur dèidinn lethbhreacadh an cheangal",
+			"google_blocked": "Chuir brataiche an lìonra stad air uinneag Google Calendar. Ceadaich pop-athan air an làrach seo.",
+			"exported_one": "Tha {{name}}.ics air a luchtachadh",
 			"exported": "Tha birthdays.ics air a luchtachadh",
 			"calendar_name": "Co-latha-breith",
 			"ics_birthday": "Co-latha-breith {{name}}",
@@ -134,6 +137,8 @@
 			"notify_blocked": "Tha na sanasan air a bhacadh ann an roghdanach an brabhsair",
 			"notify_simulated": "Co-là-breith air a chruthachadh",
 			"notify_test_sent": "Chuir sanas deuchainn",
+			"install_failed": "Cha chan eil an cuideachadh stàlaichteach tuilleadh",
+			"install_dismissed": "Diùist stàlaichteach",
 			"build": "Togail {{date}}"
 		},
 		"countdown": {
@@ -324,6 +329,7 @@
 		"imported_other": "Tha {{count}} co-làithean-breith air a thoradh a-steach!",
 		"import_invalid": "JSON mà-inneach: bha an dùil ri sìr de chòrragan co-là-breith ceòrrach",
 		"import_parse_error": "Cha b' ur dèidnn am failu JSON a leughadh",
+		"import_read_error": "Cha b’ ur dèidnn am failu a leughadh",
 		"import_title_one": "A bheil thu ri na co-làithean-breith uile a chur an àite le {{count}} chòrrag a-steach?",
 		"import_title_other": "A bheil thu ri na co-làithean-breith uile a chur an àite le {{count}} chòrragan a-steach?",
 		"import_confirm": "Cuir an àite",

@@ -96,6 +96,7 @@ export const SaveWorkbench = ({
 					>
 						{sample ? (
 							<SampleLoaderCard
+								loading={loading}
 								note={sample.note}
 								onLoad={() => {
 									void sample
