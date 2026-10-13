@@ -9,17 +9,17 @@ import {
 	Undo2,
 } from "lucide-react";
 import type { Dispatch, RefObject, SetStateAction } from "react";
-import { EquipmentCatalogPanel } from "@/components/equipment-catalog-panel";
-import type { EquipmentCatalog } from "@/components/equipment-details";
-import type { EquipmentEdit, InsertEquipmentEdit } from "@/lib/equipment";
+import { HeaderAction } from "../../shared";
+import type { EquipmentEdit, InsertEquipmentEdit } from "../lib/equipment";
 import {
 	type Catalog,
 	type ParseResult,
 	type SaveView,
 	storageName,
-} from "@/lib/inventory";
-import type { SaveEdit } from "@/lib/staged-edits";
-import { HeaderAction } from "../../shared";
+} from "../lib/inventory";
+import type { SaveEdit } from "../lib/staged-edits";
+import { EquipmentCatalogPanel } from "./equipment-catalog-panel";
+import type { EquipmentCatalog } from "./equipment-details";
 
 /**
  * What sits to the right of the title once a save is open.

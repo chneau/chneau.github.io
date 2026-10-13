@@ -12,9 +12,9 @@ import {
 } from "@mantine/core";
 import { CheckCircle2, Download, Trash2, X } from "lucide-react";
 import { useMemo } from "react";
-import { storageName } from "@/lib/inventory";
-import { stagedEditKeys } from "@/lib/staged-edit-keys";
-import type { SaveEdit } from "@/lib/staged-edits";
+import { storageName } from "../lib/inventory";
+import { stagedEditKeys } from "../lib/staged-edit-keys";
+import type { SaveEdit } from "../lib/staged-edits";
 
 type StagedEditsDrawerProps = {
 	opened: boolean;

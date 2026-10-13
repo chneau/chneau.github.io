@@ -1,5 +1,5 @@
-import type { SaveView } from "@/lib/inventory";
-import type { SaveEdit } from "@/lib/staged-edits";
+import type { SaveView } from "./inventory";
+import type { SaveEdit } from "./staged-edits";
 
 /**
  * How many staged edits each storage location and each view holds, for the

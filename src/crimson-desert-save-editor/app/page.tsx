@@ -1,48 +1,48 @@
 import { useDisclosure, useMediaQuery } from "@mantine/hooks";
 import { Keyboard, Moon, Sun, Undo2 } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { AppSidebar } from "@/components/app-sidebar";
-import { EditorShell } from "@/components/editor-shell";
-import {
-	type InventoryFocus,
-	InventoryView,
-} from "@/components/inventory-view";
-import { LandingView } from "@/components/landing-view";
-import { SectionPanel, SkippedRecordsAlert } from "@/components/section-panel";
-import { useEditorCatalogs } from "@/components/use-editor-catalogs";
-import {
-	useStagedEditGuards,
-	useViewInUrl,
-} from "@/components/use-editor-guards";
-import { useStagedEdits } from "@/components/use-staged-edits";
-import { useSaveSession } from "@/hooks/useSaveSession";
-import {
-	type CompanionCatalog,
-	type CompanionCategory,
-	companionLabels,
-} from "@/lib/companions";
-import { readDeepLink } from "@/lib/deep-link";
-import companionCatalogData from "@/lib/generated/companion-catalog.json";
-import {
-	editorViewInfo,
-	isEditorView,
-	type SaveView,
-	storageName,
-} from "@/lib/inventory";
-import { stagedCounts } from "@/lib/staged-counts";
-import { queuedCompanions } from "@/lib/staged-edit-list";
-import type { SaveEdit } from "@/lib/staged-edits";
-import {
-	itemTypeCount,
-	projectRecords,
-	storageSummaries,
-} from "@/lib/staged-projection";
 import {
 	type Command,
 	useCommandPalette,
 	useShortcutsHelp,
 } from "../../shared";
 import { useThemeMode } from "../../shared/hooks/useThemeMode";
+import { AppSidebar } from "../components/app-sidebar";
+import { EditorShell } from "../components/editor-shell";
+import {
+	type InventoryFocus,
+	InventoryView,
+} from "../components/inventory-view";
+import { LandingView } from "../components/landing-view";
+import { SectionPanel, SkippedRecordsAlert } from "../components/section-panel";
+import { useEditorCatalogs } from "../components/use-editor-catalogs";
+import {
+	useStagedEditGuards,
+	useViewInUrl,
+} from "../components/use-editor-guards";
+import { useStagedEdits } from "../components/use-staged-edits";
+import { useSaveSession } from "../hooks/useSaveSession";
+import {
+	type CompanionCatalog,
+	type CompanionCategory,
+	companionLabels,
+} from "../lib/companions";
+import { readDeepLink } from "../lib/deep-link";
+import companionCatalogData from "../lib/generated/companion-catalog.json";
+import {
+	editorViewInfo,
+	isEditorView,
+	type SaveView,
+	storageName,
+} from "../lib/inventory";
+import { stagedCounts } from "../lib/staged-counts";
+import { queuedCompanions } from "../lib/staged-edit-list";
+import type { SaveEdit } from "../lib/staged-edits";
+import {
+	itemTypeCount,
+	projectRecords,
+	storageSummaries,
+} from "../lib/staged-projection";
 
 /**
  * The title and the line under it for whatever is on screen.

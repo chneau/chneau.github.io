@@ -1,6 +1,6 @@
 import { type Dispatch, type SetStateAction, useEffect } from "react";
-import type { SaveView } from "@/lib/inventory";
-import type { SaveEdit } from "@/lib/staged-edits";
+import type { SaveView } from "../lib/inventory";
+import type { SaveEdit } from "../lib/staged-edits";
 
 /**
  * The two guards against losing staged work by accident.

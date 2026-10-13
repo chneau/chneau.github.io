@@ -7,8 +7,8 @@
  * generated tables, so `tests/pictures.test.ts` can hold it against those
  * tables directly instead of standing up a component to ask.
  */
-import companionPaths from "@/lib/generated/companion-image-paths.json";
-import itemPaths from "@/lib/generated/item-image-paths.json";
+import companionPaths from "../lib/generated/companion-image-paths.json";
+import itemPaths from "../lib/generated/item-image-paths.json";
 
 /** Which generated picture table a key is filed under. */
 export type PictureKind = "item" | "companion";

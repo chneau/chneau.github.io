@@ -10,8 +10,8 @@ import {
 } from "@mantine/core";
 import { Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Picture } from "@/components/picture";
-import { VirtualList } from "@/components/virtual-list";
+import { Picture } from "./picture";
+import { VirtualList } from "./virtual-list";
 
 /**
  * One browsable row. The caller precomputes what the row shows and what the

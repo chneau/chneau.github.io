@@ -16,8 +16,6 @@ import {
 } from "@mantine/core";
 import { CheckCheck, RotateCcw, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PanelPager } from "@/components/panel-pager";
-import { PanelSearchField } from "@/components/panel-search";
 import {
 	type QuestDescription,
 	type QuestEdit,
@@ -27,9 +25,11 @@ import {
 	questKindLabels,
 	questStateLabel,
 	questStateLabels,
-} from "@/lib/save-engine/quests";
-import type { SaveSession } from "@/lib/save-engine/session";
-import type { QuestStateEdit } from "@/lib/staged-edits";
+} from "../lib/save-engine/quests";
+import type { SaveSession } from "../lib/save-engine/session";
+import type { QuestStateEdit } from "../lib/staged-edits";
+import { PanelPager } from "./panel-pager";
+import { PanelSearchField } from "./panel-search";
 
 type PanelProps = {
 	session: SaveSession;

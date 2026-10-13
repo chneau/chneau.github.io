@@ -1,16 +1,9 @@
 import { Alert } from "@mantine/core";
 import { TriangleAlert } from "lucide-react";
-import { CompanionPanel } from "@/components/companion-panel";
-import { ConditionPanel } from "@/components/condition-panel";
-import { DyesPanel } from "@/components/dyes-panel";
-import { LevelsPanel } from "@/components/levels-panel";
-import { NamesPanel } from "@/components/names-panel";
-import { QuestsPanel } from "@/components/quests-panel";
-import { SkillsPanel } from "@/components/skills-panel";
-import type { CompanionCatalog, CompanionEdit } from "@/lib/companions";
-import type { ParseResult, SaveView } from "@/lib/inventory";
-import type { SaveSession } from "@/lib/save-engine/session";
-import type { SkillEdit } from "@/lib/skills";
+import type { CompanionCatalog, CompanionEdit } from "../lib/companions";
+import type { ParseResult, SaveView } from "../lib/inventory";
+import type { SaveSession } from "../lib/save-engine/session";
+import type { SkillEdit } from "../lib/skills";
 import type {
 	CompanionRenameEdit,
 	DyeEdit,
@@ -18,7 +11,14 @@ import type {
 	LevelEdit,
 	QuestStateEdit,
 	SaveEdit,
-} from "@/lib/staged-edits";
+} from "../lib/staged-edits";
+import { CompanionPanel } from "./companion-panel";
+import { ConditionPanel } from "./condition-panel";
+import { DyesPanel } from "./dyes-panel";
+import { LevelsPanel } from "./levels-panel";
+import { NamesPanel } from "./names-panel";
+import { QuestsPanel } from "./quests-panel";
+import { SkillsPanel } from "./skills-panel";
 
 /**
  * The warning above the panels when part of a save could not be read.

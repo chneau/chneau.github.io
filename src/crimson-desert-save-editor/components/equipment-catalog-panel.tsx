@@ -1,19 +1,16 @@
 import { Box, Button, Drawer, Group, Select, Stack, Text } from "@mantine/core";
 import { Plus } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
-import {
-	CatalogBrowser,
-	type CatalogEntry,
-} from "@/components/catalog-browser";
+import { storageKeys } from "../lib/add-plan";
+import type { InsertEquipmentEdit } from "../lib/equipment";
+import type { SaveEdit } from "../lib/staged-edits";
+import { CatalogBrowser, type CatalogEntry } from "./catalog-browser";
 import {
 	type EquipmentCatalog,
 	freshEquipmentDetails,
-} from "@/components/equipment-details";
-import { EquipmentEditor } from "@/components/equipment-workshop";
-import { Picture } from "@/components/picture";
-import { storageKeys } from "@/lib/add-plan";
-import type { InsertEquipmentEdit } from "@/lib/equipment";
-import type { SaveEdit } from "@/lib/staged-edits";
+} from "./equipment-details";
+import { EquipmentEditor } from "./equipment-workshop";
+import { Picture } from "./picture";
 
 /** The equipment browser lists about a thousand rows, so they are windowed. */
 const ROW_HEIGHT = 56;

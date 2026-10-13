@@ -28,10 +28,10 @@
  * exists, which is why a socket holding a "… III" is upgraded to "Greater …".
  */
 
-import { canSocketGear } from "@/lib/abyss-gear";
-import type { EquipmentDetails, EquipmentEdit } from "@/lib/equipment";
-import type { InventoryRecord } from "@/lib/inventory";
-import type { AbyssGearRulesFile } from "@/lib/save-engine/data";
+import { canSocketGear } from "./abyss-gear";
+import type { EquipmentDetails, EquipmentEdit } from "./equipment";
+import type { InventoryRecord } from "./inventory";
+import type { AbyssGearRulesFile } from "./save-engine/data";
 
 /** The refinement ceiling the engine enforces, whatever the item's table says. */
 const MAX_REFINEMENT = 10;

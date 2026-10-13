@@ -8,11 +8,11 @@ import {
 	useRef,
 	useState,
 } from "react";
-import type { InventoryFocus } from "@/components/inventory-view";
-import type { ParseResult, SaveView } from "@/lib/inventory";
-import { describeError } from "@/lib/save-engine/errors";
-import { type SaveEngineEvent, SaveSession } from "@/lib/save-engine/session";
-import type { SaveEdit } from "@/lib/staged-edits";
+import type { InventoryFocus } from "../components/inventory-view";
+import type { ParseResult, SaveView } from "../lib/inventory";
+import { describeError } from "../lib/save-engine/errors";
+import { type SaveEngineEvent, SaveSession } from "../lib/save-engine/session";
+import type { SaveEdit } from "../lib/staged-edits";
 
 /**
  * The page-owned state `useSaveSession` must touch when it clears the deck for

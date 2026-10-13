@@ -1,12 +1,12 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
-import { AddItemDrawer } from "@/components/add-item-drawer";
-import { ConfirmModal } from "@/components/confirm-modal";
-import { StagedEditsDrawer } from "@/components/staged-edits-drawer";
-import type { StagedTarget } from "@/components/use-staged-edits";
-import type { Catalog, ParseResult } from "@/lib/inventory";
-import type { ItemKnowledgeMapFile } from "@/lib/save-engine/data";
-import type { SaveEdit } from "@/lib/staged-edits";
 import { type Command, CommandPalette } from "../../shared";
+import type { Catalog, ParseResult } from "../lib/inventory";
+import type { ItemKnowledgeMapFile } from "../lib/save-engine/data";
+import type { SaveEdit } from "../lib/staged-edits";
+import { AddItemDrawer } from "./add-item-drawer";
+import { ConfirmModal } from "./confirm-modal";
+import { StagedEditsDrawer } from "./staged-edits-drawer";
+import type { StagedTarget } from "./use-staged-edits";
 
 /**
  * Everything that floats above the panels: the two drawers, the palette and

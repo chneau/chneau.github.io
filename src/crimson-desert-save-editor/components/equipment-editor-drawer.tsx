@@ -10,22 +10,22 @@ import {
 } from "@mantine/core";
 import { TriangleAlert } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
-import {
-	type EquipmentCatalog,
-	freshEquipmentDetails,
-} from "@/components/equipment-details";
-import { QuantityEditor } from "@/components/equipment-quantity-editor";
-import { EquipmentEditor } from "@/components/equipment-workshop";
-import { Picture } from "@/components/picture";
-import type { EquipmentEdit, InsertEquipmentEdit } from "@/lib/equipment";
-import abyssGearRules from "@/lib/generated/abyss-gear-compatibility.json";
+import type { EquipmentEdit, InsertEquipmentEdit } from "../lib/equipment";
+import abyssGearRules from "../lib/generated/abyss-gear-compatibility.json";
 import {
 	type Catalog,
 	type GroupedItem,
 	type InventoryRecord,
 	storageName,
-} from "@/lib/inventory";
-import type { QuantityEdit, SaveEdit } from "@/lib/staged-edits";
+} from "../lib/inventory";
+import type { QuantityEdit, SaveEdit } from "../lib/staged-edits";
+import {
+	type EquipmentCatalog,
+	freshEquipmentDetails,
+} from "./equipment-details";
+import { QuantityEditor } from "./equipment-quantity-editor";
+import { EquipmentEditor } from "./equipment-workshop";
+import { Picture } from "./picture";
 
 /** The picker's heading: what is being edited, and which copy of it. */
 const DrawerHeading = ({

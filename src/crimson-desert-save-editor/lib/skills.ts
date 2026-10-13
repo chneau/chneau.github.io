@@ -8,10 +8,10 @@ import type {
 	SkillDescription,
 	SkillEntry,
 	SkillMode,
-} from "@/lib/save-engine/browser-skills";
-import { defined } from "@/lib/save-engine/defined";
-import type { SkillsEdit } from "@/lib/save-engine/edits";
-import { MAX_KNOWLEDGE_LEVEL } from "@/lib/save-engine/knowledge-bulk";
+} from "./save-engine/browser-skills";
+import { defined } from "./save-engine/defined";
+import type { SkillsEdit } from "./save-engine/edits";
+import { MAX_KNOWLEDGE_LEVEL } from "./save-engine/knowledge-bulk";
 
 /** Level cap the game honours; 99 is the highest meaningful value. */
 export const maxKnowledgeLevel = MAX_KNOWLEDGE_LEVEL;

@@ -23,13 +23,13 @@ import {
 	itemType,
 	stackDonor,
 	storageName,
-} from "@/lib/inventory";
+} from "./inventory";
 import type {
 	InsertCatalogItemEdit,
 	InsertItemEdit,
 	QuantityEdit,
 	SaveEdit,
-} from "@/lib/staged-edits";
+} from "./staged-edits";
 
 /** The Item Keys one Storage holds and has staged, for O(1) membership tests. */
 type StorageKeys = {

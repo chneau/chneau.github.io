@@ -1,4 +1,4 @@
-import type { SaveEdit } from "@/lib/staged-edits";
+import type { SaveEdit } from "./staged-edits";
 
 /**
  * A React key per staged edit, stable across a removal.

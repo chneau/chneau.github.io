@@ -18,13 +18,8 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import {
-	CatalogBrowser,
-	type CatalogEntry,
-} from "@/components/catalog-browser";
-import { Picture } from "@/components/picture";
-import { planAddition, storageKeys } from "@/lib/add-plan";
-import { cheatGearEdits, cheatGearSet } from "@/lib/cheat-gear";
+import { planAddition, storageKeys } from "../lib/add-plan";
+import { cheatGearEdits, cheatGearSet } from "../lib/cheat-gear";
 import {
 	type Catalog,
 	type CatalogItem,
@@ -34,15 +29,17 @@ import {
 	itemType,
 	stackDonor,
 	storageName,
-} from "@/lib/inventory";
-import { isAddableItem } from "@/lib/item-catalog";
-import type { ItemKnowledgeMapFile } from "@/lib/save-engine/data";
+} from "../lib/inventory";
+import { isAddableItem } from "../lib/item-catalog";
+import type { ItemKnowledgeMapFile } from "../lib/save-engine/data";
 import type {
 	InsertCatalogItemEdit,
 	InsertItemEdit,
 	QuantityEdit,
 	SaveEdit,
-} from "@/lib/staged-edits";
+} from "../lib/staged-edits";
+import { CatalogBrowser, type CatalogEntry } from "./catalog-browser";
+import { Picture } from "./picture";
 
 /**
  * The add-item browser lists every addable item (about four thousand), so its

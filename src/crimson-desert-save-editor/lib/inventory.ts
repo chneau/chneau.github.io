@@ -10,15 +10,15 @@
  * without reaching back into the page.
  */
 
-import type { CompanionCategory, CompanionSummary } from "@/lib/companions";
-import type { EquipmentDetails } from "@/lib/equipment";
-import { catalogStackSize } from "@/lib/item-catalog";
-import type { SkillDescription } from "@/lib/save-engine/browser-skills";
-import type { CharacterDescription } from "@/lib/save-engine/characters";
-import type { CompanionNameDescription } from "@/lib/save-engine/companion-names";
-import type { ItemCatalogEntry, ItemCatalogFile } from "@/lib/save-engine/data";
-import type { DyeDescription } from "@/lib/save-engine/dyes";
-import type { ConditionDescription } from "@/lib/save-engine/item-condition";
+import type { CompanionCategory, CompanionSummary } from "./companions";
+import type { EquipmentDetails } from "./equipment";
+import { catalogStackSize } from "./item-catalog";
+import type { SkillDescription } from "./save-engine/browser-skills";
+import type { CharacterDescription } from "./save-engine/characters";
+import type { CompanionNameDescription } from "./save-engine/companion-names";
+import type { ItemCatalogEntry, ItemCatalogFile } from "./save-engine/data";
+import type { DyeDescription } from "./save-engine/dyes";
+import type { ConditionDescription } from "./save-engine/item-condition";
 
 /** One record as the engine describes it, with any staged edit folded in. */
 export type InventoryRecord = {

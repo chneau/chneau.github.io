@@ -1,6 +1,6 @@
 import { Group, Text } from "@mantine/core";
 import { LockKeyhole } from "lucide-react";
-import type { ParseResult } from "@/lib/inventory";
+import type { ParseResult } from "../lib/inventory";
 
 /**
  * The strip under the panels, once a save is open.

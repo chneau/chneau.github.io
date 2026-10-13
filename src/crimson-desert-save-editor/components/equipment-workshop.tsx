@@ -11,19 +11,19 @@ import {
 } from "@mantine/core";
 import { Search, Sparkles, X } from "lucide-react";
 import { useId, useMemo, useState } from "react";
-import { EMPTY_SOCKET, socketList } from "@/components/equipment-details";
-import { Picture } from "@/components/picture";
 import {
 	type AbyssGearCatalogItem,
 	abyssGearOptions,
 	canSocketGear,
 	gearCompatibilityLabel,
-} from "@/lib/abyss-gear";
-import type { EquipmentDetails, EquipmentEdit } from "@/lib/equipment";
-import compatibility from "@/lib/generated/abyss-gear-compatibility.json";
-import type { InventoryRecord } from "@/lib/inventory";
-import { maxEquipmentEdits } from "@/lib/max-equipment";
-import type { AbyssGearRulesFile } from "@/lib/save-engine/data";
+} from "../lib/abyss-gear";
+import type { EquipmentDetails, EquipmentEdit } from "../lib/equipment";
+import compatibility from "../lib/generated/abyss-gear-compatibility.json";
+import type { InventoryRecord } from "../lib/inventory";
+import { maxEquipmentEdits } from "../lib/max-equipment";
+import type { AbyssGearRulesFile } from "../lib/save-engine/data";
+import { EMPTY_SOCKET, socketList } from "./equipment-details";
+import { Picture } from "./picture";
 
 type Catalog = { items: Record<string, AbyssGearCatalogItem> } | null;
 

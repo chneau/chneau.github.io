@@ -24,12 +24,11 @@ import {
 	TriangleAlert,
 } from "lucide-react";
 import { useState } from "react";
-import { PanelSearchField } from "@/components/panel-search";
 import type {
 	SkillDescription,
 	SkillEntry,
 	SkillMode,
-} from "@/lib/save-engine/browser-skills";
+} from "../lib/save-engine/browser-skills";
 import {
 	filterSkillEntries,
 	maxKnowledgeLevel,
@@ -40,7 +39,8 @@ import {
 	skillEditSummary,
 	skillGroupLabels,
 	skillModes,
-} from "@/lib/skills";
+} from "../lib/skills";
+import { PanelSearchField } from "./panel-search";
 
 type PanelProps = {
 	description?: SkillDescription;
