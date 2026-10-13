@@ -534,15 +534,39 @@ type ScalarPatch = {
 	readonly value: number;
 };
 
-/** Applies patches, returning how many actually landed. */
+/**
+ * Applies patches, returning how many actually landed.
+ *
+ * A patch whose offset leaves no room for its type is skipped rather than
+ * attempted. `writeFieldValue` addresses the blob through a `DataView`, which
+ * throws a `RangeError` for an out-of-range write — so an unchecked patch
+ * aborted the whole batch part-way through, leaving the earlier writes on the
+ * blob with no count returned and no way to tell what had landed. Skipping keeps
+ * the count honest: it is the number that were written, because every one of the
+ * others was written.
+ *
+ * Reachable only from a caller building a `ScalarPatch` by hand: every offset
+ * `planPatches` produces comes from a walked field descriptor, and carries the
+ * four bytes its type needs.
+ */
 export const applyPatches = (patches: readonly ScalarPatch[]): number => {
 	let written = 0;
 	for (const patch of patches) {
+		const width = PATCH_TYPE_WIDTH[patch.type];
+		if (width === undefined) continue;
+		if (patch.offset < 0 || patch.offset + width > patch.blob.length) continue;
 		if (writeFieldValue(patch.blob, patch.offset, patch.type, patch.value)) {
 			written += 1;
 		}
 	}
 	return written;
+};
+
+/** Bytes each writable patch type occupies; a type absent here is declined. */
+const PATCH_TYPE_WIDTH: Readonly<Record<string, number>> = {
+	Int32: 4,
+	UInt32: 4,
+	Float32: 4,
 };
 
 /**

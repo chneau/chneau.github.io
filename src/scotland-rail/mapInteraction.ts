@@ -212,8 +212,16 @@ export const createMapHandlers = ({
 		const currentIndex = selectedServiceId
 			? ids.indexOf(selectedServiceId)
 			: -1;
+		// From no selection, "previous" means the last train and "next" the
+		// first. Running the arithmetic from `-1` instead put `P` on the
+		// second-to-last: `(-1 + -1)` modular-wrapped to `length - 2`, so the
+		// key that means "back" skipped the one train a user would expect.
 		const nextIndex =
-			(((currentIndex + direction) % ids.length) + ids.length) % ids.length;
+			currentIndex === -1
+				? direction === 1
+					? 0
+					: ids.length - 1
+				: (currentIndex + direction + ids.length) % ids.length;
 		const next = activeTrains[nextIndex];
 		if (next) railActions.setSelectedService(next.service as TrainService);
 	};
