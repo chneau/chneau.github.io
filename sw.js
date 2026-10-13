@@ -28,10 +28,13 @@
 // `BUILD_ID` namespaces every cache name, so a new value evicts the previous
 // deploy's caches on `activate`. It resolves in this order:
 //   1. the `?v=` query string on this script's own URL, which
-//      src/shared/service-worker.ts appends from the build-injected BUILD_DATE
+//      src/shared/service-worker.ts appends from the build-injected SW_BUILD_ID
 //      (works today, no build config required);
-//   2. `BUILD_ID_PLACEHOLDER` below, substituted at build time (preferred —
-//      see the recommended change in rsbuild.config.ts);
+//   2. `BUILD_ID_PLACEHOLDER` below — NOT substituted today. This file is
+//      copied verbatim from public/, so no `source.define` reaches it; the
+//      injected token is SW_BUILD_ID in rsbuild.config.ts, which the bundler
+//      applies to TypeScript only. It is kept as an escape hatch, not a
+//      mechanism, and nothing will fill it in unless the copy step is changed;
 //   3. `MANUAL_VERSION`.
 //
 // (1) is what namespaces the caches in practice: `service-worker.ts` always
@@ -47,7 +50,7 @@
 // `sw.test.ts` asserts the fallback resolves to a cache-safe token rather than
 // to the unsubstituted placeholder.
 
-const BUILD_ID_PLACEHOLDER = "__BUILD_ID__"; // substituted at build time
+const BUILD_ID_PLACEHOLDER = "__BUILD_ID__"; // never substituted today; see (2) above
 const UNSUBSTITUTED = "__BUILD_ID__"; // the literal text rsbuild would replace
 /**
  * Bumped 1 -> 2 when `public/offline.html` was rewritten (it gained a theme
