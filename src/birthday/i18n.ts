@@ -56,7 +56,7 @@ const setDayjsLocale = (lng: string) => {
 };
 
 /**
- * The document's own language, kept true as i18next switches.
+ * The language the page is *rendering in*, written to the document.
  *
  * The shared HTML template declares `lang="en-GB"`, and this is the one
  * document on the site whose language is not fixed: the app ships seven
@@ -65,8 +65,23 @@ const setDayjsLocale = (lng: string) => {
  * changes the strings and nothing changes the element.
  */
 const applyLanguage = (lng: string) => {
-	setDayjsLocale(lng);
-	document.documentElement.lang = lng;
+	// `resolvedLanguage` and not the value the detector reported: the detector
+	// answers "what does this browser prefer", which is not the same question
+	// as "which bundle is on screen". A ja-JP visitor is rendered the English
+	// strings by `fallbackLng`, so declaring `ja-JP` would have a screen reader
+	// pronounce English with Japanese rules — the defect this whole change
+	// exists to remove, wearing the other hat. i18next's own `resolvedLanguage`
+	// answers `en` there, `fr` for fr-FR (the bundle `load: "languageOnly"`
+	// selects), and is undefined only before init has resolved.
+	const active = i18n.resolvedLanguage ?? lng;
+	setDayjsLocale(active);
+	// Guarded because this module is imported by a Node-like test process: it
+	// stubs `localStorage` and `navigator` for the language detector
+	// (`birthday/tests/notifications.test.ts`) and has no `document` at all.
+	// The document element is a browser concern, so its absence is not an
+	// error — and an unguarded write here fails that file at import time.
+	if (typeof document === "undefined") return;
+	document.documentElement.lang = active;
 };
 
 applyLanguage(i18n.language);
