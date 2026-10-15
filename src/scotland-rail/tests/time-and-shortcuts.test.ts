@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
+import type { TrainService } from "../data/types";
 import {
 	clampReplayTime,
+	cycleIndex,
+	earliestServiceMinute,
 	formatTime,
 	MAX_REPLAY_TIME,
 	MIN_REPLAY_TIME,
@@ -74,6 +77,31 @@ describe("resolveRailShortcut", () => {
 		...over,
 	});
 
+	test("N and P cycle the selected train from anywhere on the page", () => {
+		expect(resolveRailShortcut(key({ key: "n" }))).toEqual({
+			kind: "cycle-train",
+			direction: 1,
+		});
+		expect(resolveRailShortcut(key({ key: "N" }))).toEqual({
+			kind: "cycle-train",
+			direction: 1,
+		});
+		expect(resolveRailShortcut(key({ key: "p" }))).toEqual({
+			kind: "cycle-train",
+			direction: -1,
+		});
+		expect(resolveRailShortcut(key({ key: "P" }))).toEqual({
+			kind: "cycle-train",
+			direction: -1,
+		});
+	});
+
+	test("Cmd/Ctrl/Alt+N and command chords are left to the browser", () => {
+		expect(resolveRailShortcut(key({ key: "n", metaKey: true }))).toBeNull();
+		expect(resolveRailShortcut(key({ key: "p", ctrlKey: true }))).toBeNull();
+		expect(resolveRailShortcut(key({ key: "n", altKey: true }))).toBeNull();
+	});
+
 	test("plain M toggles ambient audio", () => {
 		expect(resolveRailShortcut(key({ key: "m" }))).toEqual({
 			kind: "toggle-sound",
@@ -129,5 +157,82 @@ describe("stepSpeed", () => {
 		expect(stepSpeed(15, 1)).toBeNull();
 		expect(stepSpeed(0.5, -1)).toBeNull();
 		expect(stepSpeed(99, 1)).toBeNull();
+	});
+});
+
+const serviceWithCalls = (
+	id: string,
+	calls: readonly [number | null, number | null][],
+): TrainService => ({
+	id,
+	serviceNumber: id.toUpperCase(),
+	name: `Service ${id}`,
+	category: "Express",
+	operator: "ScotRail",
+	pathCoordinates: [
+		[-3.19, 55.95],
+		[-3.1, 56.05],
+	],
+	calls: calls.map(([arrivalOffset, departureOffset], index) => ({
+		stationId: `st${index}`,
+		arrivalOffset,
+		departureOffset,
+	})),
+});
+
+describe("earliestServiceMinute", () => {
+	test("finds the first departure of the day across every service", () => {
+		expect(
+			earliestServiceMinute([
+				serviceWithCalls("a", [
+					[600, 605],
+					[700, 705],
+				]),
+				serviceWithCalls("b", [[380, null]]),
+			]),
+		).toBe(380);
+	});
+
+	test("falls back to the arrival of a first call that never departs", () => {
+		expect(earliestServiceMinute([serviceWithCalls("c", [[420, null]])])).toBe(
+			420,
+		);
+	});
+
+	test("ignores services that start after the replay window closes", () => {
+		expect(earliestServiceMinute([serviceWithCalls("d", [[1500, 1505]])])).toBe(
+			MAX_REPLAY_TIME,
+		);
+	});
+
+	test("never reports a minute outside the replay window", () => {
+		expect(earliestServiceMinute([serviceWithCalls("e", [[0, 10]])])).toBe(
+			MIN_REPLAY_TIME,
+		);
+	});
+
+	test("an empty timetable falls back to the end of the window", () => {
+		expect(earliestServiceMinute([])).toBe(MAX_REPLAY_TIME);
+	});
+});
+
+describe("cycleIndex", () => {
+	test("walks forwards and wraps at the end", () => {
+		expect(cycleIndex(3, 1, 1)).toBe(2);
+		expect(cycleIndex(3, 2, 1)).toBe(0);
+	});
+
+	test("walks backwards and wraps at the start", () => {
+		expect(cycleIndex(3, 0, -1)).toBe(2);
+		expect(cycleIndex(3, 2, -1)).toBe(1);
+	});
+
+	test("no selection enters at the leading or trailing end", () => {
+		expect(cycleIndex(3, -1, 1)).toBe(0);
+		expect(cycleIndex(3, -1, -1)).toBe(2);
+	});
+
+	test("an empty list has nothing to select", () => {
+		expect(cycleIndex(0, -1, 1)).toBeNull();
 	});
 });

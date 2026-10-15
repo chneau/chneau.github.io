@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { categoryColors } from "../theme";
+import { categoryColors, categoryInkColors } from "../theme";
 
 export type Coordinate = [longitude: number, latitude: number];
 
@@ -27,6 +27,7 @@ type CategoryConfig = {
 	category: Category;
 	label: string;
 	color: string;
+	ink: string;
 	shape: "circle" | "diamond" | "square" | "triangle" | "hexagon";
 };
 
@@ -35,30 +36,35 @@ export const CATEGORIES: Record<Category, CategoryConfig> = {
 		category: "Express",
 		label: "Central Belt Express",
 		color: categoryColors.Express,
+		ink: categoryInkColors.Express,
 		shape: "circle",
 	},
 	Highland: {
 		category: "Highland",
 		label: "Highland & Scenic",
 		color: categoryColors.Highland,
+		ink: categoryInkColors.Highland,
 		shape: "diamond",
 	},
 	Commuter: {
 		category: "Commuter",
 		label: "Suburban / Commuter",
 		color: categoryColors.Commuter,
+		ink: categoryInkColors.Commuter,
 		shape: "square",
 	},
 	CrossBorder: {
 		category: "CrossBorder",
 		label: "InterCity / Cross-Border",
 		color: categoryColors.CrossBorder,
+		ink: categoryInkColors.CrossBorder,
 		shape: "triangle",
 	},
 	Sleeper: {
 		category: "Sleeper",
 		label: "Caledonian Sleeper",
 		color: categoryColors.Sleeper,
+		ink: categoryInkColors.Sleeper,
 		shape: "hexagon",
 	},
 };

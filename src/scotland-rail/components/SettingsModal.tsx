@@ -127,7 +127,7 @@ export const SettingsModal = ({
 						gap: 8,
 					}}
 				>
-					<span style={{ color: palette.accent, display: "inline-flex" }}>
+					<span style={{ color: palette.accentInk, display: "inline-flex" }}>
 						{icon}
 					</span>
 					{label}
@@ -145,6 +145,7 @@ export const SettingsModal = ({
 			</div>
 			<Switch
 				checked={settings[key]}
+				aria-label={label}
 				onChange={(event) =>
 					handleSettingToggle(key, event.currentTarget.checked)
 				}
@@ -157,7 +158,7 @@ export const SettingsModal = ({
 			title={
 				<span
 					style={{
-						color: palette.accent,
+						color: palette.accentInk,
 						fontSize: "1rem",
 						display: "inline-flex",
 						alignItems: "center",
@@ -169,6 +170,7 @@ export const SettingsModal = ({
 				</span>
 			}
 			position="right"
+			closeButtonProps={{ "aria-label": "Close settings" }}
 			onClose={() => railActions.setIsSettingsOpen(false)}
 			opened={isSettingsOpen}
 			styles={{

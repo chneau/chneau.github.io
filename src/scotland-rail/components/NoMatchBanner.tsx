@@ -42,7 +42,7 @@ export const NoMatchBanner = ({
 				rowGap: 8,
 			}}
 		>
-			<Search size={16} style={{ color: palette.danger }} />
+			<Search size={16} style={{ color: palette.dangerInk }} />
 			<span style={{ fontSize: "0.85rem" }}>
 				{hasSearch ? (
 					<>
@@ -90,7 +90,7 @@ const ClearButton = ({
 		leftSection={icon}
 		onClick={onClick}
 		style={{
-			color: palette.danger,
+			color: palette.dangerInk,
 			border: `1px solid ${palette.danger}`,
 			minHeight: 44,
 		}}

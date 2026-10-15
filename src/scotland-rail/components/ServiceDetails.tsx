@@ -60,7 +60,7 @@ export const ServiceDetails = () => {
 							className="sr-num"
 							style={{
 								background: catConfig.color,
-								color: palette.bgDeep,
+								color: palette.onCategory,
 								fontWeight: "bold",
 							}}
 						>
@@ -82,7 +82,7 @@ export const ServiceDetails = () => {
 									gap: 5,
 								}}
 							>
-								<Landmark size={12} style={{ color: catConfig.color }} />
+								<Landmark size={12} style={{ color: catConfig.ink }} />
 								{selectedService.operator}
 							</span>
 						</Badge>
@@ -98,7 +98,7 @@ export const ServiceDetails = () => {
 						</Badge>
 					</Group>
 					<Title
-						order={4}
+						order={2}
 						style={{
 							color: palette.text,
 							margin: "10px 0 4px 0",
@@ -147,7 +147,7 @@ export const ServiceDetails = () => {
 					<Text style={{ color: palette.textMuted, fontSize: "0.8rem" }}>
 						Live status
 					</Text>
-					<div style={{ fontWeight: 600, color: catConfig.color }}>
+					<div style={{ fontWeight: 600, color: catConfig.ink }}>
 						{activeState.isDwelling
 							? `Dwelling at ${activeState.currentStopName}`
 							: `In transit to ${activeState.nextStopName || "Terminus"}`}
@@ -223,7 +223,7 @@ export const ServiceDetails = () => {
 										<span
 											className="sr-num"
 											style={{
-												color: catConfig.color,
+												color: catConfig.ink,
 												background: "var(--app-surface-2)",
 												padding: "1px 7px",
 												borderRadius: 4,

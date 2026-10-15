@@ -75,6 +75,11 @@ export const useRailShortcuts = (
 					railActions.updateSetting("soundEffects", nextSound);
 					break;
 				}
+				case "cycle-train": {
+					event.preventDefault();
+					railActions.cycleSelectedTrain(shortcut.direction);
+					break;
+				}
 				case "escape": {
 					const help = shortcutsRef.current;
 					if (help.opened) {

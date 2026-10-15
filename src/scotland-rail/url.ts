@@ -93,6 +93,12 @@ export const writeUrlState = (values: RailUrlValues): void => {
 	const url = `${window.location.pathname}${
 		query ? `?${query}` : ""
 	}${window.location.hash}`;
+	if (
+		url ===
+		`${window.location.pathname}${window.location.search}${window.location.hash}`
+	) {
+		return;
+	}
 	try {
 		window.history.replaceState(null, "", url);
 	} catch {}

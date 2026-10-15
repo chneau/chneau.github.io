@@ -1,4 +1,4 @@
-import { Box } from "@mantine/core";
+import { Box, Title } from "@mantine/core";
 import {
 	Compass,
 	Info,
@@ -216,6 +216,10 @@ export const App = () => {
 					overflow: "hidden",
 				}}
 			>
+				<Title order={1} className="sr-only">
+					A Day in Scottish Rail
+				</Title>
+
 				<SourcesModal
 					open={isInfoOpen}
 					onClose={() => railActions.setIsInfoOpen(false)}

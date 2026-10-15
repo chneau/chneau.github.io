@@ -6,6 +6,7 @@ import type { ActiveTrainState } from "./engine/interpolator";
 import { nearestTrainAt } from "./engine/mapLayers";
 import { createProjection } from "./engine/projection";
 import { railActions } from "./store";
+import { cycleIndex } from "./utils";
 
 const HOVER_RADIUS_PX = 18;
 const CLICK_RADIUS_PX = 20;
@@ -187,12 +188,8 @@ export const createMapHandlers = ({
 		const currentIndex = selectedServiceId
 			? ids.indexOf(selectedServiceId)
 			: -1;
-		const nextIndex =
-			currentIndex === -1
-				? direction === 1
-					? 0
-					: ids.length - 1
-				: (currentIndex + direction + ids.length) % ids.length;
+		const nextIndex = cycleIndex(ids.length, currentIndex, direction);
+		if (nextIndex === null) return;
 		const next = activeTrains[nextIndex];
 		if (next) railActions.setSelectedService(next.service as TrainService);
 	};

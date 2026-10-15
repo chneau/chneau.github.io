@@ -103,7 +103,7 @@ const HighlightRow = ({
 			<span
 				className="sr-num"
 				style={{
-					color: CATEGORIES[service.category].color,
+					color: CATEGORIES[service.category].ink,
 					fontWeight: "bold",
 					marginRight: 5,
 				}}
@@ -140,21 +140,21 @@ const StatsHeader = ({
 		<button
 			type="button"
 			className="sr-press"
+			onClick={onToggleCollapsed}
+			aria-label={collapsed ? "Expand highlights" : "Collapse highlights"}
+			aria-expanded={!collapsed}
+			title={collapsed ? "Expand highlights" : "Collapse highlights"}
 			style={{
 				background: "none",
 				border: "none",
 				padding: 0,
 				cursor: "pointer",
 				fontSize: "0.8rem",
-				color: palette.accent,
+				color: palette.accentInk,
 				display: "flex",
 				alignItems: "center",
 				gap: 6,
 			}}
-			onClick={onToggleCollapsed}
-			aria-label={collapsed ? "Expand highlights" : "Collapse highlights"}
-			aria-expanded={!collapsed}
-			title={collapsed ? "Expand highlights" : "Collapse highlights"}
 		>
 			<Flame size={15} />
 			<span style={{ fontWeight: 600 }}>Live highlights</span>
@@ -175,7 +175,7 @@ const StatsHeader = ({
 				styles={{
 					root: {
 						fontSize: "0.72rem",
-						background: "rgba(0,0,0,0.28)",
+						background: "var(--app-surface-2)",
 					},
 				}}
 			/>
@@ -240,7 +240,7 @@ const ActivityCurve = ({
 			}}
 		>
 			<span className="sr-num">{formatTime(CURVE_START)}</span>
-			<span style={{ color: palette.accent }}>Services in progress</span>
+			<span style={{ color: palette.accentInk }}>Services in progress</span>
 			<span className="sr-num">{formatTime(CURVE_END)}</span>
 		</div>
 		<div
@@ -354,7 +354,7 @@ const Highlights = ({
 				<HighlightRow
 					icon={<Zap size={14} />}
 					title="Fastest active"
-					accent={CATEGORIES.Express.color}
+					accent={CATEGORIES.Express.ink}
 					index={0}
 					value={
 						isImperial
@@ -370,7 +370,7 @@ const Highlights = ({
 				<HighlightRow
 					icon={<Crown size={14} />}
 					title="Longest distance"
-					accent={CATEGORIES.CrossBorder.color}
+					accent={CATEGORIES.CrossBorder.ink}
 					index={1}
 					value={
 						isImperial
@@ -386,7 +386,7 @@ const Highlights = ({
 				<HighlightRow
 					icon={<Clock size={14} />}
 					title="Most calling stops"
-					accent={CATEGORIES.Highland.color}
+					accent={CATEGORIES.Highland.ink}
 					index={2}
 					value={`${mostStops.value} stops`}
 					service={mostStops.state.service}
@@ -416,8 +416,9 @@ export const StatsPanel = () => {
 	const filterLabel = describeActiveFilter(searchQuery, selectedCategory);
 
 	return (
-		<div
+		<section
 			className="sr-panel sr-stats"
+			aria-label="Live highlights"
 			data-details-open={selectedService ? "true" : undefined}
 			style={{
 				position: "absolute",
@@ -467,6 +468,6 @@ export const StatsPanel = () => {
 					</div>
 				)}
 			</Card>
-		</div>
+		</section>
 	);
 };
