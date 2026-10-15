@@ -24,6 +24,7 @@ import {
 } from "../shared";
 import { copyToClipboard } from "./clipboard";
 import { DOCX_URL, PDF_URL } from "./content";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { useHeroVisibility } from "./hero-visibility";
 import { BackToTop, Body, FooterLinks, HeaderActions, Hero } from "./sections";
 import { CV_THEME_KEY } from "./theme";
@@ -168,8 +169,17 @@ export const App = () => {
 				/>
 
 				<main id="main" tabIndex={-1}>
-					<Hero heroRef={heroRef} />
-					<Body />
+					<ErrorBoundary
+						title="The CV header could not be rendered"
+						heading={
+							<h1 className="sr-only">Charles Neau — Curriculum Vitae</h1>
+						}
+					>
+						<Hero heroRef={heroRef} />
+					</ErrorBoundary>
+					<ErrorBoundary title="The CV details could not be rendered">
+						<Body />
+					</ErrorBoundary>
 				</main>
 
 				<Footer
