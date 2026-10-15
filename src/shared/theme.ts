@@ -94,7 +94,7 @@ export const createAppTheme = ({
 		shadows: sharedShadows,
 		fontSmoothing: true,
 		autoContrast: true,
-		luminanceThreshold: 0.35,
+		luminanceThreshold: 0.179,
 		components: { ...sharedComponents, ...components },
 		...overrides,
 	});

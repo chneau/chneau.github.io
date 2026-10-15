@@ -6,6 +6,17 @@
 
 html {
 	-webkit-text-size-adjust: 100%;
+	scrollbar-color: var(--app-border-strong) transparent;
+	caret-color: var(--mantine-primary-color-filled, var(--app-accent));
+}
+
+::selection {
+	background: var(--mantine-primary-color-filled, var(--app-accent));
+	color: var(--mantine-primary-color-contrast, var(--app-surface));
+}
+
+:where(a, .app-footer__consent, .app-stat--action) {
+	text-underline-offset: 0.2em;
 }
 
 body {
@@ -24,6 +35,7 @@ body {
 :root[data-mantine-color-scheme="dark"],
 :root[data-theme="dark"] {
 	--mantine-color-dimmed: var(--app-text-muted);
+	--mantine-color-placeholder: var(--app-text-faint);
 }
 
 img,
@@ -839,16 +851,6 @@ body:has(.app-consent) {
 	gap: 14px;
 	margin-bottom: clamp(24px, 4vw, 36px);
 }
-.app-hero__eyebrow {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-	font-size: 12px;
-	font-weight: 600;
-	letter-spacing: 0.1em;
-	text-transform: uppercase;
-	color: var(--app-text-muted);
-}
 .app-hero h1 {
 	margin: 0;
 	font-size: clamp(1.9rem, 1.2rem + 3.2vw, 3rem);
@@ -857,16 +859,10 @@ body:has(.app-consent) {
 }
 .app-hero__lede {
 	margin: 0;
-	max-width: 62ch;
+	max-width: 34em;
 	font-size: 1rem;
 	line-height: 1.62;
 	color: var(--app-text-muted);
-}
-.app-hero__stats {
-	display: flex;
-	flex-wrap: wrap;
-	gap: clamp(18px, 4vw, 48px);
-	margin-top: 6px;
 }
 
 .app-toolbar {
@@ -1030,6 +1026,7 @@ body:has(.app-consent) {
 	flex-wrap: wrap;
 }
 .app-card__title {
+	margin: 0;
 	font-size: 1.02rem;
 	font-weight: 600;
 	letter-spacing: -0.01em;
@@ -1041,8 +1038,9 @@ body:has(.app-consent) {
 	flex: none;
 }
 .app-card__desc {
+	margin: 0;
 	display: -webkit-box;
-	-webkit-line-clamp: 3;
+	-webkit-line-clamp: 6;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
 	color: var(--app-text-muted);
@@ -1085,29 +1083,22 @@ body:has(.app-consent) {
 }
 .app-card__pin {
 	position: absolute;
-	top: 10px;
-	right: 10px;
+	top: 8px;
+	right: 8px;
 	z-index: 2;
 	display: grid;
 	place-items: center;
-	width: 26px;
-	height: 26px;
+	width: 32px;
+	height: 32px;
 	padding: 0;
 	border: 1px solid transparent;
 	border-radius: 8px;
 	background: transparent;
 	color: var(--app-text-faint);
 	cursor: pointer;
-	opacity: 0;
 	transition:
-		opacity 0.2s ease,
 		background-color 0.2s ease,
 		color 0.2s ease;
-}
-.app-card:hover .app-card__pin,
-.app-card:focus-within .app-card__pin,
-.app-card__pin--on {
-	opacity: 1;
 }
 .app-card__pin:hover {
 	background: var(--app-surface-3);
@@ -1115,12 +1106,6 @@ body:has(.app-consent) {
 }
 .app-card__pin--on {
 	color: var(--mantine-primary-color-filled, var(--app-warn));
-}
-
-@media (pointer: coarse) {
-	.app-card__pin {
-		opacity: 1;
-	}
 }
 
 @media (prefers-reduced-motion: reduce) {
