@@ -248,7 +248,6 @@
 		"events": "Events",
 		"no_data": "N/A",
 		"hero": {
-			"eyebrow": "Next celebration",
 			"today": "Happening today",
 			"turning": "Turning {{age}}",
 			"cycle": "{{percent}}% of the cycle elapsed",
@@ -286,7 +285,9 @@
 	},
 	"common": {
 		"confirm": "Confirm",
-		"cancel": "Cancel"
+		"cancel": "Cancel",
+		"previous_page": "Previous page",
+		"next_page": "Next page"
 	},
 	"manage": {
 		"title": "🎂 Manage Birthdays",
@@ -589,7 +590,7 @@
 	"consent": {
 		"title": "Anonymous usage stats?",
 		"body": "Count which apps are opened. No session replay, no autocapture, no cookies, no personal data. Decline and nothing is ever sent.",
-		"accept": "Allow",
+		"accept": "Allow analytics",
 		"decline": "No thanks"
 	}
 }

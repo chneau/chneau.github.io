@@ -248,7 +248,6 @@
 		"events": "Eventos",
 		"no_data": "N/D",
 		"hero": {
-			"eyebrow": "Próxima celebración",
 			"today": "Ocurre hoy",
 			"turning": "Cumple {{age}}",
 			"cycle": "{{percent}} % del ciclo transcurrido",
@@ -286,7 +285,9 @@
 	},
 	"common": {
 		"confirm": "Confirmar",
-		"cancel": "Cancelar"
+		"cancel": "Cancelar",
+		"previous_page": "Página anterior",
+		"next_page": "Página siguiente"
 	},
 	"manage": {
 		"title": "🎂 Gestionar aniversarios",

@@ -57,7 +57,7 @@ const applyLanguage = (lng: string) => {
 	const active = i18n.resolvedLanguage ?? lng;
 	setDayjsLocale(active);
 	if (typeof document === "undefined") return;
-	document.documentElement.lang = active;
+	document.documentElement.lang = active.startsWith("en") ? "en-GB" : active;
 };
 
 applyLanguage(i18n.language);

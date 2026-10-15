@@ -248,7 +248,6 @@
 		"events": "’Ōro’a",
 		"no_data": "’Aita",
 		"hero": {
-			"eyebrow": "Te fānaura'a i muri",
 			"today": "I teie mahana",
 			"turning": "E {{age}} matahiti tō",
 			"cycle": "{{percent}}% o te huringa i ritihia",
@@ -286,7 +285,9 @@
 	},
 	"common": {
 		"confirm": "Ta'oma",
-		"cancel": "Fa'aho'oma"
+		"cancel": "Fa'aho'oma",
+		"previous_page": "Te api i mua",
+		"next_page": "Te api i muri"
 	},
 	"manage": {
 		"title": "🎂 Te tiara i nga fānaura'a",

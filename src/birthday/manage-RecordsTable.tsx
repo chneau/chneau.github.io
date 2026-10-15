@@ -123,6 +123,13 @@ export const ManageRecordsTable = ({
 						total={pageCount}
 						value={page + 1}
 						onChange={(next) => onPageChange(next - 1)}
+						getControlProps={(control) =>
+							control === "previous"
+								? { "aria-label": t("common.previous_page") }
+								: control === "next"
+									? { "aria-label": t("common.next_page") }
+									: {}
+						}
 					/>
 				</Group>
 			)}
