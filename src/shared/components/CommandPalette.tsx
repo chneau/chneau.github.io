@@ -61,6 +61,13 @@ const FUSE_OPTIONS: ConstructorParameters<typeof Fuse<Command>>[1] = {
 	ignoreLocation: true,
 };
 
+/**
+ * The option list's id, named once because two attributes have to agree on it:
+ * the input's `aria-controls`, which omits the reference while there is no
+ * list, and the listbox itself.
+ */
+const LIST_ID = "command-palette-list";
+
 /** Open state for `CommandPalette`, bound to Cmd/Ctrl-K. */
 export const useCommandPalette = () => {
 	const [opened, setOpened] = useState(false);
@@ -234,8 +241,16 @@ const CommandPaletteBody = ({
 				placeholder="Search apps and actions…"
 				aria-label="Search apps and actions"
 				role="combobox"
+				/**
+				 * Both of these are true only while there is a list to point at.
+				 * The listbox used to be rendered unconditionally, so a query
+				 * that matched nothing left an empty `listbox` in the DOM — an
+				 * `aria-required-children` violation — while this attribute said
+				 * `false`: a screen reader announcing "collapsed" over a popup
+				 * that was still on screen.
+				 */
 				aria-expanded={items.length > 0}
-				aria-controls="command-palette-list"
+				aria-controls={items.length > 0 ? LIST_ID : undefined}
 				aria-activedescendant={activeId}
 				leftSection={<Search size={16} />}
 				rightSection={
@@ -247,77 +262,96 @@ const CommandPaletteBody = ({
 				styles={{ input: { background: "var(--app-surface-2)" } }}
 			/>
 			<ScrollArea.Autosize mah={360} mt="sm" type="auto">
-				<div id="command-palette-list" role="listbox" aria-label="Results">
-					{items.map((command, index) => (
-						<UnstyledButton
-							key={command.id}
-							id={`command-${command.id}`}
-							role="option"
-							aria-selected={index === activeIndex}
-							onMouseMove={() => {
-								if (keyboardNav.current) return;
-								setActive(index);
-							}}
-							onClick={() => runAt(index)}
-							style={{
-								display: "flex",
-								alignItems: "center",
-								gap: 10,
-								width: "100%",
-								padding: "9px 10px",
-								borderRadius: "var(--app-radius-sm)",
-								color: "var(--app-text)",
-								background:
-									index === activeIndex
-										? "var(--app-surface-3)"
-										: "transparent",
-							}}
-						>
-							<span
+				{/*
+				 * The listbox exists only while it has options. An empty
+				 * `listbox` is an `aria-required-children` violation and it made
+				 * `aria-expanded` above a lie; the empty state is a live region
+				 * instead, so the last keystroke of a query that matches nothing
+				 * is announced rather than answered with silence.
+				 */}
+				{items.length > 0 ? (
+					<div id={LIST_ID} role="listbox" aria-label="Results">
+						{items.map((command, index) => (
+							<UnstyledButton
+								key={command.id}
+								id={`command-${command.id}`}
+								role="option"
+								aria-selected={index === activeIndex}
+								/**
+								 * Focus never leaves the input: this is a combobox
+								 * with `aria-activedescendant`, the arrows move the
+								 * highlight, and Enter runs the highlighted option.
+								 * Each option rendered as a native `<button>` with
+								 * no `tabIndex`, so all of them were tab stops —
+								 * inside Mantine's focus trap, Tab walked the whole
+								 * result list and then wrapped back round it.
+								 */
+								tabIndex={-1}
+								onMouseMove={() => {
+									if (keyboardNav.current) return;
+									setActive(index);
+								}}
+								onClick={() => runAt(index)}
 								style={{
-									display: "inline-flex",
-									color: "var(--app-text-muted)",
-									flexShrink: 0,
+									display: "flex",
+									alignItems: "center",
+									gap: 10,
+									width: "100%",
+									padding: "9px 10px",
+									borderRadius: "var(--app-radius-sm)",
+									color: "var(--app-text)",
+									background:
+										index === activeIndex
+											? "var(--app-surface-3)"
+											: "transparent",
 								}}
 							>
-								{command.icon}
-							</span>
-							<span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-								{command.label}
-							</span>
-							{command.hint ? (
-								<Text
+								<span
 									style={{
-										color: "var(--app-text-faint)",
-										fontSize: "0.76rem",
+										display: "inline-flex",
+										color: "var(--app-text-muted)",
 										flexShrink: 0,
 									}}
 								>
-									{command.hint}
-								</Text>
-							) : null}
-							{command.hotkey ? (
-								<Kbd
-									size="xs"
-									style={{ flexShrink: 0 }}
-									aria-label={command.shortcutKey}
-									title={command.shortcutKey}
-								>
-									{command.hotkey}
-								</Kbd>
-							) : null}
-							{index === activeIndex ? (
-								<CornerDownLeft
-									size={14}
-									aria-hidden
-									style={{ color: "var(--app-text-faint)", flexShrink: 0 }}
-								/>
-							) : null}
-						</UnstyledButton>
-					))}
-				</div>
-				{items.length === 0 ? (
+									{command.icon}
+								</span>
+								<span style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+									{command.label}
+								</span>
+								{command.hint ? (
+									<Text
+										style={{
+											color: "var(--app-text-faint)",
+											fontSize: "0.76rem",
+											flexShrink: 0,
+										}}
+									>
+										{command.hint}
+									</Text>
+								) : null}
+								{command.hotkey ? (
+									<Kbd
+										size="xs"
+										style={{ flexShrink: 0 }}
+										aria-label={command.shortcutKey}
+										title={command.shortcutKey}
+									>
+										{command.hotkey}
+									</Kbd>
+								) : null}
+								{index === activeIndex ? (
+									<CornerDownLeft
+										size={14}
+										aria-hidden
+										style={{ color: "var(--app-text-faint)", flexShrink: 0 }}
+									/>
+								) : null}
+							</UnstyledButton>
+						))}
+					</div>
+				) : (
 					<Text
+						role="status"
 						style={{
 							color: "var(--app-text-faint)",
 							fontSize: "0.84rem",
@@ -326,7 +360,7 @@ const CommandPaletteBody = ({
 					>
 						No matches.
 					</Text>
-				) : null}
+				)}
 			</ScrollArea.Autosize>
 		</>
 	);

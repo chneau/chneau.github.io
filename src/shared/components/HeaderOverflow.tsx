@@ -146,7 +146,15 @@ export const HeaderOverflow = ({ children }: { children: React.ReactNode }) => {
 				className="app-header-action app-header-action--icon app-header-overflow__trigger"
 				aria-label="More actions"
 				title="More actions"
-				aria-haspopup="true"
+				/**
+				 * No `aria-haspopup`: its default value is `menu`, and the popup
+				 * above is a labelled `group` — which is the whole point of the
+				 * block of reasoning before `items`. Announcing a menu and then
+				 * moving focus into a group of plain links is a promise the
+				 * markup does not keep, and JAWS/NVDA switch input modes on that
+				 * announcement. `aria-expanded` + `aria-controls` are the
+				 * disclosure contract, and they are true.
+				 */
 				aria-expanded={open}
 				aria-controls={menuId}
 				onClick={() => setOpen((value) => !value)}

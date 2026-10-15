@@ -11,13 +11,7 @@ import {
 	Title,
 } from "@mantine/core";
 import { FileUp, LockKeyhole, ShieldCheck, TriangleAlert } from "lucide-react";
-import {
-	type DragEvent,
-	type KeyboardEvent,
-	type ReactNode,
-	useRef,
-	useState,
-} from "react";
+import { type DragEvent, type ReactNode, useRef, useState } from "react";
 // Imported from the component's own path rather than the shared barrel: the
 // barrel re-exports the save workbench, which lands here, so going through it
 // closes a cycle the bundler has to break by hoisting.
@@ -54,7 +48,7 @@ export const SaveLanding = ({
 	children?: ReactNode;
 }) => {
 	const [dragging, setDragging] = useState(false);
-	/** The hidden `<input type="file">` the label forwards activation keys to. */
+	/** The hidden `<input type="file">` the button opens. */
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const take = (file: File | undefined): void => {
@@ -137,29 +131,37 @@ export const SaveLanding = ({
 								{codec.extensions.map((e) => `.${e}`).join(" · ")} · read
 								entirely in this tab
 							</Text>
-							<label
-								onKeyDown={(event: KeyboardEvent<HTMLLabelElement>) => {
-									if (event.key !== "Enter" && event.key !== " ") return;
-									event.preventDefault();
-									fileInputRef.current?.click();
+							{/*
+							 * A real button, not a `<label>` wrapping the input.
+							 *
+							 * The label's only labelable descendant was the
+							 * `display: none` file input, which is out of the tab
+							 * order, and a `<label>` is not focusable itself — so
+							 * the `onKeyDown` handler that forwarded Enter and Space
+							 * could never fire, and this page's one primary action
+							 * was pointer-only on all seven save editors that share
+							 * this component. Tabbing the page reached the skip
+							 * link, the navbar and `main`, and then wrapped.
+							 *
+							 * The input stays hidden because the button is what
+							 * asks for it; `accept` still filters the picker the
+							 * same way.
+							 */}
+							<input
+								ref={fileInputRef}
+								type="file"
+								accept={codec.extensions.map((e) => `.${e}`).join(",")}
+								style={{ display: "none" }}
+								onChange={(event) => {
+									take(event.target.files?.[0]);
+									// Reset so re-picking the same file fires `change` again
+									// after an edit has been reverted.
+									event.target.value = "";
 								}}
-							>
-								<input
-									ref={fileInputRef}
-									type="file"
-									accept={codec.extensions.map((e) => `.${e}`).join(",")}
-									style={{ display: "none" }}
-									onChange={(event) => {
-										take(event.target.files?.[0]);
-										// Reset so re-picking the same file fires `change` again
-										// after an edit has been reverted.
-										event.target.value = "";
-									}}
-								/>
-								<Button component="span" mt="md">
-									Choose save file
-								</Button>
-							</label>
+							/>
+							<Button mt="md" onClick={() => fileInputRef.current?.click()}>
+								Choose save file
+							</Button>
 						</Stack>
 					)}
 				</Box>

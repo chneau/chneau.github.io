@@ -1,7 +1,17 @@
-import { Box, Button, Skeleton } from "@mantine/core";
+import { Box, Button, Skeleton, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	Component,
+	lazy,
+	type ReactNode,
+	Suspense,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import {
 	ErrorState,
 	LoadingState,
@@ -27,7 +37,6 @@ import {
 import { serializeBasket } from "./basket";
 import { createSpoonerCommands } from "./commands";
 import { AppHeader } from "./components/AppHeader";
-import { MapPane } from "./components/MapPane";
 import { ResultsSidebar } from "./components/ResultsSidebar";
 import { SpoonerDialogs } from "./components/SpoonerDialogs";
 import { currencyChoices, useRates } from "./rates";
@@ -38,6 +47,120 @@ import { useDataset } from "./useDataset";
 import { useSpoonersView } from "./useSpoonersView";
 
 const RATE_SOURCE = "European Central Bank, via frankfurter.dev";
+
+/**
+ * The map, and Leaflet with it, in its own chunk.
+ *
+ * `MapPane` imports `react-leaflet`, so a static import put Leaflet's 144 kB of
+ * JavaScript in an eager vendor chunk — downloaded, parsed and executed before
+ * the first paint — for a map that cannot render anything until the 23 MB cache
+ * has arrived and been parsed. Moving it out takes 159.7 kB (44.4 kB gzipped)
+ * of JavaScript and 16.1 kB (6.2 kB gzipped) of CSS off the critical path of
+ * every visit, including the ones that only ever see the loading skeleton.
+ *
+ * It is a *deferral*, not a saving: the chunk is still fetched on the same
+ * visit, so a visitor who goes on to render the map transfers 8.8 kB more
+ * JavaScript in total than before the split (4.6 kB gzipped) — the chunk
+ * scaffolding the split adds. The win is when it is fetched, not whether.
+ *
+ * `warmMap` is what makes the deferral free: the fetch starts while the cache
+ * is still arriving, so the map's own download does not move behind a 23 MB
+ * parse, and `Suspense` finds the module cached on the frame the data lands.
+ *
+ * It is registered before the loading and error branches below, so it fires on
+ * every mount — including a visit that ends on the retry screen and never shows
+ * a map. A prefetch that overlaps the work that decides the page's fate is
+ * worth its cost on the visits that succeed, which is the trade this split
+ * makes; it does not save the failed visit anything.
+ */
+const MapPane = lazy(() =>
+	import("./components/MapPane").then((module) => ({
+		default: module.MapPane,
+	})),
+);
+
+const warmMap = () => import("./components/MapPane");
+
+/**
+ * The map's box, while its chunk is in flight and if it never arrives.
+ *
+ * One component for both, because the box has to be the same either way: it is
+ * the space `MapPane` will occupy, so the sidebar does not jump when the map
+ * lands. `failed` is the state a rejected `import()` leaves behind.
+ */
+const MapFallback = ({
+	compact,
+	failed = false,
+}: {
+	compact: boolean;
+	failed?: boolean;
+}) => (
+	<Box
+		role={failed ? "alert" : undefined}
+		style={{
+			flex: compact ? undefined : 1,
+			flexShrink: 0,
+			minWidth: 0,
+			height: compact ? "45vh" : "auto",
+			borderRadius: "var(--app-radius-md)",
+			border: "1px solid var(--app-border)",
+			background: "var(--app-surface-2)",
+			display: failed ? "grid" : undefined,
+			placeItems: failed ? "center" : undefined,
+			alignContent: failed ? "center" : undefined,
+			gap: failed ? 4 : undefined,
+			padding: failed ? "var(--mantine-spacing-md)" : undefined,
+			textAlign: failed ? "center" : undefined,
+		}}
+	>
+		{failed ? (
+			<>
+				<Text fw={600}>The map could not be loaded</Text>
+				<Text size="sm" c="dimmed" maw={420}>
+					It is a separate download from the rest of the page and something
+					stopped it arriving. Reloading fetches it again.
+				</Text>
+				<Button
+					mt="sm"
+					variant="default"
+					onClick={() => window.location.reload()}
+				>
+					Reload the page
+				</Button>
+			</>
+		) : null}
+	</Box>
+);
+
+/**
+ * Keeps a failed map chunk from taking the page with it.
+ *
+ * A rejected `import()` rejects the suspended render, and without a boundary
+ * that unmounts the whole tree down to the boot shell — the header, the sidebar
+ * and the round in it all vanish because one deferred file did not arrive. This
+ * is the shape the birthday app already uses around its `lazy()` sections
+ * (`src/birthday/ErrorBoundary.tsx`); the copy is local because spooners ships
+ * no locale bundle, and the fallback is a reload rather than a re-render because
+ * React caches a rejected lazy module — clearing the error and rendering the
+ * same element just throws the same rejection again. A fresh document imports
+ * the chunk afresh, and if the network is still gone the service worker's
+ * offline page answers instead of a blank box.
+ */
+class MapErrorBoundary extends Component<
+	{ compact: boolean; children: ReactNode },
+	{ failed: boolean }
+> {
+	state = { failed: false };
+
+	static getDerivedStateFromError() {
+		return { failed: true };
+	}
+
+	render() {
+		if (!this.state.failed) return this.props.children;
+		return <MapFallback compact={this.props.compact} failed />;
+	}
+}
 
 // Only keys implemented in this app — see `components/PubSearch.tsx`.
 const SHORTCUT_GROUPS: ShortcutGroup[] = [
@@ -279,6 +402,20 @@ export const App = () => {
 		};
 	}, [reload]);
 
+	// Fetched here rather than lazily at the `<Suspense>` boundary below: this
+	// runs while the cache is still arriving, so the map's chunk downloads in
+	// parallel with 23 MB of JSON instead of after it. Registered once — the
+	// import is a module fetch, and the browser caches it.
+	//
+	// The rejection is swallowed on purpose, and it is not what handles a
+	// blocked chunk: a prefetch that fails is invisible, while the render
+	// below asks for the same chunk again and *that* rejection reaches
+	// `MapErrorBoundary`. Left unhandled it is an uncaught rejection on a page
+	// that is behaving exactly as designed.
+	useEffect(() => {
+		warmMap().catch(() => undefined);
+	}, []);
+
 	if (loading) {
 		return <AppLoading />;
 	}
@@ -380,28 +517,32 @@ export const App = () => {
 					/>
 				</Box>
 
-				<MapPane
-					compact={isMobile}
-					view={view}
-					points={derived.mapData}
-					unpriced={derived.unpricedPoints}
-					pubCount={derived.mapData.length}
-					areaCount={derived.areaPoints.length}
-					scale={derived.mapScale}
-					currency={derived.displayCurrency}
-					legendLabel={derived.legendLabel}
-					median={derived.medianPrice}
-					hiddenCount={derived.hiddenCount}
-					focused={focused}
-					onFocus={setFocused}
-					onOpen={setVenueRef}
-					onArea={openArea}
-					area={areaFilter}
-					onClearArea={() => setAreaFilter(null)}
-					onView={setView}
-					initialView={mapView}
-					onViewport={setViewport}
-				/>
+				<MapErrorBoundary compact={isMobile}>
+					<Suspense fallback={<MapFallback compact={isMobile} />}>
+						<MapPane
+							compact={isMobile}
+							view={view}
+							points={derived.mapData}
+							unpriced={derived.unpricedPoints}
+							pubCount={derived.mapData.length}
+							areaCount={derived.areaPoints.length}
+							scale={derived.mapScale}
+							currency={derived.displayCurrency}
+							legendLabel={derived.legendLabel}
+							median={derived.medianPrice}
+							hiddenCount={derived.hiddenCount}
+							focused={focused}
+							onFocus={setFocused}
+							onOpen={setVenueRef}
+							onArea={openArea}
+							area={areaFilter}
+							onClearArea={() => setAreaFilter(null)}
+							onView={setView}
+							initialView={mapView}
+							onViewport={setViewport}
+						/>
+					</Suspense>
+				</MapErrorBoundary>
 			</main>
 
 			<SpoonerDialogs

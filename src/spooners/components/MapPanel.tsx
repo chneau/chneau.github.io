@@ -8,6 +8,12 @@ import {
 	Text,
 } from "@mantine/core";
 import type { Map as LeafletMap } from "leaflet";
+// Imported here, not in `index.tsx`, so the stylesheet travels with this chunk:
+// the entry used to download and parse 14.5 kB of Leaflet layout CSS before the
+// first paint, for a map that renders only once the 23 MB cache has arrived.
+// `spooners.css` restyles Leaflet through `.spooners-map`-scoped selectors, so
+// its rules win on specificity and the order of the two files does not matter.
+import "leaflet/dist/leaflet.css";
 import { ChevronRight, Circle, Crosshair, Info, X } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import {
