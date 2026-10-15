@@ -53,6 +53,11 @@ export const DiscoverPanel = ({
 			<Stack gap={2} mt="xs">
 				{items.map((item) => {
 					const seller = sellers?.[item.name] ?? null;
+					const meta = `${
+						seller
+							? `${seller.town ?? seller.name} · ${miles(seller.distance)}`
+							: `${item.count} ${item.count === 1 ? "pub" : "pubs"}`
+					}${item.menu ? ` · ${item.menu}` : ""}`;
 					return (
 						<UnstyledButton
 							key={item.name}
@@ -66,16 +71,11 @@ export const DiscoverPanel = ({
 						>
 							<Group justify="space-between" gap={8} wrap="nowrap">
 								<Box style={{ minWidth: 0 }}>
-									<Text size="sm" lineClamp={1}>
+									<Text size="sm" lineClamp={1} title={item.name}>
 										{item.name}
 									</Text>
-									<Text size="xs" c="dimmed" lineClamp={1}>
-										{seller
-											? `${seller.town ?? seller.name} · ${miles(
-													seller.distance,
-												)}`
-											: `${item.count} ${item.count === 1 ? "pub" : "pubs"}`}
-										{item.menu ? ` · ${item.menu}` : ""}
+									<Text size="xs" c="dimmed" lineClamp={1} title={meta}>
+										{meta}
 									</Text>
 								</Box>
 								<Group gap={4} wrap="nowrap">

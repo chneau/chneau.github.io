@@ -41,10 +41,10 @@ import { ResultsSidebar } from "./components/ResultsSidebar";
 import { SpoonerDialogs } from "./components/SpoonerDialogs";
 import { currencyChoices, useRates } from "./rates";
 import { useSettings } from "./settings";
-import type { MapPoint } from "./types";
+import type { MapPoint, SpoonersCache } from "./types";
 import { readUrl } from "./url";
 import { useDataset } from "./useDataset";
-import { useSpoonersView } from "./useSpoonersView";
+import { type SpoonersView, useSpoonersView } from "./useSpoonersView";
 
 const RATE_SOURCE = "European Central Bank, via frankfurter.dev";
 
@@ -127,6 +127,38 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
 	},
 ];
 
+const AppLanding = ({
+	header,
+	children,
+}: {
+	header: ReactNode;
+	children: ReactNode;
+}) => (
+	<Box
+		style={{
+			display: "flex",
+			flexDirection: "column",
+			minHeight: "100dvh",
+		}}
+	>
+		<SkipLink />
+		{header}
+		<main
+			id="main"
+			style={{
+				display: "flex",
+				flexDirection: "column",
+				flex: 1,
+				minHeight: 0,
+				padding: "var(--mantine-spacing-md)",
+			}}
+		>
+			<h1 className="sr-only">Spooners — pub prices on a map</h1>
+			{children}
+		</main>
+	</Box>
+);
+
 const AppLoading = () => (
 	<LoadingState
 		label="Loading pub prices…"
@@ -135,12 +167,11 @@ const AppLoading = () => (
 			flexDirection: "column",
 			alignItems: "center",
 			justifyContent: "center",
-			minHeight: "100vh",
+			flex: 1,
+			minHeight: 0,
 			gap: "var(--mantine-spacing-sm)",
-			padding: "var(--mantine-spacing-md)",
 		}}
 	>
-		<h1 className="sr-only">Spooners — pub prices on a map</h1>
 		{Array.from({ length: 4 }).map((_, i) => (
 			<Skeleton key={i} height={80} radius="sm" />
 		))}
@@ -163,14 +194,60 @@ const AppLoadError = ({
 					"Something went wrong while loading the data. Please try again.")
 		}
 		action={<Button onClick={onRetry}>Try again</Button>}
-		label={<h1 className="sr-only">Spooners — pub prices on a map</h1>}
 		style={{
 			display: "flex",
 			alignItems: "center",
 			justifyContent: "center",
-			minHeight: "100vh",
-			margin: "var(--mantine-spacing-md)",
+			flex: 1,
+			minWidth: 0,
 		}}
+	/>
+);
+
+const SpoonersHeader = ({
+	cache,
+	stats,
+	itemCount,
+	currency,
+	converting,
+	displayCurrency,
+	copied,
+	onShare,
+	onValueOpen,
+	onSettingsOpen,
+	onSelectVenue,
+}: {
+	cache: SpoonersCache | null;
+	stats: SpoonersView["stats"];
+	itemCount: number;
+	currency: string;
+	converting: boolean;
+	displayCurrency: string;
+	copied: boolean;
+	onShare: () => void;
+	onValueOpen: () => void;
+	onSettingsOpen: () => void;
+	onSelectVenue: (ref: number) => void;
+}) => (
+	<AppHeader
+		dataset={
+			cache
+				? {
+						stats,
+						itemCount,
+						venues: cache.venueList,
+						onSelectVenue,
+					}
+				: undefined
+		}
+		converting={converting}
+		displayCurrency={displayCurrency}
+		rateIssue={cache !== null && currency !== "native" && !converting}
+		copied={copied}
+		onShare={onShare}
+		onValueOpen={onValueOpen}
+		onSettingsOpen={onSettingsOpen}
+		shortcuts={SHORTCUT_GROUPS}
 	/>
 );
 
@@ -327,12 +404,36 @@ export const App = () => {
 		warmMap().catch(() => undefined);
 	}, []);
 
+	const header = (
+		<SpoonersHeader
+			cache={data}
+			stats={derived.stats}
+			itemCount={derived.index.length}
+			currency={settings.currency}
+			converting={derived.converting}
+			displayCurrency={derived.displayCurrency}
+			copied={copied}
+			onShare={copyShare}
+			onValueOpen={() => setValueOpen(true)}
+			onSettingsOpen={() => setSettingsOpen(true)}
+			onSelectVenue={setVenueRef}
+		/>
+	);
+
 	if (loading) {
-		return <AppLoading />;
+		return (
+			<AppLanding header={header}>
+				<AppLoading />
+			</AppLanding>
+		);
 	}
 
 	if (error || !data) {
-		return <AppLoadError message={error} onRetry={reload} />;
+		return (
+			<AppLanding header={header}>
+				<AppLoadError message={error} onRetry={reload} />
+			</AppLanding>
+		);
 	}
 
 	return (
@@ -344,20 +445,7 @@ export const App = () => {
 			}}
 		>
 			<SkipLink />
-			<AppHeader
-				stats={derived.stats}
-				itemCount={derived.index.length}
-				venues={data.venueList}
-				onSelectVenue={setVenueRef}
-				converting={derived.converting}
-				displayCurrency={derived.displayCurrency}
-				rateIssue={settings.currency !== "native" && !derived.converting}
-				copied={copied}
-				onShare={copyShare}
-				onValueOpen={() => setValueOpen(true)}
-				onSettingsOpen={() => setSettingsOpen(true)}
-				shortcuts={SHORTCUT_GROUPS}
-			/>
+			{header}
 
 			<main
 				id="main"
@@ -371,6 +459,8 @@ export const App = () => {
 				<h1 className="sr-only">Spooners — pub prices on a map</h1>
 				<Box
 					className="spooners-scroll"
+					role="region"
+					aria-label="Round and results"
 					style={{
 						width: isMobile ? "100%" : 400,
 						flex: isMobile ? 1 : undefined,
@@ -440,7 +530,7 @@ export const App = () => {
 							scale={derived.mapScale}
 							currency={derived.displayCurrency}
 							legendLabel={derived.legendLabel}
-							median={derived.medianPrice}
+							median={derived.prices.length ? derived.medianPrice : null}
 							hiddenCount={derived.hiddenCount}
 							focused={focused}
 							onFocus={setFocused}

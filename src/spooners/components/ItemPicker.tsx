@@ -192,11 +192,16 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 										fontWeight: item.name === value ? 600 : 400,
 									}}
 								>
-									<Text size="sm" lineClamp={1}>
+									<Text size="sm" lineClamp={1} title={item.name}>
 										{item.name}
 									</Text>
 									<Group gap={6} wrap="nowrap">
-										<Text size="xs" c="dimmed" lineClamp={1}>
+										<Text
+											size="xs"
+											c="dimmed"
+											lineClamp={1}
+											title={item.menu ?? undefined}
+										>
 											{item.menu}
 										</Text>
 										<Text size="xs" c="dimmed">

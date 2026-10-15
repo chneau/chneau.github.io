@@ -76,7 +76,7 @@ type Props = {
 	geoState: "idle" | "loading" | "error";
 	onNearMe: () => void;
 	onClearLocation: () => void;
-	scale: PriceScale;
+	scale: PriceScale | null;
 	metric: string | null;
 	trend: Trend | null;
 	converted: { currency: string; rateDate: string | null } | null;
@@ -225,7 +225,7 @@ const RoundSummary = ({
 				) : null}
 				{metric ? (
 					<Group gap={2} align="center">
-						<Text size="xs" c="teal" fw={600}>
+						<Text size="xs" fw={600} className="spooners-price-text">
 							{metric}
 						</Text>
 						<Hint label="Value: price per alcohol unit, per 100 ml, or calories per pound. The Value tab ranks by it." />
@@ -490,7 +490,7 @@ const LocationControl = ({
 			</Button>
 		)}
 		{geoState === "error" ? (
-			<Text size="xs" c="red">
+			<Text size="xs" className="spooners-price-text spooners-price-text--bad">
 				Location unavailable — check browser permissions.
 			</Text>
 		) : null}
@@ -501,7 +501,11 @@ const PriceScaleKey = ({
 	scale,
 	currency,
 	converted,
-}: Pick<Props, "scale" | "converted"> & { currency?: string }) => (
+}: {
+	scale: PriceScale;
+	currency?: string;
+	converted: { currency: string; rateDate: string | null } | null;
+}) => (
 	<>
 		<Box mt="xs">
 			<Box
@@ -741,11 +745,13 @@ export const RoundCard = ({
 						onClearLocation={onClearLocation}
 					/>
 
-					<PriceScaleKey
-						scale={scale}
-						currency={currency}
-						converted={converted}
-					/>
+					{scale ? (
+						<PriceScaleKey
+							scale={scale}
+							currency={currency}
+							converted={converted}
+						/>
+					) : null}
 				</Collapse>
 			</Stack>
 		</Card>

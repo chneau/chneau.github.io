@@ -1,4 +1,5 @@
 import { Box, Button, Group, Stack, Text } from "@mantine/core";
+import type { ReactNode } from "react";
 import { EmptyState, Section } from "../../shared";
 import type { BasketItem } from "../basket";
 import { money } from "../price";
@@ -59,6 +60,22 @@ type Props = {
 	rankingRows: number;
 };
 
+const Panel = ({
+	title,
+	badge,
+	children,
+}: {
+	title: string;
+	badge?: ReactNode;
+	children: ReactNode;
+}) => (
+	<Section title={title} badge={badge}>
+		<Box role="region" aria-label={title}>
+			{children}
+		</Box>
+	</Section>
+);
+
 const PriceStats = ({
 	view,
 	portion,
@@ -67,36 +84,35 @@ const PriceStats = ({
 	portion: string | null;
 }) =>
 	view.withDistance.length > 0 ? (
-		<Section title="Prices">
+		<Panel title="Prices">
 			<StatsBar
 				pubs={view.withDistance.length}
 				cheapest={money(view.scale.min, view.displayCurrency)}
 				median={money(view.medianPrice, view.displayCurrency)}
 				dearest={money(view.scale.max, view.displayCurrency)}
+				scale={view.scale}
 				portion={portion}
 				premium={view.premium}
 			/>
-		</Section>
+		</Panel>
 	) : null;
 
 const NoMatches = ({
 	partialCount,
 	onlyComplete,
-	canClearRound,
 	onIncludePartial,
 	onResetFilters,
 	onClearRound,
 }: {
 	partialCount: number;
 	onlyComplete: boolean;
-	canClearRound: boolean;
 	onIncludePartial: () => void;
 	onResetFilters: () => void;
 	onClearRound: () => void;
 }) => (
 	<EmptyState
 		title="No pubs match"
-		body="Nothing serves this round with the current filters."
+		body="No pub serving this round is left after the current filters."
 		action={
 			<Group gap="xs" justify="center">
 				{partialCount > 0 && onlyComplete ? (
@@ -107,14 +123,173 @@ const NoMatches = ({
 				<Button size="xs" variant="light" onClick={onResetFilters}>
 					Reset filters
 				</Button>
-				{canClearRound ? (
-					<Button size="xs" variant="subtle" color="red" onClick={onClearRound}>
-						Clear round
-					</Button>
-				) : null}
+				<Button size="xs" variant="subtle" color="red" onClick={onClearRound}>
+					Clear round
+				</Button>
 			</Group>
 		}
 	/>
+);
+
+const NoRound = () => (
+	<EmptyState
+		title="Your round is empty"
+		body="Add a drink above to price it across every pub."
+	/>
+);
+
+const NoDrinks = ({ onResetFilters }: { onResetFilters: () => void }) => (
+	<EmptyState
+		title="No drinks match the filters"
+		body="Nothing on the menu passes the current filters, so there is no round to price."
+		action={
+			<Button size="xs" variant="light" onClick={onResetFilters}>
+				Reset filters
+			</Button>
+		}
+	/>
+);
+
+const SidebarEmptyState = ({
+	hasPubs,
+	basketLength,
+	fallbackName,
+	partialCount,
+	onlyComplete,
+	onIncludePartial,
+	onResetFilters,
+	onClear,
+}: {
+	hasPubs: boolean;
+	basketLength: number;
+	fallbackName: string | null;
+	partialCount: number;
+	onlyComplete: boolean;
+	onIncludePartial: () => void;
+	onResetFilters: () => void;
+	onClear: () => void;
+}) => {
+	if (hasPubs) return null;
+	if (basketLength > 0)
+		return (
+			<NoMatches
+				partialCount={partialCount}
+				onlyComplete={onlyComplete}
+				onIncludePartial={onIncludePartial}
+				onResetFilters={onResetFilters}
+				onClearRound={onClear}
+			/>
+		);
+	return fallbackName === null ? (
+		<NoDrinks onResetFilters={onResetFilters} />
+	) : (
+		<NoRound />
+	);
+};
+
+const RankedPanels = ({
+	view,
+	withDistance,
+	areas,
+	displayCurrency,
+	history,
+	focused,
+	onFocus,
+	onDetails,
+	rankingRows,
+	selectedArea,
+	onSelectArea,
+}: {
+	view: SpoonersView;
+	withDistance: Props["view"]["withDistance"];
+	areas: AreaStat[];
+	displayCurrency: string;
+	history: Props["history"];
+	focused: MapPoint | null;
+	onFocus: (venue: PricedVenue) => void;
+	onDetails: (venue: PricedVenue) => void;
+	rankingRows: number;
+	selectedArea: string | null;
+	onSelectArea: (stat: AreaStat) => void;
+}) => {
+	if (withDistance.length === 0) return null;
+	return (
+		<>
+			<Panel title="Price distribution">
+				<Distribution
+					prices={view.prices}
+					scale={view.scale}
+					currency={displayCurrency}
+					median={view.medianPrice}
+					history={view.singleName ? history?.[view.singleName] : undefined}
+				/>
+			</Panel>
+			<Panel title="Rankings">
+				<RankingPanel
+					venues={withDistance}
+					scale={view.scale}
+					currency={displayCurrency}
+					focused={focused}
+					onFocus={onFocus}
+					onDetails={onDetails}
+					nearby={view.nearby}
+					count={rankingRows}
+				/>
+			</Panel>
+			{areas.length >= 2 ? (
+				<Panel
+					title="By area"
+					badge={
+						<Text size="xs" c="dimmed">
+							{areas.length} areas
+						</Text>
+					}
+				>
+					<GeographyPanel
+						stats={areas}
+						currency={displayCurrency}
+						selected={selectedArea}
+						onSelect={onSelectArea}
+					/>
+				</Panel>
+			) : null}
+		</>
+	);
+};
+
+const DiscoverPanels = ({
+	view,
+	onOnlyItem,
+	onSelectVenue,
+}: {
+	view: SpoonersView;
+	onOnlyItem: (name: string) => void;
+	onSelectVenue: (ref: number) => void;
+}) => (
+	<>
+		{view.rare.length || view.fresh.length ? (
+			<Panel title="Discover">
+				<DiscoverPanel
+					rare={view.rare}
+					fresh={view.fresh}
+					sellers={view.sellers}
+					onSelect={onOnlyItem}
+				/>
+			</Panel>
+		) : null}
+		{view.unpricedAll.length ? (
+			<Panel
+				title="No published menu"
+				badge={
+					<Text size="xs" c="dimmed">
+						{view.unpricedAll.length}
+					</Text>
+				}
+			>
+				<MenuLessPanel venues={view.unpricedAll} onSelect={onSelectVenue} />
+			</Panel>
+		) : null}
+	</>
 );
 
 export const ResultsSidebar = ({
@@ -211,82 +386,40 @@ export const ResultsSidebar = ({
 				geoState={geoState}
 				onNearMe={onNearMe}
 				onClearLocation={onClearLocation}
-				scale={view.scale}
+				scale={withDistance.length ? view.scale : null}
 				metric={view.itemMetric}
 				trend={view.trend}
 				converted={view.converting ? { currency, rateDate } : null}
 			/>
+			<SidebarEmptyState
+				hasPubs={withDistance.length > 0}
+				basketLength={resolvedBasket.length}
+				fallbackName={view.fallbackName}
+				partialCount={view.partialCount}
+				onlyComplete={onlyComplete}
+				onIncludePartial={() => onOnlyComplete(false)}
+				onResetFilters={onResetFilters}
+				onClear={onClear}
+			/>
 			<PriceStats view={view} portion={portion} />
-			{withDistance.length === 0 ? (
-				<NoMatches
-					partialCount={view.partialCount}
-					onlyComplete={onlyComplete}
-					canClearRound={resolvedBasket.length > 0}
-					onIncludePartial={() => onOnlyComplete(false)}
-					onResetFilters={onResetFilters}
-					onClearRound={onClear}
-				/>
-			) : null}
-			<Section title="Price distribution">
-				<Distribution
-					prices={view.prices}
-					scale={view.scale}
-					currency={displayCurrency}
-					median={view.medianPrice}
-					history={view.singleName ? history?.[view.singleName] : undefined}
-				/>
-			</Section>
-			<Section title="Rankings">
-				<RankingPanel
-					venues={withDistance}
-					scale={view.scale}
-					currency={displayCurrency}
-					focused={focused}
-					onFocus={onFocus}
-					onDetails={onDetails}
-					nearby={view.nearby}
-					count={rankingRows}
-				/>
-			</Section>
-			{areas.length >= 2 ? (
-				<Section
-					title="By area"
-					badge={
-						<Text size="xs" c="dimmed">
-							{areas.length} areas
-						</Text>
-					}
-				>
-					<GeographyPanel
-						stats={areas}
-						currency={displayCurrency}
-						selected={selectedArea}
-						onSelect={onSelectArea}
-					/>
-				</Section>
-			) : null}
-			{view.rare.length || view.fresh.length ? (
-				<Section title="Discover">
-					<DiscoverPanel
-						rare={view.rare}
-						fresh={view.fresh}
-						sellers={view.sellers}
-						onSelect={onOnlyItem}
-					/>
-				</Section>
-			) : null}
-			{view.unpricedAll.length ? (
-				<Section
-					title="No published menu"
-					badge={
-						<Text size="xs" c="dimmed">
-							{view.unpricedAll.length}
-						</Text>
-					}
-				>
-					<MenuLessPanel venues={view.unpricedAll} onSelect={onSelectVenue} />
-				</Section>
-			) : null}
+			<RankedPanels
+				view={view}
+				withDistance={withDistance}
+				areas={areas}
+				displayCurrency={displayCurrency}
+				history={history}
+				focused={focused}
+				onFocus={onFocus}
+				onDetails={onDetails}
+				rankingRows={rankingRows}
+				selectedArea={selectedArea}
+				onSelectArea={onSelectArea}
+			/>
+			<DiscoverPanels
+				view={view}
+				onOnlyItem={onOnlyItem}
+				onSelectVenue={onSelectVenue}
+			/>
 		</Stack>
 	);
 };

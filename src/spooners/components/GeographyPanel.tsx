@@ -51,7 +51,7 @@ export const GeographyPanel = ({
 							}}
 						>
 							<Group justify="space-between" gap={8} wrap="nowrap">
-								<Text size="sm" lineClamp={1}>
+								<Text size="sm" lineClamp={1} title={stat.area}>
 									{active ? <MapPin size={12} /> : null}
 									{active ? " " : ""}
 									{stat.area}

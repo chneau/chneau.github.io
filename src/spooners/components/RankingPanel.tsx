@@ -11,8 +11,8 @@ import {
 	UnstyledButton,
 } from "@mantine/core";
 import { Ban, Info } from "lucide-react";
-import { useState } from "react";
-import { EmptyState, StatusDot } from "../../shared";
+import { type CSSProperties, useState } from "react";
+import { StatusDot } from "../../shared";
 import { isTemporarilyClosed } from "../derive";
 import { metricText, valueDirection } from "../portions";
 import {
@@ -22,6 +22,7 @@ import {
 	normalize,
 	type PriceScale,
 	priceColor,
+	priceHue,
 } from "../price";
 import type { PricedVenue, ValueKind } from "../types";
 import { SpotLabel } from "./SpotLabel";
@@ -66,7 +67,7 @@ const RowMeta = ({
 }) => {
 	const change = changeText(venue);
 	return (
-		<Text size="xs" c="dimmed" lineClamp={1}>
+		<Text size="xs" c="dimmed">
 			{[venue.town, venue.postcode].filter(Boolean).join(", ")}
 			{venue.distance != null ? ` · ${miles(venue.distance)}` : ""}
 			{venue.canOrder ? "" : " · no ordering"}
@@ -93,10 +94,16 @@ const RowHeading = ({ venue }: { venue: PricedVenue }) => (
 			on={venue.isOpenNow}
 			label={venue.isOpenNow ? "Open now" : "Closed now"}
 		/>
-		<Text size="xs" fw={600} c={venue.isOpenNow ? "teal" : "red"}>
+		<Text
+			size="xs"
+			fw={600}
+			className={`spooners-price-text spooners-price-text--${
+				venue.isOpenNow ? "good" : "bad"
+			}`}
+		>
 			{venue.isOpenNow ? "Open" : "Closed"}
 		</Text>
-		<Text size="sm" lineClamp={1}>
+		<Text size="sm" lineClamp={1} title={venue.name}>
 			{venue.name}
 		</Text>
 		{venue.spot !== "high-street" ? (
@@ -132,24 +139,29 @@ const RowPrice = ({
 	scale: PriceScale;
 	currency: string;
 	value: boolean;
-}) => (
-	<Group gap={4} wrap="nowrap" align="baseline">
-		{value && venue.metricKind && venue.metricValue != null ? (
-			<Text size="sm" fw={700}>
-				{metricText(
-					{ kind: venue.metricKind, value: venue.metricValue },
-					currency,
-				)}
+}) => {
+	const style = {
+		"--spooners-price-hue": priceHue(venue.price, scale),
+	} as CSSProperties;
+	return (
+		<Group gap={4} wrap="nowrap" align="baseline">
+			{value && venue.metricKind && venue.metricValue != null ? (
+				<Text size="sm" fw={700}>
+					{metricText(
+						{ kind: venue.metricKind, value: venue.metricValue },
+						currency,
+					)}
+				</Text>
+			) : null}
+			<Text size="xs" fw={600} className="spooners-price-text" style={style}>
+				{currencySymbol(currency)}
 			</Text>
-		) : null}
-		<Text size="xs" fw={600} style={{ color: priceColor(venue.price, scale) }}>
-			{currencySymbol(currency)}
-		</Text>
-		<Text size="sm" fw={700} style={{ color: priceColor(venue.price, scale) }}>
-			{amount(venue.price, currency)}
-		</Text>
-	</Group>
-);
+			<Text size="sm" fw={700} className="spooners-price-text" style={style}>
+				{amount(venue.price, currency)}
+			</Text>
+		</Group>
+	);
+};
 
 const Row = ({
 	venue,
@@ -261,7 +273,6 @@ export const RankingPanel = ({
 		nearest: (nearby ?? []).slice(0, count),
 		value: byValue.slice(0, count),
 	};
-	const rows = lists[mode];
 
 	const options = [
 		{ label: "Cheapest", value: "cheapest" },
@@ -269,6 +280,10 @@ export const RankingPanel = ({
 		...(nearby?.length ? [{ label: "Nearest", value: "nearest" }] : []),
 		...(byValue.length ? [{ label: "Value", value: "value" }] : []),
 	];
+	const activeMode = options.some((option) => option.value === mode)
+		? mode
+		: "cheapest";
+	const rows = lists[activeMode];
 
 	const valueKinds = [
 		...new Set(
@@ -291,7 +306,7 @@ export const RankingPanel = ({
 			<SegmentedControl
 				size="xs"
 				fullWidth
-				value={mode}
+				value={activeMode}
 				data={options}
 				onChange={(value) => setMode(value as Mode)}
 			/>
@@ -310,15 +325,9 @@ export const RankingPanel = ({
 						active={focused?.ref === venue.ref}
 						onFocus={onFocus}
 						onDetails={onDetails}
-						value={mode === "value"}
+						value={activeMode === "value"}
 					/>
 				))}
-				{rows.length ? null : (
-					<EmptyState
-						title="No venues with this metric"
-						body="None of the pubs matching the filters publish the data this ranking needs."
-					/>
-				)}
 			</Stack>
 		</>
 	);

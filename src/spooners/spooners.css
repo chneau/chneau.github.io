@@ -22,7 +22,8 @@
 }
 
 .spooners-map .leaflet-control-attribution a {
-	color: var(--mantine-primary-color-filled);
+	color: var(--mantine-color-text);
+	text-decoration: underline;
 }
 
 .spooners-map .leaflet-bar a,
@@ -60,4 +61,20 @@
 
 .spooners-scroll {
 	scrollbar-width: thin;
+}
+
+.spooners-price-text {
+	color: hsl(var(--spooners-price-hue, 135) 68% 26%);
+}
+
+.spooners-price-text--good {
+	--spooners-price-hue: 135;
+}
+
+.spooners-price-text--bad {
+	--spooners-price-hue: 0;
+}
+
+[data-mantine-color-scheme="dark"] .spooners-price-text {
+	color: hsl(var(--spooners-price-hue, 135) 68% 70%);
 }

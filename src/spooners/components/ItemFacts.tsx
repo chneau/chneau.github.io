@@ -44,7 +44,10 @@ const OptionRow = ({
 					</Text>
 				) : null}
 				{was ? (
-					<Text size="xs" c="red">
+					<Text
+						size="xs"
+						className="spooners-price-text spooners-price-text--bad"
+					>
 						{was}
 					</Text>
 				) : null}

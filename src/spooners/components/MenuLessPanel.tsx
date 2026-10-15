@@ -21,42 +21,47 @@ export const MenuLessPanel = ({ venues, onSelect }: Props) => {
 				markers follow them.
 			</Text>
 			<Stack gap={2}>
-				{venues.map((venue) => (
-					<UnstyledButton
-						key={venue.ref}
-						onClick={() => onSelect(venue.ref)}
-						style={{
-							display: "block",
-							width: "100%",
-							padding: "5px 6px",
-							borderRadius: 6,
-						}}
-					>
-						<Group justify="space-between" gap={8} wrap="nowrap">
-							<VenueImage
-								src={venue.images[0]}
-								alt={venue.name}
-								width={30}
-								height={30}
-							/>
-							<Box style={{ minWidth: 0 }}>
-								<Text size="sm" lineClamp={1}>
-									{venue.spot !== "high-street" ? (
-										<>
-											<SpotIcon spot={venue.spot} />{" "}
-										</>
-									) : null}
-									{venue.name}
-								</Text>
-								<Text size="xs" c="dimmed" lineClamp={1}>
-									{[venue.town, venue.postcode].filter(Boolean).join(", ")}
-									{venue.distance != null ? ` · ${miles(venue.distance)}` : ""}
-									{venue.reason ? ` · ${venue.reason}` : ""}
-								</Text>
-							</Box>
-						</Group>
-					</UnstyledButton>
-				))}
+				{venues.map((venue) => {
+					const meta = `${[venue.town, venue.postcode]
+						.filter(Boolean)
+						.join(", ")}${
+						venue.distance != null ? ` · ${miles(venue.distance)}` : ""
+					}${venue.reason ? ` · ${venue.reason}` : ""}`;
+					return (
+						<UnstyledButton
+							key={venue.ref}
+							onClick={() => onSelect(venue.ref)}
+							style={{
+								display: "block",
+								width: "100%",
+								padding: "5px 6px",
+								borderRadius: 6,
+							}}
+						>
+							<Group justify="space-between" gap={8} wrap="nowrap">
+								<VenueImage
+									src={venue.images[0]}
+									alt={venue.name}
+									width={30}
+									height={30}
+								/>
+								<Box style={{ minWidth: 0 }}>
+									<Text size="sm" lineClamp={1} title={venue.name}>
+										{venue.spot !== "high-street" ? (
+											<>
+												<SpotIcon spot={venue.spot} />{" "}
+											</>
+										) : null}
+										{venue.name}
+									</Text>
+									<Text size="xs" c="dimmed" lineClamp={1} title={meta}>
+										{meta}
+									</Text>
+								</Box>
+							</Group>
+						</UnstyledButton>
+					);
+				})}
 			</Stack>
 		</>
 	);
