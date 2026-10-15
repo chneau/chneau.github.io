@@ -1,3 +1,6 @@
 :root {
 	--app-accent: var(--mantine-primary-color-filled);
+	--app-accent-ink: var(--mantine-primary-color-light-color);
+	--app-accent-line: var(--mantine-primary-color-filled);
+	--app-accent-soft: var(--mantine-primary-color-light);
 }
