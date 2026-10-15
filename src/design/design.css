@@ -68,6 +68,26 @@
 	border: 1px solid var(--app-border);
 }
 
+.design-swatch--accent.design-swatch--unset {
+	display: grid;
+	place-items: center;
+	background: none;
+	border-style: dashed;
+}
+
+.design-ledger {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 10px 18px;
+	align-items: baseline;
+}
+
+@media (min-width: 40rem) {
+	.design-ledger {
+		grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+	}
+}
+
 .design-track {
 	width: 220px;
 	height: 44px;

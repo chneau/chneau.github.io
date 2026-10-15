@@ -26,9 +26,7 @@ const allTokens = definitionsIn(tokensCss);
 const lightTokens = definitionsIn(rootBlock);
 const darkTokens = definitionsIn(darkBlock);
 
-const guideTokens = TOKEN_DEFS.filter((token) => token.category !== "accent")
-	.map((token) => token.name)
-	.sort();
+const guideTokens = TOKEN_DEFS.map((token) => token.name).sort();
 
 describe("design gallery token inventory", () => {
 	test("the guide lists exactly the tokens declared in tokens.css", () => {

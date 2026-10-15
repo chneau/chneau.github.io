@@ -1,10 +1,4 @@
-import {
-	Badge,
-	Group,
-	type MantineColorsTuple,
-	MantineProvider,
-	Stack,
-} from "@mantine/core";
+import { Badge, Group, type MantineColorsTuple, Stack } from "@mantine/core";
 import { Keyboard, Layers, Moon, RotateCcw, Sun } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -18,6 +12,7 @@ import {
 	Footer,
 	Grain,
 	SkipLink,
+	ThemedProvider,
 	useCommandPalette,
 	useShortcutsHelp,
 	useThemeMode,
@@ -29,6 +24,7 @@ import {
 	ChromeSection,
 	ColourTokensSection,
 	ControlsSection,
+	CoverageSection,
 	DataSection,
 	DesignHero,
 	GlassSection,
@@ -195,10 +191,7 @@ export const App = () => {
 	const auditPending = findings.length === 0 || audited !== scheme;
 
 	return (
-		<MantineProvider
-			theme={appTheme}
-			forceColorScheme={dark ? "dark" : "light"}
-		>
+		<ThemedProvider theme={appTheme}>
 			<SkipLink />
 			<div
 				style={{
@@ -264,6 +257,8 @@ export const App = () => {
 						<PatternsSection />
 
 						<ChromeSection />
+
+						<CoverageSection />
 					</Stack>
 				</main>
 
@@ -285,6 +280,6 @@ export const App = () => {
 				onClose={palette.close}
 				commands={commands}
 			/>
-		</MantineProvider>
+		</ThemedProvider>
 	);
 };

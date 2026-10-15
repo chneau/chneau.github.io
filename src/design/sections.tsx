@@ -26,7 +26,7 @@ import {
 	Waves,
 	Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { Fragment, type ReactNode, useState } from "react";
 import {
 	APPS,
 	AppCard,
@@ -38,30 +38,39 @@ import {
 	LoadingState,
 	prefersReducedMotion,
 	SchemeToggle,
-	Section,
 	ShortcutsHelpButton,
 	Skeleton,
 	Stat,
 	StatusDot,
 } from "../shared";
-import { type Finding, MANTINE_ACCENT, SITE_ACCENT } from "./audit";
+import type { Finding } from "./audit";
 import {
 	AccentCard,
 	AuditPanel,
 	ColourCard,
 	CopyableCode,
 	FontCard,
+	GallerySection,
 	RadiusCard,
-	SectionHeading,
 	ShadowCard,
 	TokenValue,
 } from "./components";
-import { TOKEN_DEFS, type TokenDef, type TokenLayers } from "./tokens";
+import {
+	ACCENT_TOKENS,
+	TOKEN_DEFS,
+	type TokenDef,
+	type TokenLayers,
+	useSharedStyles,
+} from "./tokens";
 
 const byCategory = (category: TokenDef["category"]) =>
 	TOKEN_DEFS.filter((token) => token.category === category);
 
 type LiveTokens = Record<string, string>;
+
+const appSwitchKeys: readonly string[] = APPS.map((app) => app.hotkey)
+	.filter((key) => /^[1-9]$/.test(key))
+	.sort();
 
 export const DesignHero = () => (
 	<div className="design-hero">
@@ -76,11 +85,11 @@ export const DesignHero = () => (
 			<Text size="xs" c="var(--app-text-muted)">
 				Switch app
 			</Text>
-			<kbd className="app-kbd">1</kbd>
-			<Text size="xs" c="var(--app-text-muted)">
-				–
-			</Text>
-			<kbd className="app-kbd">6</kbd>
+			{appSwitchKeys.map((key) => (
+				<kbd key={key} className="app-kbd">
+					{key}
+				</kbd>
+			))}
 			<Text size="xs" c="var(--app-text-muted)">
 				·
 			</Text>
@@ -106,7 +115,7 @@ export const AuditSection = ({
 	).length;
 
 	return (
-		<Section
+		<GallerySection
 			title="Accessibility audit"
 			badge={<ShieldCheck size={14} />}
 			actions={
@@ -119,7 +128,6 @@ export const AuditSection = ({
 				</Text>
 			}
 		>
-			<SectionHeading>Accessibility audit</SectionHeading>
 			<Text size="sm" c="var(--app-text-muted)" mb="sm">
 				This page checks itself. Every row below is measured from the live
 				document — resolved custom properties, the outline the browser actually
@@ -128,7 +136,7 @@ export const AuditSection = ({
 				when you change scheme and never during a render.
 			</Text>
 			<AuditPanel findings={findings} pending={pending} schemeWord={scheme} />
-		</Section>
+		</GallerySection>
 	);
 };
 
@@ -141,8 +149,7 @@ export const ColourTokensSection = ({
 	live: LiveTokens;
 	scheme: "light" | "dark";
 }) => (
-	<Section title="Colour tokens" badge={<Palette size={14} />}>
-		<SectionHeading>Colour tokens</SectionHeading>
+	<GallerySection title="Colour tokens" badge={<Palette size={14} />}>
 		<Text size="sm" c="var(--app-text-muted)" mb="sm">
 			Each card shows the declared light and dark values side by side. The badge
 			compares the active scheme's declaration with the live computed value.
@@ -174,11 +181,15 @@ export const ColourTokensSection = ({
 			Accent family
 		</Text>
 		<Text size="xs" c="var(--app-text-muted)" mt={4} mb="xs">
-			<code>--app-accent</code> is site-provided: the shared layer reads it with
-			a body-text fallback in the <code>:focus-visible</code> ring and in{" "}
-			<code>StatusDot --on</code>, so an app that forgets it loses its accent
-			without a single warning. The other four are only ever read behind a{" "}
-			<code>--mantine-primary-color-*</code> value, so they are optional.
+			<code>--app-accent</code> is site-provided and required: the shared layer
+			reads it with a body-text fallback in the <code>:focus-visible</code> ring
+			and in <code>StatusDot --on</code>, so an app that forgets it loses its
+			accent without a single warning. The other four are optional —{" "}
+			<code>--app-accent-soft</code>, <code>--app-accent-line</code> and{" "}
+			<code>--app-accent-hover</code> only ever appear as the fallback half of a{" "}
+			<code>--mantine-primary-color-*</code> chain, and{" "}
+			<code>--app-accent-ink</code> has one direct reader as well. Each card
+			names the value that stands in while its token is unset.
 		</Text>
 		<SimpleGrid
 			cols={{ base: 2, sm: 3, md: 5 }}
@@ -186,35 +197,15 @@ export const ColourTokensSection = ({
 			role="group"
 			aria-label="Accent token swatches"
 		>
-			{[
-				...SITE_ACCENT.map((entry) => ({
-					...entry,
-					label:
-						entry.name === "--app-accent"
-							? "Accent"
-							: entry.name.replace("--app-accent-", "Accent "),
-				})),
-				...MANTINE_ACCENT.map((name) => ({
-					name,
-					required: false,
-					label: name.replace("--mantine-primary-color-", "Mantine "),
-				})),
-			].map((entry) => (
-				<AccentCard
-					key={entry.name}
-					name={entry.name}
-					label={entry.label}
-					live={live}
-					required={entry.required}
-				/>
+			{ACCENT_TOKENS.map((token) => (
+				<AccentCard key={token.name} token={token} live={live} />
 			))}
 		</SimpleGrid>
-	</Section>
+	</GallerySection>
 );
 
 export const RadiusSection = ({ live }: { live: LiveTokens }) => (
-	<Section title="Radii" badge={<SquareStack size={14} />}>
-		<SectionHeading>Radii</SectionHeading>
+	<GallerySection title="Radii" badge={<SquareStack size={14} />}>
 		<SimpleGrid
 			cols={{ base: 2, sm: 3, md: 5 }}
 			spacing="sm"
@@ -225,12 +216,11 @@ export const RadiusSection = ({ live }: { live: LiveTokens }) => (
 				<RadiusCard key={token.name} token={token} live={live} />
 			))}
 		</SimpleGrid>
-	</Section>
+	</GallerySection>
 );
 
 export const ShadowSection = ({ live }: { live: LiveTokens }) => (
-	<Section title="Shadows" badge={<Sparkles size={14} />}>
-		<SectionHeading>Shadows</SectionHeading>
+	<GallerySection title="Shadows" badge={<Sparkles size={14} />}>
 		<SimpleGrid
 			cols={{ base: 1, sm: 3 }}
 			spacing="md"
@@ -241,12 +231,11 @@ export const ShadowSection = ({ live }: { live: LiveTokens }) => (
 				<ShadowCard key={token.name} token={token} live={live} />
 			))}
 		</SimpleGrid>
-	</Section>
+	</GallerySection>
 );
 
 export const GlassSection = ({ live }: { live: LiveTokens }) => (
-	<Section title="Glass & border-strong" badge={<Palette size={14} />}>
-		<SectionHeading>Glass and border-strong</SectionHeading>
+	<GallerySection title="Glass and border-strong" badge={<Palette size={14} />}>
 		<SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
 			<Card withBorder padding="md" radius="md">
 				<div className="app-glass design-swatch--lg">
@@ -282,12 +271,11 @@ export const GlassSection = ({ live }: { live: LiveTokens }) => (
 				<TokenValue>{live["--app-border-strong"]}</TokenValue>
 			</Card>
 		</SimpleGrid>
-	</Section>
+	</GallerySection>
 );
 
 export const TypographySection = ({ live }: { live: LiveTokens }) => (
-	<Section title="Typography" badge={<Type size={14} />}>
-		<SectionHeading>Typography</SectionHeading>
+	<GallerySection title="Typography" badge={<Type size={14} />}>
 		<Stack gap="xs" mb="md">
 			<Title order={1} component="div">
 				Heading one
@@ -301,8 +289,9 @@ export const TypographySection = ({ live }: { live: LiveTokens }) => (
 			<Text>Body text, the default reading size.</Text>
 			<Text c="var(--app-text-muted)">
 				Muted text for secondary detail, drawn from{" "}
-				<code>--app-text-muted</code> rather than Mantine's <code>dimmed</code>,
-				which lands near 3:1 on the app background in light.
+				<code>--app-text-muted</code>. Mantine's <code>dimmed</code> is
+				repointed at that same token in <code>base.css</code>, so it lands where
+				the audit's muted row lands rather than on Mantine's own grey.
 			</Text>
 			<Text c="var(--app-text-faint)">
 				Faint text for tertiary detail, drawn from <code>--app-text-faint</code>
@@ -320,15 +309,15 @@ export const TypographySection = ({ live }: { live: LiveTokens }) => (
 				<FontCard key={token.name} token={token} live={live} />
 			))}
 		</SimpleGrid>
-	</Section>
+	</GallerySection>
 );
 
 export const MotionSection = ({ live }: { live: LiveTokens }) => {
 	const [moved, setMoved] = useState(false);
+	const { keyframes } = useSharedStyles();
 
 	return (
-		<Section title="Motion" badge={<Waves size={14} />}>
-			<SectionHeading>Motion</SectionHeading>
+		<GallerySection title="Motion" badge={<Waves size={14} />}>
 			<Stack gap="sm">
 				<Group gap="lg" align="center" wrap="wrap">
 					<div className="design-track">
@@ -346,11 +335,12 @@ export const MotionSection = ({ live }: { live: LiveTokens }) => {
 						Animate
 					</Button>
 					<Text size="xs" c="var(--app-text-muted)">
-						Driven by a class, not an inline style:{" "}
-						<code>shared/motion.ts</code> is explicit that an inline{" "}
-						<code>transition</code> outranks the global{" "}
-						<code>prefers-reduced-motion</code> reset, so a stylesheet-driven
-						demo is the only honest one.
+						Driven by a class, not an inline style: the{" "}
+						<code>prefers-reduced-motion</code> reset in <code>base.css</code>{" "}
+						is a <code>*</code> rule that clamps every stylesheet transition and
+						animation to 0.001ms, so it reaches this thumb. The audit's “No
+						inline transitions” row counts the inline ones Mantine's own
+						components declare.
 					</Text>
 				</Group>
 				<Stack gap={6}>
@@ -381,19 +371,16 @@ export const MotionSection = ({ live }: { live: LiveTokens }) => {
 							Keyframes in the shared layer
 						</Text>
 						<Text size="xs" c="var(--app-text-muted)">
-							{prefersReducedMotion() ? "reduced" : "full"}
+							{keyframes.length} ·{" "}
+							{prefersReducedMotion() ? "motion reduced" : "full motion"}
 						</Text>
 					</Group>
 					<Group gap="sm" wrap="wrap">
-						<Badge variant="outline" color="brand">
-							app-breathe
-						</Badge>
-						<Badge variant="outline" color="brand">
-							app-shimmer
-						</Badge>
-						<Badge variant="outline" color="brand">
-							app-rise
-						</Badge>
+						{keyframes.map((name) => (
+							<Badge key={name} variant="outline" color="brand">
+								{name}
+							</Badge>
+						))}
 					</Group>
 					<div className="app-rise design-rise-demo">
 						<Group gap="sm" align="center">
@@ -404,9 +391,14 @@ export const MotionSection = ({ live }: { live: LiveTokens }) => {
 							</Text>
 						</Group>
 					</div>
+					<Text size="xs" c="var(--app-text-muted)">
+						<code>app-boot-pulse</code> runs in the boot splash, which{" "}
+						<code>#root:not(:empty) ~ .app-boot</code> hides the moment React
+						mounts — so it never animates on screen here.
+					</Text>
 				</Stack>
 			</Stack>
-		</Section>
+		</GallerySection>
 	);
 };
 
@@ -421,8 +413,7 @@ export const ControlsSection = ({
 	onOpenPalette: () => void;
 	onOpenShortcuts: () => void;
 }) => (
-	<Section title="Controls" badge={<SquareStack size={14} />}>
-		<SectionHeading>Controls</SectionHeading>
+	<GallerySection title="Controls" badge={<SquareStack size={14} />}>
 		<Stack gap="md">
 			<Group gap="sm" wrap="wrap" role="group" aria-label="Header actions">
 				<CommandPaletteButton onClick={onOpenPalette} />
@@ -470,14 +461,17 @@ export const ControlsSection = ({
 				</Badge>
 			</Group>
 			<Text size="xs" c="var(--app-text-muted)">
-				Mantine's own <code>dimmed</code> colour is not used for body copy here:
-				it is <code>#868e96</code> in light, which is 3.0:1 on the app
-				background. Everything secondary on this page reads a{" "}
-				<code>--app-text-*</code> token instead. The audit panel below the
-				header is what keeps that honest.
+				The row above is Mantine's, not ours: <code>Button</code>,{" "}
+				<code>ActionIcon</code> and <code>Badge</code> as Mantine ships them.
+				The shared layer retints them from the brand palette, but their shapes,
+				weights and states are Mantine's design language. Mantine's{" "}
+				<code>dimmed</code> colour is not used for body copy here either:{" "}
+				<code>base.css</code> repoints it at <code>--app-text-muted</code>, so
+				it measures what the audit's muted row measures. Everything secondary
+				reads a <code>--app-text-*</code> token.
 			</Text>
 		</Stack>
-	</Section>
+	</GallerySection>
 );
 
 export const IndicatorsSection = ({
@@ -485,7 +479,7 @@ export const IndicatorsSection = ({
 }: {
 	onResetScheme: () => void;
 }) => (
-	<Section
+	<GallerySection
 		title="Indicators"
 		badge={<Sparkles size={14} />}
 		actions={
@@ -494,7 +488,6 @@ export const IndicatorsSection = ({
 			</Text>
 		}
 	>
-		<SectionHeading>Indicators</SectionHeading>
 		<Stack gap="md">
 			<Group gap="lg">
 				<Group gap="xs">
@@ -552,67 +545,114 @@ export const IndicatorsSection = ({
 				}
 			/>
 		</Stack>
-	</Section>
+	</GallerySection>
 );
 
-export const UtilitiesSection = () => (
-	<Section title="Utilities" badge={<Ruler size={14} />}>
-		<SectionHeading>Utilities</SectionHeading>
-		<Text size="sm" c="var(--app-text-muted)" mb="sm">
-			The <code>app-*</code> utility classes in <code>base.css</code> are what
-			the components are made of. They are part of the public surface, so they
-			are shown rather than assumed.
-		</Text>
-		<SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
-			<div className="design-utility">
-				<code className="app-num">.app-press</code>
-				<Button size="compact-sm" className="app-press" variant="default">
-					Press me
-				</Button>
+type UtilityDemo = {
+	name: string;
+	wrap?: string;
+	demo: ReactNode;
+};
+
+const UTILITY_DEMOS: readonly UtilityDemo[] = [
+	{
+		name: ".app-press",
+		demo: (
+			<Button size="compact-sm" className="app-press" variant="default">
+				Press me
+			</Button>
+		),
+	},
+	{
+		name: ".app-surface",
+		demo: (
+			<div
+				className="app-surface"
+				style={{ padding: "8px 12px", fontSize: 12 }}
+			>
+				elevated panel
 			</div>
-			<div className="design-utility">
-				<code className="app-num">.app-surface</code>
-				<div
-					className="app-surface"
-					style={{ padding: "8px 12px", fontSize: 12 }}
-				>
-					elevated panel
-				</div>
-			</div>
-			<div className="design-utility">
-				<code className="app-num">.app-kbd</code>
+		),
+	},
+	{
+		name: ".app-kbd",
+		demo: (
+			<>
 				<kbd className="app-kbd">⌘K</kbd>
 				<kbd className="app-kbd">?</kbd>
+			</>
+		),
+	},
+	{
+		name: ".app-num",
+		demo: (
+			<Text size="sm" className="app-num">
+				1,234.56
+			</Text>
+		),
+	},
+	{
+		name: ".app-scroll",
+		demo: (
+			<span style={{ fontSize: 12, color: "var(--app-text-muted)" }}>
+				thin, themed scrollbar
+			</span>
+		),
+	},
+	{
+		name: ".app-rise",
+		wrap: "app-rise",
+		demo: (
+			<span style={{ fontSize: 12, color: "var(--app-text-muted)" }}>
+				staggered by <code>--app-index</code>
+			</span>
+		),
+	},
+];
+
+export const UtilitiesSection = () => {
+	const { utilities } = useSharedStyles();
+	const boot = utilities.filter((name) => name.startsWith(".app-boot"));
+
+	return (
+		<GallerySection title="Utilities" badge={<Ruler size={14} />}>
+			<Text size="sm" c="var(--app-text-muted)" mb="sm">
+				The <code>app-*</code> classes in the shared stylesheets are what the
+				components are made of. They are part of the public surface, so they are
+				shown rather than assumed.
+			</Text>
+			<SimpleGrid cols={{ base: 1, sm: 2 }} spacing="sm">
+				{UTILITY_DEMOS.map((entry) => (
+					<div
+						key={entry.name}
+						className={`design-utility${entry.wrap ? ` ${entry.wrap}` : ""}`}
+					>
+						<code className="app-num">{entry.name}</code>
+						{entry.demo}
+					</div>
+				))}
+			</SimpleGrid>
+			<Text size="xs" c="var(--app-text-muted)" mt="sm">
+				{UTILITY_DEMOS.length} of the {utilities.length} <code>app-*</code>{" "}
+				classes these stylesheets declare are shown here. The rest compose the
+				chrome — header, cards, switcher, toolbar, status and stat marks,
+				consent banner, footer. The boot splash is the one family a rendered
+				page cannot show: its {boot.length} classes exist only between first
+				paint and React's first render, because{" "}
+				<code>#root:not(:empty) ~ .app-boot</code> hides them the moment the
+				root has children.
+			</Text>
+			<div className="design-scroll app-scroll" aria-hidden="true">
+				<div className="design-scroll__inner">
+					{Array.from({ length: 8 }, (_, index) => {
+						const width = `${60 + ((index * 7) % 35)}%`;
+						return <Skeleton key={index} width={width} />;
+					})}
+				</div>
 			</div>
-			<div className="design-utility">
-				<code className="app-num">.app-num</code>
-				<Text size="sm" className="app-num">
-					1,234.56
-				</Text>
-			</div>
-			<div className="design-utility">
-				<code className="app-num">.app-scroll</code>
-				<span style={{ fontSize: 12, color: "var(--app-text-muted)" }}>
-					thin, themed scrollbar
-				</span>
-			</div>
-			<div className="design-utility app-rise">
-				<code className="app-num">.app-rise</code>
-				<span style={{ fontSize: 12, color: "var(--app-text-muted)" }}>
-					staggered by <code>--app-index</code>
-				</span>
-			</div>
-		</SimpleGrid>
-		<div className="design-scroll app-scroll" aria-hidden="true">
-			<div className="design-scroll__inner">
-				{Array.from({ length: 8 }, (_, index) => {
-					const width = `${60 + ((index * 7) % 35)}%`;
-					return <Skeleton key={index} width={width} />;
-				})}
-			</div>
-		</div>
-	</Section>
-);
+		</GallerySection>
+	);
+};
 
 export const DataSection = ({
 	stops,
@@ -621,8 +661,7 @@ export const DataSection = ({
 	stops: number;
 	onToggleStops: () => void;
 }) => (
-	<Section title="Data" badge={<SquareStack size={14} />}>
-		<SectionHeading>Data</SectionHeading>
+	<GallerySection title="Data" badge={<SquareStack size={14} />}>
 		<SimpleGrid
 			cols={{ base: 1, sm: 3 }}
 			spacing="md"
@@ -644,7 +683,7 @@ export const DataSection = ({
 				onClick={onToggleStops}
 			/>
 		</SimpleGrid>
-	</Section>
+	</GallerySection>
 );
 
 export const AppCardsSection = ({
@@ -654,13 +693,12 @@ export const AppCardsSection = ({
 	pinned: string[];
 	onTogglePin: (href: string) => void;
 }) => (
-	<Section title="App cards" badge={<Layers size={14} />}>
-		<SectionHeading>App cards</SectionHeading>
+	<GallerySection title="App cards" badge={<Layers size={14} />}>
 		<Text size="sm" c="var(--app-text-muted)" mb="sm">
 			<code>AppCard</code> is the dashboard tile, reused here. Pin a card to see
 			the pinned state; the whole surface stays a single link. Its tag badges
-			are rendered by the shared component, so the audit below is measuring
-			shared code, not this page.
+			are rendered by the shared component, so the audit above measures shared
+			code, not this page.
 		</Text>
 		<section className="app-grid" aria-label="App card examples">
 			{APPS.map((item, index) => (
@@ -674,12 +712,11 @@ export const AppCardsSection = ({
 				/>
 			))}
 		</section>
-	</Section>
+	</GallerySection>
 );
 
 export const PatternsSection = () => (
-	<Section title="Patterns" badge={<Sparkles size={14} />}>
-		<SectionHeading>Patterns</SectionHeading>
+	<GallerySection title="Patterns" badge={<Sparkles size={14} />}>
 		<Text size="sm" c="var(--app-text-muted)" mb="sm">
 			The shared loading, empty and status states compose without any extra
 			styling.
@@ -707,12 +744,11 @@ export const PatternsSection = () => (
 			title="No matches"
 			body="Empty-state mark, heading, body and action are shared across every app."
 		/>
-	</Section>
+	</GallerySection>
 );
 
 export const ChromeSection = () => (
-	<Section title="Chrome" badge={<Layers size={14} />}>
-		<SectionHeading>Chrome</SectionHeading>
+	<GallerySection title="Chrome" badge={<Layers size={14} />}>
 		<Stack gap="md">
 			<Text size="sm" c="var(--app-text-muted)">
 				<code>Brand</code>, <code>AppSwitcher</code>, <code>SkipLink</code>,{" "}
@@ -735,11 +771,66 @@ export const ChromeSection = () => (
 			</Text>
 			<Divider />
 			<Text size="sm" c="var(--app-text-muted)">
-				Mantine theme layer: <code>createAppTheme</code> owns the neutral ramp,
-				shadow scale, default component props and accents. The neutral ramp is
-				intentionally <em>not</em> mirrored by <code>tokens.css</code> — they
-				are separate layers, as the shared token test locks in.
+				Mantine theme layer: <code>ThemedProvider</code> wraps this page, reads
+				the colour mode and hands <code>createAppTheme</code>'s theme to
+				Mantine. That theme owns the neutral ramp, shadow scale, default
+				component props and accents. The neutral ramp is intentionally{" "}
+				<em>not</em> mirrored by <code>tokens.css</code> — they are separate
+				layers, as the shared token test locks in.
 			</Text>
 		</Stack>
-	</Section>
+	</GallerySection>
+);
+
+type LedgerEntry = {
+	name: string;
+	note: string;
+};
+
+const LEDGER: readonly LedgerEntry[] = [
+	{
+		name: "HeaderOverflow",
+		note: "the header's overflow menu below 1100px: exported, styled and tested, but no app mounts it",
+	},
+	{
+		name: "SaveWorkbench",
+		note: "the shell the save editors share, driven by a codec and a sample — a page rather than an exhibit",
+	},
+	{
+		name: "usePinnedApps",
+		note: "pin state persisted under app_pinned and capped at 8; the App cards above pin with local state",
+	},
+	{
+		name: "useRecents",
+		note: "recently visited apps persisted under app_recents and capped at 4",
+	},
+	{
+		name: "ALL_APPS, APP_CATEGORIES",
+		note: "the hub-first list the dashboard's shortcuts walk and the category chips its toolbar renders; the cards above use APPS, which excludes the hub",
+	},
+	{
+		name: "src/shared/save/*",
+		note: "bytes, base64, AES-CBC, PBKDF2, JSON paths, edits, LZ4 and roundtrip verification the save editors compose — shared code, not design-system surface",
+	},
+];
+
+export const CoverageSection = () => (
+	<GallerySection title="Coverage" badge={<Ruler size={14} />}>
+		<Text size="sm" c="var(--app-text-muted)" mb="sm">
+			Not everything <code>src/shared</code> exports can be shown, and not every
+			component earns a place here. The gap is listed rather than implied:
+		</Text>
+		<div className="design-ledger">
+			{LEDGER.map((entry) => (
+				<Fragment key={entry.name}>
+					<Text size="sm" fw={600} className="app-num">
+						{entry.name}
+					</Text>
+					<Text size="sm" c="var(--app-text-muted)">
+						{entry.note}
+					</Text>
+				</Fragment>
+			))}
+		</div>
+	</GallerySection>
 );
