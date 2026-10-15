@@ -1,10 +1,10 @@
 import type { Dispatch, RefObject, SetStateAction } from "react";
 import { type Command, CommandPalette } from "../../shared";
+import { ConfirmDialog } from "../../shared/save/components/ConfirmDialog";
 import type { Catalog, ParseResult } from "../lib/inventory";
 import type { ItemKnowledgeMapFile } from "../lib/save-engine/data";
 import type { SaveEdit } from "../lib/staged-edits";
 import { AddItemDrawer } from "./add-item-drawer";
-import { ConfirmModal } from "./confirm-modal";
 import { StagedEditsDrawer } from "./staged-edits-drawer";
 import type { StagedTarget } from "./use-staged-edits";
 
@@ -98,7 +98,7 @@ export const SaveOverlays = ({
 			commands={commands}
 		/>
 
-		<ConfirmModal
+		<ConfirmDialog
 			opened={discardModalOpen}
 			title="Discard all changes?"
 			body={`Are you sure you want to discard all ${edits.length} staged change${
@@ -113,7 +113,7 @@ export const SaveOverlays = ({
 			}}
 		/>
 
-		<ConfirmModal
+		<ConfirmDialog
 			opened={replaceModalOpen}
 			title="Open another save?"
 			body={`Opening a save replaces the current one and discards all ${
