@@ -11,7 +11,7 @@ type GridProps = {
 	onTogglePin: (href: string) => void;
 };
 
-const Section = ({
+const DashboardSection = ({
 	title,
 	count,
 	live,
@@ -45,16 +45,16 @@ export const SearchResults = ({
 	onReset,
 }: GridProps & { onReset: () => void }) =>
 	items.length > 0 ? (
-		<Section title="Results" count={items.length} live>
+		<DashboardSection title="Results" count={items.length} live>
 			<AppGrid
 				items={items}
 				isPinned={isPinned}
 				visitedAt={visitedAt}
 				onTogglePin={onTogglePin}
 			/>
-		</Section>
+		</DashboardSection>
 	) : (
-		<Section title="Results" count={0} live>
+		<DashboardSection title="Results" count={0} live>
 			<EmptyState
 				icon={<Search size={22} />}
 				title="No apps match that"
@@ -65,7 +65,7 @@ export const SearchResults = ({
 					</Button>
 				}
 			/>
-		</Section>
+		</DashboardSection>
 	);
 
 const RecentChips = ({ items }: { items: AppEntry[] }) => (
@@ -91,23 +91,23 @@ export const AppLists = ({
 }: Omit<GridProps, "items"> & { pinned: AppEntry[]; recent: AppEntry[] }) => (
 	<>
 		{pinned.length > 0 ? (
-			<Section title="Pinned" count={pinned.length}>
+			<DashboardSection title="Pinned" count={pinned.length}>
 				<AppGrid
 					items={pinned}
 					isPinned={isPinned}
 					visitedAt={visitedAt}
 					onTogglePin={onTogglePin}
 				/>
-			</Section>
+			</DashboardSection>
 		) : null}
 
 		{recent.length > 0 ? (
-			<Section title="Recently opened" count={recent.length}>
+			<DashboardSection title="Recently opened" count={recent.length}>
 				<RecentChips items={recent} />
-			</Section>
+			</DashboardSection>
 		) : null}
 
-		<Section title="All apps" count={APPS.length}>
+		<DashboardSection title="All apps" count={APPS.length}>
 			<AppGrid
 				items={APPS}
 				isPinned={isPinned}
@@ -119,6 +119,6 @@ export const AppLists = ({
 					Try Surprise me, or pin anything with the pin on each card.
 				</Text>
 			) : null}
-		</Section>
+		</DashboardSection>
 	</>
 );

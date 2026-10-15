@@ -1,4 +1,4 @@
-import { Button, CloseButton, Text, TextInput } from "@mantine/core";
+import { Button, CloseButton, TextInput } from "@mantine/core";
 import { Search, Shuffle } from "lucide-react";
 import type { RefObject } from "react";
 import { APP_CATEGORIES, type AppEntry } from "../shared";
@@ -58,9 +58,6 @@ export const AppToolbar = ({
 			rightSectionPointerEvents={query ? "auto" : "none"}
 			size="md"
 		/>
-		<Text size="xs" c="dimmed" mt={4}>
-			Press / to focus
-		</Text>
 		{/* biome-ignore lint/a11y/useSemanticElements: a labelled group of toggle buttons is a valid role="group" composition */}
 		<div className="app-chips" role="group" aria-label="Filter by category">
 			<button

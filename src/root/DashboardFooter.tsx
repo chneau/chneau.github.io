@@ -23,8 +23,8 @@ export const DashboardFooter = ({
 					aria-pressed={analyticsOn}
 					title={
 						analyticsOn
-							? "Anonymous usage analytics are on. Activate to turn them off."
-							: "Analytics are off. Activate to allow anonymous usage analytics."
+							? "Anonymous usage analytics are on. Click to turn them off."
+							: "Analytics are off. Click to allow anonymous usage analytics."
 					}
 					onClick={onToggleAnalytics}
 				>

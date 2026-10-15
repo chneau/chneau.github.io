@@ -122,13 +122,7 @@ export const App = () => {
 
 	const [query, setQuery] = useState("");
 	const [category, setCategory] = useState<string>("All");
-	const [now, setNow] = useState(() => new Date());
 	const searchRef = useRef<HTMLInputElement>(null);
-
-	useEffect(() => {
-		const timer = setInterval(() => setNow(new Date()), 30_000);
-		return () => clearInterval(timer);
-	}, []);
 
 	const fuse = useMemo(() => new Fuse(APPS, FUSE_OPTIONS), []);
 
@@ -247,7 +241,7 @@ export const App = () => {
 
 				<Box component="main" id="main" tabIndex={-1} style={{ flex: 1 }}>
 					<div className="app-page">
-						<DashboardHero now={now} />
+						<DashboardHero />
 
 						<AppToolbar
 							searchRef={searchRef}
@@ -281,7 +275,7 @@ export const App = () => {
 				</Box>
 
 				<DashboardFooter
-					year={now.getFullYear()}
+					year={new Date().getFullYear()}
 					analyticsOn={analyticsOn}
 					onToggleAnalytics={toggleAnalytics}
 				/>
