@@ -2,7 +2,11 @@ import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "../shared/tokens.css";
 import "../shared/base.css";
-import "leaflet/dist/leaflet.css";
+// `leaflet/dist/leaflet.css` is imported by `components/MapPanel.tsx`, the
+// module that draws the map, so it travels with that chunk rather than blocking
+// the entry stylesheet for a map that is not on screen yet. The rules in
+// `spooners.css` that restyle it are all scoped under `.spooners-map`, so they
+// still win on specificity rather than on order.
 import "./spooners.css";
 import { Notifications } from "@mantine/notifications";
 import { createRoot } from "react-dom/client";

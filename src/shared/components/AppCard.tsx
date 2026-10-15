@@ -41,12 +41,25 @@ export const AppCard = ({
 
 	return (
 		<article className="app-card app-rise" style={style}>
-			<a
-				className="app-card__link"
-				href={item.href}
-				aria-label={`Open ${item.title} — ${item.tag}`}
-				onClick={handleVisit}
-			>
+			{/*
+			 * No `aria-label`: the link is named by what it shows.
+			 *
+			 * It carried `Open ${title} — ${tag}`, which is a *concise* name and
+			 * a WCAG 2.5.3 (Label in Name, AA) failure — the accessible name
+			 * has to contain the text presented visually, and a card's visible
+			 * text is the title, the tag, the description and the footer line.
+			 * axe reported all thirteen cards, in both colour schemes; a
+			 * speech-to-text user who reads "Senior Full-Stack & Systems" or
+			 * "New to you" off the card and says it gets nothing, because
+			 * neither string is in the name.
+			 *
+			 * The cost is that the link announces its whole content, which is
+			 * more words than the label was. That is what the card is — the
+			 * alternative, keeping the short name, is the failure this fixes.
+			 * The `kbd` keeps its own `Press Q` name, which is an instruction
+			 * rather than a duplicate of the one glyph it prints.
+			 */}
+			<a className="app-card__link" href={item.href} onClick={handleVisit}>
 				<span className="app-card__icon" aria-hidden="true">
 					<Icon size={24} strokeWidth={1.5} />
 				</span>

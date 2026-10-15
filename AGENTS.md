@@ -213,7 +213,12 @@ Mantine.
 - One **Rsbuild environment per app**, declared in `rsbuild.config.ts` with its
   entry, HTML template, title, meta, icons and manifest. An environment that
   surfaces a build stamp declares `define: { BUILD_DATE }`; one that does not,
-  must not — an unused define is dead config.
+  must not — an unused define is dead config. Every environment is built from
+  the one shared shell, `src/shared/template.html`, which is the only place
+  `<html lang>` is declared: Rsbuild's built-in template has no `lang`, and the
+  dashboard's runtime patch for it left the other thirteen documents without
+  one. The birthday app writes `document.documentElement.lang` from `i18n.ts`,
+  because it is the one document whose language changes.
 - A new app means: its environment in `rsbuild.config.ts`, `start:<name>` and
   `build:<name>` scripts, an entry under `src/<name>/`, an `AppEntry` in
   `src/shared/apps.tsx` (which also drives the hotkeys, search, palette and
@@ -231,6 +236,10 @@ Mantine.
   fallbacks) and `useThemeMode`/`initTheme`, which apply the theme before the
   first paint. Reuse it; do not fork a variant into an app. The `design` app
   renders those tokens and patterns, so a change to either shows up there.
+  `base.css` also repoints Mantine's `--mantine-color-dimmed` at
+  `--app-text-muted`, because Mantine's own value is 3.02:1 on `--app-bg`; that
+  override is only sound while it names both schemes and `base.css` is imported
+  after `@mantine/core/styles.css`, and `tokens-theme.test.ts` asserts both.
 - Anything visual, motion or keyboard-related is a contract with a test behind
   it: contrast, reduced motion, the print path, the grid's roving focus, focus
   rings, the skip link, `aria` names. Read the relevant test before changing the
@@ -337,6 +346,17 @@ bun x react-doctor@latest   # the React gate: correctness, a11y, performance, ma
   in `biome.jsonc`. `deno.json` and the `deno` devDependency went with the step.
 - **Fix real problems by changing the code.** Suppressions are bounded by §3 and
   are not a route to a green gate.
+- **A green DOM suite is not a green page.** Every `axe.run` here is a fragment
+  run — a component rendered into a detached container, with eight
+  document-level rules disabled (`shared/tests/axe-fragment.ts`) — and happy-dom
+  reports no layout, so a rule that needs computed styles or rendered text
+  cannot fire at all: `color-contrast`, `label-content-name-mismatch`,
+  `heading-order`, `scrollable-region-focusable`. A survey of the built site
+  found thirteen documents with no `<html lang>`, thirteen card links whose
+  `aria-label` hid their own visible text, and four tag colours between 2.7:1
+  and 4.3:1, with every suite green. Run axe against the **built pages** in a
+  browser for anything touching markup, colour or headings, and say which pages
+  were opened.
 - **The gates do not replace reading the code.** `tsc`, `biome`, `bun test` and
   `react-doctor` are all silent about a _stale read_ — a value read outside
   render that only stays fresh because of a read render used to do. Such a bug

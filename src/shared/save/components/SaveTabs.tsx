@@ -81,7 +81,7 @@ export const SaveTabs = ({
 			<Stack gap="lg" maw={760}>
 				{notes.map((note) => (
 					<Box key={note.title}>
-						<Title order={4} mb={4}>
+						<Title order={2} mb={4}>
 							{note.title}
 						</Title>
 						<Text size="sm" c="dimmed" lh={1.7}>

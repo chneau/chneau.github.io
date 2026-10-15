@@ -134,4 +134,30 @@ describe("CommandPalette behaviour", () => {
 		typeInto(input, "contrast");
 		await expectNoViolations(view.baseElement);
 	});
+
+	test("options are not tab stops", () => {
+		// Focus stays in the input: the arrows move `aria-activedescendant` and
+		// Enter runs the highlighted row. Every option rendered as a native
+		// `<button>` with no `tabIndex`, so Tab walked all of them and
+		// Mantine's focus trap wrapped back round the list.
+		const view = openPalette();
+		for (const option of view.getAllByRole("option")) {
+			expect(option.getAttribute("tabindex")).toBe("-1");
+		}
+	});
+
+	test("a query that matches nothing has no listbox to be expanded over", async () => {
+		const view = openPalette();
+		const input = view.getByRole("combobox") as HTMLInputElement;
+		typeInto(input, "zzzzzz");
+
+		expect(view.queryAllByRole("option")).toHaveLength(0);
+		// Both halves of the contradiction: the popup the input claims to
+		// control, and the claim that it is expanded.
+		expect(view.queryByRole("listbox")).toBeNull();
+		expect(input.getAttribute("aria-expanded")).toBe("false");
+		expect(input.getAttribute("aria-controls")).toBeNull();
+		// And the empty state announces itself rather than being silent text.
+		expect(view.getByRole("status").textContent).toBe("No matches.");
+	});
 });

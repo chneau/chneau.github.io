@@ -39,13 +39,16 @@ const ITEM: AppEntry = {
 };
 
 describe("AppCard a11y", () => {
-	test("the surface is a single link with a descriptive label", () => {
+	test("the surface is a single link, named by what it shows", () => {
 		const view = render(provider(<AppCard item={ITEM} />));
 
-		const link = view.getByRole("link", {
-			name: "Open Sample App — Demo",
-		});
+		const link = view.getByRole("link", { name: /Sample App/ });
 		expect(link.getAttribute("href")).toBe("/sample/");
+		// Named by its content, not by an `aria-label`: WCAG 2.5.3 needs the
+		// visible text inside the accessible name, and no short label can hold a
+		// card's title, tag, description and footer at once.
+		expect(link.getAttribute("aria-label")).toBeNull();
+		expect(link.textContent).toContain(ITEM.description);
 	});
 
 	test("the pin button aria-pressed follows the pinned prop", () => {

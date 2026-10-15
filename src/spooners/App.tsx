@@ -1,7 +1,15 @@
 import { Box, Button, Skeleton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	lazy,
+	Suspense,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import {
 	ErrorState,
 	LoadingState,
@@ -27,7 +35,6 @@ import {
 import { serializeBasket } from "./basket";
 import { createSpoonerCommands } from "./commands";
 import { AppHeader } from "./components/AppHeader";
-import { MapPane } from "./components/MapPane";
 import { ResultsSidebar } from "./components/ResultsSidebar";
 import { SpoonerDialogs } from "./components/SpoonerDialogs";
 import { currencyChoices, useRates } from "./rates";
@@ -38,6 +45,43 @@ import { useDataset } from "./useDataset";
 import { useSpoonersView } from "./useSpoonersView";
 
 const RATE_SOURCE = "European Central Bank, via frankfurter.dev";
+
+/**
+ * The map, and Leaflet with it, in its own chunk.
+ *
+ * `MapPane` imports `react-leaflet`, so a static import put Leaflet's 144 kB of
+ * JavaScript in the entry chunk — downloaded, parsed and executed before the
+ * first paint — for a map that cannot render anything until the 23 MB cache has
+ * arrived and been parsed. Every visitor paid for it in the loading state, and
+ * the retry screen paid for it without ever showing a map.
+ *
+ * `warmMap` is the other half, and the reason this is not simply a lazy import:
+ * the chunk is fetched *while* the cache is still arriving, so splitting it
+ * does not move the map's own download behind a 23 MB parse. `Suspense` then
+ * finds it cached and renders on the frame the data lands.
+ */
+const MapPane = lazy(() =>
+	import("./components/MapPane").then((module) => ({
+		default: module.MapPane,
+	})),
+);
+
+const warmMap = () => import("./components/MapPane");
+
+/** Holds the map's box while its chunk is in flight, so the page does not shift. */
+const MapFallback = ({ compact }: { compact: boolean }) => (
+	<Box
+		style={{
+			flex: compact ? undefined : 1,
+			flexShrink: 0,
+			minWidth: 0,
+			height: compact ? "45vh" : "auto",
+			borderRadius: "var(--app-radius-md)",
+			border: "1px solid var(--app-border)",
+			background: "var(--app-surface-2)",
+		}}
+	/>
+);
 
 // Only keys implemented in this app — see `components/PubSearch.tsx`.
 const SHORTCUT_GROUPS: ShortcutGroup[] = [
@@ -279,6 +323,14 @@ export const App = () => {
 		};
 	}, [reload]);
 
+	// Fetched here rather than lazily at the `<Suspense>` boundary below: this
+	// runs while the cache is still arriving, so the map's chunk downloads in
+	// parallel with 23 MB of JSON instead of after it. Registered once — the
+	// import is a module fetch, and the browser caches it.
+	useEffect(() => {
+		void warmMap();
+	}, []);
+
 	if (loading) {
 		return <AppLoading />;
 	}
@@ -380,28 +432,30 @@ export const App = () => {
 					/>
 				</Box>
 
-				<MapPane
-					compact={isMobile}
-					view={view}
-					points={derived.mapData}
-					unpriced={derived.unpricedPoints}
-					pubCount={derived.mapData.length}
-					areaCount={derived.areaPoints.length}
-					scale={derived.mapScale}
-					currency={derived.displayCurrency}
-					legendLabel={derived.legendLabel}
-					median={derived.medianPrice}
-					hiddenCount={derived.hiddenCount}
-					focused={focused}
-					onFocus={setFocused}
-					onOpen={setVenueRef}
-					onArea={openArea}
-					area={areaFilter}
-					onClearArea={() => setAreaFilter(null)}
-					onView={setView}
-					initialView={mapView}
-					onViewport={setViewport}
-				/>
+				<Suspense fallback={<MapFallback compact={isMobile} />}>
+					<MapPane
+						compact={isMobile}
+						view={view}
+						points={derived.mapData}
+						unpriced={derived.unpricedPoints}
+						pubCount={derived.mapData.length}
+						areaCount={derived.areaPoints.length}
+						scale={derived.mapScale}
+						currency={derived.displayCurrency}
+						legendLabel={derived.legendLabel}
+						median={derived.medianPrice}
+						hiddenCount={derived.hiddenCount}
+						focused={focused}
+						onFocus={setFocused}
+						onOpen={setVenueRef}
+						onArea={openArea}
+						area={areaFilter}
+						onClearArea={() => setAreaFilter(null)}
+						onView={setView}
+						initialView={mapView}
+						onViewport={setViewport}
+					/>
+				</Suspense>
 			</main>
 
 			<SpoonerDialogs

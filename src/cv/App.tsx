@@ -22,16 +22,10 @@ import {
 	useShortcutsHelp,
 	useThemeMode,
 } from "../shared";
+import { copyToClipboard } from "./clipboard";
 import { DOCX_URL, PDF_URL } from "./content";
 import { useHeroVisibility } from "./hero-visibility";
-import {
-	BackToTop,
-	Body,
-	copyToClipboard,
-	FooterLinks,
-	HeaderActions,
-	Hero,
-} from "./sections";
+import { BackToTop, Body, FooterLinks, HeaderActions, Hero } from "./sections";
 import { CV_THEME_KEY } from "./theme";
 
 declare const BUILD_DATE: string;
