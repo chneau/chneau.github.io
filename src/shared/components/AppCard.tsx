@@ -1,4 +1,4 @@
-import { Badge } from "@mantine/core";
+import { Badge, Title } from "@mantine/core";
 import { ArrowRight, Pin } from "lucide-react";
 import type { CSSProperties, MouseEvent } from "react";
 import type { AppEntry } from "../apps";
@@ -35,9 +35,11 @@ export const AppCard = ({
 				<span className="app-card__icon" aria-hidden="true">
 					<Icon size={24} strokeWidth={1.5} />
 				</span>
-				<span className="app-card__body">
-					<span className="app-card__head">
-						<span className="app-card__title">{item.title}</span>
+				<div className="app-card__body">
+					<div className="app-card__head">
+						<Title order={3} className="app-card__title">
+							{item.title}
+						</Title>
 						<Badge
 							className="app-card__tag"
 							variant="light"
@@ -48,9 +50,9 @@ export const AppCard = ({
 						>
 							{item.tag}
 						</Badge>
-					</span>
-					<span className="app-card__desc">{item.description}</span>
-					<span className="app-card__foot">
+					</div>
+					<p className="app-card__desc">{item.description}</p>
+					<div className="app-card__foot">
 						{lastVisitedAt ? (
 							<span className="app-card__visited">
 								Visited {formatRelativeTime(lastVisitedAt)}
@@ -61,8 +63,8 @@ export const AppCard = ({
 							</span>
 						)}
 						{kbd(item)}
-					</span>
-				</span>
+					</div>
+				</div>
 				<ArrowRight
 					className="app-card__arrow"
 					size={18}

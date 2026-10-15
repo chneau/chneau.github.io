@@ -165,15 +165,9 @@ export const SaveLanding = ({
 				<Box maw={1240} mx="auto" px="xl" py="xl">
 					<Group gap={6} mb="lg">
 						<ShieldCheck size={15} color="var(--app-text-muted)" />
-						<Text
-							size="11px"
-							c="dimmed"
-							tt="uppercase"
-							fw={600}
-							style={{ letterSpacing: "0.2em" }}
-						>
-							How {codec.formatLabel} works
-						</Text>
+						<Title order={2} size="h5">
+							How the format works
+						</Title>
 					</Group>
 					<Box
 						style={{
@@ -184,9 +178,9 @@ export const SaveLanding = ({
 					>
 						{codec.notes.map((note) => (
 							<Stack key={note.title} gap={6}>
-								<Text size="sm" fw={600}>
+								<Title order={3} size="sm" fw={600}>
 									{note.title}
-								</Text>
+								</Title>
 								<Text size="sm" c="dimmed" lh={1.65}>
 									{note.body}
 								</Text>
@@ -201,20 +195,10 @@ export const SaveLanding = ({
 
 export const SaveHero = ({ codec }: { codec: SaveCodec }) => (
 	<Stack gap="lg" maw={620}>
-		<Text
-			size="11px"
-			c="dimmed"
-			tt="uppercase"
-			fw={600}
-			style={{ letterSpacing: "0.2em" }}
-		>
-			{codec.game} · on-device save editor
-		</Text>
-		<Title order={1}>Read the format. Change the save. Keep it local.</Title>
+		<Title order={1}>{codec.game} save editor</Title>
 		<Text size="md" c="dimmed" lh={1.7}>
-			Every byte is parsed in this tab by a decoder written for the purpose, and
-			anything you change is rebuilt and read back before you are offered the
-			file. Nothing is uploaded.
+			Every byte is parsed in this tab, and anything you change is rebuilt and
+			read back before you are offered the file. Nothing is uploaded.
 		</Text>
 		<Code>{codec.formatLabel}</Code>
 	</Stack>

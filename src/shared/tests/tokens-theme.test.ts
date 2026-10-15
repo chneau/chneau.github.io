@@ -405,3 +405,33 @@ describe("Mantine's dimmed colour", () => {
 		expect(wrongOrder).toEqual([]);
 	});
 });
+
+describe("Mantine's placeholder colour", () => {
+	test("is repointed, in both schemes, at a token defined for both", () => {
+		const declaration = cleanBase.match(
+			/([^{}]*:root\[[^\]]*\][^{}]*)\{([^}]*--mantine-color-placeholder:\s*var\(--app-text-faint\)[^}]*)\}/,
+		);
+		expect(declaration).not.toBeNull();
+		const [, selector = ""] = declaration ?? [];
+		expect(selector).toContain('data-mantine-color-scheme="light"');
+		expect(selector).toContain('data-mantine-color-scheme="dark"');
+		expect(defined.has("--app-text-faint")).toBe(true);
+		expect(valueIn(darkBlock, "--app-text-faint")).not.toBe(MISSING);
+	});
+});
+
+describe("autoContrast's threshold", () => {
+	test("sits in the band where one of black or white clears 4.5:1", () => {
+		const threshold = Number(
+			themeTs.match(/luminanceThreshold:\s*([\d.]+)/)?.[1] ?? Number.NaN,
+		);
+		expect(threshold).not.toBeNaN();
+		const blackClears = threshold >= 0.175;
+		const whiteClears = threshold <= 0.1833;
+		expect(blackClears && whiteClears).toBe(true);
+	});
+
+	test("autoContrast is on, or the threshold decides nothing", () => {
+		expect(themeTs).toContain("autoContrast: true");
+	});
+});

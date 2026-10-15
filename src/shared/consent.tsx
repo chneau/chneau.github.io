@@ -101,7 +101,7 @@ export const ConsentBanner = () => {
 							onClick={() => decide(true)}
 							data-analytics-consent="accept"
 						>
-							{t("consent.accept", { defaultValue: "Allow" })}
+							{t("consent.accept", { defaultValue: "Allow analytics" })}
 						</Button>
 						<Button
 							size="compact-xs"
