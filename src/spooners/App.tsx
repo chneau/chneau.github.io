@@ -59,8 +59,9 @@ const RATE_SOURCE = "European Central Bank, via frankfurter.dev";
  * every visit, including the ones that only ever see the loading skeleton.
  *
  * It is a *deferral*, not a saving: the chunk is still fetched on the same
- * visit, and the split adds ~6 kB of chunk scaffolding to what the visitor
- * transfers in total. The win is when it is fetched, not whether.
+ * visit, so a visitor who goes on to render the map transfers 8.8 kB more
+ * JavaScript in total than before the split (4.6 kB gzipped) — the chunk
+ * scaffolding the split adds. The win is when it is fetched, not whether.
  *
  * `warmMap` is what makes the deferral free: the fetch starts while the cache
  * is still arriving, so the map's own download does not move behind a 23 MB
