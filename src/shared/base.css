@@ -26,6 +26,37 @@ body {
 	text-rendering: optimizeLegibility;
 }
 
+/*
+ * Mantine's `dimmed`, repointed at a token whose contrast is checked.
+ *
+ * `c="dimmed"` is the site's second text step, used 240-odd times, and Mantine
+ * resolves it to `--mantine-color-gray-6` (`#868e96`): 3.02:1 on `--app-bg` and
+ * 3.32:1 on a white card, both under WCAG AA's 4.5:1 for normal text. axe
+ * reported it on the dashboard twice — the toolbar's "Press / to focus" hint
+ * and the consent dialog's body — and the same value is behind every `dimmed`
+ * text on every page.
+ *
+ * `--app-text-muted` is that second step and is already held to 4.5:1 in both
+ * schemes by `tokens-theme.test.ts` and `design/audit.ts`. It happens to be
+ * close to Mantine's dark-scheme value (`--mantine-color-dark-2`, `#a9a9b1`
+ * against this site's neutral ramp; the token is `#a1a1aa`), so one value is
+ * right in both schemes — hence both selectors.
+ *
+ * Written here rather than through `MantineProvider`'s `cssVariablesResolver`
+ * because four apps mount their own provider and only three go through
+ * `ThemedProvider`. Mantine declares this variable in
+ * `@mantine/core/styles.css`, which every entry imports *before* this file, so
+ * equal specificity with later order is what makes this win;
+ * `tokens-theme.test.ts` asserts both halves, because reordering the imports
+ * would silently restore the failing value.
+ */
+:root[data-mantine-color-scheme="light"],
+:root[data-theme="light"],
+:root[data-mantine-color-scheme="dark"],
+:root[data-theme="dark"] {
+	--mantine-color-dimmed: var(--app-text-muted);
+}
+
 img,
 svg {
 	display: block;
@@ -1202,7 +1233,31 @@ body:has(.app-consent) {
 	font-weight: 600;
 	letter-spacing: -0.01em;
 }
-.app-card__tag {
+/*
+ * The tag pill's ink, in both schemes.
+ *
+ * Mantine's `variant="light"` pairs the hue's step-1 tint with its step-9 ink,
+ * and that pair is not contrast-checked: at the 10px this pill renders, step 9
+ * measures 2.69:1 on yellow, 3.62:1 on orange, 3.81:1 on green and 4.33:1 on
+ * teal against their own tints — every one of them under WCAG AA's 4.5:1, and
+ * axe reported all four on the dashboard. The hue stays in the pill's
+ * background; the ink is the scheme's own body-text token, which clears 13.6:1
+ * on the lightest tint and is already checked against the surfaces by
+ * `tokens-theme.test.ts` and `design/audit.ts`. Tried first: darkening step 9
+ * per hue, which needs ten rules and ten values that only its author can tell
+ * apart.
+ *
+ * The declaration lands on the label rather than setting `--badge-color` on the
+ * badge, because `Badge` writes that variable into the element's `style`
+ * attribute — an inline declaration no selector can outrank. The label itself
+ * has no inline colour, so a rule that names it wins over the value it
+ * inherits, and naming `.mantine-Badge-label` is Mantine's documented class
+ * name (the same thing `theme.ts` styles through `components.Badge.styles`).
+ */
+.app-card .app-card__tag .mantine-Badge-label {
+	color: var(--app-text);
+}
+.app-card .app-card__tag {
 	flex: none;
 }
 .app-card__desc {
@@ -1227,7 +1282,18 @@ body:has(.app-consent) {
 	font-size: 0.72rem;
 }
 .app-card__visited--new {
-	color: var(--mantine-primary-color-filled, var(--app-text-faint));
+	/*
+	 * The accent as *text*, which is not what `--app-accent` is for: the shared
+	 * layer and `design/audit.ts` hold it to 3:1 (WCAG 1.4.11, non-text), and
+	 * this label is 11.5px. Measured on the dashboard: the Ant Design blue the
+	 * hub uses for a filled button is 3.03:1 on a dark card, and axe reported
+	 * all thirteen cards in the dark scheme. `--app-accent-ink` is the accent's
+	 * text-grade sibling — CV defines it as `--accent-strong`, 6.5:1 on white —
+	 * and the fallback is `base.css`'s own convention for accent text on a
+	 * surface that has none: the body text colour, which `design/audit.ts`
+	 * holds to 4.5:1 in both schemes.
+	 */
+	color: var(--app-accent-ink, var(--app-text));
 	font-weight: 600;
 }
 .app-card__arrow {

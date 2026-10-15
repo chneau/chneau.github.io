@@ -63,6 +63,31 @@ type AppCopy = {
 /** A structured-data block trimmed to the two documents the site declares. */
 type AppJsonLd = "website" | "person";
 
+/**
+ * The Mantine ramps a dashboard tag may be tinted with.
+ *
+ * A union rather than `string`, because `"purple"` shipped here and is not one
+ * of Mantine's colours: `Badge` treats an unknown name as a raw CSS colour, so
+ * that card's pill rendered as flat `purple` text on a translucent grey while
+ * the other twelve were tints of their hue — and at 2.01:1 in the dark scheme,
+ * the only one of the fourteen the dashboard failed on for contrast. It
+ * typechecked, because the field said `string`.
+ */
+type TagColor =
+	| "gray"
+	| "red"
+	| "pink"
+	| "grape"
+	| "violet"
+	| "indigo"
+	| "blue"
+	| "cyan"
+	| "teal"
+	| "green"
+	| "lime"
+	| "yellow"
+	| "orange";
+
 export type AppMeta = {
 	/** Environment key, manifest filename and icon asset slug, all in one. */
 	slug: string;
@@ -113,7 +138,7 @@ export type AppMeta = {
 	dashboard: {
 		title: string;
 		tag: string;
-		tagColor: string;
+		tagColor: TagColor;
 		/** Broad grouping used by the dashboard's category filter. */
 		category: string;
 		/**
@@ -190,7 +215,7 @@ export const APP_META = [
 		dashboard: {
 			title: "Curriculum Vitae",
 			tag: "Senior Full-Stack & Systems",
-			tagColor: "purple",
+			tagColor: "grape",
 			category: "Personal",
 			hotkey: "1",
 			description:

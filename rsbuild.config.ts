@@ -198,6 +198,25 @@ const environmentFor = (meta: AppMeta): EnvironmentConfig => ({
 	},
 	html: {
 		title: meta.title,
+		/**
+		 * The shell every app is built from, and the only place `<html lang>` is
+		 * declared.
+		 *
+		 * Rsbuild's built-in template is `<html>` with no attributes, so
+		 * thirteen of the fourteen documents shipped with no language at all —
+		 * a WCAG 3.1.1 failure that axe reports as `html-has-lang`, and one
+		 * `src/shared/tests/axe-fragment.ts` disables for every DOM suite
+		 * because a fragment has no document to check it on. The dashboard
+		 * patched it at runtime in `src/root/index.tsx`, whose comment said the
+		 * proper fix belonged here; the other thirteen never declared one, and
+		 * the runtime patch left the language undeclared for the whole of the
+		 * boot shell, which is painted before any JavaScript runs.
+		 *
+		 * `en-GB` because the site's prose and manifests are British English.
+		 * The birthday app is the one document whose language changes, and its
+		 * `i18n.ts` now writes this element as i18next switches.
+		 */
+		template: "./src/shared/template.html",
 		tags: [
 			...metaTags({
 				title: meta.title,

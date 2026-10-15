@@ -164,8 +164,21 @@ export const SaveWorkbench = ({
 				theme={{ dark: theme.dark, onToggle: theme.toggle }}
 			/>
 
-			<Box style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+			{/*
+			 * The workspace replaces the landing screen's whole subtree, and it
+			 * took two things with it that nothing restored: `<main id="main">`,
+			 * which is what `SkipLink` targets and what gives the page its
+			 * landmark, and the page's only `<h1>`. A visitor who had already
+			 * skipped to content lost the target the moment a save was opened,
+			 * and one navigating by heading reached the format notes' `h4` with
+			 * no page title above it.
+			 *
+			 * The heading names the file, because that is what changed; the game
+			 * is already in the navbar's title.
+			 */}
+			<main id="main" style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
 				<Box maw={1400} mx="auto" px="xl" py="lg">
+					<h1 className="sr-only">Editing {name}</h1>
 					<Grid gap="xl">
 						<Grid.Col span={{ base: 12, lg: 4, xl: 3 }}>
 							<Stack gap="md">
@@ -198,7 +211,7 @@ export const SaveWorkbench = ({
 						</Grid.Col>
 					</Grid>
 				</Box>
-			</Box>
+			</main>
 
 			{/* Both dialogs mirror the Crimson Desert editor's wording, count and
 					all: a save editor that names the loss it is about to cause is the

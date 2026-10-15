@@ -55,10 +55,22 @@ const setDayjsLocale = (lng: string) => {
 	dayjs.locale(mapping[lng] || lng);
 };
 
-setDayjsLocale(i18n.language);
-
-i18n.on("languageChanged", (lng) => {
+/**
+ * The document's own language, kept true as i18next switches.
+ *
+ * The shared HTML template declares `lang="en-GB"`, and this is the one
+ * document on the site whose language is not fixed: the app ships seven
+ * locales. Without this, a French visitor reads a page that claims to be
+ * English — the opposite of the defect the template fixes — because i18next
+ * changes the strings and nothing changes the element.
+ */
+const applyLanguage = (lng: string) => {
 	setDayjsLocale(lng);
-});
+	document.documentElement.lang = lng;
+};
+
+applyLanguage(i18n.language);
+
+i18n.on("languageChanged", applyLanguage);
 
 export default i18n;

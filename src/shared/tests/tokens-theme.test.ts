@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { APP_META } from "../app-meta";
 import { collectUsages } from "./css-vars";
 
 /**
@@ -14,6 +15,9 @@ import { collectUsages } from "./css-vars";
 
 const SHARED_DIR = join(import.meta.dir, "..");
 const read = (relative: string) => Bun.file(join(SHARED_DIR, relative)).text();
+
+/** The repository root, for the entry modules `APP_META` names. */
+const REPO_ROOT = join(SHARED_DIR, "..", "..");
 
 /** Strip block comments so commented-out tokens never count. */
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -431,5 +435,65 @@ describe("reduced motion", () => {
 			.map(([, selector]) => selector ?? "")
 			.filter((selector) => !selector.startsWith(".app-"));
 		expect(offenders).toEqual([]);
+	});
+});
+
+/* ── 6. Mantine's second text step ────────────────────────────────────── */
+
+/**
+ * `c="dimmed"` is Mantine's variable, and the site repoints it at
+ * `--app-text-muted` in `base.css`, because Mantine's own value is
+ * `--mantine-color-gray-6` (`#868e96`): 3.02:1 on `--app-bg` and 3.32:1 on a
+ * white card, both under AA. The override is only sound while two things hold,
+ * and neither is visible to a typechecker:
+ *
+ *   1. It names both schemes. Mantine declares the variable inside its light
+ *      and dark blocks, so a `:root` declaration of equal-or-lower specificity
+ *      loses the cascade and the failing value comes back.
+ *   2. `base.css` is imported after `@mantine/core/styles.css` in every entry.
+ *      The two rules tie on specificity, so order is the only thing deciding —
+ *      and reordering two imports is a change no test would otherwise notice.
+ */
+describe("Mantine's dimmed colour", () => {
+	test("is repointed at the checked text token, in both schemes", () => {
+		const declaration = cleanBase.match(
+			/([^{}]*:root\[[^\]]*\][^{}]*)\{([^}]*--mantine-color-dimmed:\s*var\(--app-text-muted\)[^}]*)\}/,
+		);
+		expect(declaration).not.toBeNull();
+		const [, selector = ""] = declaration ?? [];
+		expect(selector).toContain('data-mantine-color-scheme="light"');
+		expect(selector).toContain('data-mantine-color-scheme="dark"');
+		expect(selector).toContain('data-theme="light"');
+		expect(selector).toContain('data-theme="dark"');
+	});
+
+	test("points at a token this file defines for both schemes", () => {
+		expect(defined.has("--app-text-muted")).toBe(true);
+		expect(valueIn(darkBlock, "--app-text-muted")).not.toBe(MISSING);
+	});
+
+	test("every entry imports Mantine's stylesheet before base.css", () => {
+		// Routed through `APP_META` rather than a list: a fourteenth app that
+		// imports them the other way round reintroduces the failing contrast on
+		// its own pages, and this is the only place that would say so.
+		const entries = APP_META.map((meta) => ({
+			slug: meta.slug,
+			imports: [
+				...readFileSync(
+					join(REPO_ROOT, meta.entry.replace(/^\.\//, "")),
+					"utf8",
+				).matchAll(/import\s+"([^"]+)";/g),
+			].map((match) => match[1] ?? ""),
+		}));
+		const wrongOrder = entries
+			.filter(({ imports }) => {
+				const mantine = imports.findIndex((path) =>
+					path.includes("@mantine/core/styles.css"),
+				);
+				const base = imports.findIndex((path) => path.endsWith("base.css"));
+				return mantine === -1 || base === -1 || mantine > base;
+			})
+			.map(({ slug }) => slug);
+		expect(wrongOrder).toEqual([]);
 	});
 });
