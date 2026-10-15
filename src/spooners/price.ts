@@ -17,11 +17,15 @@ export const normalize = (price: number, scale: PriceScale): number => {
 	return (price - scale.min) / (scale.max - scale.min);
 };
 
+const CHEAP_HUE = 135;
+const DEAR_HUE = 0;
+
+export const priceHue = (price: number, scale: PriceScale): number =>
+	CHEAP_HUE - (CHEAP_HUE - DEAR_HUE) * normalize(price, scale);
+
 export const priceColor = (price: number, scale: PriceScale): string => {
-	const t = normalize(price, scale);
-	const hue = 135 - 135 * t;
-	const light = 44 + 6 * Math.sin(Math.PI * t);
-	return `hsl(${hue.toFixed(0)} 68% ${light.toFixed(0)}%)`;
+	const light = 44 + 6 * Math.sin(Math.PI * normalize(price, scale));
+	return `hsl(${priceHue(price, scale).toFixed(0)} 68% ${light.toFixed(0)}%)`;
 };
 
 const moneyFormatters = new Map<string, Intl.NumberFormat>();

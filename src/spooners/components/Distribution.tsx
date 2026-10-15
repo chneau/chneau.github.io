@@ -1,6 +1,5 @@
 import { Box, Group, Text, Tooltip } from "@mantine/core";
 import { useMemo } from "react";
-import { EmptyState } from "../../shared";
 import { medianTrend } from "../derive";
 import { type Bin, buildHistogram, medianPosition } from "../histogram";
 import { money, type PriceScale, priceColor } from "../price";
@@ -87,7 +86,13 @@ const MedianHistory = ({
 		<Group justify="space-between" mt={6} align="center">
 			<Text size="xs" c="dimmed">
 				median since {history[0]?.t}:{" "}
-				<Text span fw={600} c={trend && trend > 0 ? "red" : "teal"}>
+				<Text
+					span
+					fw={600}
+					className={`spooners-price-text spooners-price-text--${
+						trend && trend > 0 ? "bad" : "good"
+					}`}
+				>
 					{trend && trend > 0 ? "+" : "−"}
 					{Math.abs(Math.round((trend ?? 0) * 100))}%
 				</Text>
@@ -122,17 +127,13 @@ export const Distribution = ({
 					median {money(medianPrice, currency)}
 				</Text>
 			) : null}
-			{bins.length && peak ? (
-				<Histogram
-					bins={bins}
-					peak={peak}
-					scale={scale}
-					currency={currency}
-					medianAt={medianAt}
-				/>
-			) : (
-				<EmptyState title="No prices to plot" />
-			)}
+			<Histogram
+				bins={bins}
+				peak={peak}
+				scale={scale}
+				currency={currency}
+				medianAt={medianAt}
+			/>
 			{history && historyPoints.length >= 2 ? (
 				<MedianHistory history={history} points={historyPoints} />
 			) : null}

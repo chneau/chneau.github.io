@@ -93,11 +93,13 @@ export const PubSearch = ({ venues, onSelect, label }: Props) => {
 					value={opened ? query : ""}
 					leftSection={<Beer size={14} />}
 					rightSection={
-						<Text size="xs" c="dimmed">
-							{truncated
-								? `${results.length}/${filtered.length}`
-								: results.length}
-						</Text>
+						query.trim() ? (
+							<Text size="xs" c="dimmed">
+								{truncated
+									? `${results.length}/${filtered.length}`
+									: results.length}
+							</Text>
+						) : undefined
 					}
 					onFocus={() => {
 						setOpened(true);
@@ -141,6 +143,9 @@ export const PubSearch = ({ venues, onSelect, label }: Props) => {
 				>
 					{results.map((venue, index) => {
 						const active = index === highlight;
+						const place = [venue.address?.town, venue.address?.postcode]
+							.filter(Boolean)
+							.join(", ");
 						return (
 							<Box
 								key={venue.venueRef}
@@ -162,13 +167,11 @@ export const PubSearch = ({ venues, onSelect, label }: Props) => {
 								}}
 							>
 								<Group justify="space-between" gap={8} wrap="nowrap">
-									<Text size="sm" lineClamp={1}>
+									<Text size="sm" lineClamp={1} title={venue.name}>
 										{venue.name}
 									</Text>
-									<Text size="xs" c="dimmed" lineClamp={1}>
-										{[venue.address?.town, venue.address?.postcode]
-											.filter(Boolean)
-											.join(", ")}
+									<Text size="xs" c="dimmed" lineClamp={1} title={place}>
+										{place}
 									</Text>
 								</Group>
 							</Box>

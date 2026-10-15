@@ -9,6 +9,14 @@ type CacheState = {
 
 type DatasetState = CacheState & { reload: () => void };
 
+const describeLoadError = (error: unknown): string => {
+	if (error instanceof TypeError) {
+		return "Could not reach the data file. Check your connection and try again.";
+	}
+	if (error instanceof Error) return error.message;
+	return "Something went wrong while loading the data. Please try again.";
+};
+
 export const useDataset = (): DatasetState => {
 	const [state, setState] = useState<CacheState>({
 		data: null,
@@ -40,7 +48,7 @@ export const useDataset = (): DatasetState => {
 				if (!cancelled) {
 					setState({
 						data: null,
-						error: error instanceof Error ? error.message : String(error),
+						error: describeLoadError(error),
 						loading: false,
 					});
 				}
