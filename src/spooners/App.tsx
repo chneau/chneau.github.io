@@ -1,11 +1,8 @@
-import { Box, Button, Skeleton, Text } from "@mantine/core";
+import { Box, Button, Skeleton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
-	Component,
-	lazy,
 	type ReactNode,
-	Suspense,
 	useCallback,
 	useEffect,
 	useMemo,
@@ -37,7 +34,8 @@ import {
 import { serializeBasket } from "./basket";
 import { createSpoonerCommands } from "./commands";
 import { AppHeader } from "./components/AppHeader";
-import { ResultsSidebar } from "./components/ResultsSidebar";
+import { MapColumn } from "./components/MapColumn";
+import { ResultsColumn } from "./components/ResultsColumn";
 import { SpoonerDialogs } from "./components/SpoonerDialogs";
 import { currencyChoices, useRates } from "./rates";
 import { useSettings } from "./settings";
@@ -47,74 +45,6 @@ import { useDataset } from "./useDataset";
 import { type SpoonersView, useSpoonersView } from "./useSpoonersView";
 
 const RATE_SOURCE = "European Central Bank, via frankfurter.dev";
-
-const MapPane = lazy(() =>
-	import("./components/MapPane").then((module) => ({
-		default: module.MapPane,
-	})),
-);
-
-const warmMap = () => import("./components/MapPane");
-
-const MapFallback = ({
-	compact,
-	failed = false,
-}: {
-	compact: boolean;
-	failed?: boolean;
-}) => (
-	<Box
-		role={failed ? "alert" : undefined}
-		style={{
-			flex: compact ? undefined : 1,
-			flexShrink: 0,
-			minWidth: 0,
-			height: compact ? "45vh" : "auto",
-			borderRadius: "var(--app-radius-md)",
-			border: "1px solid var(--app-border)",
-			background: "var(--app-surface-2)",
-			display: failed ? "grid" : undefined,
-			placeItems: failed ? "center" : undefined,
-			alignContent: failed ? "center" : undefined,
-			gap: failed ? 4 : undefined,
-			padding: failed ? "var(--mantine-spacing-md)" : undefined,
-			textAlign: failed ? "center" : undefined,
-		}}
-	>
-		{failed ? (
-			<>
-				<Text fw={600}>The map could not be loaded</Text>
-				<Text size="sm" c="dimmed" maw={420}>
-					It is a separate download from the rest of the page and something
-					stopped it arriving. Reloading fetches it again.
-				</Text>
-				<Button
-					mt="sm"
-					variant="default"
-					onClick={() => window.location.reload()}
-				>
-					Reload the page
-				</Button>
-			</>
-		) : null}
-	</Box>
-);
-
-class MapErrorBoundary extends Component<
-	{ compact: boolean; children: ReactNode },
-	{ failed: boolean }
-> {
-	state = { failed: false };
-
-	static getDerivedStateFromError() {
-		return { failed: true };
-	}
-
-	render() {
-		if (!this.state.failed) return this.props.children;
-		return <MapFallback compact={this.props.compact} failed />;
-	}
-}
 
 const SHORTCUT_GROUPS: ShortcutGroup[] = [
 	{
@@ -401,7 +331,7 @@ export const App = () => {
 	}, [reload]);
 
 	useEffect(() => {
-		warmMap().catch(() => undefined);
+		void import("./components/MapPane").catch(() => undefined);
 	}, []);
 
 	const header = (
@@ -457,93 +387,49 @@ export const App = () => {
 				}}
 			>
 				<h1 className="sr-only">Spooners — pub prices on a map</h1>
-				<Box
-					className="spooners-scroll"
-					role="region"
-					aria-label="Round and results"
-					style={{
-						width: isMobile ? "100%" : 400,
-						flex: isMobile ? 1 : undefined,
-						flexShrink: isMobile ? 1 : 0,
-						minHeight: 0,
-						overflowY: "auto",
-						borderRight: isMobile
-							? undefined
-							: "1px solid var(--mantine-color-default-border)",
-						padding: 12,
+				<ResultsColumn
+					view={derived}
+					cache={data}
+					filters={filters}
+					onAdd={addItem}
+					onQty={roundActions.setQty}
+					onRemove={roundActions.remove}
+					onClear={roundActions.clear}
+					onUndo={round.undo ? round.restore : null}
+					undoText={round.undoText}
+					onOnlyItem={onlyItemFromDiscover}
+					rateDate={rates?.date ?? null}
+					onCurrency={(currency) => {
+						setSelectedCurrency(currency);
+						setFocused(null);
 					}}
-				>
-					<ResultsSidebar
-						view={derived}
-						venues={data.venueList}
-						history={data.history?.items}
-						activeFilters={filters.activeFilters}
-						onFilters={filters.setActiveFilters}
-						activeFacilities={filters.activeFacilities}
-						onFacilities={filters.setActiveFacilities}
-						onResetFilters={filters.resetFilters}
-						openNow={filters.openNowOnly}
-						onOpenNow={filters.setOpenNowOnly}
-						hideSpecial={filters.hideSpecial}
-						onHideSpecial={filters.setHideSpecial}
-						hideClosed={filters.hideClosed}
-						onHideClosed={filters.setHideClosed}
-						onlyComplete={filters.onlyComplete}
-						onOnlyComplete={filters.setOnlyComplete}
-						resolvedBasket={derived.resolvedBasket}
-						onAdd={addItem}
-						onQty={roundActions.setQty}
-						onRemove={roundActions.remove}
-						onClear={roundActions.clear}
-						onUndo={round.undo ? round.restore : null}
-						undoText={round.undoText}
-						currency={derived.displayCurrency}
-						onCurrency={(currency) => {
-							setSelectedCurrency(currency);
-							setFocused(null);
-						}}
-						rateDate={rates?.date ?? null}
-						hasLocation={Boolean(userLocation)}
-						geoState={geoState}
-						onNearMe={requestLocation}
-						onClearLocation={clearLocation}
-						onSelectVenue={setVenueRef}
-						focused={focused}
-						onFocus={setFocused}
-						onDetails={(venue) => setVenueRef(venue.ref)}
-						selectedArea={selectedArea}
-						onSelectArea={selectArea}
-						onOnlyItem={onlyItemFromDiscover}
-						rankingRows={settings.rankingRows}
-					/>
-				</Box>
+					userLocation={userLocation}
+					geoState={geoState}
+					onNearMe={requestLocation}
+					onClearLocation={clearLocation}
+					onSelectVenue={setVenueRef}
+					focused={focused}
+					onFocus={setFocused}
+					selectedArea={selectedArea}
+					onSelectArea={selectArea}
+					rankingRows={settings.rankingRows}
+					isMobile={isMobile}
+				/>
 
-				<MapErrorBoundary compact={isMobile}>
-					<Suspense fallback={<MapFallback compact={isMobile} />}>
-						<MapPane
-							compact={isMobile}
-							view={view}
-							points={derived.mapData}
-							unpriced={derived.unpricedPoints}
-							pubCount={derived.mapData.length}
-							areaCount={derived.areaPoints.length}
-							scale={derived.mapScale}
-							currency={derived.displayCurrency}
-							legendLabel={derived.legendLabel}
-							median={derived.prices.length ? derived.medianPrice : null}
-							hiddenCount={derived.hiddenCount}
-							focused={focused}
-							onFocus={setFocused}
-							onOpen={setVenueRef}
-							onArea={openArea}
-							area={areaFilter}
-							onClearArea={() => setAreaFilter(null)}
-							onView={setView}
-							initialView={mapView}
-							onViewport={setViewport}
-						/>
-					</Suspense>
-				</MapErrorBoundary>
+				<MapColumn
+					compact={isMobile}
+					view={derived}
+					mode={view}
+					focused={focused}
+					onFocus={setFocused}
+					onOpen={setVenueRef}
+					onArea={openArea}
+					area={areaFilter}
+					onClearArea={() => setAreaFilter(null)}
+					onView={setView}
+					initialView={mapView}
+					onViewport={setViewport}
+				/>
 			</main>
 
 			<SpoonerDialogs

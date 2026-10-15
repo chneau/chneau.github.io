@@ -157,7 +157,7 @@ export const useLinkedSelections = (url: UrlState) => {
 	};
 };
 
-type FilterState = {
+export type FilterState = {
 	activeFilters: string[];
 	setActiveFilters: (ids: string[]) => void;
 	activeFacilities: string[];
