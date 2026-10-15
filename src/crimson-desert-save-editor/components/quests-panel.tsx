@@ -6,7 +6,6 @@ import {
 	Checkbox,
 	Group,
 	Loader,
-	Modal,
 	Paper,
 	ScrollArea,
 	Select,
@@ -16,6 +15,7 @@ import {
 } from "@mantine/core";
 import { CheckCheck, RotateCcw, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ConfirmDialog } from "../../shared/save/components/ConfirmDialog";
 import {
 	type QuestDescription,
 	type QuestEdit,
@@ -301,42 +301,29 @@ const PresetConfirmModal = ({
 	onCancel: () => void;
 	onConfirm: (preset: QuestPreset) => void;
 }) => (
-	<Modal
+	<ConfirmDialog
 		opened={preset !== null}
-		onClose={onCancel}
 		title={
 			preset === "completeAll"
 				? "Complete All Quests / Stages?"
 				: "Reset All Quests / Stages?"
 		}
-		centered
-		size="sm"
-	>
-		<Stack gap="md">
-			<Text size="sm">
-				{preset === "completeAll"
-					? `Are you sure you want to mark all ${
-							scope === "all" ? "four tables" : questKindLabels[scope]
-						} as completed?`
-					: `Are you sure you want to reset all progress on ${
-							scope === "all" ? "four tables" : questKindLabels[scope]
-						}? This clears timestamps and completion counters.`}
-			</Text>
-			<Group justify="flex-end" gap="sm">
-				<Button variant="default" onClick={onCancel}>
-					Cancel
-				</Button>
-				<Button
-					color={preset === "resetAll" ? "red" : "brand"}
-					onClick={() => {
-						if (preset) onConfirm(preset);
-					}}
-				>
-					{preset === "completeAll" ? "Complete all" : "Reset all"}
-				</Button>
-			</Group>
-		</Stack>
-	</Modal>
+		body={
+			preset === "completeAll"
+				? `Are you sure you want to mark all ${
+						scope === "all" ? "four tables" : questKindLabels[scope]
+					} as completed?`
+				: `Are you sure you want to reset all progress on ${
+						scope === "all" ? "four tables" : questKindLabels[scope]
+					}? This clears timestamps and completion counters.`
+		}
+		confirmLabel={preset === "completeAll" ? "Complete all" : "Reset all"}
+		dangerous={preset === "resetAll"}
+		onCancel={onCancel}
+		onConfirm={() => {
+			if (preset) onConfirm(preset);
+		}}
+	/>
 );
 
 export const QuestsPanel = ({
