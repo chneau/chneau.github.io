@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 export type TokenDef = {
 	name: string;
 	label: string;
-	category: "colour" | "shadow" | "radius" | "typography" | "motion" | "accent";
+	category: "colour" | "shadow" | "radius" | "typography" | "motion";
 	scheme?: boolean;
 };
 export const TOKEN_DEFS: readonly TokenDef[] = [
@@ -77,30 +77,91 @@ export const TOKEN_DEFS: readonly TokenDef[] = [
 
 	{ name: "--app-ease", label: "Ease", category: "motion" },
 	{ name: "--app-speed", label: "Speed", category: "motion" },
+];
 
+export type AccentToken = {
+	name: string;
+	label: string;
+	required: boolean;
+	whenUnset: string;
+};
+
+export const ACCENT_TOKENS: readonly AccentToken[] = [
+	{
+		name: "--app-accent",
+		label: "Accent",
+		required: true,
+		whenUnset: "base.css falls back to var(--app-text)",
+	},
+	{
+		name: "--app-accent-hover",
+		label: "Accent hover",
+		required: false,
+		whenUnset: "base.css falls back to var(--app-accent, var(--app-text))",
+	},
+	{
+		name: "--app-accent-ink",
+		label: "Accent ink",
+		required: false,
+		whenUnset: "base.css falls back to var(--app-text)",
+	},
+	{
+		name: "--app-accent-line",
+		label: "Accent line",
+		required: false,
+		whenUnset: "base.css falls back to var(--app-border-strong)",
+	},
+	{
+		name: "--app-accent-soft",
+		label: "Accent soft",
+		required: false,
+		whenUnset: "base.css falls back to var(--app-surface-2)",
+	},
 	{
 		name: "--mantine-primary-color-filled",
-		label: "Accent filled",
-		category: "accent",
+		label: "Mantine filled",
+		required: false,
+		whenUnset: "base.css falls back to var(--app-accent, var(--app-text))",
+	},
+	{
+		name: "--mantine-primary-color-filled-hover",
+		label: "Mantine filled hover",
+		required: false,
+		whenUnset:
+			"base.css falls back to var(--app-accent-hover, var(--app-accent, var(--app-text)))",
 	},
 	{
 		name: "--mantine-primary-color-light",
-		label: "Accent light",
-		category: "accent",
+		label: "Mantine light",
+		required: false,
+		whenUnset:
+			"base.css falls back to var(--app-accent-soft, var(--app-surface-2))",
+	},
+	{
+		name: "--mantine-primary-color-light-hover",
+		label: "Mantine light hover",
+		required: false,
+		whenUnset:
+			"base.css falls back to var(--app-accent-soft, var(--app-surface-2))",
 	},
 	{
 		name: "--mantine-primary-color-light-color",
-		label: "Accent ink",
-		category: "accent",
+		label: "Mantine light ink",
+		required: false,
+		whenUnset: "base.css falls back to var(--app-accent-ink, var(--app-text))",
 	},
 	{
 		name: "--mantine-primary-color-contrast",
-		label: "Accent contrast",
-		category: "accent",
+		label: "Mantine contrast",
+		required: false,
+		whenUnset: "base.css falls back to #ffffff",
 	},
 ];
 
-const TOKEN_NAMES: readonly string[] = TOKEN_DEFS.map((token) => token.name);
+const TOKEN_NAMES: readonly string[] = [
+	...TOKEN_DEFS.map((token) => token.name),
+	...ACCENT_TOKENS.map((token) => token.name),
+];
 
 const readToken = (name: string): string => {
 	if (typeof window === "undefined") return "";
@@ -169,4 +230,60 @@ export const useTokenSnapshot = (scheme: "light" | "dark") => {
 	}, [scheme]);
 
 	return { layers, live };
+};
+
+type SharedStyles = {
+	utilities: readonly string[];
+	keyframes: readonly string[];
+};
+
+const visitRules = (
+	rules: CSSRuleList,
+	visit: (rule: CSSRule) => void,
+): void => {
+	for (const rule of Array.from(rules)) {
+		visit(rule);
+		if ("cssRules" in rule) {
+			visitRules((rule as CSSGroupingRule).cssRules, visit);
+		}
+	}
+};
+
+const readSharedStyles = (): SharedStyles => {
+	if (typeof document === "undefined") return { utilities: [], keyframes: [] };
+	const utilities = new Set<string>();
+	const keyframes = new Set<string>();
+
+	for (const sheet of Array.from(document.styleSheets)) {
+		let rules: CSSRuleList;
+		try {
+			rules = sheet.cssRules;
+		} catch {
+			continue;
+		}
+		visitRules(rules, (rule) => {
+			if ("selectorText" in rule) {
+				const selector = (rule as CSSStyleRule).selectorText;
+				for (const match of selector.matchAll(/\.app-[a-zA-Z0-9_-]+/g)) {
+					utilities.add(match[0]);
+				}
+			}
+			if ("name" in rule) {
+				const name = (rule as CSSKeyframesRule).name;
+				if (typeof name === "string" && name.startsWith("app-")) {
+					keyframes.add(name);
+				}
+			}
+		});
+	}
+
+	return {
+		utilities: [...utilities].sort(),
+		keyframes: [...keyframes].sort(),
+	};
+};
+
+export const useSharedStyles = (): SharedStyles => {
+	const [styles] = useState(readSharedStyles);
+	return styles;
 };

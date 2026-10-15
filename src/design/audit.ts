@@ -1,5 +1,5 @@
 import { composite, parseColor, type Rgba, ratio } from "../shared/colour";
-import { TOKEN_DEFS } from "./tokens";
+import { ACCENT_TOKENS, TOKEN_DEFS } from "./tokens";
 
 const CANVAS: Record<"light" | "dark", Rgba> = {
 	light: [255, 255, 255, 1],
@@ -28,23 +28,6 @@ export type Finding = {
 	detail: string;
 	shared: boolean;
 };
-
-export const SITE_ACCENT: readonly { name: string; required: boolean }[] = [
-	{ name: "--app-accent", required: true },
-	{ name: "--app-accent-hover", required: false },
-	{ name: "--app-accent-ink", required: false },
-	{ name: "--app-accent-line", required: false },
-	{ name: "--app-accent-soft", required: false },
-];
-
-export const MANTINE_ACCENT: readonly string[] = [
-	"--mantine-primary-color-filled",
-	"--mantine-primary-color-filled-hover",
-	"--mantine-primary-color-light",
-	"--mantine-primary-color-light-hover",
-	"--mantine-primary-color-light-color",
-	"--mantine-primary-color-contrast",
-];
 
 const CONTRAST_PAIRS: readonly {
 	label: string;
@@ -132,10 +115,9 @@ const CONTRAST_PAIRS: readonly {
 	},
 ];
 
-const REQUIRED_TOKENS: readonly string[] = [
-	...TOKEN_DEFS.map((token) => token.name),
-	"--app-accent",
-];
+const REQUIRED_TOKENS: readonly string[] = TOKEN_DEFS.map(
+	(token) => token.name,
+);
 
 const isSharedLayer = (element: Element): boolean => {
 	const own = element.getAttribute("class") ?? "";
@@ -314,30 +296,14 @@ const auditTokens = (): Finding[] => {
 		});
 	}
 
-	for (const { name, required } of SITE_ACCENT) {
-		if (REQUIRED_TOKENS.includes(name)) continue;
-		const value = readToken(name);
+	for (const token of ACCENT_TOKENS) {
+		const value = readToken(token.name);
 		findings.push({
-			id: `accent:${name}`,
+			id: `accent:${token.name}`,
 			group: "tokens",
-			level: value === "" && required ? "fail" : "pass",
-			subject: name,
-			detail:
-				value === ""
-					? "not defined — optional, base.css falls through to --mantine-primary-color-*"
-					: value,
-			shared: false,
-		});
-	}
-
-	for (const name of MANTINE_ACCENT) {
-		const value = readToken(name);
-		findings.push({
-			id: `mantine:${name}`,
-			group: "tokens",
-			level: value === "" ? "fail" : "pass",
-			subject: name,
-			detail: value === "" ? "undefined" : value,
+			level: value === "" && token.required ? "fail" : "pass",
+			subject: token.name,
+			detail: value === "" ? `not set — ${token.whenUnset}` : value,
 			shared: false,
 		});
 	}

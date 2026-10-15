@@ -10,9 +10,10 @@ import {
 	UnstyledButton,
 } from "@mantine/core";
 import { AlertTriangle, Ruler, ShieldCheck } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import { Section } from "../shared";
 import { type Finding, GROUP_LABEL, GROUP_ORDER } from "./audit";
-import type { TokenDef, TokenLayers } from "./tokens";
+import type { AccentToken, TokenDef, TokenLayers } from "./tokens";
 
 export const CopyableCode = ({
 	value,
@@ -59,10 +60,23 @@ export const CopyableCode = ({
 	);
 };
 
-export const SectionHeading = ({ children }: { children: string }) => (
-	<Title order={2} className="sr-only">
+export const GallerySection = ({
+	title,
+	badge,
+	actions,
+	children,
+}: {
+	title: string;
+	badge?: ReactNode;
+	actions?: ReactNode;
+	children: ReactNode;
+}) => (
+	<Section title={title} badge={badge} actions={actions}>
+		<Title order={2} className="sr-only">
+			{title}
+		</Title>
 		{children}
-	</Title>
+	</Section>
 );
 
 const DriftBadge = ({
@@ -150,39 +164,44 @@ export const ColourCard = ({
 };
 
 export const AccentCard = ({
-	name,
-	label,
+	token,
 	live,
-	required,
 }: {
-	name: string;
-	label: string;
+	token: AccentToken;
 	live: Record<string, string>;
-	required: boolean;
-}) => (
-	<Card withBorder padding="xs" radius="md">
-		<div
-			className="design-swatch--accent"
-			style={{ background: `var(${name})` }}
-		/>
-		<Group justify="space-between" gap={6} wrap="nowrap" mt={6}>
-			<Text size="xs" fw={600} truncate>
-				{label}
-			</Text>
-			{required ? (
-				<Badge size="xs" variant="outline" color="brand">
-					required
-				</Badge>
-			) : null}
-		</Group>
-		<CopyableCode value={`var(${name})`} label={label} />
-		<TokenValue>
-			{live[name] === undefined || live[name] === ""
-				? "not defined — falls through to --mantine-primary-color-*"
-				: live[name]}
-		</TokenValue>
-	</Card>
-);
+}) => {
+	const value = live[token.name] ?? "";
+	const unset = value === "";
+
+	return (
+		<Card withBorder padding="xs" radius="md">
+			<div
+				className={`design-swatch--accent${
+					unset ? " design-swatch--unset" : ""
+				}`}
+				style={unset ? undefined : { background: `var(${token.name})` }}
+			>
+				{unset ? (
+					<Text size="xs" c="var(--app-text-muted)">
+						not set
+					</Text>
+				) : null}
+			</div>
+			<Group justify="space-between" gap={6} wrap="nowrap" mt={6}>
+				<Text size="xs" fw={600} truncate>
+					{token.label}
+				</Text>
+				{token.required ? (
+					<Badge size="xs" variant="outline" color="brand">
+						required
+					</Badge>
+				) : null}
+			</Group>
+			<CopyableCode value={`var(${token.name})`} label={token.label} />
+			<TokenValue>{unset ? token.whenUnset : value}</TokenValue>
+		</Card>
+	);
+};
 
 export const RadiusCard = ({
 	token,
