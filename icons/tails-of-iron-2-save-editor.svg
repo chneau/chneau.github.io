@@ -1,7 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
 	<rect width="512" height="512" rx="112" fill="#4577a7" />
 	<g>
-		<!-- A cat's head in profile: two ears, a muzzle, and a whiskered nose. -->
 		<path d="M150 196 L150 118 L214 160 Z" fill="#0f1a24" />
 		<path d="M362 196 L362 118 L298 160 Z" fill="#0f1a24" />
 		<path d="M256 150
@@ -16,7 +15,6 @@
 		<path d="M226 306 q30 22 60 0" fill="none" stroke="#4577a7"
 			stroke-width="11"
 			stroke-linecap="round" />
-		<!-- The save itself: a page corner behind the head. -->
 		<path d="M120 402 h272" stroke="#0f1a24" stroke-width="20"
 			stroke-linecap="round" />
 	</g>
