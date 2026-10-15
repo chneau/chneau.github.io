@@ -20,10 +20,6 @@ afterEach(() => {
 
 const provider = (ui: ReactNode) => <MantineProvider>{ui}</MantineProvider>;
 
-/**
- * MantineProvider injects `<style>` tags into the container, so emptiness is
- * asserted on the banner itself rather than on `textContent`.
- */
 const banner = (container: HTMLElement) =>
 	container.querySelector<HTMLElement>(".app-consent");
 
@@ -115,10 +111,6 @@ describe("useAnalyticsConsent", () => {
 	});
 });
 
-/**
- * Minimal hook harness: this repo has no `@testing-library/react-hooks`, so we
- * capture the latest hook return value from a probe component.
- */
 const renderHookState = () => {
 	const box: { current: ReturnType<typeof useAnalyticsConsent> | undefined } = {
 		current: undefined,

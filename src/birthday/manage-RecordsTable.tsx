@@ -13,14 +13,6 @@ import { getKindColor } from "./birthdays";
 import { ConfirmPopover } from "./ConfirmPopover";
 import type { RawBirthdayRow } from "./raw-birthday-identity";
 
-/**
- * The searchable, paginated list of stored records.
- *
- * Its own component because the search box, the page window and the row
- * actions form one unit: the page window is only meaningful relative to the
- * filtered list, and the row keys are the reason a legacy duplicate can be
- * edited or deleted at all. None of that belongs to the modal's data actions.
- */
 export const ManageRecordsTable = ({
 	rows,
 	searchQuery,
@@ -33,15 +25,11 @@ export const ManageRecordsTable = ({
 	onEdit,
 	onDelete,
 }: {
-	/** The rows on the current page, already filtered and sliced. */
 	rows: readonly RawBirthdayRow[];
 	searchQuery: string;
-	/** How many rows matched the search, across every page. */
 	filteredCount: number;
-	/** Rows per page; the pagination shows only when the list overflows one page. */
 	pageSize: number;
 	pageCount: number;
-	/** 0-based page index; `Pagination` is 1-based. */
 	page: number;
 	onSearchChange: (query: string) => void;
 	onPageChange: (page: number) => void;
@@ -49,8 +37,6 @@ export const ManageRecordsTable = ({
 	onDelete: (row: RawBirthdayRow) => void;
 }) => {
 	const { t } = useTranslation();
-	// A list that fits on one page is not a truncated list, so it gets no
-	// pager — the same condition the modal used before the split.
 	const overflowsOnePage = filteredCount > pageSize;
 
 	return (

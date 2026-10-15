@@ -1,30 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { nextGridIndex } from "../gridNavigation";
 
-/**
- * Arrow-key roving focus over the dashboard card grid.
- *
- * The handler used to treat `ArrowDown` as `ArrowRight` and `ArrowUp` as
- * `ArrowLeft`, so the vertical arrows walked the grid as one long row. On a
- * multi-column layout that means ArrowDown jumped sideways, and there was no way
- * to move down a row at all.
- *
- * `.app-grid` is `repeat(auto-fill, minmax(280px, 1fr))`, so the column count is
- * a function of the viewport rather than of the item count — which is why the
- * component measures the row off `offsetTop` and this test drives the arithmetic
- * with the column count handed in. happy-dom reports every `offsetTop` as 0, so
- * the measurement itself is not observable here and is not asserted.
- */
-
 describe("nextGridIndex", () => {
-	/** A 4x3 grid: four columns, three rows, indices 0..11 laid out in reading order. */
 	const TOTAL = 12;
 	const COLUMNS = 4;
 
 	test("ArrowRight moves along the row and wraps at the end", () => {
 		expect(nextGridIndex(0, TOTAL, COLUMNS, "ArrowRight")).toBe(1);
 		expect(nextGridIndex(3, TOTAL, COLUMNS, "ArrowRight")).toBe(4);
-		// Past the last card, wrap to the first.
 		expect(nextGridIndex(11, TOTAL, COLUMNS, "ArrowRight")).toBe(0);
 	});
 
@@ -35,7 +18,6 @@ describe("nextGridIndex", () => {
 	});
 
 	test("ArrowDown moves a whole row, not one card", () => {
-		// This is the defect: it used to return index + 1, i.e. sideways.
 		expect(nextGridIndex(0, TOTAL, COLUMNS, "ArrowDown")).toBe(4);
 		expect(nextGridIndex(5, TOTAL, COLUMNS, "ArrowDown")).toBe(9);
 	});
@@ -46,10 +28,8 @@ describe("nextGridIndex", () => {
 	});
 
 	test("vertical movement clamps at the edges instead of wrapping", () => {
-		// Down on the last row stays put rather than jumping back to the top.
 		expect(nextGridIndex(9, TOTAL, COLUMNS, "ArrowDown")).toBe(11);
 		expect(nextGridIndex(11, TOTAL, COLUMNS, "ArrowDown")).toBe(11);
-		// Up on the first row likewise.
 		expect(nextGridIndex(2, TOTAL, COLUMNS, "ArrowUp")).toBe(0);
 		expect(nextGridIndex(0, TOTAL, COLUMNS, "ArrowUp")).toBe(0);
 	});
@@ -77,9 +57,6 @@ describe("nextGridIndex", () => {
 	});
 
 	test("a zero or unmeasured column count degrades to one, never to zero", () => {
-		// happy-dom reports `offsetTop` as 0 for every element, so a grid measured
-		// outside a browser can report one column or none. Clamping keeps focus
-		// moving instead of trapping it.
 		expect(nextGridIndex(0, 6, 0, "ArrowDown")).toBe(1);
 		expect(nextGridIndex(0, 6, -3, "ArrowDown")).toBe(1);
 	});

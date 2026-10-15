@@ -1,41 +1,3 @@
-/**
- * Creating a field the save does not currently store.
- *
- * PARC records which of an object's fields are present with a bit in the
- * object's mask, and the game omits a field that still holds its default — a
- * false reward flag, an empty name, an experience of zero. So several of the
- * values worth editing are the ones that are *not there*: `_readMemoryRewarded`
- * is absent on every one of the 509 bonds in the endgame fixture,
- * `_mercenaryName` is absent on every companion, and
- * `CharacterStatusSaveData._experience` is absent on the player in both.
- *
- * Setting one of those is an insertion rather than a write: the field's bytes go
- * into the record at the position its field order implies, its presence bit goes
- * up, and everything after it moves. This module does that in the steps that are
- * easy to get wrong by hand:
- *
- *   - the missing fields of one record are merged into contiguous runs, so
- *     fields that end up adjacent cost one insertion rather than several;
- *   - `spliceInsertions` puts the runs in and relocates the inline pointers;
- *   - each presence bit and, for a list element, the record's size word are then
- *     recomputed at their shifted offsets.
- *
- * Two shapes of record are covered and they differ only in their framing. A list
- * element carries a size word at its end, and that word is what its length is
- * read from. A root block has a four-byte context word after its mask instead and
- * no size word at all — its length lives in the TOC, which `serializeParc`
- * recomputes from the bytes — so growing one changes no trailer. What a root can
- * have that an element cannot is bytes after its fields that are not fields: an
- * omitted list still serializes its empty marker. Appending a scalar field past
- * one of those markers would put it in the wrong place, so a root whose field
- * area is not its whole block is refused unless the new field goes in front of a
- * field that is already there.
- *
- * The caller gets a new payload back and is expected to re-read it before
- * committing — every applier in this engine proves its edit reopens with the
- * value it asked for.
- */
-
 import {
 	readU16,
 	readU32,
@@ -61,21 +23,15 @@ import type { ParcBlob, ParsedField, TypeDef } from "./parc-serializer";
 
 type FieldDef = TypeDef["fields"][number];
 
-/** One field to create or replace, on one element of an object list. */
 type RecordFieldValue = {
-	/** Absolute start of the element, as `walkObjectList` reports it. */
 	recordStart: number;
 	fieldName: string;
-	/** The field's serialized bytes, with no framing beyond its own encoding. */
 	bytes: Uint8Array;
-	/** Swap the bytes of a field the record already carries instead of failing. */
 	replace?: boolean;
 };
 
 type InsertRecordFieldsRequest = {
-	/** Root block that owns the list, e.g. `FriendlySaveData`. */
 	rootType: string;
-	/** Object-list field on that root, e.g. `_friendlyDataList`. */
 	listField: string;
 	fields: RecordFieldValue[];
 };
@@ -87,19 +43,16 @@ type InsertRecordFieldsResult = {
 	bytesAdded: number;
 };
 
-/** One scalar to create on a root block, e.g. the player's `_experience`. */
 type RootFieldValue = {
 	fieldName: string;
 	bytes: Uint8Array;
 };
 
 type InsertRootFieldsRequest = {
-	/** Root block that owns the field, e.g. `CharacterStatusSaveData`. */
 	rootType: string;
 	fields: RootFieldValue[];
 };
 
-/** Bytes of an unsigned scalar, little-endian, for `RecordFieldValue.bytes`. */
 export const scalarBytes = (size: number, value: number): Uint8Array => {
 	const buffer = new Uint8Array(size);
 	if (size === 1) writeU8(buffer, 0, value);
@@ -110,7 +63,6 @@ export const scalarBytes = (size: number, value: number): Uint8Array => {
 	return buffer;
 };
 
-/** Bytes of a `staticstringA`-style field: a length prefix, then UTF-8. */
 export const stringFieldBytes = (text: string): Uint8Array => {
 	const encoded = new TextEncoder().encode(text);
 	const buffer = new Uint8Array(4 + encoded.length);
@@ -119,7 +71,6 @@ export const stringFieldBytes = (text: string): Uint8Array => {
 	return buffer;
 };
 
-/** Refuses bytes that do not match the width and kind the schema declares. */
 const checkEncoding = (definition: FieldDef, bytes: Uint8Array): void => {
 	if (definition.metaKind === 0 || definition.metaKind === 2) {
 		if (bytes.length !== definition.metaSize) {
@@ -142,27 +93,15 @@ const checkEncoding = (definition: FieldDef, bytes: Uint8Array): void => {
 	);
 };
 
-/**
- * One record's field list, however the record is framed. Only the details the
- * insertion needs differ between a list element and a root block; the placement
- * rule and the splicing are the same.
- */
 type FieldTarget = {
 	type: TypeDef;
 	typeName: string;
-	/** Absolute offset of the presence mask. */
 	maskStart: number;
-	/** Presence mask byte count, which bounds the presence bits. */
 	maskLength: number;
-	/** Where a field goes when the record stores no field at all. */
 	emptyAt: number;
-	/** Fields in declaration order; present ones carry absolute offsets. */
 	fields: ParsedField[];
-	/** Absolute offset of the record's own size word, or null when it has none. */
 	sizeWord: number | null;
-	/** Bytes after the fields that are not fields at all; must be 0 to append. */
 	trailingBytes: number;
-	/** Absolute end of the parsed fields, where an appended run would go. */
 	fieldsEnd: number;
 };
 
@@ -175,16 +114,10 @@ type PendingField = {
 type PendingRun = {
 	target: FieldTarget;
 	fields: PendingField[];
-	/** Absolute payload offset the run's bytes go in at. */
 	at: number;
 	bytes: Uint8Array;
 };
 
-/**
- * Where a run belongs: before the next present field, else after the last. A
- * record with no present field at all keeps only its header, so the run goes
- * right after it.
- */
 const runPosition = (
 	target: FieldTarget,
 	first: number,
@@ -255,7 +188,6 @@ const concat = (parts: Uint8Array[]): Uint8Array => {
 	return output;
 };
 
-/** One field to create on one target, with the definition it is checked against. */
 type Creation = {
 	target: FieldTarget;
 	fieldName: string;
@@ -263,11 +195,6 @@ type Creation = {
 	replace: boolean;
 };
 
-/**
- * Splices the requested fields into one block, sets their presence bits, and
- * grows the size words of the records that took them. Records of the same block
- * are edited together, because each insertion moves every later offset in it.
- */
 const applyCreations = (
 	parc: ParcBlob,
 	tocIndex: number,
@@ -353,8 +280,6 @@ const applyCreations = (
 				`${run.target.typeName} has no room for the new field before its end`,
 			);
 		}
-		// Appending past bytes that are not fields — an omitted list's empty
-		// marker, say — would put the new field on the wrong side of them.
 		if (run.at === run.target.fieldsEnd && run.target.trailingBytes > 0) {
 			throw new Error(
 				`${run.target.typeName} keeps ${run.target.trailingBytes} bytes after its fields, so a field cannot be appended to it`,
@@ -412,7 +337,6 @@ const applyCreations = (
 	};
 };
 
-/** The field target of one element of an object list. */
 const elementTarget = (object: WalkedObject): FieldTarget => {
 	const fieldsEnd = object.end - 4;
 	return {
@@ -428,11 +352,8 @@ const elementTarget = (object: WalkedObject): FieldTarget => {
 	};
 };
 
-/** The field target of a root block, whose framing its own header describes. */
 const rootTarget = (raw: Uint8Array, root: RootTarget): FieldTarget => {
 	const entry = defined(root.parc.tocEntries[root.tocIndex], "root TOC entry");
-	// The block leads with the mask byte count, then the mask, then a context
-	// word — the same header `parseRootBlock` walks.
 	const maskLength = readU16(raw, entry.dataOffset);
 	const maskStart = entry.dataOffset + 2;
 	const payloadStart = maskStart + maskLength + 4;
@@ -463,10 +384,6 @@ type RootTarget = {
 	fields: ParsedField[];
 };
 
-/**
- * Creates fields on elements of one object list. Every requested field must be
- * genuinely absent and must belong to the element at the offset given.
- */
 export const insertRecordFields = (
 	raw: Uint8Array,
 	request: InsertRecordFieldsRequest,
@@ -485,13 +402,7 @@ export const insertRecordFields = (
 		}
 	}
 
-	// One target per element, reused by every request that lands on it: two
-	// requests on one record have to be planned as one record, or their size-word
-	// growth would be applied twice.
 	const targets = new Map<number, FieldTarget>();
-	// The element list is indexed by payload offset once: a batch may request
-	// hundreds of fields and the list holds tens of thousands of elements, so
-	// searching it per request would be quadratic.
 	const objectsByStart = new Map<number, WalkedObject>();
 	for (const object of objects) {
 		if (!objectsByStart.has(object.start)) {
@@ -538,11 +449,6 @@ export const insertRecordFields = (
 	};
 };
 
-/**
- * Creates scalar fields on a root block. This is what makes a value the game
- * only stores once it is non-zero — the player's experience, an omitted
- * sub-level count — editable instead of permanently reading as its default.
- */
 export const insertRootFields = (
 	raw: Uint8Array,
 	request: InsertRootFieldsRequest,

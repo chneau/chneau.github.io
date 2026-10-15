@@ -9,8 +9,6 @@ import {
 	setAtPath,
 	verifyRoundTrip,
 } from "../../shared";
-// `collectLeaves` is not on the shared barrel — it is an inspector detail — so
-// it is imported from its module rather than widening the barrel's surface.
 import {
 	collectLeaves,
 	numberAt,
@@ -23,34 +21,6 @@ import { witcher3 } from "../lib/format";
 import { locateWritable } from "../lib/write";
 import { FIXTURE_TIMEOUT_MS, largeSave, smallSave } from "./fixtures";
 
-/**
- * The codec contract, against real saves.
- *
- * `lib/` is written to the shape of seven reference files and has been run
- * against them by hand. This suite is the committed half of that claim. Every
- * test here reads a file the game actually wrote — there is no synthetic fixture
- * for the document-level assertions — because the property under test is
- * specifically about bytes that came from the game.
- *
- * ## Why both fixtures, every time
- *
- * The two saves are two builds, and the difference between them is a contract
- * rather than noise:
- *
- *  - Their item records carry **different tag pairs** — `76 00 77 00` against
- *    `72 00 74 00` — so a reader that hardcodes either one reads nothing on the
- *    other. `discoverTagPair` recovers the pair from the save, which is why both
- *    now decode a full inventory, a wallet and their durability figures.
- *  - Their **record counts differ** (164 against 626 in the player's bag), so any
- *    test addressing an item by a hard-coded index is asserting against a
- *    different item on the other fixture. Item paths are located by name.
- *
- * A test that only used the larger file would pass while the smaller one — a save
- * a player is quite likely to have, from an earlier patch of the game — reported
- * an empty inventory, which is what this suite was written to prevent.
- */
-
-/** The document as an object, read through a narrowing helper rather than a cast. */
 const asObject = (value: JsonValue): { readonly [key: string]: JsonValue } => {
 	if (!isJsonObject(value)) {
 		throw new Error("expected a JSON object in the decoded document");
@@ -58,11 +28,9 @@ const asObject = (value: JsonValue): { readonly [key: string]: JsonValue } => {
 	return value;
 };
 
-/** One summary row's value, by label. */
 const rowValue = (doc: JsonValue, label: string): string | undefined =>
 	witcher3.summarise(doc).find((row) => row.label === label)?.value;
 
-/** The staged edits one action would produce, with a useful failure message. */
 const planFor = (
 	id: string,
 	doc: JsonValue,
@@ -101,25 +69,11 @@ describe("decoding a real save", () => {
 				saveVersion: "66/29/164",
 				level: 4,
 				difficulty: "Hardcore",
-				// `used: null` on this build while `free` is a number: the game
-				// omits a counter at zero, so there is no `used` field in the stream
-				// for the skill points, and `null` is that absence. It reported `0`
-				// here until the rule the `free` line already followed was applied to
-				// `used` as well — a zero is a claim about the player, and `encode`
-				// refuses to write the field because it does not exist.
 				skillPoints: { free: 9, used: null },
-				// The experience counter *does* carry `used`, so it is a number.
 				experience: { free: 17, used: 3000 },
 				chunks: 1,
 				headerSize: 3084,
-				// 164, not 0. This build's item records carry the tag pair
-				// `76 00 77 00` and the reader used to require `72 00 74 00`, so it
-				// found nothing in this save at all. `discoverTagPair` now recovers
-				// the pair from the save's own bytes.
 				items: 164,
-				// All 167 are listed, of which 148 carry a level: the other 19
-				// omit the field from the stream and are reported as `null` rather
-				// than filtered out, because the list is addressed by index.
 				skills: 167,
 			});
 			expect(rowValue(doc, "Crowns")).toBe("397");
@@ -147,19 +101,9 @@ describe("decoding a real save", () => {
 				skillPoints: { free: 14, used: null },
 				experience: { free: 702, used: 6000 },
 				chunks: 5,
-				// 626, the list's own declared count. It read 615 before, because the
-				// record anchor required `f32 -1.0` and that dropped every item with a
-				// real durability — this save's sword and armour among them.
 				items: 626,
-				// All 167 are listed, of which 148 carry a level: the other 19
-				// omit the field from the stream and are reported as `null` rather
-				// than filtered out, because the list is addressed by index.
 				skills: 167,
 			});
-			// The wallet is the `u16` quantity of the `Crowns` item, not a field of
-			// its own. Exposing it twice would give the document two fields over one
-			// pair of bytes, and editing one would silently disagree with the other —
-			// which the round-trip check then correctly reports as unsound.
 			expect(rowValue(doc, "Crowns")).toBe("2996");
 		},
 		FIXTURE_TIMEOUT_MS,
@@ -168,20 +112,10 @@ describe("decoding a real save", () => {
 	test(
 		"exposes only values, never the offsets they were found at",
 		async () => {
-			// The document must survive being typed into by hand and being rebuilt: a
-			// stored address would be wrong for any other save of the same build, and
-			// three saves of this build put the wallet at 3640748, 3640300 and
-			// 3640999. So the addresses live in `locateWritable` and the document
-			// carries the numbers only — asserted by walking every leaf and requiring
-			// that the four bytes a wallet sits at never appear anywhere.
 			const doc = await witcher3.decode(largeSave());
 			const found = locateWritable(decompressContainer(largeSave()).data);
 			const wallet = found.money;
 			if (wallet === undefined) throw new Error("the fixture has no wallet");
-			// Every address this codec knows, checked one at a time. A single digit
-			// search would be meaningless — these numbers appear as substrings of item
-			// quantities by coincidence — so each is searched for as a distinct token
-			// in the document, which is the form a stored offset would take.
 			const serialised = JSON.stringify(doc);
 			const leaves = JSON.stringify(collectLeaves(doc));
 			for (const offset of [
@@ -205,30 +139,15 @@ describe("decoding a real save", () => {
 	test(
 		"keeps the scaffold out of the readable projection",
 		async () => {
-			// The workbench proves a rebuild by decoding it and comparing the resulting
-			// *document* with the one that was encoded, and the payload it carries is
-			// exactly the sort of field that differs by definition — the document
-			// describes the pre-edit bytes while `encode` writes post-edit ones. So
-			// the scaffold must be invisible to `JSON.stringify`, or every rebuild
-			// would be reported unsound.
 			const doc = await witcher3.decode(smallSave());
 			expect(Object.keys(asObject(doc))).toContain("scaffold");
 
-			// The branch really does carry the payload, and really does hide it: an
-			// `Object.keys` that omits it proves the property is non-enumerable, which
-			// is the mechanism — a JSON spread in `setAtPath` copies enumerable
-			// properties only, so this is what survives an edit.
 			const branch = asObject(getAtPath(doc, ["scaffold"]) ?? null);
 			expect(Object.keys(branch)).toEqual([]);
 			expect("bytes" in branch).toBe(true);
 			expect(Object.getOwnPropertyDescriptor(branch, "bytes")?.enumerable).toBe(
 				false,
 			);
-			// And nothing of it reaches the serialised comparison the round-trip check
-			// makes: the branch serialises as `{}` and the whole document therefore ends
-			// with an empty scaffold rather than with five megabytes of token stream.
-			// Checked on the text rather than through a parse-and-compare, because the
-			// claim is about what `JSON.stringify` *omits*.
 			expect(JSON.stringify(getAtPath(doc, ["scaffold"]))).toBe("{}");
 			expect(JSON.stringify(doc).endsWith('"scaffold":{}}')).toBe(true);
 		},
@@ -236,20 +155,12 @@ describe("decoding a real save", () => {
 	);
 
 	test("refuses a file that is not a Witcher 3 save", async () => {
-		// The wrong-file case, which is what somebody who picks the wrong `.sav`
-		// actually hits. The message has to name the problem rather than reporting
-		// a parse failure three layers down.
 		await expect(witcher3.decode(new Uint8Array(64))).rejects.toThrow(
 			/does not look like a Witcher 3 save/,
 		);
 	});
 
 	test("refuses a file whose container is well-formed but has no chunks", async () => {
-		// Hand-built rather than truncated from a fixture: no real save has an empty
-		// chunk table, so this has to construct the header rather than hope the
-		// fixture contains the case. The rejection comes from the reader rather
-		// than the codec's own zero-chunk guard, because the reader refuses first —
-		// and it should: there is nothing to decode and nothing to rebuild.
 		const file = new Uint8Array(3084);
 		file.set(new TextEncoder().encode("SNFHFZLC"), 0);
 		new DataView(file.buffer).setUint32(12, 3084, true);
@@ -261,16 +172,6 @@ describe("the summary", () => {
 	test(
 		"reports the wallet on both builds, because both are readable now",
 		async () => {
-			// This used to assert the opposite. The `8559a` build's item records
-			// carry the tag pair `76 00 77 00`, and the reader required `72 00 74
-			// 00`, so it decoded *zero* items from this save — no wallet, no
-			// inventory, and a summary that said the wallet was unsupported. The
-			// tag pair is now recovered from the save's own bytes
-			// (`lib/inventory`), so both fixtures read.
-			//
-			// The honest-degradation contract survives where it still applies: a
-			// save with no Crowns record must say so rather than claim zero, which
-			// the next test covers with a hand-built document.
 			for (const [name, bytes, crowns] of [
 				["8559a", smallSave(), "397"],
 				["52586", largeSave(), "2996"],
@@ -282,8 +183,6 @@ describe("the summary", () => {
 				expect({
 					name,
 					crowns: row?.value,
-					// Emphasis marks a wallet this codec cannot *write*. Reading one
-					// on a second build is the fix, so neither is emphasised.
 					emphasis: row?.emphasis,
 				}).toEqual({ name, crowns, emphasis: false });
 			}
@@ -294,12 +193,6 @@ describe("the summary", () => {
 	test(
 		"says in words when a save carries no wallet at all",
 		async () => {
-			// The honest-degradation contract, in the one place a player reads it. A
-			// zero here would be a claim about the player's money that nobody
-			// measured, and an empty string would look like a bug. Reached with a
-			// document rather than a fixture, because no committed save lacks a
-			// Crowns record — the unsupported-build case was what used to produce
-			// it, and that case no longer exists.
 			const rows = witcher3.summarise({
 				saveVersion: "66/29/164",
 				items: [],
@@ -324,10 +217,6 @@ describe("the summary", () => {
 				skillPoints: rowValue(doc, "Skill points"),
 				experience: rowValue(doc, "Experience"),
 			}).toEqual({
-				// The `SAV3` version, read from the header. It is the same on both
-				// fixtures because they are different *builds* that share a save
-				// version — which is exactly why this stopped claiming to be a
-				// build id.
 				saveVersion: "66/29/164",
 				level: "4",
 				difficulty: "Hardcore",
@@ -339,9 +228,6 @@ describe("the summary", () => {
 	);
 
 	test("omits a row for a field the document has lost rather than reporting zero", async () => {
-		// A document the inspector has edited is not a save any more, and the
-		// summary is asked to describe it anyway. Reporting "0 free" for a
-		// missing branch would be a statement about the player nobody measured.
 		const rows = witcher3.summarise({ saveVersion: "66/29/164", items: [] });
 		expect(rows.map((row) => row.label)).toEqual([
 			"Save version",
@@ -349,30 +235,16 @@ describe("the summary", () => {
 			"Difficulty",
 			"Crowns",
 		]);
-		// "not found" rather than "0": a zero would be a claim about the player's
-		// progress that nothing in this document supports.
 		expect(rows.map((row) => row.value)).toEqual([
 			"66/29/164",
 			"not found",
 			"unknown",
 			"not supported for this build",
 		]);
-		// And the two progression rows really are absent rather than zeroed.
 		expect(rows.some((row) => row.label === "Skill points")).toBe(false);
 	});
 
 	test("describes a document with no item list instead of throwing", async () => {
-		// This used to throw. `crownsRow` read `items` with the throwing
-		// `requireArrayAt` while the rest of `summarise` degraded, so a document
-		// that had lost `items` crashed the summary — on its *first* row, before any
-		// of the honest degradation above could run. `encode` still refuses such a
-		// document, which is right: it writes into that list. `summarise` only
-		// reads, so "not supported for this build" is the correct answer and was
-		// already the wording for a wallet it cannot locate.
-		// Each spelled as its own `JsonValue` rather than inferred as one union of
-		// three: an inferred array widens the first element to `items?: undefined`,
-		// and `undefined` is not a `JsonValue` — the very rule this projection is
-		// held to. The annotation is the test saying what shape it means.
 		const docs: readonly JsonValue[] = [
 			{ saveVersion: "66/29/164" },
 			{ saveVersion: "66/29/164", items: null },
@@ -383,7 +255,6 @@ describe("the summary", () => {
 			expect(rows.find((row) => row.label === "Crowns")?.value).toBe(
 				"not supported for this build",
 			);
-			// And the rows that do not depend on `items` are still reported.
 			expect(rows.find((row) => row.label === "Save version")?.value).toBe(
 				"66/29/164",
 			);
@@ -395,14 +266,6 @@ describe("the round trip", () => {
 	test(
 		"rebuilds an unedited save and reads back the same document",
 		async () => {
-			// `semantic`, and never `identical`, and that is expected rather than a
-			// defect: LZ4 admits many valid encodings of the same input, so a
-			// compressor that makes no attempt to match the game's byte for byte
-			// produces a different — equally valid — compressed stream. What has to
-			// hold is that the payload decodes back to exactly the same bytes and the
-			// document reads back identically, and `identical` here would mean the
-			// compressor had accidentally started reproducing a particular reference
-			// encoder, which is not a property worth having.
 			const file = smallSave();
 			const doc = await witcher3.decode(file);
 			const verdict = await verifyRoundTrip(witcher3, file, doc, false);
@@ -414,8 +277,6 @@ describe("the round trip", () => {
 	test(
 		"passes on the large save too",
 		async () => {
-			// Five chunks and a wallet, so the envelope bookkeeping and the item loop
-			// are both exercised by the rebuild rather than only the single-chunk path.
 			const file = largeSave();
 			const doc = await witcher3.decode(file);
 			const verdict = await verifyRoundTrip(witcher3, file, doc, false);
@@ -427,17 +288,8 @@ describe("the round trip", () => {
 	test(
 		"passes after an edit, and the edited value reads back out of the file",
 		async () => {
-			// The claim a player actually relies on. Not `lossless-edit`: the bytes
-			// genuinely differ, because the values genuinely changed. The document
-			// reading back identically is the proof that the write landed and that
-			// nothing else moved.
 			const file = largeSave();
 			const doc = await witcher3.decode(file);
-			// The wallet row, located by name rather than by index. A hard-coded
-			// index silently starts pointing at a different item the moment the
-			// reader finds more records than it used to, which is exactly what
-			// fixing the durability filter did — this test edited `items.13` for
-			// months and would now have edited whichever record moved into slot 13.
 			const crowns = (arrayAt(doc, "items") ?? []).findIndex(
 				(row) => isJsonObject(row) && row.name === "Crowns",
 			);
@@ -449,7 +301,6 @@ describe("the round trip", () => {
 			const rebuilt = await witcher3.encode(edited);
 			const back = await witcher3.decode(rebuilt);
 			expect(getAtPath(back, ["items", crowns, "quantity"])).toBe(40_000);
-			// Everything the edit did not touch still reads as it did.
 			expect({
 				level: getAtPath(back, ["level"]),
 				skillPoints: getAtPath(back, ["skillPoints"]),
@@ -468,10 +319,6 @@ describe("the round trip", () => {
 	test(
 		"fails loudly when the rebuild does not read back, rather than reporting success",
 		async () => {
-			// The check is only worth anything if it can fail. A document whose
-			// progression has been tampered with to a value no save could hold must
-			// come back `failed` with a reason, because that is the state a user would
-			// be in if the encoder wrote the wrong offset.
 			const file = smallSave();
 			const doc = await witcher3.decode(file);
 			const tampered = setAtPath(doc, ["difficulty", "index"], 999_999);
@@ -482,10 +329,6 @@ describe("the round trip", () => {
 	);
 
 	test("refuses a document the editor did not decode, rather than inventing a save", async () => {
-		// Without the scaffold there is nothing to rebuild: the payload is five
-		// megabytes of token stream that only the save itself contains. Producing
-		// a file anyway would be producing a file that loads into a game as an
-		// empty world.
 		await expect(witcher3.encode({ level: 20 })).rejects.toThrow(
 			/no save attached to it/,
 		);
@@ -496,20 +339,10 @@ describe("editing a document", () => {
 	test(
 		"keeps the save attached through the workbench's own fold",
 		async () => {
-			// The bug this exists for, and it happened once. `setAtPath` rebuilds the
-			// root with an object spread, which copies only *enumerable* properties —
-			// so a scaffold defined on the root is destroyed by the first edit, and
-			// `encode` then refuses and the player's work is lost. The codec hangs the
-			// scaffold off a branch no edit rebuilds, as a non-enumerable property of
-			// its own object, and this asserts that directly rather than trusting it:
-			// one edit, then a rebuild, then the bytes compared with the original.
 			const file = smallSave();
 			const doc = await witcher3.decode(file);
 			const original = decompressContainer(file).data;
 
-			// The fold is the one the workbench performs — `applyEdits` is a reduce
-			// over `setAtPath`, so going through the edits themselves exercises the
-			// real path rather than a hand-rolled imitation of it.
 			const edits = effectiveEdits(planFor("level-up", doc), doc);
 			expect(edits).toHaveLength(1);
 			const folded = applyEdits(doc, edits);
@@ -520,8 +353,6 @@ describe("editing a document", () => {
 			expect({ payloadBytes: back.length }).toEqual({
 				payloadBytes: original.length,
 			});
-			// One field moved and the save survived: if the scaffold had been lost,
-			// `encode` would have thrown and there would be no `rebuilt` at all.
 			const moved: number[] = [];
 			for (let index = 0; index < back.length; index += 1) {
 				if (back[index] !== original[index]) moved.push(index);
@@ -535,9 +366,6 @@ describe("editing a document", () => {
 	test(
 		"survives an edit to a nested array element as well as a scalar",
 		async () => {
-			// The array fold is a different code path inside `setAtPath` — it slices
-			// rather than spreads — so an edit into `items[13]` is a second, distinct
-			// way for the scaffold to be dropped if the branch is ever moved.
 			const file = largeSave();
 			const doc = await witcher3.decode(file);
 			const folded = applyEdits(
@@ -556,10 +384,6 @@ describe("editing a document", () => {
 	test(
 		"leaves the document it was given untouched",
 		async () => {
-			// `setAtPath` is copy-on-write for a reason the round-trip proof depends
-			// on: the pre-edit document is the only honest record of what was on disk,
-			// so the staged-edit list can show a real "before" and the check has
-			// something true to compare against.
 			const doc = await witcher3.decode(smallSave());
 			const before = JSON.stringify(doc);
 			applyEdits(doc, effectiveEdits(planFor("level-up", doc), doc));
@@ -573,9 +397,6 @@ describe("the quick actions", () => {
 	test(
 		"plan exactly the wallet edits the large save calls for",
 		async () => {
-			// The exact staged edits, which is the only part of a cheat that matters:
-			// a button that stages the wrong path, or the wrong value, is a cheat that
-			// quietly does something else.
 			const doc = await witcher3.decode(largeSave());
 			expect(planFor("crowns-max", doc)).toEqual([
 				{
@@ -602,12 +423,6 @@ describe("the quick actions", () => {
 	test(
 		"plan the wallet edits on the second build too, against its own records",
 		async () => {
-			// This asserted the opposite for as long as the reader required the
-			// `52586` tag pair: on the `8559a` build it found no records at all, so
-			// there was no wallet to offer. The point of the test — that the edits are
-			// aimed at *this* save's own Crowns record — now holds on both, and is
-			// worth more: the quantity is that save's own (397, not 2996) and the path
-			// is its own row.
 			const doc = await witcher3.decode(smallSave());
 			const crowns = (arrayAt(doc, "items") ?? []).findIndex(
 				(row) => isJsonObject(row) && row.name === "Crowns",
@@ -629,16 +444,6 @@ describe("the quick actions", () => {
 	test(
 		"aims the wallet edit at the player's own record, not the first match in the save",
 		async () => {
-			// This replaced a test that asserted the wallet was *unavailable* on the
-			// second build, which was true only while the reader required one build's
-			// tag pair. The hazard it was written to guard against is still real and
-			// is the one that matters: this save holds 67 `Crowns` records across all
-			// its containers (2,009 item records in total), and exactly one is the
-			// player's. An edit aimed at the wrong one would quietly change a
-			// merchant's stock.
-			//
-			// So the property is asserted rather than the absence: the staged path is
-			// the player's own row, and it is the only `Crowns` row in the document.
 			for (const [name, bytes, before] of [
 				["8559a", smallSave(), 397],
 				["52586", largeSave(), 2996],
@@ -667,9 +472,6 @@ describe("the quick actions", () => {
 	test(
 		"plan exactly the progression edits, on both builds",
 		async () => {
-			// Progression is found structurally rather than by build identity, so these
-			// three work everywhere — which is the difference between the wallet and
-			// everything else in this codec.
 			const small = await witcher3.decode(smallSave());
 			const large = await witcher3.decode(largeSave());
 			expect(planFor("skill-points-max", small)).toEqual([
@@ -715,8 +517,6 @@ describe("the quick actions", () => {
 	test(
 		"stage nothing when the action would change nothing",
 		async () => {
-			// A button that stages a no-op is noise in the list and makes the
-			// round-trip check claim work it did not do.
 			const doc = await witcher3.decode(smallSave());
 			const maxed = applyEdits(doc, planFor("skill-points-max", doc));
 			expect(planFor("skill-points-max", maxed)).toEqual([]);
@@ -732,8 +532,6 @@ describe("the quick actions", () => {
 		async () => {
 			const doc = await witcher3.decode(largeSave());
 			const plan = planFor("mutation-research-kit", doc);
-			// The points, then one edit per carried mutagen — never a "Recipe for
-			// Mutagen N", whose name also contains "Mutagen".
 			expect(plan[0]?.path).toEqual(["skillPoints", "free"]);
 			const itemEdits = plan.filter((entry) => entry.path[0] === "items");
 			expect(itemEdits.length).toBeGreaterThan(0);
@@ -744,8 +542,6 @@ describe("the quick actions", () => {
 			expect(itemEdits.some((entry) => /recipe/i.test(entry.label))).toBe(
 				false,
 			);
-			// Every edit is a value already in the save, so the stream keeps its
-			// length; re-decoding proves the writes landed.
 			const back = await witcher3.decode(
 				await witcher3.encode(applyEdits(doc, plan)),
 			);
@@ -762,7 +558,6 @@ describe("the quick actions", () => {
 					? undefined
 					: numberAt(greater, "quantity"),
 			).toBe(50);
-			// And it greys itself out once the save is already stocked.
 			expect(planFor("mutation-research-kit", back)).toEqual([]);
 		},
 		FIXTURE_TIMEOUT_MS,
@@ -773,14 +568,11 @@ describe("the quick actions", () => {
 		async () => {
 			const doc = await witcher3.decode(largeSave());
 			const edits = planFor("mutations-max", doc);
-			// One edit per missing used counter (and overall progress), plus one
-			// for the payload size; every value edit is inside the mutation progress.
 			expect(
 				edits.filter((entry) => entry.path.includes("progress")).length,
 			).toBeGreaterThan(0);
 			const working = applyEdits(doc, edits);
 			const back = await witcher3.decode(await witcher3.encode(working));
-			// A width-preserving edit, so the projection must match exactly.
 			expect(JSON.stringify(back)).toBe(JSON.stringify(working));
 			const maxed = requireArrayAt(back, "mutations").filter(
 				(row) =>
@@ -795,7 +587,6 @@ describe("the quick actions", () => {
 						: numberAt(progress, "overallProgress"),
 				).toBe(100);
 			}
-			// Greys itself out once every mutation is already maxed.
 			expect(planFor("mutations-max", back)).toEqual([]);
 		},
 		FIXTURE_TIMEOUT_MS,
@@ -808,8 +599,6 @@ describe("the quick actions", () => {
 			const before = requireArrayAt(doc, "items").length;
 			const working = applyEdits(doc, planFor("mutagens-greater", doc));
 			const reread = await witcher3.decode(await witcher3.encode(working));
-			// The insert grows the stream; the projection must still match the
-			// document exactly, `payloadBytes` included.
 			expect(JSON.stringify(reread)).toBe(JSON.stringify(working));
 			expect(requireArrayAt(reread, "items").length).toBe(before + 3);
 		},
@@ -819,9 +608,6 @@ describe("the quick actions", () => {
 	test(
 		"are pure: no plan touches the document it was given",
 		async () => {
-			// A plan that mutated its input would leave the working document
-			// disagreeing with the one the round-trip check compares against, and the
-			// check would then report a defect nobody made.
 			for (const [label, bytes] of [
 				["8559a", smallSave()],
 				["52586", largeSave()],
@@ -829,10 +615,6 @@ describe("the quick actions", () => {
 				const doc = await witcher3.decode(bytes);
 				const before = JSON.stringify(doc);
 				for (const action of witcher3.actions) {
-					// Checked **per action**, so a failure names the one that did it. The
-					// loop used to run `expect({label, action: id}).toEqual(same)` — three
-					// values against themselves — and only checked the document at the
-					// end, which could not say which plan had mutated it.
 					const beforeAction = JSON.stringify(doc);
 					action.plan(doc);
 					expect({
@@ -853,13 +635,8 @@ describe("the quick actions", () => {
 	test(
 		"return the same edits when asked twice",
 		async () => {
-			// Idempotence is what lets the workbench stage an action repeatedly without
-			// the list growing a duplicate each time.
 			const doc = await witcher3.decode(smallSave());
 			for (const action of witcher3.actions) {
-				// The comparison is the assertion; `expect({action: id}).toEqual(same)`
-				// sat above it and could not fail, so a failure could not say which
-				// action was not idempotent.
 				const first = JSON.stringify(action.plan(doc));
 				const second = JSON.stringify(action.plan(doc));
 				expect({ action: action.id, same: first === second }).toEqual({
@@ -874,8 +651,6 @@ describe("the quick actions", () => {
 	test(
 		"reach the value they claim, through a rebuilt file",
 		async () => {
-			// The end of the chain: staged edits → folded document → rebuilt bytes →
-			// decoded again. Asserting only the plan would leave the write untested.
 			const doc = await witcher3.decode(smallSave());
 			const working = applyEdits(
 				doc,
@@ -903,8 +678,6 @@ describe("the codec describes itself", () => {
 	});
 
 	test("carries format notes that are prose rather than placeholders", () => {
-		// The notes are the reason the page exists as well as the editor, so an
-		// empty body or a stub would leave the page saying nothing.
 		expect(witcher3.notes.length).toBeGreaterThanOrEqual(3);
 		expect(witcher3.notes.length).toBeLessThanOrEqual(4);
 		for (const note of witcher3.notes) {
@@ -925,10 +698,6 @@ describe("the codec describes itself", () => {
 		}
 	});
 
-	// The page renders `actions` in the order given, and that order is the page's
-	// reading order: the things you reach for first, then the bulk changes, and
-	// the difficulty picker last because it is the choice you make once rather
-	// than a cheat.
 	test("orders the actions by how often they are wanted", () => {
 		expect(witcher3.actions.map((action) => action.id)).toEqual([
 			"crowns-max",
@@ -950,22 +719,10 @@ describe("the codec describes itself", () => {
 	});
 });
 
-/**
- * `numberAt` yields `undefined` for a JSON `null`, so "absent" has to be tested
- * for both or every filter written as `=== null` silently matches nothing — which
- * is exactly how the blank-slot test first passed while asserting nothing.
- */
 const absent = (value: number | null | undefined): boolean =>
 	value === undefined || value === null;
 
 describe("skills", () => {
-	/**
-	 * A skill's level is a 4-byte `Int32` inside an element already present in the
-	 * save's array, so writing one resizes nothing — which is the only reason this
-	 * is possible at all (ADR-0007). Measured on a real save: 148 of 167 skills
-	 * carry a level, 132 of them sit at 0 and 16 at 1.
-	 */
-
 	const skillLevels = (doc: JsonValue): (number | null)[] =>
 		(requireArrayAt(doc, "skills") ?? []).map((row) => {
 			if (!isJsonObject(row)) return null;
@@ -977,14 +734,9 @@ describe("skills", () => {
 		async () => {
 			const doc = await witcher3.decode(largeSave());
 			const skills = requireArrayAt(doc, "skills");
-			// All 167, including the 19 with no level field. Filtering those out
-			// would shift every index after the first of them, and `encode`
-			// addresses skills by index — so a filtered list would write a level
-			// onto the wrong skill.
 			expect(skills).toHaveLength(167);
 			const levels = skillLevels(doc);
 			expect(levels.filter((level) => level !== null)).toHaveLength(148);
-			// The absent ones say so, rather than reporting 0 and looking editable.
 			expect(levels.filter((level) => level === null)).toHaveLength(19);
 		},
 		FIXTURE_TIMEOUT_MS,
@@ -997,9 +749,6 @@ describe("skills", () => {
 			const edits =
 				witcher3.actions.find((a) => a.id === "skills-learn-all")?.plan(doc) ??
 				[];
-			// 132 stage, not 148: the sixteen skills already at level 1 are the ones
-			// whose own maximum is 1, so they are already where they would be put.
-			// The count matters — a short count would mean a write was skipped.
 			expect(edits).toHaveLength(132);
 			expect(new Set(edits.map((edit) => [...edit.path].join("."))).size).toBe(
 				132,
@@ -1032,7 +781,6 @@ describe("skills", () => {
 				(row) => isJsonObject(row) && !absent(numberAt(row, "level")),
 			);
 			expect(capped).toHaveLength(148);
-			// Every one at *its own* ceiling, not just the ones that were staged.
 			for (const row of capped) {
 				if (!isJsonObject(row)) throw new Error("not a row");
 				expect(numberAt(row, "level")).toBe(numberAt(row, "maxLevel"));
@@ -1044,9 +792,6 @@ describe("skills", () => {
 	test(
 		"caps each skill at its own maximum, not at 3",
 		async () => {
-			// This is the defect the "what about the skills with no level" question
-			// surfaced: `maxLevel` is per-skill, and a blanket 3 would push 42 of the
-			// 148 past the ceiling the save itself records.
 			const doc = await witcher3.decode(largeSave());
 			const rows = requireArrayAt(doc, "skills");
 			const caps = new Map<number, number>();
@@ -1057,8 +802,6 @@ describe("skills", () => {
 				if (cap === undefined || cap === null) continue;
 				caps.set(cap, (caps.get(cap) ?? 0) + 1);
 			}
-			// The spread is the point: it is not uniform, so a constant would be
-			// wrong for whichever group it did not fit.
 			expect([...caps.entries()].sort((a, b) => a[0] - b[0])).toEqual([
 				[1, 39],
 				[2, 3],
@@ -1068,7 +811,6 @@ describe("skills", () => {
 			const edits =
 				witcher3.actions.find((a) => a.id === "skills-learn-all")?.plan(doc) ??
 				[];
-			// Nothing staged may exceed the skill's own cap.
 			for (const edit of edits) {
 				const index = edit.path[1];
 				if (typeof index !== "number") throw new Error("no index");
@@ -1092,8 +834,6 @@ describe("skills", () => {
 				(row) => isJsonObject(row) && stringAt(row, "name") === "S_Sword_3",
 			);
 			expect(at).toBeGreaterThanOrEqual(0);
-			// A distinctive value, so "the write landed on the right skill" is a
-			// claim about identity rather than about counts.
 			const before = stringAt(skills[at], "name");
 			const edited = setAtPath(doc, ["skills", at, "level"], 4);
 			const rebuilt = await witcher3.encode(edited);
@@ -1103,7 +843,6 @@ describe("skills", () => {
 			expect(stringAt(rows[at], "name")).toBe(before);
 			expect(numberAt(rows[at], "level")).toBe(4);
 
-			// And nothing else moved.
 			const norm = (value: number | null | undefined) =>
 				value === null || value === undefined ? null : value;
 			const moved = rows.filter(
@@ -1123,7 +862,6 @@ describe("skills", () => {
 			const doc = await witcher3.decode(bytes);
 			const edits =
 				witcher3.actions.find((a) => a.id === "skills-reset")?.plan(doc) ?? [];
-			// Only the 16 that are at 1.
 			expect(edits).toHaveLength(16);
 			for (const edit of edits) expect(edit.after).toBe(0);
 
@@ -1139,8 +877,6 @@ describe("skills", () => {
 	test("caps the level at what the game has, and says so", async () => {
 		const action = witcher3.actions.find((a) => a.id === "skills-learn-all");
 		if (action === undefined) throw new Error("no such action");
-		// A skill's level runs 0 to 3, so "max" is 3 and there is nothing above
-		// it. The number is in the description because the page shows it.
 		expect(action.label).toBe("Max every skill");
 		expect(action.description).toContain("level 3");
 	});
@@ -1156,8 +892,6 @@ describe("skills", () => {
 			for (const edit of learn.plan(doc)) {
 				folded = setAtPath(folded, edit.path, edit.after);
 			}
-			// Re-planning against the result stages nothing, so pressing the button
-			// twice cannot fill the tray with duplicate work.
 			expect(learn.plan(folded)).toHaveLength(0);
 		},
 		FIXTURE_TIMEOUT_MS,
@@ -1165,12 +899,6 @@ describe("skills", () => {
 });
 
 describe("difficulty", () => {
-	/**
-	 * Difficulty is a `u16` holding the `MANU` index of the difficulty's name, so
-	 * there is no global list of them: the indices differ per game build, and the
-	 * two fixtures here share none. Everything below follows from that.
-	 */
-
 	test("offers one action per difficulty the game is known to have", () => {
 		expect(
 			witcher3.actions
@@ -1189,8 +917,6 @@ describe("difficulty", () => {
 		"labels the current difficulty from the save's own name table",
 		async () => {
 			const doc = await witcher3.decode(largeSave());
-			// Not "index 4632": the label has to come from the save, and this build
-			// calls that index "Hard".
 			expect(
 				witcher3.summarise(doc).find((r) => r.label === "Difficulty")?.value,
 			).toBe("Hard");
@@ -1208,13 +934,9 @@ describe("difficulty", () => {
 			const doc = await witcher3.decode(largeSave());
 			const plan = (id: string) =>
 				witcher3.actions.find((a) => a.id === id)?.plan(doc) ?? [];
-			// This build knows Easy, Medium, Hard and NotSet, and not Hardcore.
-			// Offering Hardcore would mean writing an index out of a different
-			// build's name table, which is some other difficulty or none at all.
 			expect(plan("difficulty-easy")).toHaveLength(1);
 			expect(plan("difficulty-medium")).toHaveLength(1);
 			expect(plan("difficulty-hardcore")).toHaveLength(0);
-			// Already Hard: nothing to stage.
 			expect(plan("difficulty-hard")).toHaveLength(0);
 		},
 		FIXTURE_TIMEOUT_MS,
@@ -1230,8 +952,6 @@ describe("difficulty", () => {
 			expect(edits).toHaveLength(1);
 			const edit = edits[0];
 			if (edit === undefined) throw new Error("no edit staged");
-			// 127, not 0: the field holds a `MANU` index. Writing the ordinal would
-			// silently set some other difficulty, or none.
 			expect(edit.after).toBe(127);
 			expect(edit.before).toBe(4632);
 			expect([...edit.path]).toEqual(["difficulty", "index"]);
@@ -1264,10 +984,6 @@ describe("difficulty", () => {
 			const doc = await witcher3.decode(largeSave());
 			const branch = objectAt(doc, "difficulty");
 			if (branch === undefined) throw new Error("no difficulty branch");
-			// The label is derived from `index` plus `choices`. Storing it would be a
-			// second field over one fact: setting `index` left `name` reading "Hard"
-			// while the file said "Easy", and the round-trip check called the
-			// rebuild unsound. Measured, then removed — the same lesson as `money`.
 			expect("name" in branch).toBe(false);
 			expect(Array.isArray(branch.choices)).toBe(true);
 		},
@@ -1277,11 +993,6 @@ describe("difficulty", () => {
 	test(
 		"gives a blank skill slot a null level rather than a fake zero",
 		async () => {
-			// Nineteen of the 167 array entries are not skills at all: they are
-			// 3-byte empty structs — a presence byte and a `u16` terminator, with
-			// no fields. Reporting them as level 0 would offer to edit a field that
-			// is not in the stream, and writing one would move every offset after
-			// it. So they report `null`, and no action touches them.
 			const doc = await witcher3.decode(largeSave());
 			const rows = requireArrayAt(doc, "skills");
 			const blanks = rows.filter(
@@ -1291,9 +1002,6 @@ describe("difficulty", () => {
 					absent(numberAt(row, "maxLevel")),
 			);
 			expect(blanks).toHaveLength(19);
-			// They are named for what they are. "skill 72" would put a skill on the
-			// page that the save does not contain; there is no field to resolve a
-			// name from, so the index is the whole of the identification.
 			expect(
 				blanks.map((row) =>
 					isJsonObject(row) ? stringAt(row, "name") : undefined,
@@ -1348,8 +1056,6 @@ describe("difficulty", () => {
 				if (edit === undefined) throw new Error("no edit staged");
 				const edited = setAtPath(doc, edit.path, edit.after);
 				const verdict = await verifyRoundTrip(witcher3, bytes, edited, true);
-				// `semantic`, never `identical`: re-encoding does not reproduce the
-				// game's own LZ4 output even with no edits at all.
 				expect({ id: action.id, kind: verdict.kind }).toEqual({
 					id: action.id,
 					kind: "semantic",

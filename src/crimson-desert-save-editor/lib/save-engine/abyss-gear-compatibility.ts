@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/abyss_gear_compatibility.py`.
- */
-
 import { type AbyssGearRulesFile, abyssGearRulesTable } from "./data";
 import { loadItemCatalog } from "./item-catalog";
 

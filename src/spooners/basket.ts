@@ -1,12 +1,3 @@
-/**
- * The round: a list of drinks (or dishes) with quantities. A round with a
- * single line is the "what does one pint cost" case, so the whole app is built
- * on this and there is no separate single-item code path.
- *
- * Each line uses the venue's own canonical portion for that item, so the total
- * is comparable across pubs.
- */
-
 import {
 	venueCurrency,
 	venueFacilities,
@@ -19,7 +10,6 @@ import type { PricedVenue, SpoonersCache, VenuePriceLine } from "./types";
 
 export type BasketItem = { name: string; qty: number };
 
-/** Every venue that sells at least one line of the round, with the total. */
 export const basketVenues = (
 	cache: SpoonersCache,
 	basket: BasketItem[],
@@ -44,7 +34,6 @@ export const basketVenues = (
 		let total = 0;
 		const lines: VenuePriceLine[] = [];
 		const missing: string[] = [];
-		// filled in when the round is a single item
 		let metricKind: VenuePriceLine["metricKind"] = null;
 		let metricValue: number | null = null;
 		let portion = `${totalQty} items`;
@@ -119,11 +108,6 @@ export const basketVenues = (
 	return venues;
 };
 
-/**
- * Names travel inside a comma/colon-delimited string, so they are
- * percent-encoded. Older links stored raw names, and hand-typed names may not
- * be valid escapes, so a failure falls back to the raw text.
- */
 const decodeBasketName = (value: string): string => {
 	try {
 		return decodeURIComponent(value);
@@ -132,7 +116,6 @@ const decodeBasketName = (value: string): string => {
 	}
 };
 
-/** "Guinness:2,Budweiser:1" <-> BasketItem[] */
 export const parseBasket = (value: string | null): BasketItem[] => {
 	if (!value) {
 		return [];

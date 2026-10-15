@@ -41,21 +41,9 @@ import type {
 import { CatalogBrowser, type CatalogEntry } from "./catalog-browser";
 import { Picture } from "./picture";
 
-/**
- * The add-item browser lists every addable item (about four thousand), so its
- * rows are windowed: a fixed row height is what the window arithmetic needs.
- */
 const ROW_HEIGHT = 56;
 const LIST_HEIGHT = 256;
 
-/**
- * Fold a planned batch into the staged edits.
- *
- * A quantity change replaces any earlier one for the same record, so staging
- * twice adds to one stack rather than queueing two additions. Only quantity
- * edits are keyed this way: an insertion names an item and a location, and the
- * planner already refuses a second one of those.
- */
 const applyPlanned = (
 	current: SaveEdit[],
 	planned: Array<QuantityEdit | InsertItemEdit | InsertCatalogItemEdit>,
@@ -78,13 +66,6 @@ const applyPlanned = (
 	return next;
 };
 
-/**
- * Why this quantity cannot be staged for this item, or `null` when it can.
- *
- * An item the game adds as a single record has no quantity of its own — the
- * field is disabled and shows one — so the range check does not apply to it,
- * and applying it there would refuse an addition the engine accepts.
- */
 const stagedQuantityError = (
 	target: CatalogItem,
 	quantity: string,
@@ -96,13 +77,6 @@ const stagedQuantityError = (
 		: "Quantity must be a whole number from 1 to 999,999,999.";
 };
 
-/**
- * The staged quantity edit for one record, if the user has already touched it.
- *
- * The "currently N" line below the quantity field has to start from the user's
- * own earlier change rather than the save's stored figure, or staging twice
- * would report a result that ignores the first one.
- */
 const stagedQuantityFor = (
 	edits: SaveEdit[],
 	record: InventoryRecord | null,
@@ -116,18 +90,12 @@ const stagedQuantityFor = (
 			)
 		: undefined;
 
-/** Where the inventory view should scroll once the drawer closes. */
 type RevealTarget = {
 	inventoryKey: number;
 	itemKey: number;
 	slotNo: number | null;
 };
 
-/**
- * Where the inventory view should scroll to show a just-staged edit: the record
- * the edit names, which for an insertion is the item the save has not placed
- * yet.
- */
 const revealFor = (
 	edit: QuantityEdit | InsertItemEdit | InsertCatalogItemEdit,
 ): RevealTarget => ({
@@ -136,15 +104,6 @@ const revealFor = (
 	slotNo: "slotNo" in edit ? edit.slotNo : null,
 });
 
-/**
- * The mod's cheat set: one press that stages the ring, the Abyss Gears and the
- * accessory and armour slots its author named.
- *
- * Its own component because it is the drawer's only asynchronous action and it
- * owns its own failure reporting — a preset that could add nothing says so
- * here, where the reader is looking, rather than pushing an error to the page
- * behind the open drawer.
- */
 const CheatGearPanel = ({
 	storageKey,
 	records,
@@ -166,15 +125,6 @@ const CheatGearPanel = ({
 	onReveal: (target: RevealTarget) => void;
 	onClose: () => void;
 }) => {
-	/**
-	 * Stages the mod's cheat set: the ring and Abyss Gears it names, the Axiom
-	 * Bracelet its author's sibling mod buffs, and a full set of maxed accessory
-	 * and armour slots. Character gear goes through the equipment inserter and
-	 * everything else through the same add rule the picker uses, so a preset
-	 * cannot stage something the picker would refuse. An item the storage already
-	 * holds is left out rather than failing the batch, and only a batch where
-	 * nothing at all could be staged reports an error.
-	 */
 	const stageCheatSet = async () => {
 		if (busy || storageKey === null) return;
 		const { edits: planned, skipped } = await cheatGearEdits({
@@ -235,15 +185,6 @@ const CheatGearPanel = ({
 	);
 };
 
-/**
- * The quantity to add, the quick-increment buttons beside it, and what the
- * stack will hold afterwards.
- *
- * One component because the three only make sense together — "+100" is a
- * shortcut for the field next to it, and the "after this addition" line is
- * about that field's value — and because the whole block disappears for an item
- * the game adds as a single record, which has no quantity of its own.
- */
 const QuantityField = ({
 	target,
 	existingItem,
@@ -259,7 +200,6 @@ const QuantityField = ({
 	existingRecord: InventoryRecord | null;
 	baseQuantity: number;
 	resultQuantity: number | null;
-	/** A quantity edit is already staged for this record, if one is. */
 	stagedExisting: QuantityEdit | undefined;
 	quantity: string;
 	onQuantityChange: (value: string) => void;
@@ -317,25 +257,14 @@ const QuantityField = ({
 	</>
 );
 
-/**
- * What the drawer can tell you about an item this storage does not hold yet:
- * that nothing existing is touched, whether this location can take the item at
- * all, and what will happen to its discovery entry.
- *
- * The three alerts are one block because they are one decision — can this be
- * added, and what will change — and the discovery alert has three cases of its
- * own, which is the part worth naming.
- */
 const AdditionNotices = ({
 	hasTemplate,
 	singleRecord,
 	discoveryKnowledgeKey,
 	noDiscoveryRequired,
 }: {
-	/** A donor record exists, so the engine can clone a new stack. */
 	hasTemplate: boolean;
 	singleRecord: boolean;
-	/** The item has a discovery entry in the game data. */
 	discoveryKnowledgeKey: number | undefined;
 	noDiscoveryRequired: boolean;
 }) => (
@@ -380,12 +309,6 @@ const AdditionNotices = ({
 	</Stack>
 );
 
-/**
- * The drawer's own title: what kind of edit this is, and what it can do.
- *
- * Its own component so the drawer's body is the form rather than the form plus
- * the heading above it.
- */
 const DrawerTitle = () => (
 	<Stack gap="xs">
 		<Group gap="xs" c="brand">
@@ -409,16 +332,6 @@ const DrawerTitle = () => (
 	</Stack>
 );
 
-/**
- * What the drawer knows about the chosen item: what it is, whether this storage
- * already holds it, and — when it holds more than one copy — which copy the
- * addition should go to.
- *
- * One block because the three are the same question asked in three parts: is
- * this a new item or an existing stack? The stack chooser is here rather than
- * beside the quantity field because it decides *which* stack the quantity field
- * is talking about, so a reader needs them together.
- */
 const SelectedItemSummary = ({
 	itemKey,
 	target,
@@ -479,14 +392,6 @@ const SelectedItemSummary = ({
 	</>
 );
 
-/**
- * Whether the drawer can stage what it currently shows.
- *
- * Three different failures are folded into one flag because the button has a
- * single disabled state, and the rule is worth naming on its own: an item the
- * game adds as a single record may not be added twice to the same storage, a
- * stack needs a record to grow, and a new item needs a donor to clone.
- */
 const stageDisabled = ({
 	target,
 	existingItem,
@@ -505,10 +410,6 @@ const stageDisabled = ({
 	return existingItem ? existingRecord === null : !hasTemplate;
 };
 
-/**
- * The record an addition would grow: the chosen copy of an existing stack, or
- * the first copy when the storage holds only one.
- */
 const existingStackFor = (
 	storageItems: GroupedItem[],
 	itemKey: string,
@@ -525,27 +426,13 @@ const existingStackFor = (
 	);
 };
 
-/**
- * What the chosen item means for the chosen storage.
- *
- * These six answers are one question asked six ways — is this a brand-new item,
- * an existing stack, and if a stack, which copy and how many — and the rest of
- * the drawer reads them together: the button's disabled state, the summary, the
- * quantity line and the notices all branch on the same picture. Deriving them in
- * one place is what keeps those branches from each re-deriving the item and
- * disagreeing with the next.
- */
 type Selection = {
 	target: CatalogItem | undefined;
 	existingItem: GroupedItem | null;
 	existingRecord: InventoryRecord | null;
-	/** A quantity edit already staged for `existingRecord`. */
 	stagedEdit: QuantityEdit | undefined;
-	/** The stack's quantity, counting the user's own staged change. */
 	baseQuantity: number;
-	/** What the stack will hold after this addition, or `null` if unknowable. */
 	resultQuantity: number | null;
-	/** The item's discovery key in the game data, if it has one. */
 	discoveryKnowledgeKey: number | undefined;
 	noDiscoveryRequired: boolean;
 };
@@ -591,14 +478,6 @@ const selectionFor = ({
 	};
 };
 
-/**
- * The item picker: every addable item in the game, searchable by name or id.
- *
- * Its own component because building the four-thousand-row list is the drawer's
- * most expensive derivation and nothing outside the picker reads the result: the
- * drawer's own work starts from the chosen `itemKey`. Keeping the memos here is
- * also what keeps a keystroke in the picker's search box from re-deriving them.
- */
 const AddableItemBrowser = ({
 	catalog,
 	storageKey,
@@ -610,23 +489,17 @@ const AddableItemBrowser = ({
 }: {
 	catalog: Catalog | null;
 	storageKey: number | null;
-	/** What the chosen storage already holds, grouped by item key. */
 	storageItems: GroupedItem[];
-	/** Item keys already staged into this storage. */
 	stagedKeys: Set<number>;
 	itemKey: string;
-	/** An item was chosen; `slotNo` is the stack a later add should grow. */
 	onSelect: (itemKey: string, slotNo: number | null) => void;
 	onFilterChange: () => void;
 }) => {
-	/** O(1) lookup of what this storage already holds, for the 4,000-row list. */
 	const storageItemByKey = useMemo(
 		() => new Map(storageItems.map((item) => [item.itemKey, item])),
 		[storageItems],
 	);
 
-	// The addable set and its name order only change when the catalogs load, so
-	// the filter and the sort stay off the drawer-open path.
 	const allAddableKeys = useMemo(() => {
 		if (!catalog) return [];
 		return Object.entries(catalog.items)
@@ -635,8 +508,6 @@ const AddableItemBrowser = ({
 			.map(([key]) => key);
 	}, [catalog]);
 
-	// An item already staged into this storage is what the engine would refuse a
-	// second record of, so the picker does not offer it.
 	const addableCatalogKeys = useMemo(
 		() =>
 			stagedKeys.size === 0
@@ -645,8 +516,6 @@ const AddableItemBrowser = ({
 		[allAddableKeys, stagedKeys],
 	);
 
-	// The rows the browser lists. Built once per catalog load, so opening the
-	// drawer never re-derives four thousand item types.
 	const entries = useMemo<CatalogEntry[]>(() => {
 		if (!catalog) return [];
 		return addableCatalogKeys.flatMap((key) => {
@@ -705,16 +574,6 @@ const AddableItemBrowser = ({
 	);
 };
 
-/**
- * Add an item, or grow an existing stack, in one storage location.
- *
- * The drawer owns its own destination, selection and quantity: the page opens
- * it with a suggested storage and gets told what to reveal once an edit is
- * staged. Three outcomes are possible for the chosen item — grow an existing
- * stack, add an item that adds as one on its own, or clone a donor record —
- * and which one applies is decided here, because it depends on what the
- * storage already holds.
- */
 export const AddItemDrawer = ({
 	opened,
 	defaultStorage,
@@ -730,10 +589,8 @@ export const AddItemDrawer = ({
 	onReveal,
 }: {
 	opened: boolean;
-	/** Storage to preselect; the page passes what is on screen. */
 	defaultStorage: number | null;
 	storages: { key: number }[];
-	/** The save's own records, without staged edits folded in. */
 	records: InventoryRecord[];
 	catalog: Catalog | null;
 	knowledgeMap: ItemKnowledgeMapFile | null;
@@ -742,33 +599,20 @@ export const AddItemDrawer = ({
 	setError: Dispatch<SetStateAction<string>>;
 	busy: boolean;
 	onClose: () => void;
-	/** A change was staged: show it in the inventory view. */
 	onReveal: (target: {
 		inventoryKey: number;
 		itemKey: number;
 		slotNo: number | null;
 	}) => void;
 }) => {
-	// Lazy, so the first render already lands on a usable storage: the prop is
-	// read once here and the fallback below is the same one the open transition
-	// would apply a frame later.
 	const [storageKey, setStorageKey] = useState<number | null>(
 		() => defaultStorage ?? storages[0]?.key ?? null,
 	);
 	const [itemKey, setItemKey] = useState("");
 	const [existingSlot, setExistingSlot] = useState<number | null>(null);
 	const [quantity, setQuantity] = useState("1");
-	/**
-	 * Errors the drawer itself produced. They are shown inline rather than
-	 * pushed to the page, where the open drawer would hide them.
-	 */
 	const [localError, setLocalError] = useState("");
 
-	// Each opening starts over at the suggested storage. Guarded on the open
-	// transition, so staging a change (which reshapes `storages`) does not reset
-	// what the user is in the middle of choosing. Done while rendering rather
-	// than in an effect, because an effect runs after the browser has already
-	// painted the drawer with the previous session's item and quantity.
 	const [openedFor, setOpenedFor] = useState(opened);
 	if (openedFor !== opened) {
 		setOpenedFor(opened);
@@ -781,9 +625,6 @@ export const AddItemDrawer = ({
 		}
 	}
 
-	// The page's error banner sits behind the open drawer, so opening clears it.
-	// That state belongs to the page, and a render must not write to another
-	// component, so this one write stays in an effect.
 	useEffect(() => {
 		if (opened) setError("");
 	}, [opened, setError]);
@@ -796,8 +637,6 @@ export const AddItemDrawer = ({
 		);
 	}, [storageKey, catalog, records]);
 
-	// An item already staged into this storage is what the engine would refuse a
-	// second record of, so the picker does not offer it.
 	const stagedKeys = useMemo(
 		() => storageKeys({ records, edits, inventoryKey: storageKey }).staged,
 		[records, edits, storageKey],
@@ -822,10 +661,6 @@ export const AddItemDrawer = ({
 		existingSlot,
 	});
 
-	// A new stack is cloned from a donor record, so the donor has to be an item
-	// the storage already holds exactly once, in a stackable form. This is the
-	// same donor `planAddition` would clone from, asked here so the button and the
-	// warning agree with the plan before it is pressed.
 	const automaticTemplate = useMemo(
 		() =>
 			stackDonor({
@@ -837,11 +672,6 @@ export const AddItemDrawer = ({
 		[records, catalog, storageKey, target],
 	);
 
-	/**
-	 * Stages a planned edit or a batch of them. A quantity change replaces any
-	 * earlier one for the same record, so staging twice adds to one stack rather
-	 * than queueing two additions.
-	 */
 	const stagePlanned = (
 		planned: Array<QuantityEdit | InsertItemEdit | InsertCatalogItemEdit>,
 	) => {

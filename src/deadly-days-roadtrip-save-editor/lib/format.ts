@@ -1,35 +1,3 @@
-/**
- * *Deadly Days: Roadtrip* — `SaveSlot_DDR_0.sav`.
- *
- * An Unreal Engine 5 GVAS save, unencrypted and unsigned, so the whole of it can
- * be read and rebuilt in a browser tab: no key, no nonce and no checksum to
- * defeat, and nothing to upload. The work is split by level rather than by game —
- * `gvas.ts` reads the outer container, and `properties.ts` reads the tagged
- * property stream, which is used at the outer level and again inside every byte
- * blob the save carries.
- *
- * ## Where the field names below come from
- *
- * Every one of them is in the committed save, read out of it rather than out of
- * documentation, which for this game does not exist. `SaveDataMap` holds
- * eighteen named subsystems; `MetaCurrencyWallet` and `RareMetaCurrency` each
- * hold one `IntProperty` called `CurrencyAmount`; `MetaUpgrades` holds
- * `PersistedUpgradeData`, an array of thirty structs of `UpgradeID`, `Level` and
- * `CurrencyInvested`; `CharacterMetaLevel` holds `PersistedData`, an array of
- * structs of `Character`, `MetaLevel`, `CurrencyInvested` and
- * `ModifierSelections`.
- *
- * Two of the reference tool's five cheats are deliberately absent. Its
- * `unlock-characters` and `cheat-modifiers` both append whole struct elements to
- * `CharacterMetaLevel.PersistedData`, each built from a hard-coded roster of
- * eleven character names, weapon paths and modifier paths — none of which this
- * save confirms, and the eleven names are not written anywhere in it. Shipping
- * them would be a button that writes plausible-looking asset paths the game may
- * not have. Its `cheat-stats` also filters upgrades through a list of twelve
- * GUIDs, and not one of those twelve appears anywhere in this save, so that
- * filter is not carried over either; the level it raises them to, 30, is the
- * highest this save already holds, which is where the number comes from.
- */
 import {
 	arrayAt,
 	editId,
@@ -46,19 +14,8 @@ import {
 } from "../../shared";
 import { gvasOf, readGvas, writeGvas } from "./gvas";
 
-/* -------------------------------------------------------------------------- */
-/* Reading a document without pretending it is a typed one                    */
-/* -------------------------------------------------------------------------- */
-
-// `objectAt`/`arrayAt`/`numberAt`/`stringAt` are the shared readers
-// (`shared/save/json.ts`): each codec had its own copy, and these are the ones
-// they now share. See `findProperty` and the `Found` type below for how this
-// codec uses them to build paths it knows exist.
-
-/** A value found in the document, with the path that reaches it. */
 type Found = { readonly value: JsonValue; readonly path: SavePath };
 
-/** The `value` of the tag called `name` in a property list, or `undefined`. */
 const findProperty = (
 	properties: readonly JsonValue[] | undefined,
 	name: string,
@@ -73,7 +30,6 @@ const findProperty = (
 	return undefined;
 };
 
-/** The value of the map entry keyed by `key`, or `undefined`. */
 const findMapEntry = (map: Found, key: string): Found | undefined => {
 	for (const [index, entry] of (
 		arrayAt(map.value, "entries") ?? []
@@ -88,21 +44,12 @@ const findMapEntry = (map: Found, key: string): Found | undefined => {
 	return undefined;
 };
 
-/**
- * A field of a nested property list.
- *
- * Every subsystem in `SaveDataMap` is a `SaveData` struct, and its `Data` field
- * is a `TArray<uint8>` that this codec decodes into a property list — so the
- * chain from the document root to any field inside a subsystem is the same four
- * steps whichever subsystem it is.
- */
 const saveDataMap = (doc: JsonValue): Found | undefined =>
 	findProperty(arrayAt(objectAt(doc, "list"), "properties"), "SaveDataMap", [
 		"list",
 		"properties",
 	]);
 
-/** The decoded property list inside a named save entry, or `undefined`. */
 const subsystemProperties = (
 	doc: JsonValue,
 	entry: string,
@@ -126,7 +73,6 @@ const subsystemProperties = (
 	};
 };
 
-/** A named property inside a named save entry, or `undefined`. */
 const inSubsystem = (
 	doc: JsonValue,
 	entry: string,
@@ -141,7 +87,6 @@ const inSubsystem = (
 	);
 };
 
-/** The number a scalar property holds, with the path to that number. */
 const scalarOf = (
 	found: Found,
 ): { readonly path: SavePath; readonly value: number } | undefined => {
@@ -150,21 +95,8 @@ const scalarOf = (
 	return { path: [...found.path, "value"], value: inner };
 };
 
-/* -------------------------------------------------------------------------- */
-/* Currency                                                                    */
-/* -------------------------------------------------------------------------- */
-
-/** The two wallets, each a single `IntProperty` called `CurrencyAmount`. */
 const WALLETS = ["MetaCurrencyWallet", "RareMetaCurrency"] as const;
 
-/**
- * The target a wallet should hold.
- *
- * 999 999, which is the figure the reference tool's `cheat` command defaulted
- * to. It is a number this codec has no way to confirm from the save, and it is
- * stated here so that the one number in this file that is not measured can be
- * found by reading rather than by searching.
- */
 const CHEAT_AMOUNT = 999_999;
 
 const cheatCurrency: QuickAction = {
@@ -189,15 +121,6 @@ const cheatCurrency: QuickAction = {
 	},
 };
 
-/**
- * Where a wallet's amount is, however that entry is stored.
- *
- * The decoded path is tried first. `RunPersistence` and `RunHistory` are the two
- * entries whose bytes are not a property list, so in principle a wallet could be
- * unreachable this way; if one ever is, the raw fallback finds the same number
- * by its byte pattern, which is what the reference implementation did whenever
- * its parser fell short.
- */
 const currencyTarget = (
 	doc: JsonValue,
 	wallet: string,
@@ -207,15 +130,6 @@ const currencyTarget = (
 	return rawCurrencyAmount(doc, wallet);
 };
 
-/**
- * `CurrencyAmount`'s value inside an undecoded byte array.
- *
- * The pattern is the property name, its type, then nine bytes of tag — the
- * `int32` array index, the `int32` size and the one-byte `hasGuid` flag — before
- * the little-endian `int32`. Narrow on purpose: the entry must be a `TArray` of
- * bytes, so a save whose wallet did not decode cannot be edited by accident on
- * the wrong bytes.
- */
 const rawCurrencyAmount = (
 	doc: JsonValue,
 	entry: string,
@@ -262,26 +176,11 @@ const rawCurrencyAmount = (
 
 const encoder = new TextEncoder();
 
-/** Byte lengths of the two NUL-terminated names the raw fallback searches for. */
 const CURRENCY_NAME_LENGTH = 15;
 const INT_PROPERTY_LENGTH = 12;
 
-/**
- * Bytes of tag between the end of a type name and the value it introduces: the
- * `int32` array index, the `int32` size and the one-byte `hasGuid` flag.
- */
 const CURRENCY_TAG_LENGTH = 9;
 
-/* -------------------------------------------------------------------------- */
-/* Character meta levels                                                       */
-/* -------------------------------------------------------------------------- */
-
-/**
- * The level the committed `SaveSlot_DDR_0_edited.sav` gives the characters it
- * adds to `CharacterMetaLevel`, and the highest this save's own two characters
- * are anywhere near. Ten, and it comes from the fixture rather than from a table
- * somebody wrote down.
- */
 const MAX_META_LEVEL = 10;
 
 const maxLevel: QuickAction = {
@@ -318,16 +217,6 @@ const maxLevel: QuickAction = {
 	},
 };
 
-/* -------------------------------------------------------------------------- */
-/* Stat upgrades                                                               */
-/* -------------------------------------------------------------------------- */
-
-/**
- * The highest `Level` any of the thirty entries in `MetaUpgrades` already holds.
- *
- * Twelve of them are at 30 and the rest at 1, so 30 is the cap the game itself
- * writes rather than a number invented here.
- */
 const MAX_UPGRADE_LEVEL = 30;
 
 const cheatStats: QuickAction = {
@@ -365,10 +254,6 @@ const cheatStats: QuickAction = {
 };
 
 const ACTIONS: readonly QuickAction[] = [cheatCurrency, maxLevel, cheatStats];
-
-/* -------------------------------------------------------------------------- */
-/* Summary                                                                     */
-/* -------------------------------------------------------------------------- */
 
 const summarise: (doc: JsonValue) => readonly SummaryRow[] = (doc) => {
 	const engine = objectAt(doc, "engine");
@@ -443,7 +328,6 @@ const summarise: (doc: JsonValue) => readonly SummaryRow[] = (doc) => {
 	];
 };
 
-/** A property on the container's own list, where the scalar settings live. */
 const topLevelString = (doc: JsonValue, name: string): string | undefined => {
 	const found = findProperty(
 		arrayAt(objectAt(doc, "list"), "properties"),
@@ -461,13 +345,6 @@ const currencyOf = (doc: JsonValue, entry: string): number | undefined => {
 	return found ? scalarOf(found)?.value : undefined;
 };
 
-/**
- * How many subsystems decoded into a property list rather than staying bytes.
- *
- * The honest figure, and the one that says whether the inspector can reach a
- * field: two of this game's eighteen are not property lists, so a save whose
- * `RunHistory` matters to you has 297 kB of numbers in front of it.
- */
 const decodedSubsystems = (doc: JsonValue): number => {
 	const entries = arrayAt(saveDataMap(doc)?.value, "entries") ?? [];
 	return entries.filter((entry) => {
@@ -480,10 +357,6 @@ const decodedSubsystems = (doc: JsonValue): number => {
 		return stringAt(arrayAt(data?.value, "items")?.[0], "kind") === "blob";
 	}).length;
 };
-
-/* -------------------------------------------------------------------------- */
-/* The codec                                                                   */
-/* -------------------------------------------------------------------------- */
 
 export const deadlyDays: SaveCodec = {
 	game: "Deadly Days: Roadtrip",

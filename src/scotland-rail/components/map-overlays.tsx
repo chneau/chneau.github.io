@@ -4,14 +4,6 @@ import { CATEGORIES } from "../data/types";
 import type { ActiveTrainState } from "../engine/interpolator";
 import { mapColors, palette } from "../theme";
 
-/**
- * The floating chrome over the map: the boot overlay, the zoom cluster and the
- * hover tooltip. Each is a component in its own right because each has its own
- * condition and its own props — the canvas itself neither knows nor cares
- * whether a tooltip is showing.
- */
-
-/** Covers the canvas until the first frame is painted. */
 export const BootOverlay = ({ ready }: { ready: boolean }) => (
 	<div
 		aria-hidden={ready}
@@ -65,9 +57,6 @@ const NavButton = ({
 			border: "none",
 			borderRadius: 6,
 			color: accented ? palette.accent : palette.text,
-			// 44px, not 30: this cluster sits in the corner a right thumb
-			// reaches for on a phone, where there is no cursor to aim with and
-			// a miss is a mis-tap on the map underneath, which pans.
 			width: 44,
 			height: 44,
 			cursor: "pointer",
@@ -80,7 +69,6 @@ const NavButton = ({
 	</button>
 );
 
-/** The three-button camera cluster: zoom in, zoom out, and back to the preset. */
 export const MapNavControls = ({
 	onZoomIn,
 	onZoomOut,
@@ -119,10 +107,6 @@ export const MapNavControls = ({
 	</div>
 );
 
-/**
- * The hover tooltip. `nextStopName` is null on the last call of a service, so
- * the trailing line says "Destination" rather than rendering an empty gap.
- */
 export const HoverTooltip = ({
 	train,
 	position,

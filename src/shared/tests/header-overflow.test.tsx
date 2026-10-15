@@ -12,29 +12,8 @@ import { SchemeToggle } from "../components/SchemeToggle";
 import { ShortcutsHelpButton } from "../components/ShortcutsHelp";
 import { HeaderAction, HeaderOverflow } from "../index";
 
-/**
- * The overflow ("More") menu is the narrow-screen home for header controls an
- * app cannot fit in a 56px row. Measured at 360px with touch, birthday's row was
- * 494px wide in a 360px viewport, which collapsed the brand to zero width and
- * pushed the document sideways.
- *
- * The contract these tests pin is the one the component exists to keep: above
- * the breakpoint it must be invisible (so a desktop bar is untouched), and below
- * it every control must still be reachable through a menu that behaves like the
- * app switcher beside it.
- */
 const provider = (node: ReactNode) => <MantineProvider>{node}</MantineProvider>;
 
-/**
- * The width in pixels `matchMedia` should report, or `undefined` for a viewport
- * no `max-width` query can match.
- *
- * This resolves the query text rather than answering on `includes("max-width")`.
- * The old stub could not tell 640px from 1100px, so every test passed whatever
- * breakpoint the component branched on — the one number in this component that
- * matters was untestable. Parsing the media query is what makes the breakpoint
- * itself an assertion.
- */
 const setViewportWidth = (width: number | undefined) => {
 	window.matchMedia = mock((query: string) => {
 		const maxWidth = /\(\s*max-width:\s*(\d+)px\s*\)/.exec(query);
@@ -57,7 +36,6 @@ const setViewportWidth = (width: number | undefined) => {
 	}) as unknown as typeof window.matchMedia;
 };
 
-/** The component's breakpoint is 1100px; a viewport either side of it. */
 const NARROW = 800;
 const WIDE = 1280;
 
@@ -66,16 +44,6 @@ const setWide = () => setViewportWidth(WIDE);
 
 const originalMatchMedia = window.matchMedia;
 
-/**
- * `base.css` as text, so the spacing rules can be asserted directly.
- *
- * These four declarations are CSS-only and leave no trace in the DOM, which is
- * the point of this file's existence having stopped short of them until now: the
- * menu shipped unlabelled and cramped while every behavioural test still passed.
- * The rules are read as source, the way `tokens-theme.test.ts` does it, because
- * the defect that matters is a cascade outcome — which rule wins — and that is
- * not observable without a browser.
- */
 const baseCss = (
 	await Bun.file(join(import.meta.dir, "..", "base.css")).text()
 ).replace(/\/\*[\s\S]*?\*\//g, "");
@@ -97,7 +65,6 @@ describe("HeaderOverflow on a narrow screen", () => {
 			),
 		);
 
-		// Nothing but the trigger is in the bar until it is opened.
 		expect(view.queryAllByRole("button")).toHaveLength(1);
 		const trigger = view.getByRole("button", { name: "More actions" });
 		expect(trigger.getAttribute("aria-expanded")).toBe("false");
@@ -109,12 +76,6 @@ describe("HeaderOverflow on a narrow screen", () => {
 		expect(view.getByRole("button", { name: "Copy a link" })).toBeDefined();
 	});
 
-	/**
-	 * A control that does not take a `role` prop — Mantine's `Tooltip` renders
-	 * its child, and `SchemeToggle` is its own component — must still land in the
-	 * menu usable. The menu is a `group` rather than a `menu` precisely because a
-	 * `menu` would require every child to be a menuitem, which those are not.
-	 */
 	test("keeps controls that cannot carry a menuitem role", () => {
 		const view = render(
 			provider(
@@ -166,12 +127,10 @@ describe("HeaderOverflow on a narrow screen", () => {
 			key: "ArrowDown",
 		});
 		expect(document.activeElement?.getAttribute("aria-label")).toBe("Three");
-		// Down from the last wraps to the first.
 		fireEvent.keyDown(document.activeElement as HTMLElement, {
 			key: "ArrowDown",
 		});
 		expect(document.activeElement?.getAttribute("aria-label")).toBe("One");
-		// And up from the first wraps to the last.
 		fireEvent.keyDown(document.activeElement as HTMLElement, {
 			key: "ArrowUp",
 		});
@@ -200,14 +159,6 @@ describe("HeaderOverflow on a narrow screen", () => {
 		expect(document.activeElement).toBe(trigger);
 	});
 
-	/**
-	 * The defect this pins: `HeaderAction` renders a visible label span only when
-	 * `children` is passed, and every `iconOnly` control — back home, theme,
-	 * shortcuts, palette, the GitHub links — passes only `label`, which becomes
-	 * `aria-label`/`title` and no visible text. The CSS that re-shows labels
-	 * inside the menu had nothing to re-show, so the menu was a column of
-	 * unlabelled icons.
-	 */
 	test("every icon-only control names itself in the menu", () => {
 		const view = render(
 			provider(
@@ -222,9 +173,6 @@ describe("HeaderOverflow on a narrow screen", () => {
 		fireEvent.click(view.getByRole("button", { name: "More actions" }));
 		const menu = view.getByRole("group", { name: "More actions" });
 
-		// Read the names off the rows themselves rather than resolving each
-		// control's role: `BackHome` is a link, the other two buttons, and the
-		// row wrapper sits between the control and the menu.
 		const names = Array.from(
 			menu.querySelectorAll(".app-header-overflow__row"),
 		).map(
@@ -238,10 +186,6 @@ describe("HeaderOverflow on a narrow screen", () => {
 		]);
 	});
 
-	/**
-	 * A control that already carries `children` must not gain a second name from
-	 * `menuLabel` — one row, one name, whichever way it was supplied.
-	 */
 	test("a labelled control does not also render its menu label", () => {
 		const view = render(
 			provider(
@@ -261,70 +205,34 @@ describe("HeaderOverflow on a narrow screen", () => {
 		expect(menu.textContent).toContain("Install");
 	});
 
-	/**
-	 * The row rule, matched by shape rather than by one exact selector spelling.
-	 *
-	 * It has to outrank `.app-header__actions .app-header-action { padding: 0 }` in
-	 * the narrow-screen media query, which also matches a menu row. Both are
-	 * (0,2,0), so declaration order decides and this rule must come second — which
-	 * is why it lives at the end of base.css rather than beside the other overflow
-	 * rules.
-	 *
-	 * The selector is asserted loosely on purpose. It used to be spelled as a pair,
-	 * `.app-header-action.app-header-action` plus `a.app-header-action`, to win on
-	 * specificity; that was redundant (`HeaderAction` puts the same class list on its
-	 * anchor as on its button) and Biome read the mixed weights as a
-	 * descending-specificity cascade. These assertions pin the declarations, not the
-	 * spelling, so the next person can simplify the selector without having to
-	 * rewrite the suite — but a declaration disappearing still fails.
-	 */
 	const rowRule =
 		/\.app-header-overflow__row\s*>\s*\.app-header-action\s*\{([^}]*)\}/;
 
-	/**
-	 * One control per line, filling the sheet, with room between icon and name.
-	 *
-	 * `.app-switcher__menu` is reused by this menu and declared earlier in the
-	 * file, so its own `gap` had to be overridden by a two-class selector.
-	 */
 	test("the menu lays out one full-width row per control", () => {
 		expect(baseCss).toMatch(
 			/\.app-switcher__menu\.app-header-overflow__menu\s*\{[^}]*gap:\s*6px/,
 		);
-		// `block` states one control per line; the row is not a flex line that
-		// could place two controls side by side.
 		expect(baseCss).toMatch(
 			/\.app-header-overflow__row\s*\{\s*display:\s*block;\s*\}/,
 		);
 		const body = baseCss.match(rowRule)?.[1];
 		expect(body).toBeDefined();
-		// Full width, shrinkable, and a 44px touch target.
 		expect(body).toMatch(/width:\s*100%/);
 		expect(body).toMatch(/min-width:\s*0/);
 		expect(body).toMatch(/min-height:\s*44px/);
-		// Icon and name spaced like a list entry, not the bar's 7px.
 		expect(body).toMatch(/gap:\s*12px/);
 		expect(body).toMatch(/padding:\s*8px 12px/);
 	});
 
-	/**
-	 * The overflow this replaced: `.app-header-action` sets `white-space: nowrap`
-	 * so a bar control's text stays on one line, and on narrow the menu is a
-	 * fixed `left: 8px; right: 8px` sheet. A nowrap name therefore pushed the row
-	 * past the sheet's edge instead of scrolling, so the row wraps instead.
-	 */
 	test("a long name wraps instead of overflowing the sheet", () => {
 		const body = baseCss.match(rowRule)?.[1];
 		expect(body).toMatch(/white-space:\s*normal/);
-		// And the icon must not be the thing that shrinks to absorb the wrap.
 		expect(baseCss).toMatch(
 			/\.app-header-overflow__row\s*>\s*\.app-header-action\s*>\s*svg\s*\{\s*flex:\s*none;\s*\}/,
 		);
 	});
 
 	test("the name is hidden in the bar and shown only inside the menu", () => {
-		// Hidden by default, restored by a rule that names the menu — the same
-		// shape as `.app-header-action__label`, which is why one is not enough.
 		expect(baseCss).toMatch(
 			/\.app-header-action__menulabel\s*\{\s*display:\s*none;\s*\}/,
 		);
@@ -367,28 +275,12 @@ describe("HeaderOverflow on a wide screen", () => {
 			),
 		);
 
-		// A desktop bar must be untouched: every control visible, nothing added.
 		expect(view.queryByRole("button", { name: "More actions" })).toBeNull();
 		expect(view.getByRole("button", { name: "Settings" })).toBeDefined();
 		expect(view.getByRole("button", { name: "Copy a link" })).toBeDefined();
 		expect(view.container.querySelector(".app-header-overflow")).toBeNull();
 	});
 
-	/**
-	 * PROVE IT FAILS WITHOUT `getInitialValueInEffect: false`.
-	 *
-	 * `useMediaQuery` reads `matchMedia` in an effect by default, so it answered
-	 * `false` — "wide" — on the first render at every viewport. A narrow screen
-	 * consequently painted the children inline: the 494px bar this component
-	 * exists to prevent, shoving the document sideways for a frame before the
-	 * listener attached and collapsed it into the trigger.
-	 *
-	 * These two are asserted through `renderToString`, not `render`, because
-	 * `render` is wrapped in `act` and flushes effects — so it observes the state
-	 * *after* the media listener attaches, which is exactly the state in which
-	 * the bug is invisible. `renderToString` never runs an effect, so it
-	 * observes the first paint, which is the paint that was wrong.
-	 */
 	test("a narrow viewport paints the trigger, not the overflowing bar", () => {
 		setNarrow();
 		const html = renderToString(
@@ -400,7 +292,6 @@ describe("HeaderOverflow on a wide screen", () => {
 		);
 
 		expect(html).toContain("More actions");
-		// The inline bar is the defect: it is what overflows a narrow viewport.
 		expect(html).not.toContain("Settings");
 	});
 
@@ -418,12 +309,6 @@ describe("HeaderOverflow on a wide screen", () => {
 		expect(html).not.toContain("More actions");
 	});
 
-	/**
-	 * The breakpoint is 1100px and not a phone width, because birthday's ten
-	 * controls need ~1000px and overflow a 768px tablet as badly as a 360px
-	 * phone. This is the test that can finally say so: the old stub answered on
-	 * `includes("max-width")` and so passed at any breakpoint.
-	 */
 	test("the breakpoint is 1100px", () => {
 		setViewportWidth(1101);
 		const wide = render(

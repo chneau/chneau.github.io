@@ -1,31 +1,3 @@
-/**
- * The cheat set a third-party item mod hands out, as one click.
- *
- * "THE ONE TRUE RING (AXIOM of GODS)" — uploaded to Crimson Desert Nexus as
- * "Ultimate Ring With Bonus Boots And Gloves" — is a PAZ patch over
- * `gamedata/binary/client/bin/iteminfo.pabg` and `characterinfo.pabg`, not a
- * save. It re-buffs a ring into a chest of Lv 15 stat buffs (attack, movement,
- * crit, climb and swim speed, 100% fire/ice/lightning resistance), carries its
- * author's "Ultimate Axiom" bracelet buff, and reworks five Abyss Gears.
- *
- * A save edit cannot grant any of those effects: the stats live in the game's
- * own item data, and the save only records which item key a slot holds. So this
- * set does the one thing a save editor can — it puts the gear into a storage,
- * configured as high as the game data allows, from where the installed mod's
- * numbers apply.
- *
- * The ring and the five Abyss Gears are the items the mod itself names. The
- * bracelet is the item its author's sibling mod ("The Ultimate Axiom buff",
- * Nexus 638) is described as buffing. Everything else — the second ring, the
- * earrings, the helm, chest, gloves, boots, cloak and necklace — is a catalog
- * pick, because neither archive names them: the mod ships compiled tables, and
- * accessories carry no stats, sockets or refinement in the generated catalog to
- * rank them by. They cover one item per equipment slot, taken from the Demian
- * plate family and the boss-drop accessory range, and are changed by editing
- * this list alone. Keys are pinned by `tests/cheat-gear.test.ts`, which also
- * runs the whole set through the engine.
- */
-
 import { planAddition, storageKeys } from "./add-plan";
 import type { EquipmentDetails } from "./equipment";
 import {
@@ -42,22 +14,13 @@ import {
 } from "./save-engine/data";
 import type { SaveEdit } from "./staged-edits";
 
-/** Sockets are serialized as five positions whether or not they are filled. */
 const SOCKET_POSITIONS = 5;
 
-/**
- * The storage the planner previews in. `maxEquipmentEdits` filters records by
- * inventory key and nothing else about it reaches the result, so the plan is
- * the same wherever the set is finally staged.
- */
 const PLAN_INVENTORY = 0;
 
 type CheatGearItem = {
-	/** Catalog item key the preset stages. */
 	itemKey: number;
-	/** The name the catalog must carry it under. */
 	label: string;
-	/** What the item is doing in the set, for the button's description. */
 	note: string;
 };
 
@@ -146,22 +109,14 @@ export const cheatGearSet: CheatGearItem[] = [
 	},
 ];
 
-/** One set item, resolved against the catalogs. */
 type CheatGearPlan = {
 	itemKey: number;
 	itemName: string;
-	/**
-	 * Character gear goes through the equipment inserter, which takes a whole
-	 * configuration; a plain item is inserted as a catalog record or a donor
-	 * clone instead. `null` means the latter.
-	 */
 	equipment: EquipmentDetails | null;
 };
 
-/** Only the merged item table is read: names, categories and stack flags. */
 type CheatGearCatalog = { items: Record<string, CatalogItem> } | null;
 
-/** A record's item state as the catalog declares it, before any planning. */
 const nativeDetails = (
 	definition: EquipmentCatalogEntry,
 ): EquipmentDetails => ({
@@ -173,20 +128,12 @@ const nativeDetails = (
 	socketItems: Array.from({ length: SOCKET_POSITIONS }, () => null),
 });
 
-/**
- * The highest configuration the game data allows, using the same planner as the
- * inventory's "Max Equipment" button: refinement to the item's own ceiling,
- * sockets to its own cap, filled with the strongest Abyss Gear that fits. An
- * item the planner leaves alone comes back native.
- */
 const maxedDetails = (
 	itemKey: number,
 	definition: EquipmentCatalogEntry,
 	rules: Awaited<ReturnType<typeof abyssGearRulesTable>>,
 ): EquipmentDetails => {
 	const equipment = nativeDetails(definition);
-	// The planner reads whole records; only this item's equipment matters, so
-	// the rest of the envelope is filled with values it never looks at.
 	const record: InventoryRecord = {
 		inventoryKey: PLAN_INVENTORY,
 		itemNo: 0,
@@ -214,7 +161,6 @@ const maxedDetails = (
 		: equipment;
 };
 
-/** Every set item, resolved: character gear carries its maxed configuration. */
 export const cheatGearPlans = async (): Promise<CheatGearPlan[]> => {
 	const [items, equipment, rules] = await Promise.all([
 		itemCatalogTable(),
@@ -224,7 +170,6 @@ export const cheatGearPlans = async (): Promise<CheatGearPlan[]> => {
 	return cheatGearSet.map((gear) => {
 		const definition = equipment.items[String(gear.itemKey)];
 		if (!definition?.characterEquipment) {
-			// A plain item keeps the name the item catalog knows it by.
 			const item = items.items[String(gear.itemKey)];
 			return {
 				itemKey: gear.itemKey,
@@ -240,26 +185,13 @@ export const cheatGearPlans = async (): Promise<CheatGearPlan[]> => {
 	});
 };
 
-/**
- * What one set item could not be staged, and why.
- *
- * The two membership flags are the same pair the equipment browser shows beside
- * an item, so one item reads the same way wherever it is refused: `existing` is
- * a copy the save itself holds, and `wasStaged` is an insertion already queued
- * for this download. Both are false when the add rule refused on its own
- * grounds — no donor record, an unstackable storage — which is a fact about the
- * rule rather than about what the save holds.
- */
 type CheatGearSkip = {
 	label: string;
 	reason: string;
-	/** The storage already holds this item; the copy that is there is the one to edit. */
 	existing: boolean;
-	/** An insertion for this item is already staged in this storage. */
 	wasStaged: boolean;
 };
 
-/** A skip for one of the two membership cases, which read the same either way. */
 const held = (label: string, reason: string): CheatGearSkip => ({
 	label,
 	reason,
@@ -274,22 +206,6 @@ const queued = (label: string, reason: string): CheatGearSkip => ({
 	wasStaged: true,
 });
 
-/**
- * Stages the whole set into one storage.
- *
- * Both paths first answer the two questions the add rule asks and the equipment
- * inserter answers by throwing: is this item already in the storage, and is an
- * insertion for it already staged? Both answers are a skip with a reason beside
- * the item, never a refusal of the batch — the engine throws out of the whole
- * download, so one item the save already holds would otherwise take every other
- * staged edit down with it. A second press therefore stages nothing new, which
- * is why the set is idempotent rather than revised: a staged insertion is
- * something the user can have since refined and socketed by hand, and a preset
- * pressing the same button again has no business overwriting that.
- *
- * What is left goes to the picker's own add rule, so a storage that holds
- * nothing stackable can only take the character gear, and the skips say so.
- */
 export const cheatGearEdits = async ({
 	inventoryKey,
 	records,
@@ -297,10 +213,8 @@ export const cheatGearEdits = async ({
 	staged = [],
 }: {
 	inventoryKey: number;
-	/** The save's own records, before any staged edit was folded in. */
 	records: InventoryRecord[];
 	catalog: CheatGearCatalog;
-	/** Edits already staged this session. */
 	staged?: SaveEdit[];
 }): Promise<{ edits: SaveEdit[]; skipped: CheatGearSkip[] }> => {
 	const plans = await cheatGearPlans();
@@ -312,11 +226,6 @@ export const cheatGearEdits = async ({
 	const edits: SaveEdit[] = [];
 	const skipped: CheatGearSkip[] = [];
 	for (const plan of plans) {
-		// The two membership cases are settled once, for every path, so the
-		// equipment inserter and the add rule cannot disagree about them. An item
-		// the storage holds as a stack would otherwise be grown here, which a
-		// preset must not do: it stages one item per slot and says what it left
-		// alone.
 		if (queuedKeys.has(plan.itemKey)) {
 			skipped.push(
 				queued(

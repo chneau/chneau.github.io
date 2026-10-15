@@ -1,17 +1,3 @@
-/**
- * The unlock / collected-knowledge reader, asserted against both fixtures.
- *
- * Every figure below was measured on these two saves by walking them; the
- * decoder's own notes quote a **third** save (a 64/27 build), so its counts
- * appear nowhere in this file as expectations. What is asserted is what the
- * bytes say, per build.
- *
- * The two fixtures are the point: `8559a` and `52586` have different name
- * tables (3,259 and 6,350 entries), so a reader that resolved a tag by ordinal,
- * or by another build's table, would produce a plausible wrong name on one of
- * them.
- */
-
 import { describe, expect, test } from "bun:test";
 import { decompressContainer } from "../lib/container";
 import { readNameTable } from "../lib/names";
@@ -39,9 +25,6 @@ describe("collected knowledge — the player's own CName arrays", () => {
 			const found = scanSmall();
 			expect(found).not.toBeNull();
 			if (found === null) return;
-			// Declared `u32` count and measured element length agree on every
-			// list, which is the check that `CName` is two bytes: a different
-			// width would make the two disagree or fail to parse at all.
 			expect(found.booksRead?.count).toBe(11);
 			expect(found.booksRead?.declaredCount).toBe(11);
 			expect(found.craftingSchematics?.count).toBe(67);
@@ -126,9 +109,6 @@ describe("collected knowledge — the player's own CName arrays", () => {
 			const inLarge = large.alchemyRecipes?.names ?? [];
 			expect(inSmall).toContain("Recipe for Albedo");
 			expect(inLarge).toContain("Recipe for Albedo");
-			// The *text* is identical across builds and the *index* is not, which
-			// is the whole reason a tag goes through this save's own table: read
-			// as an ordinal it would name a different recipe on one of the two.
 			const smallIndex = readNameTable(
 				decompressContainer(smallSave()).data,
 			).names.indexOf("Recipe for Albedo");
@@ -157,8 +137,6 @@ describe("map-pin knowledge — the flat CCommonMapManager run", () => {
 			expect(found.discoveredMapPinTags?.declaredCount).toBe(39);
 			expect(found.disabledMapPinTags?.count).toBe(27);
 			expect(found.discoveredAgentEntityTags?.count).toBe(3);
-			// Measured empty on both fixtures, and reported as an empty list
-			// rather than dropped: the container is there and says zero.
 			expect(found.discoveredPaths?.count).toBe(0);
 			expect(found.discoveredPaths?.declaredCount).toBe(0);
 			expect(found.customEntityMapPins?.count).toBe(0);
@@ -192,9 +170,6 @@ describe("map-pin knowledge — the flat CCommonMapManager run", () => {
 		() => {
 			const found = scanLarge();
 			if (found === null) throw new Error("no unlocks read");
-			// 15 pins is 45 tokens; a reader that stopped at the next `BS` and
-			// counted tokens would report 45 and its `count` would disagree with
-			// the save's own `Size`.
 			expect(found.customAgentMapPins?.declaredCount).toBe(15);
 			expect(found.customAgentMapPins?.count).toBe(15);
 			expect(found.customAgentMapPins?.pins).toHaveLength(15);
@@ -213,10 +188,6 @@ describe("map-pin knowledge — the flat CCommonMapManager run", () => {
 		() => {
 			const found = scanLarge();
 			if (found === null) throw new Error("no unlocks read");
-			// The 52586 table carries 9 `MISSING_NAME_<GUID>` entries; 9 of its
-			// discovered pins and 2 of its disabled pins land on one. They
-			// resolve, so `unresolved` stays 0 — but they are not names, and
-			// reporting them as ordinary resolved text would be a lie.
 			expect(found.discoveredMapPinTags?.unresolved).toBe(0);
 			expect(found.discoveredMapPinTags?.placeholder).toBe(9);
 			expect(found.disabledMapPinTags?.placeholder).toBe(2);
@@ -239,8 +210,6 @@ describe("map-pin knowledge — the flat CCommonMapManager run", () => {
 				expect(state.mapPinGuid).toMatch(/^[0-9a-f]{32}$/);
 				expect(typeof state.state).toBe("boolean");
 			}
-			// Measured: 53 of the 59 pins shown, 6 hidden. Both values occur, so
-			// a reader that read only the first element would look plausible.
 			const shown = states.filter((state) => state.state === true).length;
 			expect(shown + states.filter((s) => s.state === false).length).toBe(
 				states.length,
@@ -279,9 +248,6 @@ describe("visited regions — CachedWorldDataMap", () => {
 				(world) => world.path === "levels\\novigrad\\novigrad.w2w",
 			);
 			expect(novigrad?.visited).toBe(true);
-			// Measured: 42 cached quest pins, and only Novigrad has any. This is
-			// what separates "the player has been here" from "the game has this
-			// level loaded" — the catalogue is the whole shipped set.
 			expect(novigrad?.cachedQuestPins).toBe(42);
 			expect(
 				worlds.worlds.filter((world) => world.cachedQuestPins !== 0).length,
@@ -312,24 +278,17 @@ describe("caps and the projection contract", () => {
 		"a long list is capped in the sample and whole in the count",
 		() => {
 			const found = scanLarge();
-			// 157 known pins and a 24-name cap: the sample is bounded and the
-			// count is not, so the document can say "157" truthfully.
 			expect(found?.knownMapPinTags?.count).toBe(157);
 			expect(found?.knownMapPinTags?.names.length).toBe(TAG_SAMPLE_LIMIT);
 			expect(found?.knownMapPinTags?.names[0]).toBe("nml_mp_tm13");
 
 			const short = scanSmall();
-			// A list under the cap keeps every entry: the cap must not shorten
-			// one that already fits. Measured at 3 on this save.
 			expect(short?.discoveredAgentEntityTags?.count).toBe(3);
 			expect(short?.discoveredAgentEntityTags?.names).toEqual([
 				"mq0004_old_woman",
 				"prologue_smith",
 				"mq0002_merchant",
 			]);
-			// 26 known pins is *over* the 24 cap, so the sample is shortened and
-			// the count is not. Asserted rather than assumed: a cap applied to the
-			// count instead of the sample would make both 24 and pass a "24" test.
 			expect(short?.knownMapPinTags?.count).toBe(26);
 			expect(short?.knownMapPinTags?.names.length).toBe(TAG_SAMPLE_LIMIT);
 		},
@@ -367,10 +326,6 @@ describe("caps and the projection contract", () => {
 	test("no offset ever reaches the projection", () => {
 		const found = scanLarge();
 		if (found === null) throw new Error("no unlocks read");
-		// The workbench proves a rebuild by decoding it and comparing documents,
-		// so a stored address would be a field that differs between two saves of
-		// the same build. The scan is serialised whole: no key is an address and
-		// no value is a plausible one.
 		const json = JSON.stringify(found);
 		expect(json).not.toContain("offset");
 		expect(json).not.toContain("Offset");
@@ -380,8 +335,6 @@ describe("caps and the projection contract", () => {
 				return;
 			}
 			if (typeof value !== "object" || value === null) {
-				// Offsets in this codebase are byte counts in the millions; no
-				// count or cap here is.
 				if (typeof value === "number" && value > 1_000_000) {
 					throw new Error(
 						`a value of ${value} at "${key ?? "?"}" looks like an offset`,
@@ -415,23 +368,6 @@ describe("the reader's own entry points", () => {
 	);
 });
 
-/**
- * The custom-map-pin element is **two or three tokens**, and this is the only
- * test that covers the two-token case.
- *
- * Both committed fixtures happen to write `{Tag, Type, ShowAlways}`, so the
- * fixtures cannot exercise a build that writes `{Tag, Type}` — and the reader
- * used to hard-code a stride of 3, which on such a build walked into the next
- * pin, failed its own `MapPinType` guard and stopped. Measured on the reference
- * corpus: `f949c` declares 4 entity pins and 13 agent pins and the reader
- * reported **1 and 1**, with `declaredCount` sitting right there disagreeing and
- * nothing raising. `11c607` declares 2 and 15 and reported 1 and 1.
- *
- * The fixture for this test is therefore synthetic tokens rather than a save:
- * `readUnlocksFromScan` takes the walk, so a hand-built list drives exactly the
- * branch the committed saves cannot reach, and constructing it is what makes the
- * two-token stride assertable at all.
- */
 describe("the custom-map-pin stride", () => {
 	const names = ["TagA", "TypeB"];
 	const cname = (index: number): Token["value"] => ({
@@ -445,7 +381,6 @@ describe("the custom-map-pin stride", () => {
 		value?: Token["value"],
 	): Token => ({ tag, name, offset: 0, size: 6, value });
 
-	/** A `CustomEntityMapPins` container of `count` pins, with or without `ShowAlways`. */
 	const containerOf = (
 		count: number,
 		withShowAlways: boolean,
@@ -477,8 +412,6 @@ describe("the custom-map-pin stride", () => {
 	};
 
 	test("reads every pin when the element is two tokens", () => {
-		// The regression. Before the stride followed the tokens, each of these
-		// reported `count: 1` against the `declaredCount` shown here.
 		for (const count of [1, 4, 13]) {
 			const unlocks = readUnlocksFromScan(
 				new Uint8Array(0),
@@ -491,7 +424,6 @@ describe("the custom-map-pin stride", () => {
 				read: pins?.count,
 				declared: pins?.declaredCount,
 				listed: pins?.pins.length,
-				// The absent field is `null` rather than a guessed default.
 				showAlways: pins?.pins[0]?.showAlways,
 			}).toEqual({
 				count,
@@ -504,7 +436,6 @@ describe("the custom-map-pin stride", () => {
 	});
 
 	test("still reads every pin when the element is three tokens", () => {
-		// The shape both fixtures use, so the fix cannot have regressed it.
 		for (const count of [1, 4, 13]) {
 			const unlocks = readUnlocksFromScan(
 				new Uint8Array(0),

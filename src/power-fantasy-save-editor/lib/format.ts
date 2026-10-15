@@ -1,46 +1,3 @@
-/**
- * Power Fantasy (Lava Lamb Games) — `PowerFantasySave.es3`.
- *
- * Ported from a Bun CLI that could pull, decrypt, cheat and push the save. The
- * file format is:
- *
- * ```text
- * [ 16 bytes: AES initialisation vector ]
- * [ N × 16 bytes: AES-128-CBC of compact JSON ]
- * ```
- *
- * The key is never stored. It is derived the way Unity's
- * `Rfc2898DeriveBytes(string, byte[])` does by default — PBKDF2-SHA1 over a
- * password compiled into the game, salted with those same 16 header bytes, at
- * 100 iterations, truncated to a 128-bit key. Once derived, it is stock
- * AES-128-CBC in PKCS#7 padding, which is the one mode WebCrypto implements,
- * so `aesCbcDecrypt` reads a game-written save with no shim and
- * `aesCbcEncrypt` writes one the game reads back. Nothing here pads or strips
- * anything by hand.
- *
- * The plaintext is JSON in the shape Unity's own serialiser emits: a flat map
- * of save keys to `{__type, value}` records, where the type name says how to
- * read the value (`"int"`, `"bool"`, a fully qualified `System.Collections`
- * list type for the handful of keys that hold lists).
- *
- * ## The one decision worth arguing about
- *
- * A CBC cipher text is a function of its IV, so re-encrypting an unchanged
- * document with a *fresh* IV produces an entirely different file — which is
- * exactly what the original tool did, and why the repository also carries
- * `saves/PowerFantasySave-reencrypted.es3`: that file is the original tool's
- * output for the very save committed beside it, and the two differ on disk
- * while decrypting to byte-identical JSON.
- *
- * That makes "rebuild and check" a weak claim for this format, because a
- * rebuilt file can never match the input. So `decode` remembers the header it
- * read and `encode` reuses it. An untouched save then rebuilds to the exact
- * bytes it came from — the strongest statement the shared round-trip check is
- * able to make — and an edited one differs only from the point of the edit
- * onwards. Reusing the IV is also not a cryptographic sin here: the key is
- * *derived* from that IV, so the (key, IV) pair a rebuilt file carries is the
- * one the original file already published in its own header.
- */
 import {
 	aesCbcDecrypt,
 	aesCbcEncrypt,
@@ -58,36 +15,16 @@ import {
 	type SummaryRow,
 } from "../../shared";
 
-/**
- * The password the game ships with.
- *
- * It is a constant in the shipped build, not a secret anyone chose, which is
- * the whole of this format's weakness — see the third note. It is named rather
- * than inlined because the codec has to be able to derive a key from something
- * other than it, so the tests can prove that the wrong password fails cleanly.
- */
 export const PASSWORD = "godisdad";
 
-/** Unity's `Rfc2898DeriveBytes` default, and this game's iteration count. */
 const KDF_ITERATIONS = 100;
 
-/** AES-128 takes a 128-bit key. */
 const KEY_BYTES = 16;
 
-/** Every AES-CBC IV is one cipher block. */
 const IV_BYTES = 16;
 
-/** A header plus at least one block of cipher text: the smallest legal file. */
 const MIN_FILE_BYTES = IV_BYTES + IV_BYTES;
 
-/**
- * One `{__type, value}` record, as the game writes it.
- *
- * `undefined` is accepted by the guard because `getAtPath` reports a key this
- * save does not have that way, and "this save has no such record" is the single
- * most common answer in this format — the game only writes a key once the
- * player has earned it.
- */
 type TypedRecord = {
 	readonly __type: string;
 	readonly value: JsonValue;
@@ -99,10 +36,8 @@ const isTypedRecord = (value: JsonValue | undefined): value is TypedRecord =>
 	typeof value.__type === "string" &&
 	value.value !== undefined;
 
-/** The `{__type: "int", value: n}` record the game uses for every counter. */
 const intRecord = (value: number): JsonValue => ({ __type: "int", value });
 
-/** The 16 bytes that open every `.es3` file: IV and PBKDF2 salt in one. */
 export const headerIv = (bytes: Bytes): Bytes => {
 	if (bytes.length < MIN_FILE_BYTES) {
 		throw new Error(
@@ -112,34 +47,14 @@ export const headerIv = (bytes: Bytes): Bytes => {
 	return bytes.slice(0, IV_BYTES);
 };
 
-/**
- * Everything that can go wrong reading a save, said once.
- *
- * Two different faults land here and they are deliberately not distinguished
- * for the reader: a wrong key makes the cipher's padding check fail (WebCrypto
- * raises `OperationError`), and even when it happens to pass — roughly one
- * chance in 256 — the bytes behind it are noise that will not parse as JSON.
- * Both are "this is not a save this codec can open", and the useful thing to
- * say about that is what to try instead.
- */
 const NOT_A_SAVE =
 	"That file did not decrypt to a Power Fantasy save. The password is baked into the game rather than chosen by you, so there is nothing to type — if you expected this file to load, it is probably a different game's .es3, or a save from a build whose format has moved on.";
 
-/**
- * A JSON object, classified from `unknown`.
- *
- * `JSON.parse` of bytes that came off someone's disk is the one place in this
- * module where the type is genuinely unknown, and it is classified here rather
- * than cast at the point of use — so what leaves `decryptSave` is already a
- * document. The shared `isJsonObject` cannot do this job because it takes a
- * `JsonValue`, which is exactly what has not been established yet.
- */
 const readsAsObject = (
 	value: unknown,
 ): value is { readonly [key: string]: JsonValue } =>
 	typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** The file's bytes to the document inside, with the game's password. */
 export const decryptSave = async (
 	bytes: Bytes,
 	password = PASSWORD,
@@ -164,18 +79,6 @@ export const decryptSave = async (
 	return parsed;
 };
 
-/**
- * The document back to the game's bytes, under a chosen IV.
- *
- * Pure by construction — the IV is a parameter rather than module state — so
- * this is what a test pins the byte-exactness claim against, and it is why the
- * codec's own `encode` is the only place that has to decide *which* IV to use.
- *
- * `JSON.stringify` with no spacing is not a shortcut: the game's serialiser
- * emits compact JSON, so anything else would rebuild a file the game reads to
- * the same values from a different byte sequence, and the "unchanged saves
- * rebuild exactly" claim would quietly stop being true.
- */
 export const encryptSave = async (
 	doc: JsonValue,
 	iv: Bytes,
@@ -193,35 +96,15 @@ export const encryptSave = async (
 	return out;
 };
 
-// ---------------------------------------------------------------------------
-// The save's own vocabulary
-//
-// Every name below was read out of `saves/PowerFantasySave.es3` rather than
-// guessed. The game mints one key per thing the player can own or earn, so the
-// lists are the game's catalogue, not ours, and a save that has not earned one
-// yet simply has no key for it.
-// ---------------------------------------------------------------------------
-
-/** Prefix the game gives every achievement counter. */
 const ACHIEVEMENT_PREFIX = "a_";
 
-/** Prefix the game gives every blood-rune purchase. */
 const BLOOD_PREFIX = "blood_";
 
-/** Prefix of a learned passive, keyed `br_<Hero>_<Passive>`. */
 const PASSIVE_PREFIX = "br_";
 
-/** Inventory counters live under `inv/`, and the stack list is `inv/index`. */
 const INVENTORY_PREFIX = "inv/";
 const INVENTORY_INDEX: SavePath = [`${INVENTORY_PREFIX}index`];
 
-/**
- * The seventeen playable heroes, alphabetical.
- *
- * Which is the order the save's own `<hero>_alchemy_infusions` keys come in,
- * and the seventeen names are exactly those keys' stems — so a hero the game
- * added later is a missing key, not a wrong one.
- */
 const HEROES = [
 	"Aric",
 	"Croak",
@@ -242,7 +125,6 @@ const HEROES = [
 	"Zikk",
 ] as const;
 
-/** The twenty-seven passives a hero's blood runes can open. */
 const PASSIVES = [
 	"ButtonHealthRecovery",
 	"ButtonHealth",
@@ -273,7 +155,6 @@ const PASSIVES = [
 	"ButtonDamage",
 ] as const;
 
-/** The eighteen stackable items the inventory holds. */
 const INVENTORY_ITEMS = [
 	"fish_bloodruby",
 	"fish_common",
@@ -295,7 +176,6 @@ const INVENTORY_ITEMS = [
 	"shard_profession",
 ] as const;
 
-/** The alchemy infusions, with the counts the original tool settled on. */
 const INFUSIONS: readonly (readonly [string, number])[] = [
 	["infusion_xpgain", 100],
 	["infusion_critmulti", 100],
@@ -304,13 +184,6 @@ const INFUSIONS: readonly (readonly [string, number])[] = [
 	["infusion_projectiles", 10],
 ];
 
-/**
- * Achievements that unlock a hero.
- *
- * A flat list rather than a per-hero list, because the save does not record
- * which hero an achievement belongs to — the id does. Present in the fixture:
- * 62 of the 72.
- */
 const CHARACTER_ACHIEVEMENTS = [
 	"a_Aric_3",
 	"a_Croak_0",
@@ -376,10 +249,8 @@ const CHARACTER_ACHIEVEMENTS = [
 	"a_entomologist",
 ] as const;
 
-/** Blood runes that unlock a hero, and the one the fixture already has. */
 const CHARACTER_BLOOD_ITEMS = ["blood_draco", "blood_mothman"] as const;
 
-/** Achievements that unlock a companion. Four of the seven are in the fixture. */
 const COMPANION_ACHIEVEMENTS = [
 	"a_5companions",
 	"a_beekeeper",
@@ -390,10 +261,8 @@ const COMPANION_ACHIEVEMENTS = [
 	"a_companionmastery",
 ] as const;
 
-/** The blood rune that opens companions; absent from the fixture. */
 const COMPANION_BLOOD_ITEMS = ["blood_beastmaster"] as const;
 
-/** The four characters the paid DLC adds. All nine ids are in the fixture. */
 const DLC_ACHIEVEMENTS = [
 	"a_Santa_0",
 	"a_Santa_5",
@@ -406,48 +275,21 @@ const DLC_ACHIEVEMENTS = [
 	"a_Orb_5",
 ] as const;
 
-/**
- * The counts the original tool used.
- *
- * 99,999 is comfortably past every threshold in the game (`a_level_*` runs to
- * the high fifties, and the fishing and gambling achievements count in
- * hundreds), so it satisfies any of them rather than being the largest number
- * that happens to work today. A blood rune is a tiered purchase, and 10 is the
- * top of the track in this build.
- */
 const UNLOCKED_COUNT = 99999;
 const BLOOD_UNLOCKED_TIER = 10;
 
-/** The ruby total the original `cheat` command defaulted to. */
 const CHEATED_RUBIES = 9999999;
 
-/** The stack size the original `cheat-items` command defaulted to. */
 const CHEATED_STACK = 999;
 
-// ---------------------------------------------------------------------------
-// Reading the save
-// ---------------------------------------------------------------------------
-
-/**
- * The save's own keys carrying `prefix`.
- *
- * `Object.keys` here is not the mistake the codebase warns about. That warning
- * is about iterating a typed record's keys instead of its canonical list; here
- * the keys *are* the data — the game mints one `a_`-prefixed counter per
- * achievement it records — so the save is the only authority on which
- * achievements it holds, and a name table frozen at one game build would go
- * quietly stale after a patch added an achievement.
- */
 const keysWithPrefix = (doc: JsonValue, prefix: string): readonly string[] =>
 	isJsonObject(doc)
 		? Object.keys(doc).filter((key) => key.startsWith(prefix))
 		: [];
 
-/** How many of `names` this save actually records. */
 const countPresent = (doc: JsonValue, names: readonly string[]): number =>
 	names.filter((name) => getAtPath(doc, [name]) !== undefined).length;
 
-/** The `value` of an `int` record, or `undefined` if it is not one. */
 const intAt = (doc: JsonValue, path: SavePath): number | undefined => {
 	const record = getAtPath(doc, path);
 	return isTypedRecord(record) && typeof record.value === "number"
@@ -455,7 +297,6 @@ const intAt = (doc: JsonValue, path: SavePath): number | undefined => {
 		: undefined;
 };
 
-/** The length of a list record, or `undefined` if it is not one. */
 const listLengthAt = (doc: JsonValue, path: SavePath): number | undefined => {
 	const record = getAtPath(doc, path);
 	return isTypedRecord(record) && Array.isArray(record.value)
@@ -463,28 +304,6 @@ const listLengthAt = (doc: JsonValue, path: SavePath): number | undefined => {
 		: undefined;
 };
 
-// ---------------------------------------------------------------------------
-// Planning edits
-// ---------------------------------------------------------------------------
-
-/**
- * An edit raising the `int` record at `path` to at least `floor`, or
- * `undefined` if this save does not record that field.
- *
- * Returning nothing is the whole safety argument for these actions. `setAtPath`
- * refuses a path the save does not already have, because a key the game never
- * wrote is precisely what stops a rebuilt save from loading — and the original
- * tool, which built a fresh object and assigned into it, wrote keys the game had
- * never seen. Staging only what the file records means the workbench never
- * throws mid-render and never invents a field.
- *
- * A floor rather than an assignment, which is a deliberate departure from the
- * original tool. It wrote 99,999 into every achievement and 999 into every
- * stack, and the fixture shows what that costs: three achievements already read
- * 193,517 and one reads 100,000, and a blind write would quietly hand the player
- * *less* than they had earned. Nothing here writes a number downwards, and an
- * edit that would only lower is filtered out as the no-op it is.
- */
 const raiseTo = (
 	doc: JsonValue,
 	path: SavePath,
@@ -498,35 +317,15 @@ const raiseTo = (
 	return { id: editId(path, after), label, path, before, after };
 };
 
-/** Drops the candidates that have nothing to write to. */
 const kept = (
 	candidates: readonly (SaveEdit | undefined)[],
 ): readonly SaveEdit[] => candidates.filter((edit) => edit !== undefined);
 
-/**
- * The planned edits, with the no-ops removed.
- *
- * `effectiveEdits` rather than staging everything: an action that writes the
- * value already in the file is noise in the staged list, and a list full of it
- * makes the rebuild claim work it did not do. It is also what greys a button
- * out — `SaveWorkbench` disables an action whose plan is empty — so a save that
- * has already been cheated at honestly shows nothing left to do.
- */
 const plan = (
 	doc: JsonValue,
 	candidates: readonly (SaveEdit | undefined)[],
 ): readonly SaveEdit[] => effectiveEdits(kept(candidates), doc);
 
-/**
- * Rewrites `inv/index`, the stack list the game reads to know what is carried.
- *
- * The per-item `inv/<id>` counters and this list have to agree: the original
- * tool learned that the hard way, which is why it writes both. Each amount is
- * raised to the floor rather than set to it, for the same reason `raiseTo` does.
- * The list's `__type` is read off the record rather than hardcoded — Unity's
- * generic type name is long, and a copy of it is a string that can be wrong
- * after a game update while the save in front of the user is right.
- */
 const raiseStacks = (doc: JsonValue, floor: number): SaveEdit | undefined => {
 	const before = getAtPath(doc, INVENTORY_INDEX);
 	if (!isTypedRecord(before) || !Array.isArray(before.value)) return undefined;
@@ -545,14 +344,6 @@ const raiseStacks = (doc: JsonValue, floor: number): SaveEdit | undefined => {
 	};
 };
 
-/**
- * Rewrites a hero's alchemy infusions.
- *
- * Same reasoning as the inventory: the `__type` comes off the record in the
- * save, and a hero whose key the file does not carry is left alone. The counts
- * are a proportion the game spends down, so these are written outright rather
- * than raised — the ratios are the ceiling the player is asking for.
- */
 const setInfusions = (doc: JsonValue, hero: string): SaveEdit | undefined => {
 	const path: SavePath = [`${hero}_alchemy_infusions`];
 	const before = getAtPath(doc, path);
@@ -707,19 +498,6 @@ const unlockDlc: QuickAction = {
 	plan: (doc) => plan(doc, ACHIEVEMENT_EDITS(doc, DLC_ACHIEVEMENTS)),
 };
 
-// ---------------------------------------------------------------------------
-// The summary
-// ---------------------------------------------------------------------------
-
-/**
- * What is in the save, read off the save.
- *
- * Every row names a key that exists in `saves/PowerFantasySave.es3`. A summary
- * that guessed at field names across game versions would be worse than one that
- * reports what it can actually see, and every row falls back to a plain
- * "not recorded" rather than inventing a value for a key this file has not
- * earned yet.
- */
 const summarise: (doc: JsonValue) => readonly SummaryRow[] = (doc) => {
 	const rubies = intAt(doc, ["s_bloodRuby"]);
 	const heroes = countPresent(
@@ -767,22 +545,6 @@ const summarise: (doc: JsonValue) => readonly SummaryRow[] = (doc) => {
 	];
 };
 
-/**
- * The IV of the file most recently opened.
- *
- * Held here rather than in the document because it is not part of the document:
- * it is the container's header, and the document is what the inspector shows
- * and the cheats edit. It is written only after a save has decoded cleanly, and
- * `SaveWorkbench` decodes before it ever encodes, so by the time a rebuild runs
- * this holds the header of the file the user actually opened.
- *
- * `encode` refuses to run without one. It used to fall back to a fresh random
- * IV, which is the wrong bytes to write from a codec whose whole promise is
- * that an untouched save comes back byte for byte: a CBC stream under a new IV
- * changes every block, and the round-trip the page then reports would be false.
- * Nothing calls `encode` before `decode`, so the guard only ever turns a silent
- * wrong file into a loud error.
- */
 let openedIv: Bytes | null = null;
 
 export const powerFantasy: SaveCodec = {

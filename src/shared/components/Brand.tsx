@@ -8,7 +8,6 @@ type BrandProps = {
 	onClick?: (event: MouseEvent) => void;
 };
 
-/** Consistent brand block: accent mark, title and an optional subtitle. */
 export const Brand = ({ icon, title, subtitle, href, onClick }: BrandProps) => {
 	const inner = (
 		<>

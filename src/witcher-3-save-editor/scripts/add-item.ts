@@ -1,21 +1,3 @@
-/**
- * Add items to a Witcher 3 save.
- *
- * Usage:
- *   bun run src/witcher-3-save-editor/scripts/add-item.ts <in.sav> <out.sav> \
- *     --item "Greater mutagen red:50" --item "Greater mutagen green:50" \
- *     [--template "Greater mutagen blue"]
- *
- * It appends names to `MANU`, inserts native inventory records and repairs the
- * frame sizes, the `SC` span index and the container. See `lib/add-item.ts`. It
- * reads the input and writes a **new** file; the input is never modified.
- *
- * One of the writer's **two** resizing operations, not the only one — this said
- * "the one" until `max-mutations.ts` grew its real-insert path.
- *
- * Read-only on the input; the output path is the only file written.
- */
-
 import { readFileSync, writeFileSync } from "node:fs";
 import { addItems } from "../lib/add-item";
 import { decompressContainer } from "../lib/container";
@@ -54,11 +36,6 @@ const requests = items.map((spec) => {
 const container = decompressContainer(new Uint8Array(readFileSync(input)));
 const file = addItems(container, requests);
 
-// Read it back before writing it, which the page does and this script did not.
-// A weaker check than the page's whole-document comparison, and it says so: the
-// document the action would produce is this script's business to build and the
-// page already builds it, so what is asserted here is the part that matters for
-// a hand-run tool — the result parses, and the items asked for are in it.
 const reread = await witcher3.decode(file);
 const present = new Set(
 	(reread as { items: readonly { name: string }[] }).items.map(

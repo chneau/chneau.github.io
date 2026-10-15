@@ -7,23 +7,9 @@ import {
 	toHexRows,
 } from "../save/bytes";
 
-/**
- * `ByteWriter.ensure` growth.
- *
- * The growth step used to be `let size = length * 2` followed by
- * `while (size < offset + extra) size *= 2`. For a writer created with a
- * capacity of 0 that is `size = 0`, and `0 * 2` is still 0 — so the condition
- * never became false and the first write spun forever. A hang, not a throw,
- * which is why no codec hit it: every caller passed a real initial capacity, so
- * the bug sat latent behind an argument nobody supplied.
- *
- * The floor is now the requested size rather than zero.
- */
-
 describe("ByteWriter growth", () => {
 	test("a zero-capacity writer writes instead of hanging", () => {
 		const writer = new ByteWriter(0);
-		// If this regressed the test would never reach the next line.
 		writer.u8(0xab);
 		expect(writer.length).toBe(1);
 		expect(Array.from(writer.finish())).toEqual([0xab]);
@@ -42,7 +28,6 @@ describe("ByteWriter growth", () => {
 		const writer = new ByteWriter(0);
 		writer.u16(0x1234);
 		expect(writer.length).toBe(2);
-		// Little-endian is the writer's default.
 		expect(bytesEqual(writer.finish(), fromHex("3412"))).toBe(true);
 	});
 
@@ -76,7 +61,6 @@ describe("ByteWriter growth", () => {
 	});
 
 	test("an empty writer finishes as empty rather than as its capacity", () => {
-		// `finish` truncates to what was written; growth must not change that.
 		expect(new ByteWriter(0).finish().length).toBe(0);
 		expect(new ByteWriter(64).finish().length).toBe(0);
 	});
@@ -101,16 +85,13 @@ describe("toHexRows", () => {
 			count: rows.length,
 			firstOffset: rows[0]?.offset,
 			firstHex: rows[0]?.hex.slice(0, 4),
-			// NUL, DEL and 0xff are not printable; "A" and "~" are.
 			firstAscii: rows[0]?.ascii,
-			// The second row is one byte, and its offset continues the sequence.
 			secondOffset: rows[1]?.offset,
 			secondAscii: rows[1]?.ascii,
 		}).toEqual({
 			count: 2,
 			firstOffset: 0,
 			firstHex: ["00", "41", "7e", "7f"],
-			// `00` `7f` `ff` are dots, `20` is the space it is, `A~` printable.
 			firstAscii: ".A~.. abcdefghij",
 			secondOffset: 16,
 			secondAscii: "k",
@@ -118,11 +99,7 @@ describe("toHexRows", () => {
 	});
 
 	test("a zero-width row cannot spin forever", () => {
-		// `bytesPerRow` of 0 used to make the loop advance by nothing: a hang, not
-		// a throw. The stride is clamped to at least one byte per row, so a
-		// 17-byte input is 17 rows of one rather than an infinite loop.
 		expect(toHexRows(bytes, 0, 32).length).toBe(17);
-		// A negative width is clamped the same way rather than looping.
 		expect(toHexRows(bytes, -4, 4).length).toBe(4);
 	});
 

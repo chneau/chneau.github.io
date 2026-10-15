@@ -15,11 +15,6 @@ import type {
 	VenueSpot,
 } from "./types";
 
-/**
- * Turns the cache into what the UI needs. The cache is keyed the "storage way"
- * (item definitions once, prices per venue); these helpers do the join.
- */
-
 export const cacheStats = (cache: SpoonersCache): CacheStats => ({
 	venues: Object.keys(cache.venues).length,
 	venuesWithData: Object.values(cache.venues).filter(
@@ -29,7 +24,6 @@ export const cacheStats = (cache: SpoonersCache): CacheStats => ({
 	updatedAt: cache.fetchedAt ?? null,
 });
 
-/** Every item that at least one venue sells, with its availability count. */
 export const buildItemIndex = (cache: SpoonersCache): ItemInfo[] => {
 	const counts = new Map<string, number>();
 	for (const entry of Object.values(cache.venues)) {
@@ -60,14 +54,12 @@ export const buildItemIndex = (cache: SpoonersCache): ItemInfo[] => {
 		});
 	}
 
-	// most widely available first, then alphabetical
 	items.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 	return items;
 };
 
 export type CurrencyOption = { code: string; count: number };
 
-/** Currencies present among these venues (GBP for GB, EUR for Ireland). */
 export const availableCurrencies = (
 	venues: PricedVenue[],
 ): CurrencyOption[] => {
@@ -79,10 +71,6 @@ export const availableCurrencies = (
 		.map(([code, count]) => ({ code, count }))
 		.sort((a, b) => b.count - a.count || a.code.localeCompare(b.code));
 };
-
-// --------------------------------------------------------------------------- #
-// special venues (airports, havens, hotels, ...)                                 #
-// --------------------------------------------------------------------------- #
 
 export const SPOT_META: Record<VenueSpot, { label: string; icon: LucideIcon }> =
 	{
@@ -107,11 +95,6 @@ export const venueSpot = (
 	return "high-street";
 };
 
-/**
- * Airport / haven / concession - venues with a captive audience. Hotels are
- * flagged as special too, but priced like the high street, so they stay out of
- * the premium comparison (and of the "hide" filter).
- */
 export const isCaptiveSpot = (spot: VenueSpot): boolean =>
 	spot === "airport" || spot === "haven" || spot === "concession";
 
@@ -123,7 +106,6 @@ type Premium = {
 	normalCount: number;
 };
 
-/** How much the captive venues charge over everywhere else, for this item. */
 export const specialPremium = (venues: PricedVenue[]): Premium | null => {
 	const normal = venues
 		.filter((v) => !isCaptiveSpot(v.spot))
@@ -144,10 +126,6 @@ export const specialPremium = (venues: PricedVenue[]): Premium | null => {
 	};
 };
 
-// --------------------------------------------------------------------------- #
-// opening times, facilities, distance                                            #
-// --------------------------------------------------------------------------- #
-
 const DAY_KEYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 const toMinutes = (time: string): number => {
@@ -157,15 +135,9 @@ const toMinutes = (time: string): number => {
 
 type OpenState = {
 	open: boolean;
-	/** "08:00–23:30" for today, when the venue publishes hours. */
 	hours: string | null;
 };
 
-/**
- * Whether the venue is open right now, from its weekly schedule (or today's
- * date override). Times are compared against the device clock, so this assumes
- * the viewer is in the UK.
- */
 export const venueOpenState = (
 	detail: VenueDetail | null,
 	now: Date = new Date(),
@@ -174,8 +146,6 @@ export const venueOpenState = (
 	if (!times) {
 		return { open: false, hours: null };
 	}
-	// Local calendar date, so a one-off override lines up with the local
-	// weekday/hours used below (an ISO key would drift near midnight).
 	const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
 		2,
 		"0",
@@ -190,32 +160,27 @@ export const venueOpenState = (
 	const openAt = toMinutes(day.open);
 	let closeAt = day.close ? toMinutes(day.close) : openAt;
 	if (closeAt <= openAt) {
-		closeAt += 24 * 60; // closes after midnight
+		closeAt += 24 * 60;
 	}
-	// before opening, but last night's session ran past midnight
 	const adjusted =
 		current < openAt && closeAt > 24 * 60 ? current + 24 * 60 : current;
 	return { open: adjusted >= openAt && adjusted < closeAt, hours };
 };
 
-/** Pub photos from the venue detail, http(s) only. */
 export const venueImages = (detail: VenueDetail | null): string[] =>
 	((detail?.displayImages as unknown[]) ?? []).filter(
 		(image): image is string =>
 			typeof image === "string" && /^https?:\/\//.test(image),
 	);
 
-/** Venue facilities ("Baby change", "Licensed outside area", ...). */
 export const venueFacilities = (detail: VenueDetail | null): string[] =>
 	(detail?.facilities ?? []).filter(
 		(facility: unknown): facility is string => typeof facility === "string",
 	);
 
-/** ISO code the venue prices in (GBP for Great Britain, EUR for Ireland). */
 export const venueCurrency = (detail: VenueDetail | null): string =>
 	detail?.currency?.code ?? detail?.currency?.currencyCode ?? "GBP";
 
-/** Great-circle distance in miles. */
 export const haversineMiles = (
 	from: { lat: number; lng: number },
 	to: { lat: number; lng: number },
@@ -232,10 +197,6 @@ export const haversineMiles = (
 	return 2 * radius * Math.asin(Math.sqrt(a));
 };
 
-// --------------------------------------------------------------------------- #
-// item filters (dietary / nutritional)                                          #
-// --------------------------------------------------------------------------- #
-
 type FilterRule = { id: string; label: string; type: string };
 
 const FILTER_RULES: FilterRule[] = [
@@ -250,7 +211,6 @@ export type FilterOption = { id: string; label: string; count: number };
 const hasKeywordType = (item: ItemInfo, type: string): boolean =>
 	item.keywords.some((keyword) => keyword.type === type);
 
-/** The filters that actually apply to something in the current item list. */
 export const availableFilters = (items: ItemInfo[]): FilterOption[] =>
 	FILTER_RULES.map((rule) => ({
 		id: rule.id,
@@ -258,18 +218,12 @@ export const availableFilters = (items: ItemInfo[]): FilterOption[] =>
 		count: items.filter((item) => hasKeywordType(item, rule.type)).length,
 	})).filter((option) => option.count > 0);
 
-/** True when the item satisfies every active filter. */
 export const matchesFilters = (item: ItemInfo, active: string[]): boolean =>
 	active.every((id) => {
 		const rule = FILTER_RULES.find((candidate) => candidate.id === id);
 		return !rule || hasKeywordType(item, rule.type);
 	});
 
-// --------------------------------------------------------------------------- #
-// price history (kept by the pipeline, optional)                                 #
-// --------------------------------------------------------------------------- #
-
-/** National distribution snapshots for one item. */
 const historyOf = (cache: SpoonersCache, itemName: string): HistoryPoint[] =>
 	cache.history?.items?.[itemName] ?? [];
 
@@ -286,12 +240,9 @@ export const medianTrend = (points: HistoryPoint[]): number | null => {
 };
 
 export type Trend = {
-	/** Oldest median recorded. */
 	from: number;
-	/** Newest median recorded. */
 	to: number;
 	percent: number;
-	/** Number of snapshots kept. */
 	points: HistoryPoint[];
 };
 
@@ -312,13 +263,8 @@ export const itemTrend = (
 	return { from: first.median, to: last.median, percent, points };
 };
 
-// --------------------------------------------------------------------------- #
-// facilities                                                                     #
-// --------------------------------------------------------------------------- #
-
 export type FacilityOption = { label: string; count: number };
 
-/** The facilities that appear often enough to be worth filtering on. */
 export const availableFacilities = (
 	venues: PricedVenue[],
 	limit = 8,
@@ -341,13 +287,10 @@ const matchesFacilities = (
 	active: string[],
 ): boolean => {
 	if (active.length === 0) return true;
-	// The venue's facilities are consulted once per active filter and a venue
-	// lists several, so they are gathered into a set rather than rescanned.
 	const offered = new Set(venue.facilities);
 	return active.every((facility) => offered.has(facility));
 };
 
-/** The map/list filters the sidebar toggles. */
 type VenueFilters = {
 	openNow: boolean;
 	hideSpecial: boolean;
@@ -355,7 +298,6 @@ type VenueFilters = {
 	facilities: string[];
 };
 
-/** The minimum a venue needs to be filtered by the sidebar toggles. */
 type FilterableVenue = {
 	facilities: string[];
 	isOpenNow: boolean;
@@ -364,7 +306,6 @@ type FilterableVenue = {
 	spot: VenueSpot;
 };
 
-/** True when a venue survives the "open now / special / closed / facilities" filters. */
 export const matchesVenueFilters = (
 	venue: FilterableVenue,
 	filters: VenueFilters,
@@ -384,10 +325,6 @@ export const matchesVenueFilters = (
 	return matchesFacilities(venue, filters.facilities);
 };
 
-// --------------------------------------------------------------------------- #
-// geography                                                                      #
-// --------------------------------------------------------------------------- #
-
 export type AreaStat = {
 	area: string;
 	median: number;
@@ -396,7 +333,6 @@ export type AreaStat = {
 	lng: number;
 };
 
-/** Median price per county (falling back to town) for areas with enough pubs. */
 export const areaStats = (venues: PricedVenue[], min = 5): AreaStat[] => {
 	const groups = new Map<string, PricedVenue[]>();
 	for (const venue of venues) {
@@ -427,10 +363,6 @@ export const areaStats = (venues: PricedVenue[], min = 5): AreaStat[] => {
 	return stats.sort((a, b) => a.median - b.median);
 };
 
-// --------------------------------------------------------------------------- #
-// discovery: rare guest items, new items and where to find them                  #
-// --------------------------------------------------------------------------- #
-
 export const rareItems = (items: ItemInfo[], maxCount = 3): ItemInfo[] =>
 	items.filter((item) => item.count <= maxCount);
 
@@ -449,7 +381,6 @@ export type Seller = {
 	distance: number;
 };
 
-/** For each item, the nearest venue selling it (needs a location). */
 export const nearestSellers = (
 	cache: SpoonersCache,
 	itemNames: string[],
@@ -495,7 +426,6 @@ export const nearestSellers = (
 	return out;
 };
 
-/** Pubs that are closed, closing, or not open yet (temporarily unavailable). */
 export const isTemporarilyClosed = (
 	status: string | null | undefined,
 ): boolean =>
@@ -504,11 +434,6 @@ export const isTemporarilyClosed = (
 	status === "opening_soon" ||
 	status === "closed";
 
-/**
- * Pubs that exist in the venue list but have no prices at all - the API either
- * failed to publish a menu or gives them no sales area. They are shown as
- * "no menu published" so they are not simply invisible.
- */
 export const venuesWithoutPrices = (
 	cache: SpoonersCache,
 	now: Date = new Date(),
@@ -547,46 +472,27 @@ export const venuesWithoutPrices = (
 	return out.sort((a, b) => a.name.localeCompare(b.name));
 };
 
-// --------------------------------------------------------------------------- #
-// cross-item "value" leaderboards                                                #
-// --------------------------------------------------------------------------- #
-
 export type ValueLeader = {
 	name: string;
 	menu: string | null;
 	category: string | null;
 	nature: string;
 	kind: ValueKind;
-	/** lower is better for £/unit and £/100ml, higher for kcal/£ */
 	value: number;
 	price: number;
 	portion: string;
 	currency: string;
 	venueRef: number;
 	venueName: string;
-	/** how many venues sell the item at all */
 	count: number;
 };
 
-/**
- * How to fold every venue's money/metric into one display currency, so a €
- * pub is not ranked against a £ one on the raw number.
- */
 type ValueConversion = {
 	metric: (kind: ValueKind, value: number, currency: string) => number;
 	money: (value: number, currency: string) => number;
-	/** ISO code the converted numbers are in. */
 	currency: string;
 };
 
-/**
- * Best value per item across the country, on the item's canonical portion.
- * Used to answer "cheapest per alcohol unit" / "most calories per pound".
- *
- * With no `conversion`, one leader is kept per (currency, metric) so the two
- * currencies are ranked separately. Given a `conversion`, every venue is
- * normalised first and a single best per metric is returned.
- */
 export const valueLeaders = (
 	cache: SpoonersCache,
 	conversion?: ValueConversion,
@@ -611,7 +517,6 @@ export const valueLeaders = (
 				continue;
 			}
 			const currency = venueCurrency(entry.detail);
-			// Without a conversion, compare only like-for-like currencies.
 			const key = conversion ? value.kind : `${currency}|${value.kind}`;
 			const score = conversion
 				? conversion.metric(value.kind, value.value, currency)
@@ -657,10 +562,6 @@ type VenueValue = {
 	portion: string;
 };
 
-/**
- * The value metric of every item one pub sells, so its own best value rows can
- * be listed (cheapest per alcohol unit, most calories per pound, ...).
- */
 export const venueValues = (
 	cache: SpoonersCache,
 	ref: number | null,

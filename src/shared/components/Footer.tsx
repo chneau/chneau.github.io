@@ -6,7 +6,6 @@ type FooterProps = {
 	className?: string;
 };
 
-/** Shared page footer for the document-style apps (dashboard, CV, birthday). */
 export const Footer = ({ left, right, className }: FooterProps) => (
 	<footer className={["app-footer", className].filter(Boolean).join(" ")}>
 		<div className="app-footer__inner">

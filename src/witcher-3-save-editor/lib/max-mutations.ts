@@ -1,32 +1,3 @@
-/**
- * Max every Blood-and-Wine mutation, the way the game does.
- *
- * A mutation is "researched" when `GetMutationResearchProgress >= 100`, and that
- * reads the four `*Used` counters — which the engine recomputes on load
- * (`LoadMutationData`), so writing `overallProgress` alone does nothing. The
- * `*Used` fields are omitted from the stream at their default 0, so maxing them
- * is a **resize**, not a value patch.
- *
- * This rebuilds the player's `W3PlayerAbilityManager` object: for every
- * `SMutation`, each present `*Required` gets a matching `*Used` field (a 12-byte
- * record, `[u16 nameIdx][u16 typeIdx][u32 8][u32 value]`) inserted immediately
- * before it, with `value = required`. The field records are `size`-framed at
- * every level, so the enclosing `progress` field, the `mutations` field and the
- * `abilityManager` `PORP` length all grow by the inserted bytes, and the new
- * `*Used` names are appended to `MANU`. The `SC` span index and the enclosing
- * `SS`/`BLCK` frames are then repaired, exactly as the item insert does.
- *
- * `EPMT_MutationMaster` is skipped: its progress is derived from the count of
- * the others, and the game never writes `*Used` for it (verified against a
- * save the engine itself maxed).
- *
- * The saved enum `equippedMutation` (the one active mutation) is also written:
- * it lives between `isMutationSystemEnabled` and `mutations`, so it is inserted
- * just before the array — outside it, hence not part of the `mutations` growth.
- * Only one mutation is active at a time, so this is a single value, given by the
- * `equip` argument (the game's own maxing console command also equips).
- */
-
 import type { SaveContainer } from "./container";
 import { readU32 } from "./inner";
 import { readNameTable } from "./names";
@@ -86,7 +57,6 @@ const nameBytesOf = (names: readonly string[]): Uint8Array => {
 	return bytes;
 };
 
-/** The `BLCK`/`SS` frames on the path from a root down to `offset`. */
 const enclosing = (
 	data: Uint8Array,
 	offset: number,
@@ -145,7 +115,6 @@ const splice = (
 	return { out, shiftAt };
 };
 
-/** Grow every `SC` span that starts after, or encloses, any insertion. */
 const updateSpanIndex = (
 	original: Uint8Array,
 	out: Uint8Array,
@@ -215,7 +184,6 @@ const WANTED_USED = [
 	"skillpointsUsed",
 ] as const;
 
-/** The resized payload and its chunk table. */
 export const maxMutationsInPayload = (
 	container: Resizable,
 	equip: string = "EPMT_MutationMaster",
@@ -227,19 +195,6 @@ export const maxMutationsInPayload = (
 	const names = readNameTable(data).names;
 	const { tokens } = parseTokens(data, names);
 
-	// The player's ability manager is the nearest `W3PlayerAbilityManager`
-	// **before** `levelManager`, which occurs exactly once and only on the player.
-	//
-	// This used to be `tokens.find(...)` — the first match in the whole stream —
-	// and that is the wrong object on a save with many NPC managers. Measured:
-	// `11c607` holds **817** `abilityManager` tokens and `f949c` 794, and on both
-	// the first one belongs to an NPC 2.3 MB from the player's. The resize then
-	// inserted `*Used` fields into the NPC's object, grew the stream by the wrong
-	// amount (394 bytes against a predicted 310), and every edit read back `null`
-	// because `locateWritable` reads the player's object — the rebuild is refused
-	// as unsound, and had it been downloaded it would not have been the file asked
-	// for. The two agreed on the committed fixtures only because those saves have
-	// few enough managers that the player's is first.
 	const levelIndex = tokens.findIndex(
 		(t) =>
 			t.name === "levelManager" && t.value?.type === "handle:W3LevelManager",
@@ -282,30 +237,10 @@ export const maxMutationsInPayload = (
 		throw new Error("the player ability manager has no mutations array");
 	}
 
-	// `indexOfName` is the save's own table, for lookups of names that already
-	// exist (the `EPMT_MutationMaster` index the equipped record needs).
 	const indexOfName = new Map<string, number>();
 	for (const [i, name] of names.entries()) indexOfName.set(name, i + 1);
-	// `interned` is the names **this run appended**, kept apart on purpose — see
-	// `intern` below.
 	const interned = new Map<string, number>();
 	const usedNames: string[] = [];
-	/**
-	 * Append a `MANU` entry for `name` and return its 1-based index.
-	 *
-	 * Appends even when the name is already in the table, and that is the whole
-	 * point. It used to reuse the existing index, which made the writer's growth
-	 * disagree with the *plan's* prediction: the plan counts `1 + name.length` for
-	 * every name the resize needs, and on the reference saves all five (`redUsed`,
-	 * `blueUsed`, `greenUsed`, `skillpointsUsed`, `equippedMutation`) are already
-	 * interned, so the writer grew the stream 60 bytes less than the plan said and
-	 * `verifyRoundTrip` refused the rebuild as unsound.
-	 *
-	 * A duplicate symbol is harmless: `MANU` is a symbol pool and two entries with
-	 * the same text resolve to the same string through different indices. Within
-	 * one resize each distinct name is appended once, because `interned` records
-	 * the new index immediately, so the cost is bounded by the five names above.
-	 */
 	const intern = (name: string): number => {
 		const already = interned.get(name);
 		if (already !== undefined) return already;
@@ -316,7 +251,6 @@ export const maxMutationsInPayload = (
 	};
 	const inserts: Insert[] = [];
 	let total = 0;
-	/** The type index of `EPlayerMutationType`, read off the mutations themselves. */
 	let enumTypeIndex: number | undefined;
 	const progressGrowth: { offset: number; width: number; within: number }[] =
 		[];
@@ -328,15 +262,6 @@ export const maxMutationsInPayload = (
 		if (type === "EPMT_MutationMaster") continue;
 		const progress = findField(item.fields, "progress");
 		if (progress === undefined) continue;
-		// A `*Used` field that the stream already carries must not be inserted
-		// again. The loop below walks the `*Required` siblings, and every one of
-		// them got a `*Used` written for it regardless of whether that field was
-		// already there — so a partially-researched save (the two `11c607` files
-		// already hold 12 `*Used` fields) got 12 duplicate records, growing the
-		// stream by 144 bytes the plan had not predicted and leaving *two*
-		// `redUsed` fields whose offsets disagreed: the reader takes the first
-		// (`member` → `find`) and the writer patched the last (`Object.fromEntries`),
-		// so the value the user asked for read back as the old one.
 		const present = new Set(
 			(progress.value.fields ?? []).map((field) => field.name),
 		);
@@ -346,8 +271,6 @@ export const maxMutationsInPayload = (
 			const usedName = `${required.name.slice(0, -"Required".length)}Used`;
 			if (!(WANTED_USED as readonly string[]).includes(usedName)) continue;
 			if (present.has(usedName)) continue;
-			// The used record is 12 bytes, identical to the required one but with
-			// the used name and the same value.
 			const record = new Uint8Array(12);
 			const typeIndex = u16(data, required.offset - 6);
 			const value = u32(data, required.offset);
@@ -358,8 +281,6 @@ export const maxMutationsInPayload = (
 			record[3] = (typeIndex >>> 8) & 0xff;
 			writeU32(record, 4, 8);
 			writeU32(record, 8, value);
-			// The field is inserted in declaration order, immediately before its
-			// `*Required` sibling (the header is 8 bytes before the value).
 			inserts.push({ at: required.offset - 8, bytes: record });
 			total += record.length;
 			within += record.length;
@@ -372,18 +293,11 @@ export const maxMutationsInPayload = (
 			});
 		}
 	}
-	/** Only the `*Used` records live inside the `mutations` array. */
 	const usedTotal = total;
-	// Nothing to do when every counter is already maxed: the rebuild is only
-	// reached for a real resize, and the caller sizes the document from that.
 	if (inserts.length === 0) {
 		return { data, chunks: container.chunks };
 	}
 
-	// `equippedMutation` is the saved enum naming the one mutation that is active.
-	// It sits between `isMutationSystemEnabled` and `mutations` in the class, so it
-	// goes just before the `mutations` field — outside the array, which is why it
-	// is not part of `usedTotal`. The enum itself is stored as its `MANU` index.
 	const existingEquip = findField(object.fields, "equippedMutation");
 	let equippedRecord: Insert | undefined;
 	const equipValue = indexOfName.get(equip);
@@ -392,8 +306,6 @@ export const maxMutationsInPayload = (
 		enumTypeIndex !== undefined &&
 		equipValue !== undefined
 	) {
-		// A field record is an 8-byte header plus its value, so an enum with a
-		// 2-byte value is 10 bytes — not the 12 of an `Int32` `*Used` record.
 		const record = new Uint8Array(10);
 		const nameIndex = intern("equippedMutation");
 		record[0] = nameIndex & 0xff;
@@ -420,8 +332,6 @@ export const maxMutationsInPayload = (
 			: [];
 	if (equippedRecord !== undefined) inserts.push(equippedRecord);
 
-	// The names are appended to `MANU`, which sits after the ability manager, so
-	// they shift by the object's growth.
 	const { offset: manuStart, end: namesEnd } = namesEndOf(data);
 	const extraNames = nameBytesOf(usedNames);
 	const allInserts: Insert[] = [...inserts];
@@ -431,10 +341,6 @@ export const maxMutationsInPayload = (
 	const { out, shiftAt } = splice(data, allInserts);
 	const totalAll = total + extraNames.length;
 
-	// Field `size` = value length + 4. Grow the `progress` field by the records
-	// inserted inside it and the `mutations` field by all of them. The
-	// `abilityManager` `PORP` length is the object value length, so it grows by
-	// the same total.
 	writeU32(out, shiftAt(token.offset + 8), token.value.bytes.length + total);
 	writeU32(
 		out,
@@ -472,12 +378,3 @@ export const maxMutationsInPayload = (
 
 	return { data: out, chunks: rechunk(container, out.length) };
 };
-
-/*
- * A `maxMutations(container)` wrapper — this module's function with the whole
- * file rebuilt and returned as bytes — used to stand here, and is gone. Nothing
- * called it: the codec takes the resized payload and the new chunk records from
- * `maxMutationsInPayload` and builds the container itself, because it has to
- * patch values *after* the resize and so cannot hand the finished file back from
- * here. `buildContainer` is called exactly once, by the codec.
- */

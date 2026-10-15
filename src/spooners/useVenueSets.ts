@@ -16,7 +16,6 @@ import { makeScale, median, money } from "./price";
 import type { MapPoint, PricedVenue, SpoonersCache } from "./types";
 
 type FilterInput = {
-	/** Pubs priced for the round, in the display currency. */
 	displayVenues: PricedVenue[];
 	onlyComplete: boolean;
 	openNowOnly: boolean;
@@ -29,14 +28,6 @@ type FilterInput = {
 	roundQty: number;
 };
 
-/**
- * The pubs the filters keep, and the counts the sidebar and the legend read
- * off them.
- *
- * The counts are deliberately taken from the *complete* set rather than from
- * what is left after the switches: a switch labelled "Open now (214)" must
- * count the pubs it can switch away from, or the label changes as you use it.
- */
 export const useVenueFilter = ({
 	displayVenues,
 	onlyComplete,
@@ -49,7 +40,6 @@ export const useVenueFilter = ({
 	singleName,
 	roundQty,
 }: FilterInput) => {
-	// only compare pubs that can serve every item of the round
 	const completeVenues = useMemo(
 		() =>
 			onlyComplete
@@ -101,7 +91,6 @@ export const useVenueFilter = ({
 		[completeVenues, venueFilters],
 	);
 
-	// optional drill-down from an area marker / the area panel
 	const venues = useMemo(
 		() =>
 			areaFilter
@@ -173,7 +162,6 @@ export const useVenueFilter = ({
 	};
 };
 
-/** What an airport or travel venue charges, relative to everywhere else. */
 export const premiumInsight = (
 	completeVenues: PricedVenue[],
 	displayCurrency: string,
@@ -200,16 +188,9 @@ export const premiumInsight = (
 type UnpricedInput = {
 	data: SpoonersCache | null;
 	userLocation: { lat: number; lng: number } | null;
-	/** The same filters the priced markers follow. */
 	venueFilters: Parameters<typeof matchesVenueFilters>[1];
 };
 
-/**
- * Pubs whose menu is not published at all.
- *
- * The panel lists every one, whatever the map filters, while the grey markers
- * follow the filters — so the two lists are kept apart on purpose.
- */
 export const useUnpricedVenues = ({
 	data,
 	userLocation,
@@ -261,13 +242,11 @@ export const useUnpricedVenues = ({
 };
 
 type DiscoveryInput = {
-	/** The item index narrowed by the dietary filters. */
 	visibleIndex: Parameters<typeof rareItems>[0];
 	data: SpoonersCache | null;
 	userLocation: { lat: number; lng: number } | null;
 };
 
-/** Rare guest ales, new items, and who nearby is selling either. */
 export const useDiscovery = ({
 	visibleIndex,
 	data,
@@ -305,7 +284,6 @@ type AreaInput = {
 	displayCurrency: string;
 };
 
-/** The per-area medians, and the markers that stand in for them on the map. */
 export const useAreaLayers = ({ baseVenues, displayCurrency }: AreaInput) => {
 	const areas = useMemo(() => areaStats(baseVenues), [baseVenues]);
 	const areaPoints = useMemo<MapPoint[]>(

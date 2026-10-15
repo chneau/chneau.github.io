@@ -1,41 +1,6 @@
-/*
- * Design-system gallery — app-local layer.
- *
- * This file is deliberately small. The gallery documents the *shared* system,
- * so almost everything it draws comes from `shared/tokens.css` and
- * `shared/base.css`. The one thing it has to supply itself is the accent: the
- * shared layer treats `--app-accent` as a site-provided token (see
- * `src/shared/tests/tokens-theme.test.ts`), and every `var(--app-accent, …)`
- * read in `base.css` — the `:focus-visible` ring, `StatusDot`'s `--on` colour,
- * the app-card icon and arrow — falls back to the body text colour without it.
- *
- * Everything else here is gallery furniture. It is namespaced `design-*` /
- * `--design-*` rather than `app-*` so that the boundary between the shared
- * system and this one app is obvious in devtools, and so the shared token test
- * (which owns the `app-` namespace) stays unambiguous.
- */
-
 :root {
-	/*
-	 * The accent, wired to the Mantine primary ramp so the gallery documents a
-	 * real composition rather than a parallel one. `tokens-theme.test.ts` lists
-	 * the rest of the family — `--app-accent-hover`, `-ink`, `-line`, `-soft` —
-	 * as site-provided, but every one of them is read only as the *fallback*
-	 * behind a `--mantine-primary-color-*` value that Mantine always emits, so
-	 * defining them here would be dead code. `--app-accent` is the only one that
-	 * is genuinely load-bearing, which is exactly why the gallery is the app
-	 * that must not forget it.
-	 *
-	 * The value is only as good as the theme's `primaryShade`; see the note on
-	 * `appTheme` in `App.tsx`, which is chosen so the ring clears 3:1 against
-	 * `--app-bg` in *both* schemes.
-	 */
 	--app-accent: var(--mantine-primary-color-filled);
 }
-
-/* ── Page shell ──────────────────────────────────────────────────────────
-   Replaces what used to be a wall of inline `style` objects, so the values are
-   inspectable and overridable in one place. */
 
 .design-main {
 	flex: 1;
@@ -66,7 +31,6 @@
 	color: var(--app-text-muted);
 }
 
-/* A two-stop swatch, used by the colour-token cards. */
 .design-swatch-pair {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
@@ -104,14 +68,6 @@
 	border: 1px solid var(--app-border);
 }
 
-/* ── Motion demo ────────────────────────────────────────────────────────
-   Lives in the stylesheet on purpose. `shared/motion.ts` is explicit that an
-   inline `transition` style must never be reintroduced, because an inline
-   declaration outranks every author rule — including the global
-   `prefers-reduced-motion` reset in `base.css`. Driving the demo from a class
-   is what lets the shared reset actually reach it, which is the behaviour this
-   section is documenting. */
-
 .design-track {
 	width: 220px;
 	height: 44px;
@@ -135,29 +91,18 @@
 	transform: translateX(176px);
 }
 
-/*
- * The shared reset in `base.css` cannot reach this rule — see `auditMotion` in
- * `App.tsx`, which demonstrates why. The gallery is the reference
- * implementation, so it opts in explicitly rather than quietly demonstrating a
- * pattern that does not work. The correct fix belongs in the shared layer, at
- * a specificity that actually wins; this is the app-local half of it.
- */
 @media (prefers-reduced-motion: reduce) {
 	.design-thumb {
 		transition-duration: 0.001ms;
 	}
 }
 
-/* The shared `.app-rise` keyframe, shown next to the ones base.css owns so the
-   gallery demonstrates the motion vocabulary rather than just the slider. */
 .design-rise-demo {
 	padding: 12px 14px;
 	border-radius: var(--app-radius-sm);
 	background: var(--app-surface-2);
 	border: 1px solid var(--app-border);
 }
-
-/* ── Utilities section ─────────────────────────────────────────────────── */
 
 .design-utility {
 	display: flex;
@@ -183,11 +128,6 @@
 	flex-direction: column;
 	gap: 8px;
 }
-
-/* ── Audit panel ────────────────────────────────────────────────────────
-   The gallery audits itself. `runAudit` in `App.tsx` walks the live document
-   and writes its results into here; the `data-design-audit` attribute is what
-   the walker skips, so the report never reports on its own output. */
 
 .design-audit {
 	display: flex;
@@ -275,7 +215,6 @@
 	word-break: break-word;
 }
 
-/* A colour ratio reads as data, not prose, so it gets a fixed-width slot. */
 .design-audit__ratio {
 	font-family: var(--app-font-mono);
 	font-variant-numeric: tabular-nums;
@@ -294,6 +233,4 @@
 	overflow: hidden;
 	clip-path: inset(50%);
 	white-space: nowrap;
-	/* Never `display: none`: the audit has to be able to read the computed
-	   transition the shared reduced-motion reset leaves behind. */
 }

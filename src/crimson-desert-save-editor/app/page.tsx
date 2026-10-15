@@ -44,13 +44,6 @@ import {
 	storageSummaries,
 } from "../lib/staged-projection";
 
-/**
- * The title and the line under it for whatever is on screen.
- *
- * The two are one decision — a view has a name and a description together, and
- * inventing the inventory's is what made this worth a function: an inventory
- * with no storage chosen says something different from one with a save open.
- */
 const headingFor = ({
 	view,
 	hasSave,
@@ -85,15 +78,6 @@ const headingFor = ({
 	};
 };
 
-/**
- * What the command palette offers.
- *
- * The view commands only exist once a save is open, because jumping to a panel
- * with nothing to show is not a shortcut to anything. Building the list here
- * keeps that rule in one place: it was previously decided twice over, by an
- * `if (result)` in the loop and by the `Home` component re-rendering whenever a
- * staged edit did.
- */
 const buildCommands = ({
 	dark,
 	toggleTheme,
@@ -162,20 +146,8 @@ const buildCommands = ({
 	return list;
 };
 
-/**
- * The editor shell.
- *
- * It owns the three things the views genuinely share — the open session, the
- * staged edit list, and what the save parsed into — plus which view is on
- * screen. Everything else (the inventory's search, sort and selection, the
- * add-item drawer's destination and pick) lives in the view that uses it, so
- * an interaction re-renders that view rather than the whole page.
- */
 export const Home = () => {
 	const inputRef = useRef<HTMLInputElement>(null);
-	// The shared site-wide theme, not Mantine's own scheme: this editor shares
-	// its workbench with six others, and reading Mantine's key here meant a
-	// visitor's choice made in any of them was not honoured here.
 	const { dark, toggle } = useThemeMode();
 	const deepLink = useMemo(readDeepLink, []);
 	const [view, setView] = useState<SaveView>(deepLink.view);
@@ -183,7 +155,6 @@ export const Home = () => {
 		deepLink.storage,
 	);
 	const [addOpen, setAddOpen] = useState(false);
-	/** What a staged change just selected, so the inventory view follows it. */
 	const [focus, setFocus] = useState<InventoryFocus | null>(null);
 	const [edits, setEdits] = useState<SaveEdit[]>([]);
 	const {
@@ -213,24 +184,17 @@ export const Home = () => {
 	const companionCatalog = companionCatalogData as CompanionCatalog;
 	const [discardModalOpen, setDiscardModalOpen] = useState(false);
 	const [replaceModalOpen, setReplaceModalOpen] = useState(false);
-	/** A file the user picked while staged edits still need confirmation. */
 	const pendingFileRef = useRef<File | null>(null);
 	const [reviewOpen, setReviewOpen] = useState(false);
 	const [stagedMenuOpen, setStagedMenuOpen] = useState(false);
 	const [navOpened, navHandlers] = useDisclosure(false);
 	const isDesktop = useMediaQuery("(min-width: 48em)") ?? true;
-	// The palette's own "Keyboard shortcuts" command opens this dialog; the
-	// navbar's is mounted by `AppNav`, which keeps its instance to itself.
 	const shortcuts = useShortcutsHelp();
 	const palette = useCommandPalette();
 
 	useStagedEditGuards({ stagedCount: edits.length, setEdits });
 	useViewInUrl({ view, activeStorage });
 
-	// Staged edits are folded into the records the views display, so a change
-	// is visible before it is applied to the save. The folding is a pure
-	// derivation, so it lives outside React, where the tests can hold it to the
-	// appliers it previews.
 	const displayRecords = useMemo(
 		() =>
 			result ? projectRecords(result.records, edits, equipmentCatalog) : [],
@@ -242,7 +206,6 @@ export const Home = () => {
 		[displayRecords],
 	);
 
-	// How many distinct items the open storage holds, for the header subtitle.
 	const itemTypes = useMemo(
 		() => itemTypeCount(displayRecords, activeStorage),
 		[activeStorage, displayRecords],
@@ -277,14 +240,6 @@ export const Home = () => {
 		setFocus,
 	});
 
-	/**
-	 * Ask for confirmation before a file pick replaces staged work.
-	 *
-	 * `parseFile` clears the staged list and the open session as soon as it
-	 * starts, so an unguarded pick would silently discard every staged change.
-	 * The file is held until the user confirms; cancelling leaves the current
-	 * save and its edits untouched.
-	 */
 	const requestParseFile = useCallback(
 		(file: File) => {
 			if (edits.length === 0) {

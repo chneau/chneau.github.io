@@ -49,7 +49,6 @@ describe("valueLeaders", () => {
 	});
 
 	test("with a conversion it normalises before comparing", () => {
-		// Make €6 worth €3 in GBP terms, so the euro pub wins overall.
 		const leaders = valueLeaders(cache, {
 			metric: (_kind, value, currency) =>
 				currency === "EUR" ? value * 0.5 : value,
@@ -68,16 +67,13 @@ describe("venueOpenState", () => {
 		openingTimes: {
 			days: {},
 			dates: {
-				// Local (New York) calendar day: open.
 				"2024-06-01": { open: "10:00", close: "23:00" },
-				// UTC calendar day: closed - must be ignored.
 				"2024-06-02": { open: "00:00", close: "23:59", isClosed: true },
 			},
 		},
 	};
 
 	test("a one-off override is keyed on the local date, not UTC", () => {
-		// 22:30 on 2024-06-01 in New York == 02:30 UTC on 2024-06-02.
 		const now = new Date("2024-06-02T02:30:00Z");
 		const state = venueOpenState(detail, now);
 		expect(state.open).toBe(true);

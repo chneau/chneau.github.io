@@ -2,33 +2,14 @@ import type { MantineColorsTuple } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-// By path, not via the barrel: analytics is a side-effectful module and must
-// not be dragged onto every app that imports a single shared component.
 import { initAnalytics } from "./analytics";
 import { ThemedProvider } from "./components/ThemedProvider";
 import { initTheme } from "./hooks/useThemeMode";
 import { registerServiceWorker } from "./service-worker";
 import { createAppTheme } from "./theme";
 
-/**
- * The app id {@link initAnalytics} accepts, derived from its own parameter so a
- * new save editor cannot pass an id the analytics module has not been taught.
- */
 type AnalyticsApp = NonNullable<Parameters<typeof initAnalytics>[0]>;
 
-/**
- * The runtime bootstrap every save editor shares: build the themed tree from
- * the app's brand ramp, mount it into `#root`, and register analytics and the
- * service worker.
- *
- * The tree is deliberately not wrapped in StrictMode: it double-invokes every
- * render in development, and each save editor keeps all of its state in one
- * component, so that doubles the cost of every interaction while developing.
- *
- * Only the analytics id, the brand ramp and the app element differ between
- * editors; the CSS side-effect imports stay in each `app/main.tsx` because they
- * are per-editor and must run before the first paint.
- */
 export const mountApp = ({
 	analyticsId,
 	brand,
@@ -54,11 +35,8 @@ export const mountApp = ({
 		throw new Error("Root container #root was not found in index.html.");
 	}
 
-	// Site-wide analytics and offline support. Neither touches save data.
 	initAnalytics(analyticsId);
 	registerServiceWorker();
-	// Before the first paint, so the token layer is already correct when the
-	// document is first rendered rather than being corrected a frame later.
 	initTheme();
 
 	const tree = (
@@ -69,7 +47,6 @@ export const mountApp = ({
 	);
 
 	if (import.meta.hot) {
-		// Reuse the root across hot updates so React state survives HMR.
 		import.meta.hot.data.root ??= createRoot(container);
 		import.meta.hot.data.root.render(tree);
 	} else {

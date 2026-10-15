@@ -1,10 +1,4 @@
-/**
- * The URL is the app's state: everything that changes what you see is encoded
- * in the query string, so any view can be shared or bookmarked.
- */
-
 type UrlState = {
-	/** Legacy single-item link; the round supersedes it. */
 	item?: string;
 	cur?: string;
 	filters?: string[];
@@ -12,15 +6,10 @@ type UrlState = {
 	open?: boolean;
 	special?: boolean;
 	closed?: boolean;
-	/** Only pubs that can serve the whole round (default true). */
 	complete?: boolean;
-	/** Serialised round, e.g. "Guinness:2,Budweiser:1". */
 	round?: string;
-	/** Focused venue ref. */
 	venue?: number;
-	/** Map/ranking mode: "pubs" | "area". */
 	view?: string;
-	/** Only show pubs in this county/town. */
 	area?: string;
 	lat?: number;
 	lng?: number;
@@ -48,7 +37,6 @@ const number = (params: URLSearchParams, key: string): number | undefined => {
 	return Number.isFinite(parsed) ? parsed : undefined;
 };
 
-/** "1" -> true, "0" -> false, absent -> undefined (use the default). */
 const bool = (params: URLSearchParams, key: string): boolean | undefined => {
 	const value = params.get(key);
 	return value == null ? undefined : value === "1";
@@ -82,7 +70,6 @@ const buildQuery = (state: UrlState): string => {
 			params.set(key, String(value));
 		}
 	};
-	// "item" is read for legacy links but never written; the round supersedes it.
 	put("cur", state.cur);
 	put("filters", state.filters?.join(","));
 	put("facilities", state.facilities?.join(","));

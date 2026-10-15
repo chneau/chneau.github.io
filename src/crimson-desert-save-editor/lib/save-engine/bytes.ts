@@ -1,26 +1,5 @@
-/**
- * Little-endian binary helpers shared by the TypeScript save engine.
- *
- * Port of the `struct` usage from the original Python engine. All integer
- * reads return plain `number`s except the 64-bit variants, which use `bigint`
- * so sentinel values such as `0xFFFFFFFFFFFFFFFF` stay exact.
- *
- * The accessors here are deliberately unchecked: Python's `struct.unpack_from`
- * raises on a short buffer, but the port replaced that with `?? 0` so the read
- * helpers stay branch-free on the hot parse path. That makes an out-of-bounds
- * read *silent*, so every parser must establish that its range is in bounds
- * first — `requireBytes` below is the boundary check to use. Corruption that
- * slips past it is caught as a parse error rather than as a bogus value.
- */
-
 const textDecoder = new TextDecoder("utf-8");
 
-/**
- * Whether `[offset, offset + size)` lies fully inside `data`.
- *
- * Parsers call this before a run of reads so a truncated or hostile payload
- * fails loudly instead of being silently misread as zeros.
- */
 export const hasBytes = (
 	data: Uint8Array,
 	offset: number,
@@ -32,11 +11,6 @@ export const hasBytes = (
 	size >= 0 &&
 	offset + size <= data.length;
 
-/**
- * Throws a `RangeError` when `[offset, offset + size)` is not fully inside
- * `data`. `context` names the field, so the message a user sees points at what
- * was being read when the payload ran out.
- */
 export const requireBytes = (
 	data: Uint8Array,
 	offset: number,
@@ -157,21 +131,12 @@ export const writeI64 = (
 	writeU64(data, offset, value);
 };
 
-/** Packs an integer into the 8-byte little-endian form the save uses. */
 export const packU64 = (value: number | bigint): Uint8Array => {
 	const buffer = new Uint8Array(8);
 	writeU64(buffer, 0, BigInt(value));
 	return buffer;
 };
 
-/**
- * The generic byte helpers now come from `shared/save/bytes.ts`, so this engine
- * keeps one implementation rather than its own copy. They are re-exported here
- * because every consumer in this app imports them from './bytes' alongside the
- * offset-based readers below, and splitting that import for no behavioural
- * reason would be churn. `fromHex` is the validating one: an odd-length or
- * non-hex string throws instead of silently producing `NaN` bytes.
- */
 export {
 	bytesEqual,
 	concatBytes,

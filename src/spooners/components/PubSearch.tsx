@@ -11,17 +11,11 @@ type Props = {
 
 const LIMIT = 60;
 
-/** Search pubs by name, town or postcode, and open their page. */
 export const PubSearch = ({ venues, onSelect, label }: Props) => {
 	const [opened, setOpened] = useState(false);
 	const [query, setQuery] = useState("");
 	const [highlight, setHighlight] = useState(0);
 	const viewportRef = useRef<HTMLDivElement>(null);
-	/**
-	 * True between `compositionstart` and `compositionend`. Enter is how a CJK
-	 * user accepts the candidate the IME is offering, so an unguarded Enter
-	 * handler opens a pub matched by an uncommitted reading.
-	 */
 	const composing = useRef(false);
 	const listboxId = useId();
 	const optionId = (index: number) => `${listboxId}-option-${index}`;
@@ -44,7 +38,6 @@ export const PubSearch = ({ venues, onSelect, label }: Props) => {
 	const results = filtered.slice(0, LIMIT);
 	const truncated = filtered.length > results.length;
 
-	// reset the highlight whenever the result set changes
 	useEffect(() => {
 		setHighlight(0);
 		if (viewportRef.current) {
@@ -52,7 +45,6 @@ export const PubSearch = ({ venues, onSelect, label }: Props) => {
 		}
 	}, [query]);
 
-	// keep the highlighted row in view as the user arrows through
 	useEffect(() => {
 		viewportRef.current
 			?.querySelector(`[data-index="${highlight}"]`)
@@ -124,8 +116,6 @@ export const PubSearch = ({ venues, onSelect, label }: Props) => {
 						}
 					}}
 					onKeyDown={(event) => {
-						// While the IME is composing, Enter and the arrows belong to the
-						// candidate window; acting on them opens the wrong pub.
 						if (composing.current) return;
 						if (event.key === "ArrowDown") {
 							event.preventDefault();

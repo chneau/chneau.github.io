@@ -2,13 +2,6 @@ import { Alert, Button, Text, TextInput } from "@mantine/core";
 import type { InventoryRecord } from "../lib/inventory";
 import type { QuantityEdit } from "../lib/staged-edits";
 
-/**
- * The editor for a stack that has no equipment to refine.
- *
- * Its own component because it is a genuinely different job from the workshop:
- * there are no sockets and no rules, so the workshop would show a reader a form
- * full of controls that do not apply to a stack of arrows.
- */
 export const QuantityEditor = ({
 	record,
 	staged,
@@ -17,14 +10,11 @@ export const QuantityEditor = ({
 	onStage,
 }: {
 	record: InventoryRecord;
-	/** The queued quantity change, when the reader has staged one. */
 	staged: QuantityEdit | undefined;
 	displayedQuantity: string;
 	onQuantityChange: (value: string) => void;
 	onStage: () => void;
 }) => (
-	// A fragment, not a `Stack`: the drawer already spaces its children, and a
-	// nested stack would put a second gap between these controls.
 	<>
 		<TextInput
 			label="Quantity"

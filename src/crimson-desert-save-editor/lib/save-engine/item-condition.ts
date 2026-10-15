@@ -1,19 +1,3 @@
-/**
- * An item's wear: endurance, sharpness and the charges a useable item has left.
- *
- * These are plain scalars on `ItemSaveData`, so they are written in place and
- * proved like any other field. Two details shape the API:
- *
- *   - every field is optional in the record's presence mask. Endurance is
- *     stored on every item in both fixtures, sharpness only on the 26 and 120
- *     items that can be sharpened, and a naturally acquired item often omits a
- *     charge count that still holds its default. A field the record does not
- *     carry is reported as `null` rather than as zero, so the editor offers it
- *     only where the save can actually hold it;
- *   - `_chargedUseableCount` is the *remaining* uses and `_maxChargeUseableCount`
- *     the cap, and the game derives the two independently, so both are editable.
- */
-
 import { type DecodedSave, decodeSave } from "./container";
 import {
 	findInventoryRecord,
@@ -23,7 +7,6 @@ import {
 import { patchScalars, type ScalarWrite } from "./scalar-patch";
 import { commitSave } from "./transaction";
 
-/** The wear fields of one item, `null` where the record does not store them. */
 type ItemCondition = {
 	endurance: number | null;
 	sharpness: number | null;
@@ -31,7 +14,6 @@ type ItemCondition = {
 	maxChargedUses: number | null;
 };
 
-/** Highest value each field can hold, matching its serialized width. */
 const conditionLimits = {
 	endurance: 65535,
 	sharpness: 65535,
@@ -54,14 +36,12 @@ const describeCondition = (record: InventoryRecord): ItemCondition => {
 	};
 };
 
-/** A condition change, plus the names the staged list shows. */
 export type ItemConditionEdit = {
 	type: "condition";
 	inventoryKey: number;
 	slotNo: number;
 	itemKey: number;
 	itemName: string;
-	/** `null` leaves the field as it is. */
 	endurance: number | null;
 	sharpness: number | null;
 	chargedUses: number | null;
@@ -93,7 +73,6 @@ const FIELDS: Array<{
 	},
 ];
 
-/** Rewrites the wear fields the caller asked for. */
 export const applyItemCondition = async (
 	sourceBytes: Uint8Array,
 	edit: ItemConditionEdit,
@@ -107,7 +86,6 @@ export const applyItemCondition = async (
 	});
 	const current = describeCondition(before);
 	const writes: ScalarWrite[] = [];
-	/** What the caller asked for, kept with the field name for the proof. */
 	const requested: Array<{
 		key: keyof ItemCondition;
 		name: string;
@@ -195,7 +173,6 @@ export const applyItemCondition = async (
 	];
 };
 
-/** One item the editor can change, with the wear it currently has. */
 export type ConditionEntry = {
 	inventoryKey: number;
 	slotNo: number;
@@ -213,11 +190,6 @@ export type ConditionDescription = {
 const hasCondition = (condition: ItemCondition): boolean =>
 	Object.values(condition).some((value) => value !== null);
 
-/**
- * Every item whose record stores a wear field, so the editor can list them
- * without walking the payload again. Items that store none — currency, most
- * materials — are left out rather than shown as uneditable rows.
- */
 export const describeItemConditions = async (
 	save: DecodedSave,
 ): Promise<ConditionDescription> => {

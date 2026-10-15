@@ -4,12 +4,10 @@ type AppHeaderProps = {
 	brand: ReactNode;
 	center?: ReactNode;
 	actions?: ReactNode;
-	/** Drop sticky positioning when the header sits inside a fixed layout. */
 	staticPosition?: boolean;
 	className?: string;
 };
 
-/** The one shared top bar. Brand left, optional centre, actions right. */
 export const AppHeader = ({
 	brand,
 	center,

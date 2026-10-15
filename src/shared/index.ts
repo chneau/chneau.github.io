@@ -40,11 +40,6 @@ export {
 } from "./hooks/useThemeMode";
 export { prefersReducedMotion } from "./motion";
 export { usePinnedApps, useRecents } from "./recent";
-// The save-editing framework, re-exported from one barrel so a game's codec is
-// a single import. Deliberately not exhaustive: the workbench components and
-// the byte/JSON helpers are imported from their own modules by the code that
-// needs them, and a re-export nothing imports is dead weight `check:export`
-// rightly refuses. Add a name here when an app reaches for the barrel.
 export {
 	ByteReader,
 	type Bytes,
@@ -88,9 +83,6 @@ export {
 	setAtPath,
 	stringAt,
 } from "./save/json";
-// `lz4CompressBound` and `lz4StoredBlock` are deliberately NOT re-exported:
-// nothing in an app calls them. They exist for the codecs' output sizing and
-// for the container-bookkeeping tests, which import them from the module path.
 export { lz4CompressBlock, lz4DecompressBlock } from "./save/lz4";
 export { yieldToBrowser } from "./save/macrotask";
 export { verifyRoundTrip } from "./save/roundtrip";

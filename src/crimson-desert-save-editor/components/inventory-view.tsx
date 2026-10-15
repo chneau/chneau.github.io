@@ -58,7 +58,6 @@ import { EquipmentEditorDrawer } from "./equipment-editor-drawer";
 import { ItemRow } from "./item-row";
 import { Picture } from "./picture";
 
-/** Where a staged change just put something, so the view selects it. */
 export type InventoryFocus = { itemKey: number; slotNo: number | null };
 
 type SortColumn = "name" | "category" | "quantity";
@@ -89,13 +88,6 @@ const sortState = (
 	return direction === "asc" ? ("ascending" as const) : ("descending" as const);
 };
 
-/**
- * Swap this storage's staged equipment edits for a freshly planned set.
- *
- * One pass replaces whatever the storage had staged, so pressing either button
- * twice matches pressing it once: the new plan is built from the save's own
- * records, not from the previously staged edits.
- */
 const replaceStorageEquipment = (
 	current: SaveEdit[],
 	staged: EquipmentEdit[],
@@ -107,7 +99,6 @@ const replaceStorageEquipment = (
 	...staged,
 ];
 
-/** The clickable heading of one sortable column. */
 const SortButton = ({
 	column,
 	label,
@@ -137,19 +128,11 @@ const SortButton = ({
 	</UnstyledButton>
 );
 
-/**
- * One detail row: a label, and the value that answers it.
- *
- * A component because the pane stacks a dozen of these and the divider under
- * each was written out every time — which is how a row ends up without its
- * border and the column reads as one block.
- */
 const DetailRow = ({
 	icon,
 	label,
 	value,
 }: {
-	/** A marker for the row, where the detail has one. */
 	icon?: ReactNode;
 	label: string;
 	value: ReactNode;
@@ -169,16 +152,6 @@ const DetailRow = ({
 	</Group>
 );
 
-/**
- * The quantity editor: which copy of a stack, what is already staged, and the
- * field that stages more.
- *
- * Its own component because it is one of three mutually exclusive editors the
- * details pane offers — the others are the staged-addition note and the
- * refinement summary — and it is by far the largest of the three. Splitting it
- * out is what lets the pane's branch read as a choice between editors rather
- * than as three editors written one after another.
- */
 const QuantityEditorPanel = ({
 	item,
 	record,
@@ -274,16 +247,6 @@ const QuantityEditorPanel = ({
 	</Alert>
 );
 
-/**
- * The pane that describes whatever the table has selected: what the item is,
- * where it sits, and the one editor its record admits.
- *
- * It is a component because it has two call sites — the wide layout's own column
- * and, on a narrow one, the details drawer — not one. Which of the three
- * editors applies is decided here rather than in the view, because it is
- * decided by what the record is, and leaving that decision in the view meant
- * the quantity editor's whole markup sat inline beside the branch choosing it.
- */
 const ItemDetails = ({
 	item,
 	record,
@@ -299,7 +262,6 @@ const ItemDetails = ({
 }: {
 	item: GroupedItem | null;
 	record: InventoryRecord | null;
-	/** Filled and unlocked socket counts, when the item has sockets at all. */
 	sockets: ReturnType<typeof itemSocketSummary>;
 	activeStorage: number | null;
 	busy: boolean;
@@ -461,15 +423,6 @@ const ItemDetails = ({
 	);
 };
 
-/**
- * The save's own record for a projected one, matched on all three of its keys.
- *
- * `records` has the staged edits folded in and `savedRecords` has not, and
- * several places need the before — the equipment editor edits the save's record,
- * not the projection, or reopening the editor would show the user's own staged
- * change as though it were already in the file. A projected record with no
- * counterpart is a staged addition, which has no save record at all.
- */
 const savedRecordFor = (
 	savedRecords: InventoryRecord[],
 	record: InventoryRecord | null,
@@ -483,7 +436,6 @@ const savedRecordFor = (
 			)
 		: undefined;
 
-/** The staged equipment edit for a record's own slot, if the user has made one. */
 const equipmentEditFor = (
 	edits: SaveEdit[],
 	record: InventoryRecord | null,
@@ -498,13 +450,6 @@ const equipmentEditFor = (
 			)
 		: undefined;
 
-/**
- * The staged *addition* for a record's item, if the user has added one.
- *
- * Matched without a slot: an addition has no record yet, so there is nothing to
- * match a slot against, and a save holding the same item twice as an addition
- * has one addition, not two.
- */
 const equipmentAdditionFor = (
 	edits: SaveEdit[],
 	record: InventoryRecord | null,
@@ -518,7 +463,6 @@ const equipmentAdditionFor = (
 			)
 		: undefined;
 
-/** The staged quantity edit for a record, if the user has changed its count. */
 const quantityEditFor = (
 	edits: SaveEdit[],
 	record: InventoryRecord | null,
@@ -532,14 +476,6 @@ const quantityEditFor = (
 			)
 		: undefined;
 
-/**
- * Fold a quantity change into the staged edits, replacing any earlier one for
- * the same record; passing `null` only removes.
- *
- * Removing on a no-op is deliberate: staging the figure the save already holds
- * must clear the row from the staged list rather than leave it there looking
- * like a pending change that the next download would apply.
- */
 const applyQuantityEdit = (
 	current: SaveEdit[],
 	edit: QuantityEdit | null,
@@ -556,13 +492,6 @@ const applyQuantityEdit = (
 	return edit === null ? remaining : [...remaining, edit];
 };
 
-/**
- * The sort the next click on a column's heading asks for.
- *
- * Clicking the column already sorted on flips the direction and nothing else;
- * clicking a different one sorts it, and quantity starts descending because
- * "most of it first" is the useful default for a count.
- */
 const nextSort = (
 	column: SortColumn,
 	sortBy: SortColumn,
@@ -572,7 +501,6 @@ const nextSort = (
 		? { column, direction: direction === "asc" ? "desc" : "asc" }
 		: { column, direction: column === "quantity" ? "desc" : "asc" };
 
-/** Every category the storage holds items of, in a stable order. */
 const categoriesIn = (items: GroupedItem[]): string[] => {
 	const categories = new Set<string>();
 	for (const item of items) {
@@ -581,15 +509,6 @@ const categoriesIn = (items: GroupedItem[]): string[] => {
 	return Array.from(categories).sort();
 };
 
-/**
- * The rows the search and the category pill leave behind.
- *
- * A storage can hold thousands of item types, so this runs on every keystroke
- * and the order of the two tests matters: a category pill that does not match is
- * excluded before the text is consulted, because the pills and the text are two
- * filters over one list and neither should be able to bring back a row the other
- * removed.
- */
 const filterItems = (
 	items: GroupedItem[],
 	query: string,
@@ -609,14 +528,6 @@ const filterItems = (
 	});
 };
 
-/**
- * The rows in the order the chosen column asks for.
- *
- * Quantity is compared numerically — a stack of 9 must not sort above a stack of
- * 10 — and every comparison falls back to the name, so the order is total and
- * two rows with equal quantities never swap places between renders. A row that
- * moved because its neighbour changed is a row whose selection moves with it.
- */
 const sortItems = (
 	items: GroupedItem[],
 	sortBy: SortColumn,
@@ -639,14 +550,6 @@ const sortItems = (
 	});
 };
 
-/**
- * The bar above the table: the search, how much of the storage it left, and the
- * three actions that act on more than one item.
- *
- * Its own component because the actions it holds are whole-storage operations —
- * two planners and the details drawer — and having them in the view's body put
- * a `Modal` and its confirmation copy between the view's state and the table.
- */
 const StorageToolbar = ({
 	query,
 	onQueryChange,
@@ -665,7 +568,6 @@ const StorageToolbar = ({
 	onQueryChange: (value: string) => void;
 	visibleCount: number;
 	totalCount: number;
-	/** An item is selected, so there is something to show details for. */
 	selected: boolean;
 	activeStorage: number | null;
 	savedRecords: InventoryRecord[];
@@ -733,29 +635,15 @@ const StorageToolbar = ({
 	</Group>
 );
 
-/**
- * What the table's selection means: the item, the copy of it, and every staged
- * edit that belongs to that copy.
- *
- * These answers are one question asked nine ways, and four different parts of
- * the view branch on them together — the details pane, the equipment drawer and
- * the quantity editor all need the same record and the same three edits.
- * Deriving them in one place is what stops a reader having to reconstruct which
- * `.find` each of them used, and stops them drifting apart.
- */
 type Selection = {
 	item: GroupedItem | null;
 	record: InventoryRecord | null;
-	/** Filled and unlocked socket counts, when the item has sockets at all. */
 	sockets: ReturnType<typeof itemSocketSummary>;
-	/** The save's own record for `record`, before any staged edit. */
 	savedRecord: InventoryRecord | undefined;
 	stagedEquipment: EquipmentEdit | undefined;
 	addition: InsertEquipmentEdit | undefined;
-	/** The catalog entry for the added item, which has no save record. */
 	additionDefinition: EquipmentCatalog["items"][string] | undefined;
 	stagedEdit: QuantityEdit | undefined;
-	/** What the quantity field shows: the user's draft, else the staged figure. */
 	displayedQuantity: string;
 };
 
@@ -801,28 +689,11 @@ const selectionFor = ({
 	};
 };
 
-/**
- * Why this quantity cannot be staged for this record, or `null` when it can.
- *
- * The same range the add-item drawer accepts, stated once per surface rather
- * than invented twice: a whole number the engine's stack size can hold.
- */
 const quantityRangeError = (quantity: number): string | null =>
 	Number.isInteger(quantity) && quantity >= 1 && quantity <= 999_999_999
 		? null
 		: "Quantity must be a whole number from 1 to 999,999,999.";
 
-/**
- * Where the details pane lives: its own column on a wide screen, a drawer on a
- * narrow one.
- *
- * Both hosts render the same pane and only one is ever on screen, so the choice
- * belongs in one place rather than in two `isWide ? … : …` expressions the view
- * has to keep in agreement. The drawer stays mounted and closed on a wide
- * screen rather than being dropped: `hiddenFrom`/`visibleFrom` already hide it,
- * and remounting it would throw away the pane's own state each time the
- * breakpoint moved.
- */
 const DetailsSurface = ({
 	isWide,
 	opened,
@@ -851,25 +722,9 @@ const DetailsSurface = ({
 	</>
 );
 
-/**
- * Whether a record's stack has a count worth editing at all.
- *
- * Only a plain stack does: an item with gear is one unit, a staged addition has
- * no save record yet, and a gear-less item is held once however the game counts
- * it. Offering a quantity field for any of those would stage a change the engine
- * would refuse, so the field and this check agree by construction.
- */
 const canEditQuantity = (record: InventoryRecord): boolean =>
 	!record.equipment && !record.staged && !record.noGearToEdit;
 
-/**
- * The quantity edit this record should carry, or `null` to clear it.
- *
- * `expectedQuantity` is the figure the *file* holds, not the projected one: the
- * applier compares against it to refuse a change the save does not need, and
- * comparing against a quantity already staged would make the second press of
- * Stage look like a no-op.
- */
 const stagedQuantityChange = (
 	record: InventoryRecord,
 	item: GroupedItem,
@@ -889,22 +744,12 @@ const stagedQuantityChange = (
 			};
 };
 
-/** A whole-storage equipment plan, waiting for the user to confirm it. */
 type BulkConfirm = {
 	type: "max" | "random";
 	count: number;
 	plannedEdits: EquipmentEdit[];
 };
 
-/**
- * The two storage-wide planners, and the confirm each one opens.
- *
- * One component because the buttons and the modal are one action with two
- * possible bodies: pressing either plans over the whole storage and then asks
- * what the plan will do before anything is staged, and both halves were
- * otherwise written out twice — once per planner, including the plan call
- * itself.
- */
 const BulkEquipmentPlanner = ({
 	activeStorage,
 	savedRecords,
@@ -1017,13 +862,6 @@ const BulkEquipmentPlanner = ({
 	);
 };
 
-/**
- * The quick category filters under the toolbar.
- *
- * Its own component because the pills and the "All" pill are the same control
- * with a different value, and writing "All" separately is how a filter that
- * clears the category ends up not clearing it.
- */
 const CategoryFilterBar = ({
 	items,
 	categories,
@@ -1078,14 +916,6 @@ const CategoryFilterBar = ({
 	</Box>
 );
 
-/**
- * The staged equipment changes for this save, each with a way to drop it.
- *
- * Its own component because it is the one place the editor reports work the
- * user has queued but not downloaded, and it filters the whole edit list down
- * to the two equipment kinds before doing anything else — a filter that lived
- * in the view was applied to every render of the table for every item type.
- */
 const StagedEquipmentList = ({
 	edits,
 	busy,
@@ -1150,16 +980,6 @@ const StagedEquipmentList = ({
 	);
 };
 
-/**
- * The item table: the sortable headings, one row per item type, and the
- * placeholder for a search that matched nothing.
- *
- * Its own component so the view's body is the layout around the table rather
- * than the layout plus a hundred lines of columns, and so the `colSpan` of the
- * empty row and the header live beside each other — they are the same four
- * columns, and writing a bare `4` in one place and four headings in the other
- * is how they come to disagree.
- */
 const ItemTable = ({
 	items,
 	selectedKey,
@@ -1252,19 +1072,8 @@ const ItemTable = ({
 	</Box>
 );
 
-/**
- * One storage location: the searchable item table, the details of whatever is
- * selected, and the equipment editor for it.
- *
- * The view owns its own search, sort and selection. That is the point of the
- * split: a keystroke here re-renders this view, not the sidebar, the header or
- * the other drawers. The page only tells it what changed elsewhere — which
- * storage is open, and which item a staged change should reveal.
- */
 type InventoryViewProps = {
-	/** Every record, with staged edits already folded in. */
 	records: InventoryRecord[];
-	/** The save's own records, before any staged edit was folded in. */
 	savedRecords: InventoryRecord[];
 	activeStorage: number | null;
 	catalog: Catalog | null;
@@ -1275,7 +1084,6 @@ type InventoryViewProps = {
 	setError: Dispatch<SetStateAction<string>>;
 	busy: boolean;
 	focus: InventoryFocus | null;
-	/** Another view is on screen; this one keeps its state but is not drawn. */
 	hidden: boolean;
 	onStageEquipment: (edit: EquipmentEdit | InsertEquipmentEdit) => void;
 };
@@ -1304,26 +1112,9 @@ export const InventoryView = ({
 	const [quantityDraft, setQuantityDraft] = useState("");
 	const [editorOpen, setEditorOpen] = useState(false);
 	const [detailsOpen, setDetailsOpen] = useState(false);
-	/** The details pane has its own column only from the `xl` breakpoint. */
 	const isWide = useMediaQuery("(min-width: 75em)") ?? true;
 	const [bulkConfirm, setBulkConfirm] = useState<BulkConfirm | null>(null);
 
-	// Opening another location starts a fresh browse; a staged change re-points
-	// the selection at what was just staged. Both arrive as props, so they are
-	// applied in one place instead of from every caller.
-	//
-	// Applied while rendering rather than in an effect, for the reason
-	// `add-item-drawer.tsx` gives: an effect runs after the browser has already
-	// painted, so the table would show one frame of the previous location's
-	// selection — and the item the page just asked to reveal would appear a
-	// frame late. The guard is the last `focus` this view acted on, which is
-	// what React's "adjusting state when a prop changes" pattern is for: the
-	// page holds `focus` in state, so its identity only changes when the page
-	// means something new by it.
-	//
-	// Only what `focus` decides is reset. The sort column and direction are the
-	// user's own choice and are left alone — resetting all of it because one
-	// prop moved would throw away a preference nobody asked to lose.
 	const [appliedFocus, setAppliedFocus] = useState(focus);
 	if (appliedFocus !== focus) {
 		setAppliedFocus(focus);
@@ -1335,10 +1126,6 @@ export const InventoryView = ({
 		setSelectedCategory("all");
 	}
 
-	// The drawers are portalled, so hiding this view would not hide them: they
-	// would stay on screen over whatever replaced it. Closed during the same
-	// render that hides the view, so there is no frame in which the view is
-	// gone and its drawer is not.
 	const [wasHidden, setWasHidden] = useState(hidden);
 	if (wasHidden !== hidden) {
 		setWasHidden(hidden);
@@ -1368,7 +1155,6 @@ export const InventoryView = ({
 		[sortBy, sortDirection, visibleItems],
 	);
 
-	/** The catalog name a staged equipment edit reports to the staged list. */
 	const equipmentName = useCallback(
 		(itemKey: number) =>
 			catalog?.items[String(itemKey)]?.name ?? `Item ${itemKey}`,
@@ -1404,7 +1190,6 @@ export const InventoryView = ({
 		[edits],
 	);
 
-	// Stable row handlers, so memoized rows only re-render when they change.
 	const selectItem = useCallback(
 		(item: GroupedItem) => {
 			setSelectedKey(item.itemKey);
@@ -1496,7 +1281,6 @@ export const InventoryView = ({
 					onShowDetails={() => setDetailsOpen(true)}
 				/>
 
-				{/* Quick Category Filter Pills */}
 				{availableCategories.length > 1 && (
 					<CategoryFilterBar
 						items={items}

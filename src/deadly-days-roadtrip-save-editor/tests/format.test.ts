@@ -19,17 +19,6 @@ import {
 	writeGuid,
 } from "../lib/properties";
 
-/**
- * The two committed saves this codec was written against.
- *
- * They are not in this repository, and deliberately not copied into it: a save
- * file inside a published site is somebody's playthrough, and there is no
- * version of "ship a copy" that is worth the size. They live in the sibling
- * checkout the reverse engineering came out of, so this suite reads them from
- * there — and skips itself when that checkout is not there, because a suite that
- * failed for want of a file on another disk would be a red build saying nothing
- * about the codec.
- */
 const FIXTURE_DIRECTORY = fileURLToPath(
 	new URL(
 		"../../../../testing/testing-decrypt-deadly-days-roadtrip-savegame/",
@@ -55,13 +44,6 @@ const required = (bytes: Bytes | null): Bytes => {
 
 const decode = (bytes: Bytes): Promise<JsonValue> => deadlyDays.decode(bytes);
 
-/**
- * Replaces one byte in a copy of `bytes`.
- *
- * The only way to reach the raw byte-pattern fallback from a test without
- * inventing a save: break one subsystem's payload so it stops being a property
- * list, while leaving the name and type strings it is searched by intact.
- */
 const withByte = (bytes: Bytes, at: number, value: number): Bytes => {
 	const copy = bytes.slice();
 	const existing = copy[at];
@@ -70,33 +52,30 @@ const withByte = (bytes: Bytes, at: number, value: number): Bytes => {
 	return copy;
 };
 
-/** A minimal but genuinely valid save, for the assertions that need no fixture. */
 const tinySave = (): Bytes => {
 	const writer = new UnrealWriter();
 	writer.latin1("GVAS");
-	writer.i32(3); // SaveGameFileVersion
-	writer.i32(522); // SaveGameVersion
-	writer.i32(1018); // PackageFileUE5Version
+	writer.i32(3);
+	writer.i32(522);
+	writer.i32(1018);
 	writer.u16(5);
 	writer.u16(7);
 	writer.u16(4);
 	writer.u32(51_494_982);
 	writer.fString("++UE5+Release-5.7");
-	writer.i32(3); // CustomVersionFormat
+	writer.i32(3);
 	writer.i32(1);
 	writeGuid(writer, "9c54d522-a826-4fbe-9421-074661b482d0");
 	writer.i32(44);
 	writer.fString("/Script/PixelsplitSaveSystem.PixelSaveGame");
-	writer.u8(0); // the unlabelled byte between the class name and the list
+	writer.u8(0);
 	writer.fString("Balance");
 	writer.fString("IntProperty");
-	writer.i32(0); // array index
-	writer.i32(4); // size, excluding the hasGuid byte
-	writer.u8(0); // hasGuid
+	writer.i32(0);
+	writer.i32(4);
+	writer.u8(0);
 	writer.i32(17);
 	writer.fString("None");
-	// Copied into a fresh buffer so the result is a `Bytes`: the shared writer
-	// hands back the element-less `Uint8Array`, which is not one.
 	return new Uint8Array(writer.finish());
 };
 
@@ -110,7 +89,6 @@ describe("Deadly Days: Roadtrip codec", () => {
 
 	test("says so plainly when the file is not an Unreal save", async () => {
 		const notASave = new Uint8Array(64);
-		// A zip file's magic, which is what a renamed .sav usually is.
 		notASave.set([0x50, 0x4b, 0x03, 0x04], 0);
 		await expect(decode(notASave)).rejects.toThrow(/rather than "GVAS"/);
 	});
@@ -129,11 +107,6 @@ describe("Deadly Days: Roadtrip codec", () => {
 	});
 });
 
-/**
- * The path to `CharacterMetaLevel`'s roster, spelled out rather than looked up,
- * so that a change to the document's shape fails here instead of quietly testing
- * something else. Entry sixteen of `SaveDataMap` is the seventeenth subsystem.
- */
 const ROSTER: readonly (string | number)[] = [
 	"list",
 	"properties",
@@ -158,7 +131,6 @@ const ROSTER: readonly (string | number)[] = [
 describe("the GVAS header", () => {
 	test("is little-endian, with the field order the committed file uses", async () => {
 		const bytes = tinySave();
-		// The first sixteen bytes of SaveSlot_DDR_0.sav, verbatim.
 		expect([...bytes.subarray(0, 16)]).toEqual([
 			0x47, 0x56, 0x41, 0x53, 0x03, 0x00, 0x00, 0x00, 0x0a, 0x02, 0x00, 0x00,
 			0xfa, 0x03, 0x00, 0x00,
@@ -185,8 +157,6 @@ describe("the GVAS header", () => {
 	});
 
 	test("a GUID is four little-endian words, which is what uesave writes", () => {
-		// Established by feeding this id through `uesave v0.7.1 from-json` and
-		// reading the bytes it produced, not by recalling the convention.
 		const writer = new UnrealWriter();
 		writeGuid(writer, "00010203-0405-0607-0809-0a0b0c0d0e0f");
 		const bytes = writer.finish();
@@ -199,19 +169,14 @@ describe("the GVAS header", () => {
 	});
 
 	test("an FString keeps a tab and a newline as single bytes", () => {
-		// The `SavedStringDataMap` entry holds JSON with \r\n\t in it. A writer
-		// that treats "not printable" as "not ASCII" re-encodes those three
-		// characters as UTF-16 and the save stops being byte-identical.
 		const value = '{\r\n\t"Blockage": 6\r\n}';
 		const writer = new UnrealWriter();
 		writer.fString(value);
 		writer.fString("");
 		writer.fString("café");
 		const bytes = writer.finish();
-		// Four bytes of length, the text, then its one-byte terminator.
 		const terminator = 4 + value.length;
 		expect(bytes[terminator]).toBe(0);
-		// Unreal spells the empty string as a bare zero: no terminator at all.
 		expect([...bytes.subarray(terminator + 1, terminator + 5)]).toEqual([
 			0, 0, 0, 0,
 		]);
@@ -242,9 +207,6 @@ describe.skipIf(ORIGINAL === null)("the committed SaveSlot_DDR_0.sav", () => {
 	test("re-encodes to the identical 349,470 bytes", async () => {
 		const bytes = original();
 		const rebuilt = await deadlyDays.encode(await decode(bytes));
-		// Byte for byte, not merely "the same document": a codec that drops a
-		// GUID, a trailing run or a stored length still reads back correctly and
-		// is still a file the engine may refuse.
 		expect(firstDifference(bytes, rebuilt)).toBeUndefined();
 		expect(rebuilt).toHaveLength(349_470);
 	});
@@ -262,8 +224,6 @@ describe.skipIf(ORIGINAL === null)("the committed SaveSlot_DDR_0.sav", () => {
 		expect(byLabel.get("Meta upgrades")).toBe("30");
 		expect(byLabel.get("Achievements")).toBe("18");
 		expect(byLabel.get("Unlocks")).toBe("15");
-		// Two entries are not property lists and stay as bytes; claiming
-		// otherwise would be the summary flattering the decoder.
 		expect(byLabel.get("Decoded subsystems")).toBe("16 of 18");
 	});
 
@@ -272,8 +232,6 @@ describe.skipIf(ORIGINAL === null)("the committed SaveSlot_DDR_0.sav", () => {
 		const cheat = deadlyDays.actions.find((action) => action.id === "cheat");
 		if (!cheat) throw new Error("no cheat action");
 		const first = cheat.plan(doc);
-		// `plan` is pure, so a second call is the same answer and the document it
-		// was handed is untouched.
 		expect(cheat.plan(doc)).toEqual(first);
 		expect(JSON.stringify(doc)).toBe(JSON.stringify(await decode(original())));
 		expect(first).toHaveLength(2);
@@ -297,16 +255,10 @@ describe.skipIf(ORIGINAL === null)("the committed SaveSlot_DDR_0.sav", () => {
 		);
 		expect(reread.get("Wallet")).toBe("999999");
 		expect(reread.get("Rare currency")).toBe("999999");
-		// Same length: four bytes of currency changed, four bytes written.
 		expect(rebuilt).toHaveLength(bytes.length);
 	});
 
 	test("a wallet whose payload does not decode is still found by its bytes", async () => {
-		// The MetaCurrencyWallet payload starts at offset 2 078 and its only
-		// property tag's `size` field is forty bytes in. One byte too large and
-		// the payload is no longer a property list, so it stays a byte array —
-		// which is the state the raw fallback exists for, reached here without
-		// inventing a save.
 		const doc = await decode(withByte(original(), 2078 + 40, 5));
 		const cheat = deadlyDays.actions.find((action) => action.id === "cheat");
 		if (!cheat) throw new Error("no cheat action");
@@ -315,7 +267,6 @@ describe.skipIf(ORIGINAL === null)("the committed SaveSlot_DDR_0.sav", () => {
 		expect(byPath.get("MetaCurrencyWallet · CurrencyAmount")?.before).toBe(
 			105332,
 		);
-		// The other wallet still decoded, so it is found the ordinary way.
 		expect(edits).toHaveLength(2);
 	});
 
@@ -328,11 +279,8 @@ describe.skipIf(ORIGINAL === null)("the committed SaveSlot_DDR_0.sav", () => {
 			(action) => action.id === "cheat-stats",
 		);
 		if (!level || !stats) throw new Error("missing actions");
-		// CD_Survivor is at 1 and CD_Sherrif at 3.
 		expect(level.plan(doc).map((edit) => edit.before)).toEqual([1, 3]);
 		const upgrades = stats.plan(doc);
-		// Twelve of the thirty upgrades already hold 30; the other eighteen are
-		// at 1, and only those are worth an edit.
 		expect(upgrades).toHaveLength(18);
 		expect([...new Set(upgrades.map((edit) => edit.after))]).toEqual([30]);
 	});
@@ -344,10 +292,6 @@ describe.skipIf(ORIGINAL === null || EDITED === null)(
 		test("differ in exactly one place, and it is the character roster", async () => {
 			const before = await decode(required(ORIGINAL));
 			const after = await decode(required(EDITED));
-			// The edited save is what the reference tool's modifier cheat left
-			// behind: nine more characters under `CharacterMetaLevel`, and nothing
-			// else touched. A second difference here would mean the codec is reading
-			// one of the two differently, not that the file changed.
 			expect(differingPaths(before, after)).toEqual([ROSTER.join(".")]);
 		});
 
@@ -357,8 +301,6 @@ describe.skipIf(ORIGINAL === null || EDITED === null)(
 			expect(before).toEqual(["CD_Survivor", "CD_Sherrif"]);
 			expect(after).toHaveLength(11);
 			expect(after).toContain("CD_Santa");
-			// The nine the cheat added are all at level 10, which is where the level
-			// cheat's target of 10 comes from.
 			expect(new Set(afterLevels(await decode(required(EDITED))))).toEqual(
 				new Set([1, 3, 10]),
 			);
@@ -373,7 +315,6 @@ describe.skipIf(ORIGINAL === null || EDITED === null)(
 	},
 );
 
-/** The `Character` sub-paths of a document's character roster. */
 const roster = (doc: JsonValue): readonly string[] => {
 	const items = getAtPath(doc, ROSTER);
 	if (!Array.isArray(items)) throw new Error("no roster");
@@ -391,7 +332,6 @@ const roster = (doc: JsonValue): readonly string[] => {
 	});
 };
 
-/** The `MetaLevel` of each character in a document's roster. */
 const afterLevels = (doc: JsonValue): readonly number[] => {
 	const items = getAtPath(doc, ROSTER);
 	if (!Array.isArray(items)) throw new Error("no roster");
@@ -402,7 +342,6 @@ const afterLevels = (doc: JsonValue): readonly number[] => {
 	});
 };
 
-/** Where two JSON documents disagree, as dotted paths. */
 const differingPaths = (
 	before: JsonValue,
 	after: JsonValue,
@@ -415,7 +354,6 @@ const differingPaths = (
 	const walk = (left: JsonValue, right: JsonValue, path: string): void => {
 		if (JSON.stringify(left) === JSON.stringify(right)) return;
 		if (Array.isArray(left) && Array.isArray(right)) {
-			// A length change is the finding; an element change is walked into.
 			if (left.length !== right.length) {
 				paths.push(path);
 				return;

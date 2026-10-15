@@ -15,40 +15,16 @@ import {
 	isSameRecord,
 } from "../compatibility";
 
-/**
- * These tests exercise the milestone tables and the compatibility matrix.
- *
- * `getMilestoneInfo` and the `BIG_BIRTHDAYS` / `WEDDING_MILESTONES` tables are
- * module-private, so they are driven through the only public door that reaches
- * them: `recomputeBirthdays()`. That means stubbing `localStorage` (which
- * `getRawBirthdays` consults before falling back to the bundled JSON) and
- * deriving birth dates relative to `dayjs()` so that `age` is exactly the
- * value under test.
- *
- * A birthday that is *today* is the milestone day itself (`isToday === true`,
- * `nextAge === age`). A birthday one day short of the anniversary is always in
- * the past, which pushes `nextBirthday` into next year and makes
- * `nextAge === age + 1`. That gives direct control over both `isToday` and
- * the `age` / `nextAge` pair.
- */
-
 type Kind = "♂️" | "♀️" | "💒";
 
 const BIRTHDAY_KIND: Kind = "♀️";
 
-/** Birthday landing exactly on `dayjs()` -> `isToday === true`. */
 const onToday = (age: number): string =>
 	dayjs().subtract(age, "year").format("YYYY-MM-DD");
 
-/** Birthday one day short of the anniversary -> `isToday === false`, `nextAge === age + 1`. */
 const justBefore = (age: number): string =>
 	dayjs().subtract(age, "year").subtract(1, "day").format("YYYY-MM-DD");
 
-/**
- * `localStorage` stub so `getRawBirthdays()` returns only what we seed.
- * Bun has no `localStorage` by default, so `getRawBirthdays` would otherwise
- * fall back to the bundled 33-entry `birthdays.json`.
- */
 const withRecords = <T>(
 	records: RawBirthday[],
 	fn: (list: Birthday[]) => T,
@@ -82,8 +58,6 @@ const withRecords = <T>(
 	}
 };
 
-// The module-level `birthdays` binding is shared; put it back to the bundled
-// data once this file is done so other test files are not affected.
 afterAll(() => {
 	recomputeBirthdays();
 });
@@ -96,7 +70,6 @@ const only = (records: RawBirthday[]): Birthday => {
 	return first;
 };
 
-/** Re-declared here exactly as the source declares them, so drift is visible. */
 const BIG_BIRTHDAYS = [
 	1, 5, 10, 13, 15, 16, 18, 20, 21, 25, 30, 40, 50, 60, 70, 75, 80, 85, 90, 95,
 	100,
@@ -131,14 +104,12 @@ describe("milestones - birthday table", () => {
 	});
 
 	test("spot-checked ages", () => {
-		// 0, 1, 18, 21, 50, 100
 		for (const age of [0, 1, 18, 21, 50, 100]) {
 			const b = only([{ name: "P", date: onToday(age), kind: BIRTHDAY_KIND }]);
 			expect(b.age).toBe(age);
 			if (BIG_BIRTHDAYS.includes(age)) {
 				expect(b.milestone?.params).toEqual({ age });
 			} else {
-				// 0 is not in the table.
 				expect(b.milestone).toBeUndefined();
 			}
 		}
@@ -158,7 +129,6 @@ describe("milestones - birthday table", () => {
 	});
 
 	test("just below a milestone reports the right remaining count", () => {
-		// age 17 -> next birthday is 18, which is itself a milestone
 		const b17 = only([
 			{ name: "A", date: justBefore(17), kind: BIRTHDAY_KIND },
 		]);
@@ -172,7 +142,6 @@ describe("milestones - birthday table", () => {
 			params: { diff: 1, count: 1, target: 18 },
 		});
 
-		// age 19 -> next birthday is 20, itself a milestone
 		const b19 = only([
 			{ name: "A", date: justBefore(19), kind: BIRTHDAY_KIND },
 		]);
@@ -186,7 +155,6 @@ describe("milestones - birthday table", () => {
 			params: { diff: 1, count: 1, target: 20 },
 		});
 
-		// age 30 -> the *current* age is a milestone and wins over nextAge 31
 		const b30 = only([
 			{ name: "A", date: justBefore(30), kind: BIRTHDAY_KIND },
 		]);
@@ -195,13 +163,11 @@ describe("milestones - birthday table", () => {
 			key: "data.milestone.birthday",
 			params: { age: 30 },
 		});
-		// 31 is not a milestone, so the status looks ahead to 40.
 		expect(b30.milestoneStatus).toEqual({
 			key: "data.milestone.status.until",
 			params: { diff: 10, count: 10, target: 40 },
 		});
 
-		// age 31 -> neither 31 nor 32 is a milestone
 		const b31 = only([
 			{ name: "A", date: justBefore(31), kind: BIRTHDAY_KIND },
 		]);
@@ -212,7 +178,6 @@ describe("milestones - birthday table", () => {
 			params: { diff: 9, count: 9, target: 40 },
 		});
 
-		// age 99 -> 100 is the next milestone
 		const b99 = only([
 			{ name: "A", date: justBefore(99), kind: BIRTHDAY_KIND },
 		]);
@@ -240,7 +205,6 @@ describe("milestones - birthday table", () => {
 	test("a non-milestone birthday today still reports the run-up", () => {
 		const b = only([{ name: "N", date: onToday(22), kind: BIRTHDAY_KIND }]);
 		expect(b.milestone).toBeUndefined();
-		// 25 is the next table entry above 22.
 		expect(b.milestoneStatus).toEqual({
 			key: "data.milestone.status.until",
 			params: { diff: 3, count: 3, target: 25 },
@@ -248,13 +212,11 @@ describe("milestones - birthday table", () => {
 	});
 
 	test("beyond the largest milestone both fields are absent, never negative", () => {
-		// 101 is past BIG_BIRTHDAYS' 100; nextAge 102 is not in the table either.
 		const b = only([{ name: "O", date: justBefore(101), kind: BIRTHDAY_KIND }]);
 		expect(b.age).toBe(101);
 		expect(b.milestone).toBeUndefined();
 		expect(b.milestoneStatus).toBeUndefined();
 
-		// 150, deep past the end of the table.
 		const far = only([
 			{ name: "O", date: justBefore(150), kind: BIRTHDAY_KIND },
 		]);
@@ -299,7 +261,6 @@ describe("milestones - wedding table", () => {
 
 	test("wedding 30 uses the wedding table, not the birthday table", () => {
 		const b = only([{ name: "W", date: onToday(30), kind: "💒" }]);
-		// 30 is in both tables, so only the *material* proves which one ran.
 		expect(b.milestone).toEqual({
 			key: "data.milestone.wedding",
 			params: { year: 30, material: "pearl" },
@@ -310,7 +271,6 @@ describe("milestones - wedding table", () => {
 		const b = only([{ name: "W", date: onToday(35), kind: "💒" }]);
 		expect(b.age).toBe(35);
 		expect(b.milestone).toBeUndefined();
-		// 40 is the next wedding year.
 		expect(b.milestoneStatus).toEqual({
 			key: "data.milestone.status.until",
 			params: { diff: 5, count: 5, target: 40 },
@@ -334,7 +294,6 @@ describe("milestones - wedding table", () => {
 	});
 
 	test("the kind selects the table, not the shared ages", () => {
-		// 50 is in both tables. Same day, different kind.
 		const w = only([{ name: "W", date: onToday(50), kind: "💒" }]);
 		expect(w.milestone?.key).toBe("data.milestone.wedding");
 		expect(w.milestone?.params?.material).toBe("gold");
@@ -377,15 +336,6 @@ describe("milestones - wedding table", () => {
 
 describe("zodiac Element assignment", () => {
 	const cases: { date: string; sign: string; element: Element }[] = [
-		// `getSign` uses a 0-based month, so the declared points land on the
-		// conventional boundaries: aries 221 -> 21 March, capricorn 1122 -> 22 Dec.
-		//
-		// The table's trailing catch-all entry is `{ point: 0, name:
-		// "sagittarius" }`, not Capricorn: 1-19 January belongs to Sagittarius,
-		// which the table already covers from 22 November and must wrap back
-		// into January. Naming it Capricorn reported 19 days a year with the
-		// wrong sign AND the wrong element (earth instead of fire), and that
-		// element feeds straight into getCompatibilityScore.
 		{ date: "1990-01-01", sign: "sagittarius", element: "fire" },
 		{ date: "1990-01-19", sign: "sagittarius", element: "fire" },
 		{ date: "1990-01-20", sign: "aquarius", element: "air" },
@@ -413,12 +363,6 @@ describe("zodiac Element assignment", () => {
 	}
 
 	test("1-19 January is reported as sagittarius, not capricorn", () => {
-		// Regression guard. The `signs` table's last entry used to be a
-		// duplicate `{ point: 0, name: "capricorn" }`. Because `getSign` returns
-		// the first entry with `point <= point`, every January date before
-		// Aquarius' 20 (points 1..19) fell through to that duplicate and was
-		// reported as Capricorn - the wrong sign and the wrong element, which
-		// then feeds getCompatibilityScore.
 		for (const day of [1, 5, 10, 19]) {
 			const date = `1990-01-${String(day).padStart(2, "0")}`;
 			const b = only([{ name: "J", date, kind: BIRTHDAY_KIND }]);
@@ -445,13 +389,11 @@ describe("zodiac Element assignment", () => {
 });
 
 describe("getCompatibilityScore", () => {
-	// Two real records per element, so the matrix diagonal compares two
-	// *different* people rather than tripping the name short-circuit.
 	const DATES: Record<Element, [string, string]> = {
-		fire: ["1990-03-21", "1990-07-23"], // aries, leo
-		air: ["1990-05-21", "1990-09-23"], // gemini, libra
-		earth: ["1990-04-20", "1990-08-23"], // taurus, virgo
-		water: ["1990-02-19", "1990-10-23"], // pisces, scorpio
+		fire: ["1990-03-21", "1990-07-23"],
+		air: ["1990-05-21", "1990-09-23"],
+		earth: ["1990-04-20", "1990-08-23"],
+		water: ["1990-02-19", "1990-10-23"],
 	};
 
 	const seeds = (): Record<Element, [Birthday, Birthday]> => {
@@ -500,8 +442,6 @@ describe("getCompatibilityScore", () => {
 		const s = seeds();
 		for (const a of ELEMENTS) {
 			for (const b of ELEMENTS) {
-				// Off-diagonal uses [0]/[0]; the diagonal uses [0]/[1] so the two
-				// records really are different people.
 				const ra = s[a][0];
 				const rb = s[b][a === b ? 1 : 0];
 				const score = getCompatibilityScore(ra, rb);
@@ -535,14 +475,10 @@ describe("getCompatibilityScore", () => {
 
 	test("a record compared with itself returns 100", () => {
 		const r = four();
-		// Not 80: identity wins before the element check.
 		expect(getCompatibilityScore(r.fire, r.fire)).toBe(100);
 	});
 
 	test("two distinct people sharing a name are scored on their elements", () => {
-		// DEFECT (fixed): the identity check used to be `a.name === b.name`, so
-		// two different people called "Alex" scored 100 — a fabricated perfect
-		// match — even though fire vs water is the worst pairing (40).
 		const list = withRecords(
 			[
 				{ name: "Alex", date: "1990-03-21", kind: BIRTHDAY_KIND },
@@ -574,11 +510,6 @@ describe("getCompatibilityScore", () => {
 });
 
 describe("record identity", () => {
-	/**
-	 * Two same-named people on different dates, plus a same-name/same-date
-	 * duplicate. `recomputeBirthdays` re-sorts by upcoming birthday, so the
-	 * tests below select by (name, date) rather than by index.
-	 */
 	const twoAlexesAndADuplicate = (): Birthday[] =>
 		withRecords(
 			[
@@ -602,19 +533,13 @@ describe("record identity", () => {
 	test("identity is the exact (name, birthdayString) pair", () => {
 		const list = twoAlexesAndADuplicate();
 		const aries = pick(list, "Alex", "1990-03-21");
-		// Same name, different date -> two people.
 		expect(isSameRecord(aries, pick(list, "Alex", "1990-10-23"))).toBe(false);
-		// Same name, same date -> the data model cannot tell them apart.
 		expect(isSameRecord(aries, pick(list, "Alex", "1990-03-21"))).toBe(true);
-		// Different name -> different people.
 		expect(isSameRecord(aries, pick(list, "Bo", "1990-05-21"))).toBe(false);
-		// Reflexive.
 		expect(isSameRecord(aries, aries)).toBe(true);
 	});
 
 	test("isSameRecord ignores kind", () => {
-		// A person's kind is a user-editable classification, not part of who
-		// they are: re-filing an entry must not fork their identity.
 		const [a, b] = withRecords(
 			[
 				{ name: "Alex", date: "1990-03-21", kind: "♀️" },
@@ -628,11 +553,6 @@ describe("record identity", () => {
 	});
 
 	test("a true duplicate row is not reported as a perfect match", () => {
-		// Two distinct rows sharing name AND date. The data model has no id,
-		// so this pair is ambiguous: one person entered twice, or two people
-		// the data does not distinguish. Neither 100 ("same person") nor 40
-		// ("incompatible") is supportable, so the pair falls through to the
-		// element matrix, which claims only what the rows literally share.
 		const list = withRecords(
 			[
 				{ name: "Alex", date: "1990-03-21", kind: BIRTHDAY_KIND },
@@ -646,17 +566,13 @@ describe("record identity", () => {
 		expect(isSameRecord(a, b)).toBe(true);
 		expect(getCompatibilityScore(a, b)).not.toBe(100);
 		expect(getCompatibilityScore(a, b)).toBe(80);
-		// Symmetric: the ambiguity does not depend on argument order.
 		expect(getCompatibilityScore(b, a)).toBe(getCompatibilityScore(a, b));
 	});
 
 	test("getSameNamedRecords finds the other people, not the record or its duplicates", () => {
 		const list = twoAlexesAndADuplicate();
 		const aries = pick(list, "Alex", "1990-03-21");
-		// The Scorpio "Alex" only: the record itself and the exact duplicate
-		// are excluded, otherwise the UI would call a row its own namesake.
 		expect(dates(getSameNamedRecords(list, aries))).toEqual(["1990-10-23"]);
-		// A uniquely-named record has no namesakes.
 		expect(getSameNamedRecords(list, pick(list, "Bo", "1990-05-21"))).toEqual(
 			[],
 		);
@@ -666,7 +582,6 @@ describe("record identity", () => {
 		const list = twoAlexesAndADuplicate();
 		const aries = pick(list, "Alex", "1990-03-21");
 		expect(dates(getDuplicateRecords(list, aries))).toEqual(["1990-03-21"]);
-		// The Scorpio "Alex" is a namesake, not a duplicate of anything.
 		expect(getDuplicateRecords(list, pick(list, "Alex", "1990-10-23"))).toEqual(
 			[],
 		);

@@ -11,37 +11,9 @@ import {
 	STARTING_SKILLS,
 } from "./character-save";
 
-/**
- * The codec's contract, against a synthetic save.
- *
- * ## What is and is not proved here
- *
- * **No real Cyberpunk 2077 `sav.dat` exists in any repository this work can
- * reach.** The reference implementation's own round-trip test searches for one at
- * runtime and skips when absent; its committed data is 8.7 MB of JSON catalogues
- * and not a single byte of binary save. So the fixture used throughout is
- * synthetic, built by `tests/synthetic.ts` — code written from the format
- * description and deliberately *not* shared with `lib/`.
- *
- * What that establishes: the codec reads and writes the container, the LZ4
- * chunks, the string pool, the object descriptors and the sparse struct arrays
- * consistently with an independent reading of the format, and a value decoded
- * from a save is written back to the same bytes and read back identically.
- *
- * What it does **not** establish: that a save the game writes has the shape this
- * codec expects, that the node names are the ones a real save uses, or that the
- * enum orders transcribed from the game's `CEnums.json` match the order a real
- * save serialises its arrays in. Those are confirmed against the game's
- * published catalogues and the reference implementation's reading of a real
- * save, but neither has been observed here, and no claim below should be read as
- * having been checked against a file the game produced.
- */
-
-/** The document for a freshly built fixture. */
 const decodeFixture = async (): Promise<JsonValue> =>
 	cyberpunk2077.decode(buildFullSave());
 
-/** A character section, read out of a decoded document. */
 const characterOf = (doc: JsonValue): Record<string, JsonValue> => {
 	if (typeof doc !== "object" || doc === null || Array.isArray(doc)) {
 		throw new Error("The document is not an object.");
@@ -70,15 +42,11 @@ describe("Cyberpunk 2077 codec", () => {
 			v2: 2310,
 			v3: 192,
 			ps4w: false,
-			// The header's unknown words travel with the document so an untouched
-			// save rebuilds to identical bytes; they are shown rather than hidden,
-			// because a reader should be able to see what was carried.
 			suk: "CyberpunkSaveGame",
 			uk0: 0,
 			uk1: 0,
 			tableEntries: 256,
 		});
-		// The tree summary is what the header rows read.
 		const tree = (doc as Record<string, JsonValue>).tree;
 		if (typeof tree !== "object" || tree === null) {
 			throw new Error("No tree section.");
@@ -112,8 +80,6 @@ describe("Cyberpunk 2077 codec", () => {
 	});
 
 	test("round-trips a decoded document through the workbench's own check", async () => {
-		// `verifyRoundTrip` is what the page runs before it offers a rebuilt file,
-		// so proving it passes here is proving the promise the page makes.
 		const original = buildFullSave();
 		const doc = await cyberpunk2077.decode(original);
 		const verdict = await verifyRoundTrip(cyberpunk2077, original, doc, false);
@@ -123,11 +89,6 @@ describe("Cyberpunk 2077 codec", () => {
 	test("rebuilds a save with edits applied and reads back what was asked for", async () => {
 		const original = buildFullSave();
 		const doc = await decodeFixture();
-		// Edits are folded in with the workbench's own `withEdits`, which is what
-		// the page does. That matters here: the codec keeps the save's node tree
-		// against the decoded document, so a document reached by rebuilding it by
-		// hand is a different object and has no tree behind it. Folding edits in
-		// place is the supported path.
 		const character = characterOf(doc);
 		const attributes = character.attributes as Record<string, number>;
 		const edited = withEdits(doc, [
@@ -145,14 +106,8 @@ describe("Cyberpunk 2077 codec", () => {
 			edited,
 			true,
 		);
-		// `semantic`, not `lossless-edit`: the rebuilt file decodes to exactly the
-		// values asked for, but its bytes necessarily differ from the original's,
-		// because an attribute was changed in them. `lossless-edit` would mean the
-		// bytes matched an edited file, which is a different and stronger claim than
-		// this format can make.
 		expect(verdict.kind).toBe("semantic");
 
-		// And the value really is in the file, not merely in the document.
 		const reread = characterOf(
 			await cyberpunk2077.decode(await cyberpunk2077.encode(edited)),
 		);
@@ -162,10 +117,6 @@ describe("Cyberpunk 2077 codec", () => {
 	});
 
 	test("leaves subsystems it cannot read untouched", async () => {
-		// The whole safety argument for carrying the node tree: a cheat on the
-		// attributes must not disturb the inventory or the quest facts, which this
-		// codec has no vocabulary for at all. A codec that rebuilt the save from the
-		// fields it *can* read would wipe them.
 		const original = buildFullSave();
 		const doc = await decodeFixture();
 		const character = characterOf(doc);
@@ -194,9 +145,6 @@ describe("Cyberpunk 2077 codec", () => {
 	});
 
 	test("reads a save with no development data rather than refusing it", async () => {
-		// A save this projection cannot read must still open: losing the file
-		// because one subsystem is unfamiliar is the opposite of what an editor is
-		// for. The summary says so explicitly instead.
 		const doc = await cyberpunk2077.decode(buildSaveWithoutDevelopment());
 		const rows = cyberpunk2077.summarise(doc);
 		expect(rows.some((row) => row.value.includes("not readable"))).toBe(true);
@@ -219,14 +167,6 @@ describe("Cyberpunk 2077 codec", () => {
 	});
 
 	test("refuses to rebuild a document that has no save behind it", async () => {
-		// A document that has been exported and re-imported carries the readable
-		// projection but not the bytes: `decode` remembers the node tree on a
-		// non-enumerable property, so a `structuredClone` — and, in the app, a
-		// `JSON.parse` of the exported file — comes back without it. Rebuilding
-		// from the projection alone would produce a save missing every subsystem
-		// this codec cannot name, so it is refused with a message that says what
-		// to do. `structuredClone` is the clone that loses it: it copies own
-		// *enumerable* properties, exactly as the JSON round-trip does.
 		const doc = await decodeFixture();
 		const reimported = structuredClone(doc) as JsonValue;
 		await expect(cyberpunk2077.encode(reimported)).rejects.toThrow(
@@ -238,8 +178,6 @@ describe("Cyberpunk 2077 codec", () => {
 		await expect(cyberpunk2077.encode(7)).rejects.toThrow(
 			/not a Cyberpunk 2077 save/,
 		);
-		// A document with the right shape but no character section is refused for
-		// the missing section, which is the more specific complaint.
 		await expect(
 			cyberpunk2077.encode({ version: { v1: 269 } }),
 		).rejects.toThrow(/no player development data/);
@@ -257,7 +195,6 @@ describe("summary", () => {
 		expect(valueOfRow("Life path")).toBe("Streetkid");
 		expect(valueOfRow("Street Cred")).toContain("12");
 		expect(valueOfRow("Character level")).toBe("7");
-		// Every attribute is named with the game's own stat name, not an index.
 		expect(valueOfRow("Attributes")).toBe(
 			"Strength 6, Reflexes 5, TechnicalAbility 4, Intelligence 7, Cool 3",
 		);
@@ -286,20 +223,12 @@ describe("quick actions", () => {
 		);
 		expect(byPath.get("character.attributes.Intelligence")).toBe(MAX_ATTRIBUTE);
 		expect(byPath.get("character.attributes.Cool")).toBe(MAX_ATTRIBUTE);
-		// Espionage and Gunslinger are 1.x attributes the 2.0 tree replaced: the
-		// reference implementation pins them to zero rather than raising them,
-		// because levelling an attribute the game no longer spends desynchronises
-		// the character's perk spending. The fixture has neither, so there is
-		// nothing to edit — what matters is that they are not in the plan above.
 		expect(byPath.has("character.attributes.Espionage")).toBe(false);
 		expect(byPath.has("character.attributes.Gunslinger")).toBe(false);
 		expect(plan.every((edit) => edit.path[0] === "character")).toBe(true);
 	});
 
 	test("drops a retired attribute to zero when the save still has one", async () => {
-		// The fixture has neither retired attribute, so the above cannot reach this
-		// branch. Built by hand: a save carrying Espionage must have it pinned to
-		// zero, not left at whatever the 1.x tree left there.
 		const doc = await decodeFixture();
 		const character = characterOf(doc);
 		const attributes = character.attributes as Record<string, number>;
@@ -332,22 +261,15 @@ describe("quick actions", () => {
 		expect(byPath.get("character.developmentPoints.Primary.unspent")).toBe(
 			MAX_POINTS,
 		);
-		// Secondary is capped at 12, not at the 720 the others take.
 		expect(byPath.get("character.developmentPoints.Secondary.unspent")).toBe(
 			12,
 		);
-		// Espionage is pinned to zero, but the fixture already has it at zero, so
-		// an edit that would write the value already there is deliberately not
-		// staged — that is what makes the action idempotent.
 		expect(byPath.has("character.developmentPoints.Espionage.unspent")).toBe(
 			false,
 		);
 	});
 
 	test("plans no edit for a value the save already holds", async () => {
-		// The counterpart to the above: an action that stages a no-op would put a
-		// row in the staged list claiming work it did not do, and would make the
-		// round-trip check report a change where there was none.
 		const doc = await decodeFixture();
 		const character = characterOf(doc);
 		const points = character.developmentPoints as Record<
@@ -387,13 +309,10 @@ describe("quick actions", () => {
 			level: MAX_STREET_CRED,
 			exp: 900,
 		});
-		// A legacy 1.x proficiency, capped at 20 rather than 60.
 		expect(byPath.get("character.skills.Assault")).toEqual({
 			level: 20,
 			exp: 120,
 		});
-		// Level is the character's own level, not a skill, and the reference
-		// deliberately does not touch it.
 		expect(byPath.has("character.skills.Level")).toBe(false);
 	});
 
@@ -409,8 +328,6 @@ describe("quick actions", () => {
 	});
 
 	test("an action with nothing to do plans no edits", async () => {
-		// A save already at the caps must produce an empty plan, which is how the
-		// workbench greys an action out.
 		const doc = await decodeFixture();
 		const character = characterOf(doc);
 		const attributes = character.attributes as Record<string, number>;
@@ -427,15 +344,10 @@ describe("quick actions", () => {
 	});
 
 	test("every action's plan survives a decode, encode and re-decode", async () => {
-		// The end-to-end promise for a cheat: stage what the button says, rebuild,
-		// read back, and the values are the ones asked for.
 		const original = buildFullSave();
 		let current: JsonValue = await decodeFixture();
 
 		for (const action of cyberpunk2077.actions) {
-			// The workbench's own `applyEdits` is what stages these on the page, so
-			// using it here means the test exercises the real path-folding rather
-			// than a re-implementation of it.
 			const edits = action.plan(current);
 			if (edits.length === 0) continue;
 			current = withEdits(current, edits);
@@ -459,14 +371,10 @@ describe("quick actions", () => {
 		const skills = finalCharacter.skills as Record<string, { level: number }>;
 		expect(skills.StreetCred?.level).toBe(MAX_STREET_CRED);
 		expect(skills.Assault?.level).toBe(20);
-		// Character level is untouched by every action.
 		expect(skills.Level?.level).toBe(7);
 	});
 
 	test("says nothing about money, which this codec cannot write", async () => {
-		// Money is `Items.money` as an inventory item whose `quantity` sits behind
-		// a version-dependent `ItemID` layout. No committed save confirms those
-		// layouts, so there is no money action and no summary row claiming one.
 		for (const action of cyberpunk2077.actions) {
 			expect(action.label.toLowerCase()).not.toContain("money");
 			expect(action.description.toLowerCase()).not.toContain("edol");
@@ -478,10 +386,6 @@ describe("quick actions", () => {
 	});
 
 	test("does not offer to unlock perks without the game's perk tree", async () => {
-		// The 2.0 perk names live in the TweakDB, not in the save. Writing them
-		// into a save would produce a character the game cannot reconcile, so no
-		// action offers to buy them. Refilling perk *points* is a different thing
-		// entirely and is kept, so the check is for the verb rather than the noun.
 		expect(
 			cyberpunk2077.actions.some((action) =>
 				/unlock|all perks|every perk/i.test(action.label),
@@ -492,18 +396,12 @@ describe("quick actions", () => {
 
 describe("the page's own contract", () => {
 	test("states the extension, the notes and where the file lives", () => {
-		// The route slug used to be a `SaveCodec.id` each codec restated, and
-		// nothing read it: the page already knows which codec it imported, so the
-		// field was a copy of the import statement that could only go stale.
 		expect(cyberpunk2077.extensions).toEqual(["dat"]);
 		expect(cyberpunk2077.notes.length).toBeGreaterThanOrEqual(3);
 		expect(cyberpunk2077.defaultPath).toContain("Cyberpunk 2077");
 	});
 
 	test("speaks British English in every string a reader sees", () => {
-		// §9 of the house rules: this is checked rather than trusted, because a
-		// single American spelling in a note is exactly the sort of thing that
-		// slips through review.
 		const prose = [
 			cyberpunk2077.game,
 			cyberpunk2077.formatLabel,
@@ -534,16 +432,11 @@ describe("the page's own contract", () => {
 	});
 
 	test("names no tool a browser tab cannot run", async () => {
-		// The reference implementation's cheat command delegated to a WolvenKit
-		// binary and its sync command to GOG Cloud. Neither belongs on this page,
-		// so neither is named anywhere the user can read.
 		const rows = cyberpunk2077.summarise(await decodeFixture());
 		const text = [
 			...cyberpunk2077.notes.map((note) => note.body),
 			...rows.map((row) => `${row.label} ${row.value}`),
 		].join(" ");
-		// The notes may *mention* the tools to explain why those features are
-		// missing; what must not appear is anything presenting them as available.
 		expect(text).not.toMatch(
 			/download WolvenKit|sign in to GOG|upload your save/i,
 		);

@@ -42,14 +42,6 @@ type PanelProps = {
 
 const PAGE_SIZE = 25;
 
-/**
- * The fallback for a save with no character rows.
- *
- * Module-level because the `matches` memo depends on this list, and an inline
- * `?? []` is a fresh array on every render — so the filter re-ran on every
- * keystroke in the one case where there is nothing to filter. Nothing mutates
- * it; the panel only filters it and reads its length.
- */
 const NO_ENTRIES: readonly CharacterEntry[] = [];
 
 const BLANK: CharacterChange = {
@@ -62,14 +54,6 @@ const BLANK: CharacterChange = {
 
 const kindOrder: CharacterKind[] = ["player", "bond", "region", "companion"];
 
-/**
- * One tracked row: its kind and name, a box per numeric field it carries, and
- * the two reward checkboxes a bond has and nothing else does.
- *
- * The row is the natural unit — the field boxes are the same input three times
- * over and the checkboxes exist only for bonds, so both decisions belong with
- * the row rather than with the panel that filters it.
- */
 const LevelRow = ({
 	entry,
 	staged,
@@ -77,7 +61,6 @@ const LevelRow = ({
 	onStage,
 }: {
 	entry: CharacterEntry;
-	/** This row's staged change, when the user has touched one of its fields. */
 	staged: CharacterEdit | undefined;
 	busy: boolean;
 	onStage: (patch: Partial<CharacterChange>) => void;
@@ -85,9 +68,6 @@ const LevelRow = ({
 	const field = (name: "level" | "maxLevel" | "experience", limit: number) => {
 		const stored = entry[name];
 		const stagedValue = staged?.[name] ?? null;
-		// A field the save omits because it still holds its default is editable
-		// anyway — the applier creates it — so only a field this row does not
-		// track at all is disabled.
 		const canCreate = entry.creatable.includes(name);
 		const active = stored !== null || stagedValue !== null || canCreate;
 		return (
@@ -176,17 +156,9 @@ const LevelRow = ({
 	);
 };
 
-/** How many of the staged edits are per-row changes rather than presets. */
 const stagedRowCount = (edits: LevelEdit[]): number =>
 	edits.filter((edit) => edit.type === "character").length;
 
-/**
- * Every level the save tracks, in one table.
- *
- * The staged change lives on the page rather than here, so the panel is a pure
- * function of the `edits` it is handed: reopening the view shows the same
- * pending values, and nothing is lost by switching sections.
- */
 export const LevelsPanel = ({
 	description,
 	edits,
@@ -226,7 +198,6 @@ export const LevelsPanel = ({
 		(edit): edit is CharacterPresetEdit => edit.type === "characterPreset",
 	);
 
-	/** Replaces one row's staged change, keeping the presets and other rows. */
 	const stageRow = (entry: CharacterEntry, patch: Partial<CharacterChange>) => {
 		const merged: CharacterChange = {
 			...BLANK,
@@ -254,7 +225,6 @@ export const LevelsPanel = ({
 		);
 	};
 
-	/** Queues an area-wide preset, or clears it when it is already queued. */
 	const stagePreset = (
 		preset: "bondRewards" | "regionLevels",
 		level?: number,

@@ -4,8 +4,6 @@ import "../shared/base.css";
 import "./scotland-rail.css";
 import { createRoot } from "react-dom/client";
 import { initTheme, registerServiceWorker, ThemedProvider } from "../shared";
-// By path, not via the barrel: analytics is a side-effectful module and must
-// not be dragged onto every app that imports a single shared component.
 import { initAnalytics } from "../shared/analytics";
 import { App } from "./App";
 import { railTheme } from "./theme";

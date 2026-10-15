@@ -6,29 +6,14 @@ import { formatRelativeTime, usePinnedApps, useRecents } from "../recent";
 import { HeaderAction } from "./HeaderAction";
 
 type AppSwitcherProps = {
-	/** Current pathname; defaults to `window.location.pathname`. */
 	current?: string;
 };
 
-/** How many recents to surface above the full list. */
 const MAX_VISIBLE_RECENTS = 3;
 
-/**
- * Whether `path` is inside `app`. The dashboard is only the exact root, so
- * `/` must not match every other entry by prefix.
- */
 const isCurrentPath = (app: AppEntry, path: string): boolean =>
 	app.href === "/" ? path === "/" : path.startsWith(app.href);
 
-/**
- * A dropdown in the navbar that jumps between every app.
- *
- * On top of the full registry it surfaces what this browser actually uses: the
- * apps opened most recently, and the ones pinned to the top, both read from
- * `localStorage` through `usePersistentState`. Both are strictly additive —
- * with an empty store this renders exactly the plain list of every app, and
- * the full registry is always rendered, so no app can become unreachable.
- */
 export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 	const [open, setOpen] = useState(false);
 	const container = useRef<HTMLElement>(null);
@@ -44,8 +29,6 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 		if (restoreFocus) trigger.current?.focus();
 	};
 
-	// Keyboard contract shared with `HeaderOverflow`, so the two dropdowns cannot
-	// drift: same focusability selector, same arrow maths, same Escape/Tab.
 	const { focusFirst, onKeyDown } = useRovingFocus({ menuRef: menu, close });
 
 	useEffect(() => {
@@ -66,18 +49,6 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 	const path =
 		current ?? (typeof window === "undefined" ? "/" : window.location.pathname);
 
-	/**
-	 * Record the app this page belongs to. The switcher is the only shared
-	 * chrome rendered on every app, so it is the one place that can observe a
-	 * visit to an app reached by deep link, a bookmark or a typed URL — the
-	 * dashboard can only ever see clicks on its own cards. Recording the
-	 * *current* app is what makes "jump back to where I was" work from inside a
-	 * sub-app, which is the whole point of the feature.
-	 *
-	 * `visit` is stable (its setter is a `useCallback` over module constants),
-	 * so this does not re-fire on unrelated renders, and it runs after paint so
-	 * it never delays first render.
-	 */
 	const currentHref = useMemo(
 		() => ALL_APPS.find((app) => isCurrentPath(app, path))?.href,
 		[path],
@@ -95,25 +66,10 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 		return map;
 	}, [recents]);
 
-	/**
-	 * The menu is ordered pinned → recent → the rest of the registry, each in
-	 * registry order so neither can shuffle the underlying list. An app already
-	 * shown as pinned is not repeated in the recents strip, and the app you are
-	 * already on is not offered as somewhere to jump back to.
-	 *
-	 * Because the switcher records the current app on mount, dropping the
-	 * current app here is also what keeps a first-time visitor — who by
-	 * definition has no other recents — on exactly the plain list they saw
-	 * before this feature existed.
-	 */
 	const { pinnedApps, recentApps } = useMemo(() => {
 		const pinnedSet = new Set(pinned);
 		return {
 			pinnedApps: ALL_APPS.filter((app) => pinnedSet.has(app.href)),
-			// Sort by timestamp rather than trusting the stored order: a payload
-			// written by an older build, or one written by two tabs racing, can
-			// list entries out of sequence, and "most recent first" is the whole
-			// contract of this strip.
 			recentApps: [...recents]
 				.sort((a, b) => b.at - a.at)
 				.map((entry) => ALL_APPS.find((app) => app.href === entry.href))
@@ -127,8 +83,6 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 		};
 	}, [currentHref, pinned, recents]);
 
-	// Recents are echoed at the top but every app still appears in "All apps",
-	// so the full registry stays reachable regardless of what is pinned.
 	const remaining = useMemo(() => {
 		const shown = new Set(
 			[...pinnedApps, ...recentApps].map((app) => app.href),
@@ -136,23 +90,6 @@ export const AppSwitcher = ({ current }: AppSwitcherProps) => {
 		return ALL_APPS.filter((app) => !shown.has(app.href));
 	}, [pinnedApps, recentApps]);
 
-	/**
-	 * Roving focus across every focusable thing in the menu — app links and pin
-	 * buttons alike. Querying by focusability rather than by tag name keeps
-	 * arrows working now that each row can hold a button after its link.
-	 */
-
-	/**
-	 * One row: the app link plus a pin toggle. The link keeps the
-	 * `.app-switcher__item` styling so the existing hover, current-app and
-	 * forced-colors rules apply unchanged.
-	 *
-	 * The toggle is a `menuitemcheckbox` rather than a plain `aria-pressed`
-	 * button: `role="menu"` only admits menuitem/menuitemcheckbox children, and
-	 * a bare `<button>` there is an `aria-required-children` violation. A
-	 * checkbox role also matches the affordance — it is a two-state toggle, and
-	 * `aria-checked` is what a screen reader announces for it.
-	 */
 	const renderRow = (app: AppEntry, { compact = false } = {}) => {
 		const isCurrent = isCurrentPath(app, path);
 		const Icon = app.icon;

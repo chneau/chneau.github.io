@@ -8,11 +8,6 @@ import {
 	Text,
 } from "@mantine/core";
 import type { Map as LeafletMap } from "leaflet";
-// Imported here, not in `index.tsx`, so the stylesheet travels with this chunk:
-// the entry used to download and parse 14.5 kB of Leaflet layout CSS before the
-// first paint, for a map that renders only once the 23 MB cache has arrived.
-// `spooners.css` restyles Leaflet through `.spooners-map`-scoped selectors, so
-// its rules win on specificity and the order of the two files does not matter.
 import "leaflet/dist/leaflet.css";
 import { ChevronRight, Circle, Crosshair, Info, X } from "lucide-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
@@ -32,7 +27,6 @@ import type { MapPoint } from "../types";
 import { SpotLabel } from "./SpotLabel";
 import { VenueImage } from "./VenueImage";
 
-/** Smoothly recentre the map when a point is focused from the side panels. */
 const FlyTo = ({ point }: { point: MapPoint | null }) => {
 	const map = useMap();
 	useEffect(() => {
@@ -47,25 +41,8 @@ const FlyTo = ({ point }: { point: MapPoint | null }) => {
 	return null;
 };
 
-/**
- * When switching to the area view, fit the map to the area markers, otherwise a
- * zoomed-in pub view would show no bubbles at all.
- */
 const FitOnView = ({ view, points }: { view: MapView; points: MapPoint[] }) => {
 	const map = useMap();
-	/**
-	 * `points` is read, never watched — and that is deliberate, so it is named
-	 * for what it is rather than left as a missing dependency.
-	 *
-	 * The fit is a response to the *view* changing, not to the markers changing.
-	 * Making the marker list a trigger would take the map away from the user
-	 * mid-pan: the moment a price refreshes and the app recomputes its areas,
-	 * every socket-free pub view would jump to fit new bounds. Worse, the fit
-	 * moves the map, a moved map reports a viewport, and that viewport is state
-	 * in the parent — a loop the panel would never leave. `useEffectEvent` says
-	 * exactly this: the latest `points` is available when the view changes, and
-	 * changing it is not a reason to fit again.
-	 */
 	const fitToPoints = useEffectEvent(() => {
 		if (points.length < 2) {
 			return;
@@ -82,7 +59,6 @@ const FitOnView = ({ view, points }: { view: MapView; points: MapPoint[] }) => {
 	return null;
 };
 
-/** Report the viewport so it can be put in the URL. */
 const Viewport = ({
 	onChange,
 }: {
@@ -144,16 +120,6 @@ const DetailsButton = ({
 		<PopupAction label="Pub details" onClick={() => onOpen(point.ref)} />
 	) : null;
 
-/**
- * The popup for an area marker: a median, and the way in to that area's pubs.
- *
- * Its own component, not a branch of `PubPopup`, because the two describe
- * different things — an area marker has no address, no opening hours, no phone
- * and no photo, and every field below is absent from `MapPoint` or null for it.
- * Rendering one component that branched on `kind` meant the pub branch carried
- * the area branch's shape as well, and the reader had to prove the fields were
- * safe from the type instead of from the markup.
- */
 const AreaPopup = ({
 	point,
 	currency,
@@ -175,13 +141,6 @@ const AreaPopup = ({
 	</div>
 );
 
-/**
- * The opening hours line, which a pub shows only when the API reported them.
- *
- * `hoursToday !== undefined` rather than `hoursToday` — the "closed today" case
- * arrives as an empty string, which is still an answer and still worth the
- * "Closed now" line.
- */
 const OpeningToday = ({ point }: { point: MapPoint }) =>
 	point.hoursToday !== undefined ? (
 		<div style={{ fontSize: 12, marginTop: 4 }}>
@@ -191,13 +150,6 @@ const OpeningToday = ({ point }: { point: MapPoint }) =>
 		</div>
 	) : null;
 
-/**
- * Spot and ordering, shown when either is worth saying.
- *
- * The two facts share a line rather than taking one each, and the separator is
- * conditional because with only one of them there is nothing to separate — hence
- * asking `spot` again here rather than deciding it once at the call site.
- */
 const SpotAndOrdering = ({ point }: { point: MapPoint }) =>
 	point.spot !== "high-street" || point.canOrder === false ? (
 		<div style={{ fontSize: 12, marginTop: 4 }}>
@@ -208,7 +160,6 @@ const SpotAndOrdering = ({ point }: { point: MapPoint }) =>
 		</div>
 	) : null;
 
-/** The popup for a pub marker: its photo, price, address and what else we know. */
 const PubPopup = ({
 	point,
 	currency,
@@ -285,7 +236,6 @@ const PointPopup = ({
 
 type Props = {
 	points: MapPoint[];
-	/** Pubs with no published menu - drawn as grey hollow markers. */
 	unpriced?: MapPoint[];
 	scale: PriceScale;
 	currency: string;
@@ -293,33 +243,19 @@ type Props = {
 	onFocus: (point: MapPoint) => void;
 	view: MapView;
 	onView?: (view: MapView) => void;
-	/** Open the full pub page. */
 	onOpen?: (ref: number) => void;
-	/** Drill into an area marker's pubs. */
 	onArea?: (name: string) => void;
-	/** County/town currently drilled into, shown next to the mode switch. */
 	area?: string | null;
-	/** Collapse the legend by default (phones). */
 	compact?: boolean;
 	onClearArea?: () => void;
 	countLabel?: string;
-	/** What the circle colour represents, e.g. "Guinness · Pint" or "4-item round". */
 	legendLabel?: string;
 	median?: number | null;
-	/** Pubs excluded by the round / filters, shown in the legend. */
 	hiddenCount?: number;
 	onViewport?: (center: [number, number], zoom: number) => void;
 	initialView?: { center: [number, number]; zoom: number } | null;
 };
 
-/**
- * The grey hollow markers: pubs we know about but have no prices for.
- *
- * A separate component from `PricedMarkers` because these carry no price at
- * all, so none of the marker sizing, colouring or tooltip text that describes a
- * price applies — they are a different kind of thing on the map, not a variant
- * of the same thing, and the shared props would have been the price ones.
- */
 const UnpricedMarkers = ({
 	points,
 	onFocus,
@@ -365,13 +301,6 @@ const UnpricedMarkers = ({
 	</>
 );
 
-/**
- * The priced markers, sized and coloured by price and outlined when focused.
- *
- * An area marker is in the same list as a pub and is not clickable: it is an
- * aggregate, and drilling into it happens from its popup, so the click handler
- * checks the kind rather than the component being told which kind it has.
- */
 const PricedMarkers = ({
 	points,
 	scale,
@@ -438,11 +367,6 @@ const PricedMarkers = ({
 	</>
 );
 
-/**
- * The top-right overlay: the drilled-into area, the mode switch, the count and
- * the reset. One overlay rather than four siblings because they share a corner
- * and a z-index, and the corner is the reason they stay together.
- */
 const MapControls = ({
 	points,
 	view,
@@ -514,7 +438,6 @@ const MapControls = ({
 	</Group>
 );
 
-/** The colour ramp, from the scale's cheapest to its dearest price. */
 const PriceRamp = ({ scale }: { scale: PriceScale }) => (
 	<Box
 		style={{
@@ -532,10 +455,6 @@ const PriceRamp = ({ scale }: { scale: PriceScale }) => (
 	/>
 );
 
-/**
- * The bottom-left legend: what the circle size and colour mean, plus the counts
- * the map cannot draw itself (no menu, filtered out).
- */
 const LegendBody = ({
 	view,
 	scale,
@@ -553,7 +472,6 @@ const LegendBody = ({
 	median?: number | null;
 	hiddenCount?: number;
 	unpricedCount: number;
-	/** Omitted when the legend cannot be collapsed, which hides the close button. */
 	onHide?: () => void;
 }) => (
 	<Box
@@ -620,12 +538,6 @@ const LegendBody = ({
 	</Box>
 );
 
-/**
- * The legend, collapsed to a single button on a phone.
- *
- * `compact` says the layout has no room for it, not that the visitor may never
- * see it, so the collapsed form is a trigger rather than the absence of one.
- */
 const MapLegend = ({
 	open,
 	onShow,
@@ -633,7 +545,6 @@ const MapLegend = ({
 }: {
 	open: boolean;
 	onShow: () => void;
-	/** Only passed when the legend is collapsible, so its close button appears. */
 	onHide?: () => void;
 	view: MapView;
 	scale: PriceScale;
@@ -679,17 +590,6 @@ export const MapPanel = ({
 	initialView,
 }: Props) => {
 	const mapRef = useRef<LeafletMap | null>(null);
-	/**
-	 * The legend starts collapsed on phones and open elsewhere, and the visitor's
-	 * own toggle must survive every later render. `null` means "no decision yet",
-	 * so the answer follows `compact` — which is what a viewport change flips —
-	 * until the visitor says otherwise; a `useState(!compact)` would instead keep
-	 * whatever the first render happened to see.
-	 *
-	 * Written as "open unless there is room to collapse it and the visitor has not
-	 * asked for it", so a desktop legend is unconditionally open: there is no
-	 * collapsed state to reach, and no close button to offer.
-	 */
 	const [legendOverride, setLegendOverride] = useState<boolean | null>(null);
 	const legendOpen = !compact || (legendOverride ?? false);
 
@@ -699,8 +599,6 @@ export const MapPanel = ({
 				position: "relative",
 				height: "100%",
 				width: "100%",
-				// contain Leaflet's z-indexes (its controls go up to 1000) so they can
-				// never sit above Mantine portals such as the settings modal
 				isolation: "isolate",
 				zIndex: 0,
 			}}
@@ -737,7 +635,6 @@ export const MapPanel = ({
 				/>
 			</MapContainer>
 
-			{/* overlay: view switch, venue count + reset view */}
 			<MapControls
 				points={points}
 				view={view}
@@ -748,7 +645,6 @@ export const MapPanel = ({
 				onReset={() => mapRef.current?.setView(UK_CENTER, UK_ZOOM)}
 			/>
 
-			{/* overlay: price legend (collapsible on phones) */}
 			<MapLegend
 				open={legendOpen}
 				onShow={() => setLegendOverride(true)}

@@ -1,9 +1,3 @@
-/**
- * App-facing model for the skills editor, the way `lib/companions.ts` models
- * the companion roster: labels, the staged-edit shape, and the filtering the
- * panel needs. The engine side lives in `lib/save-engine/browser-skills.ts`.
- */
-
 import type {
 	SkillDescription,
 	SkillEntry,
@@ -13,22 +7,15 @@ import { defined } from "./save-engine/defined";
 import type { SkillsEdit } from "./save-engine/edits";
 import { MAX_KNOWLEDGE_LEVEL } from "./save-engine/knowledge-bulk";
 
-/** Level cap the game honours; 99 is the highest meaningful value. */
 export const maxKnowledgeLevel = MAX_KNOWLEDGE_LEVEL;
 
 type SkillModeInfo = {
 	id: SkillMode;
 	label: string;
-	/** One-line summary shown on the mode card. */
 	blurb: string;
-	/** What the mode does and does not touch. */
 	detail: string;
 };
 
-/**
- * The three modes are the CLI's `skills`, `knowledge` and `stats` commands.
- * `skills` comes first because it is the one that unlocks the skill tree.
- */
 export const skillModes: SkillModeInfo[] = [
 	{
 		id: "skills",
@@ -59,10 +46,6 @@ export const modeInfo = (id: SkillMode): SkillModeInfo =>
 		"skill mode",
 	);
 
-/**
- * One staged progression change. The engine only reads `mode` and `levels`; the
- * rest is what the panel needs to describe the queued change back to the user.
- */
 export type SkillEdit = SkillsEdit & {
 	label: string;
 	targets: number;
@@ -71,7 +54,6 @@ export type SkillEdit = SkillsEdit & {
 	relearned: number;
 };
 
-/** The description of a staged change, e.g. "Skill tree: 221 keys · 180 new". */
 export const skillEditSummary = (edit: SkillEdit): string => {
 	const parts = [`${edit.targets.toLocaleString()} keys`];
 	if (edit.injected) parts.push(`${edit.injected.toLocaleString()} new`);
@@ -87,7 +69,6 @@ export const skillEditSummary = (edit: SkillEdit): string => {
 	return parts.join(" · ");
 };
 
-/** Group headings for the entry table. */
 export const skillGroupLabels: Record<SkillEntry["group"], string> = {
 	skillTree: "Skill tree",
 	abilities: "Ability",
@@ -97,10 +78,6 @@ export type SkillGroupFilter = "all" | SkillEntry["group"];
 
 const isMissing = (entry: SkillEntry): boolean => (entry.currentLevel ?? 0) < 1;
 
-/**
- * The entries the panel should list, in reference order. `missingOnly` narrows
- * the list to what the save has not learned yet.
- */
 export const filterSkillEntries = (
 	description: SkillDescription | undefined,
 	query: string,
@@ -117,7 +94,6 @@ export const filterSkillEntries = (
 	);
 };
 
-/** How many entries in a group are still unlearned, for the filter labels. */
 export const missingSkillCount = (
 	description: SkillDescription | undefined,
 	group: SkillGroupFilter,

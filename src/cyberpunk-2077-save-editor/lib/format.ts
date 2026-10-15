@@ -1,46 +1,3 @@
-/**
- * Cyberpunk 2077 `sav.dat` — the codec this app contributes to the workbench.
- *
- * ## What this file is responsible for
- *
- * The shared workbench knows how to read a document, stage edits against it,
- * re-encode, and prove the re-encode by decoding it again. It knows nothing
- * about VASC containers. This module supplies the game-specific half: turning a
- * `sav.dat` into the document the inspector walks, and turning that document
- * back into a file the game will load.
- *
- * ## The document shape, and why it carries the tree
- *
- * The document has three parts:
- *
- * 1. the **container header** and a **tree summary** — what the workbench's
- *    summary rows read;
- * 2. the **character** — attributes, skills, Street Cred and perk points,
- *    resolved from the game's own `PlayerDevelopmentData` object under its real
- *    field names, so both the summary and the quick actions can address them by
- *    name;
- * 3. the **tree** — the node tree and its bytes, carried verbatim.
- *
- * Part 3 is what makes this safe. A VASC save holds many subsystems, and this
- * codec can only name a few of them. Rather than reconstructing the whole file
- * from the fields it understands — which would silently delete everything else —
- * it carries the bytes and writes the character values *into* them at the
- * offsets they were read from. A subsystem this page cannot name is carried
- * through untouched, and an unedited save rebuilds to identical bytes.
- *
- * Writing a same-width scalar in place is what makes that possible: the blob
- * keeps its length, so no offset after it moves. Re-serialising a struct array
- * to change one number would move every offset after it and force the whole
- * save to be re-laid-out.
- *
- * ## What is not attempted
- *
- * The reference implementation this was ported from can push a modified save to
- * GOG Cloud, and can delegate its cheat command to a WolvenKit binary. Neither
- * is possible or wanted in a browser page: one needs credentials this page has
- * no business holding, the other needs a .NET runtime. Both are dropped rather
- * than stubbed, and nothing here refers to them.
- */
 import {
 	type Bytes,
 	editId,
@@ -80,32 +37,20 @@ import {
 } from "./development";
 import { readSystemsContainer } from "./systems";
 
-/** The game's save directory, under GOG's Windows layout. */
 const DEFAULT_PATH =
 	"%LOCALAPPDATA%\\..\\..\\AppData\\Roaming\\CD Projekt Red\\Cyberpunk 2077\\";
 
-/** Document keys, spelled out so a typo cannot pass silently. */
 const KEY_VERSION = "version";
 const KEY_TREE = "tree";
 const KEY_CHARACTER = "character";
 
-/** The non-enumerable property on `version` carrying the node tree. */
 const KEY_TREE_BYTES = "__nodeTree";
 
-/**
- * The container's node names the reference implementation searches for.
- *
- * Spelled out because `findNode` looks the systems node up by name, and a typo
- * would produce an editor that silently finds nothing to edit.
- */
-
-/** `gamedataDevelopmentPointType` members this codec writes. */
 const POINT_ATTRIBUTES = "Attribute";
 const POINT_PRIMARY = "Primary";
 const POINT_SECONDARY = "Secondary";
 const POINT_ESPIONAGE = "Espionage";
 
-/** A character section as it appears in a document. */
 type CharacterSection = {
 	readonly lifePath: string;
 	readonly developmentPoints: ReadonlyMap<string, DevelopmentPoints>;
@@ -113,47 +58,6 @@ type CharacterSection = {
 	readonly skills: ReadonlyMap<string, { level: number; exp: number }>;
 };
 
-/**
- * The node tree a decoded save was read from, keyed by that document.
- *
- * ## The shape of this problem, and what was tried
- *
- * The workbench's round-trip check decodes a rebuilt save and compares the
- * resulting *document* with the one that was encoded. So every field a document
- * exposes has to be a function of the save's bytes, or the check reports a
- * difference in a field nobody edited and calls the rebuild unsound.
- *
- * The node bytes are exactly such a field. `encode` writes the character values
- * into the tree it holds and serialises it, so decoding the result describes the
- * *patched* bytes while the document that was encoded still holds the *pre-patch*
- * ones. An ordinary `tree` field would therefore differ on every rebuild.
- *
- * Three alternatives fail, each for a reason worth keeping:
- *
- * - **Write the patched bytes back.** `encode` is handed the document as a value
- *   and cannot change what the caller holds.
- * - **Key a `WeakMap` by the document**, or attach the tree as a non-enumerable
- *   property *on the document*. Both keep it out of `JSON.stringify`, and both then
- *   fail: the workbench folds edits with `setAtPath`, which rebuilds the root with
- *   an object spread, and a spread copies only enumerable properties and produces a
- *   different object. The tree is gone by the time `encode` runs.
- *
- * What survives is that the bytes must ride through the spread, which means they
- * must be on a part of the document an edit cannot rebuild — and, being
- * non-enumerable, need not be compared.
- *
- * Hence: a non-enumerable property on the **version** section. `setAtPath` shares
- * every untouched branch by reference, and no character edit touches `version`, so
- * the tree survives every `withEdits` the workbench can produce; `JSON.stringify`
- * skips it, so the comparison sees only the readable projection — which is the part
- * a user can change and the part that has to round-trip.
- *
- * The cost is in the error `encode` raises: a document taken through `JSON.parse`,
- * or rebuilt by hand, has no tree behind it and is refused rather than silently
- * rebuilt from the half of the save this codec can name.
- */
-
-/** The parts of a document this codec reads back on encode. */
 type DecodedParts = {
 	readonly version: SaveVersion;
 	readonly nodeCount: number;
@@ -163,27 +67,6 @@ type DecodedParts = {
 	readonly character: CharacterSection;
 };
 
-/**
- * Builds a live node tree from a decoded one, renumbering as it goes.
- *
- * The links are filled in a second pass rather than during the walk, because a
- * node's `childIndex` is the index its *first child will take* — which is only
- * knowable once the walk has assigned it, and which the container's writer
- * recomputes anyway. `flatten` reads `children` for both links and the payload
- * order, so the fields it overwrites are already correct by then.
- *
- * Depth is bounded because a document can carry a tree deep enough to exhaust
- * the stack, and this runs on a document the user has edited.
- */
-/**
- * Whether a value read off a document's hidden property is a node tree.
- *
- * The property is untyped because it is deliberately outside the document's
- * shape. This guard is what makes reading it safe instead of a cast: it checks
- * the fields `encode` actually uses, so a document that has been through
- * `JSON.parse` — or anything else that lost the property — is refused with a
- * message that says why rather than failing three frames later.
- */
 const isSaveNode = (value: unknown): value is SaveNode =>
 	typeof value === "object" &&
 	value !== null &&
@@ -193,10 +76,6 @@ const isSaveNode = (value: unknown): value is SaveNode =>
 	Array.isArray((value as Partial<SaveNode>).children);
 
 const buildTree = (source: SaveNode): SaveNode => {
-	// A copy, because `encode` patches it and the remembered tree must stay as
-	// the file had it — a second encode of the same document has to start from the
-	// same bytes, or the offsets a patch is aimed at would be the ones the last
-	// edit already moved.
 	let next = 0;
 	const build = (node: SaveNode, depth: number, index: number): SaveNode => {
 		if (depth > 512) {
@@ -216,10 +95,6 @@ const buildTree = (source: SaveNode): SaveNode => {
 			}),
 		};
 	};
-	// The container's root is the synthetic one, which the format describes by its
-	// position rather than by a descriptor — so it takes a negative index and
-	// consumes none of the numbering, and its children start at 0. Renumbering it
-	// as node 0 would shift every node by one and write four bytes too many.
 	const root = build(source, 0, -2);
 	for (const node of walkNodes(root)) {
 		const first = node.children[0];
@@ -232,7 +107,6 @@ const buildTree = (source: SaveNode): SaveNode => {
 	return root;
 };
 
-/** Narrows a decoded value to the parts of a document this codec reads. */
 const readDocument = (doc: JsonValue): DecodedParts => {
 	if (!isJsonObject(doc)) {
 		throw new Error("This file decoded, but it is not a Cyberpunk 2077 save.");
@@ -292,9 +166,6 @@ const readDocument = (doc: JsonValue): DecodedParts => {
 			uk0: number(version.uk0),
 			uk1: number(version.uk1),
 			ps4w: version.ps4w === true,
-			// The chunk table's reserved size is header state, not payload. Carrying
-			// it is what keeps a rebuild's table the same length as the file's, and
-			// so keeps an untouched save byte-identical rather than merely valid.
 			tableEntriesCount: number(version.tableEntries) || undefined,
 		},
 		nodeCount: number(tree?.nodes),
@@ -315,14 +186,6 @@ const readDocument = (doc: JsonValue): DecodedParts => {
 	};
 };
 
-/**
- * The player's development data out of a decoded container.
- *
- * Returns `undefined` when the container has no `ScriptableSystemsContainer`, or
- * when its blob cannot be parsed. Both are gaps in the projection rather than
- * broken saves, and swallowing them here — and only here — is what lets the rest
- * of the file be inspected and rebuilt untouched.
- */
 const developmentOf = (
 	container: DecodedContainer,
 ): Development | undefined => {
@@ -330,9 +193,6 @@ const developmentOf = (
 	if (node === undefined) return undefined;
 	try {
 		const development = readDevelopment(readSystemsContainer(node.data));
-		// An empty result means the container parsed but held no
-		// `PlayerDevelopmentData` object, which is a real answer rather than a
-		// failure — but it is not worth reporting as character data.
 		return development.skills.size === 0 &&
 			development.attributes.size === 0 &&
 			development.developmentPoints.size === 0
@@ -343,13 +203,6 @@ const developmentOf = (
 	}
 };
 
-/**
- * Bytes to the document the workbench edits.
- *
- * Asynchronous because the container inflates its chunks and yields between them;
- * projecting the character data off the parsed tree is then a few hundred
- * microseconds, which is not worth interrupting.
- */
 const decode = async (bytes: Bytes): Promise<JsonValue> => {
 	const container = await decodeContainer(bytes);
 	const development = developmentOf(container);
@@ -373,10 +226,6 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 		v1: container.version.v1,
 		v2: container.version.v2,
 		v3: container.version.v3,
-		// The header's unknown words are carried verbatim. What they mean is not
-		// known, but the game writes them and a rebuild that dropped them would not
-		// be byte-identical to the file it read — which is the strongest result this
-		// codec can offer and the one the workbench reports as "unchanged".
 		suk: container.version.suk,
 		uk0: container.version.uk0,
 		uk1: container.version.uk1,
@@ -384,10 +233,6 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 		tableEntries: container.version.tableEntriesCount ?? 0,
 	};
 
-	// The node tree rides along here, invisibly. See the note above this section
-	// for why it is on `version` specifically: it is the one branch of the document
-	// that a character edit cannot rebuild, so `setAtPath` shares it by reference,
-	// and it is non-enumerable so `JSON.stringify` never compares it.
 	Object.defineProperty(version, KEY_TREE_BYTES, {
 		value: container.root,
 		enumerable: false,
@@ -406,20 +251,6 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 	};
 };
 
-/**
- * The document back to bytes.
- *
- * Take the tree `decode` remembered for this document, write the character values
- * into the systems blob at the offsets they were read from, and re-serialise the
- * container. Everything the character section does not name is carried through
- * byte for byte, which is what makes a cheat on one attribute leave the quest
- * facts and the inventory alone.
- *
- * The tree is rebuilt rather than reused, because a patch writes into it and a
- * second `encode` of the same document has to start from the bytes the file
- * actually had. Reusing the patched tree would aim the second build's patches at
- * offsets an earlier edit had already moved.
- */
 const encode = async (doc: JsonValue): Promise<Bytes> => {
 	const document = readDocument(doc);
 	const remembered: unknown = (() => {
@@ -431,11 +262,6 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 			"This save cannot be rebuilt: this document has no node tree behind it. Open the save from the file again.",
 		);
 	}
-	// The property is written by `decode` above and by nothing else, so it is a
-	// `SaveNode` — but it is untyped here, because it is deliberately not part of
-	// the document's shape. This guard is what makes reading it safe rather than a
-	// cast, and it is what turns "this document went through JSON.parse" into a
-	// sentence a user can act on.
 	if (!isSaveNode(remembered)) {
 		throw new Error(
 			"This save cannot be rebuilt: the node tree behind this document is not readable.",
@@ -451,9 +277,6 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 			legacyPerks: [],
 			traits: [],
 		};
-		// Written in place, into the tree that is about to be serialised. A patch
-		// aimed at a copy would land in a temporary and be discarded — which is the
-		// bug this line's comment exists to prevent.
 		applyPatches(planPatches(readSystemsContainer(node.data), desired));
 	}
 
@@ -465,7 +288,6 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 	});
 };
 
-/** Header rows, which every save has whatever else it contains. */
 const summariseHeader = (document: DecodedParts): readonly SummaryRow[] => [
 	{
 		label: "Container format",
@@ -480,13 +302,6 @@ const summariseHeader = (document: DecodedParts): readonly SummaryRow[] => [
 	{ label: "Top-level nodes", value: String(document.topLevel.length) },
 ];
 
-/**
- * Character rows, from the document's character section.
- *
- * Only names the save actually holds are shown. A save with no readable
- * development data gets an explicit line saying so, because five rows of zeroes
- * would be indistinguishable from a level-1 character.
- */
 const summariseCharacter = (document: DecodedParts): readonly SummaryRow[] => {
 	const { character } = document;
 	const rows: SummaryRow[] = [];
@@ -552,7 +367,6 @@ const summariseCharacter = (document: DecodedParts): readonly SummaryRow[] => {
 	return rows;
 };
 
-/** An edit setting one path to one number. */
 const numberEdit = (
 	path: readonly (string | number)[],
 	label: string,
@@ -566,18 +380,6 @@ const numberEdit = (
 	after,
 });
 
-/**
- * The level a named proficiency should be set to.
- *
- * `undefined` means "leave it alone", which is what happens to `Level` and to
- * any proficiency this codec does not recognise — inventing a target for an
- * unrecognised name is how a cheat writes a value the game then rejects.
- *
- * The names come from the game's `gamedataProficiencyType` enum, transcribed in
- * the reference implementation and confirmed against the game's `CEnums`
- * catalogue: the five 2.0 skills are `<Attribute>Skill`, everything else listed
- * is a legacy 1.x proficiency, `StreetCred` and `Espionage` are handled apart.
- */
 const targetSkillLevel = (name: string): number | undefined => {
 	if (name === "StreetCred") return MAX_STREET_CRED;
 	if (name === "Espionage") return 1;
@@ -585,43 +387,6 @@ const targetSkillLevel = (name: string): number | undefined => {
 	return PROFICIENCY_ORDER.includes(name) ? 20 : undefined;
 };
 
-/**
- * Quick actions, each a pure function of the document.
- *
- * `plan` never touches anything: it returns the edits a button would stage, so
- * a test can assert exactly what a cheat does and the workbench can show a
- * preview before anything changes. An action that does not apply to the loaded
- * save returns an empty list, which is how it greys itself out.
- *
- * ## Which cheats are here, and why
- *
- * Kept, each matching the reference implementation:
- *
- * - **Attributes to 20** — the five spendable attributes, capped at
- *   `MAX_ATTRIBUTE`. The two attributes the 2.0 tree retired are pinned to zero
- *   rather than raised, which is what the reference does and what keeps perk
- *   spending consistent.
- * - **Development points** — `Attribute` and `Primary` to the 720 cap,
- *   `Secondary` to 12, `Espionage` to 0. Spent points are left alone, so the
- *   total a character has earned does not change.
- * - **Skills and Street Cred** — the five 2.0 skills to 60, the legacy 1.x
- *   proficiencies to 20, Street Cred to 50, Espionage to 1. Character level is
- *   deliberately left alone, as the reference does.
- *
- * Dropped, with reasons:
- *
- * - **Unlock every perk** — needs the game's own perk tree, which lives in the
- *   TweakDB rather than in the save. The reference synthesises it from an 11 kB
- *   template of 2.0 perk names; writing those into a save without the matching
- *   game data would produce a character the game cannot reconcile.
- * - **Money** — `Items.money` is an inventory item whose quantity is an unsigned
- *   32-bit field inside a nested `itemData` node, reached through a
- *   version-dependent `ItemID` whose layout changes three times across the
- *   container revisions this codec supports. Writing it needs those layouts, and
- *   no committed save confirms them.
- * - **Character level** — a proficiency like the others here, and reachable in
- *   the inspector.
- */
 const ACTIONS: readonly QuickAction[] = [
 	{
 		id: "attributes-20",
@@ -715,7 +480,6 @@ const ACTIONS: readonly QuickAction[] = [
 	},
 ];
 
-/** Notes shown beside the drop target: what the format is, and what it is not. */
 const NOTES: readonly FormatNote[] = [
 	{
 		title: "A VASC container around an object tree",
@@ -739,13 +503,6 @@ const NOTES: readonly FormatNote[] = [
 	},
 ];
 
-/**
- * This game's codec.
- *
- * `extensions` is `dat` alone. The file is named `sav.dat` by the game, and a
- * picker offering every `.dat` on the disk would be claiming to open things this
- * page cannot.
- */
 export const cyberpunk2077: SaveCodec = {
 	game: "Cyberpunk 2077",
 	formatLabel: "VASC container, LZ4 chunks, REDengine 4 nodes",

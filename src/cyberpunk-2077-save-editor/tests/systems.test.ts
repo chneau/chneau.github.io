@@ -17,14 +17,6 @@ import {
 	buildSystemsBlob,
 } from "./synthetic";
 
-/**
- * The string pool and the object list.
- *
- * **All synthetic.** No real `sav.dat` exists to read (see the note at the top
- * of `character-save.ts`), so these confirm the projection is self-consistent
- * with a builder written independently from the format description — not that a
- * save the game wrote has the shape assumed here.
- */
 describe("systems container", () => {
 	test("reads the string pool, dropping each entry's null terminator", async () => {
 		const decoded = await decodeContainer(buildFullSave());
@@ -36,8 +28,6 @@ describe("systems container", () => {
 			"unlockedPerks",
 		);
 		expect(systems.pool.names).toHaveLength(POOL.length);
-		// A NUL left on the end of a name is the classic pool-reading bug: every
-		// field lookup would silently miss.
 		expect(systems.pool.names.every((name) => !name.endsWith("\0"))).toBe(true);
 	});
 
@@ -74,10 +64,6 @@ describe("systems container", () => {
 	});
 
 	test("reads a field's bytes as the slice its descriptor implies", async () => {
-		// A field runs from its own offset to the next descriptor's, or to the end
-		// of the object for the last one. Slicing it any other way reads a
-		// neighbouring field's bytes — which here would be the object's own
-		// descriptor table, and would look like plausible data.
 		const decoded = await decodeContainer(buildFullSave());
 		const node = findNode(decoded.root, "ScriptableSystemsContainer");
 		if (node === undefined) throw new Error("The fixture has no systems node.");
@@ -85,8 +71,6 @@ describe("systems container", () => {
 		const godMode = systems.find("godModeSystem");
 		if (godMode === undefined) throw new Error("No god-mode object.");
 		expect([...(godMode.field("currLevel")?.data ?? [])]).toEqual([1, 2, 3, 4]);
-		// The development object has seven fields, so each of the first six is
-		// bounded by the next one's offset rather than by the object's end.
 		const development = systems.find("PlayerDevelopmentData");
 		if (development === undefined) throw new Error("No development object.");
 		const lifePath = development.field("lifePath");
@@ -98,9 +82,6 @@ describe("systems container", () => {
 	});
 
 	test("stops walking a sparse array at a field type it does not model", async () => {
-		// An element's length is only knowable from the size of its last field, so
-		// an unknown type means there is no way to find the next element. Guessing
-		// would shift every element after it and report invented levels.
 		const decoded = await decodeContainer(buildFullSave());
 		const node = findNode(decoded.root, "ScriptableSystemsContainer");
 		if (node === undefined) throw new Error("The fixture has no systems node.");
@@ -109,26 +90,9 @@ describe("systems container", () => {
 		if (development === undefined) throw new Error("No development object.");
 		const attributes = development.field("attributes");
 		if (attributes === undefined) throw new Error("No attributes field.");
-		// `attributes` as the fixture writes it ends on an `Int32`, so every
-		// element is read.
 		expect(readSparseArray(attributes.data, systems.pool)).toHaveLength(5);
-		// A blob whose element's last field has a type this editor does not model
-		// reads as empty, because there is no way to find the following element.
 		const unknownLastField = new Uint8Array([
-			1,
-			0,
-			0,
-			0, // one element
-			1,
-			0, // one field
-			0,
-			0, // its name, pool index 0
-			99,
-			0, // a type name that is not in the pool at all
-			10,
-			0,
-			0,
-			0, // its offset within the element
+			1, 0, 0, 0, 1, 0, 0, 0, 99, 0, 10, 0, 0, 0,
 		]);
 		expect(readSparseArray(unknownLastField, systems.pool)).toEqual([]);
 	});
@@ -138,21 +102,11 @@ describe("systems container", () => {
 		const node = findNode(decoded.root, "ScriptableSystemsContainer");
 		if (node === undefined) throw new Error("The fixture has no systems node.");
 		const systems = readSystemsContainer(node.data);
-		// A count of 0x7fffffff in eight bytes cannot describe a real array, and
-		// iterating it would be a very long loop.
 		const absurd = new Uint8Array([0xff, 0xff, 0xff, 0x7f, 0, 0]);
 		expect(() => readSparseArray(absurd, systems.pool)).toThrow(/cannot hold/);
 	});
 });
 
-/**
- * `PlayerDevelopmentData`, projected to names.
- *
- * Every name asserted here is one the game writes: the field names are the
- * object's own, and the element names come from the enum orders transcribed from
- * the game's `CEnums.json`. See `lib/development.ts` for why those orders are
- * load-bearing when a save omits the redundant `type` field.
- */
 describe("player development data", () => {
 	test("reads attributes, skills, points and the life path", async () => {
 		const decoded = await decodeContainer(buildFullSave());
@@ -181,8 +135,6 @@ describe("player development data", () => {
 			"Body",
 			"Reflexes",
 		]);
-		// `AttributeData` is stripped, because that suffix names the C++ type
-		// rather than the tree the player sees.
 		expect(development.perkTrees[1]?.perks).toEqual([
 			{ perk: "Reflexes_Central_Perk_1_1", level: 1 },
 			{ perk: "Reflexes_Central_Perk_1_2", level: 1 },
@@ -201,25 +153,14 @@ describe("player development data", () => {
 
 	test("reports nothing when the save has no development object", async () => {
 		const decoded = await decodeContainer(buildSaveWithoutDevelopment());
-		// A save with no systems node still decodes: the container is what the
-		// editor must not lose, and a missing subsystem is a gap in the projection
-		// rather than a broken file.
 		expect(decoded.root.children.map((node) => node.name)).toEqual([
 			"inventory",
 			"PSData",
 		]);
-		// An empty blob is not a systems container at all, and is reported as such.
 		expect(() => readSystemsContainer(new Uint8Array(0))).toThrow();
 	});
 
 	test("identifies an element positionally when the save omits its type", async () => {
-		// A save that leaves out the redundant `type` field is readable only because
-		// the array is stored in its enum's order. This asserts the two orderings
-		// that decide whether a cheat does the right thing: the development points
-		// and the proficiencies.
-		//
-		// Built by hand because the fixture's own arrays name every element — this
-		// is the one case the fixture cannot produce.
 		const pool = [...POOL];
 		const withoutTypes = buildSave({
 			nodes: [
@@ -284,9 +225,6 @@ describe("player development data", () => {
 												type: "CName",
 												data: [
 													...buildStructArray(
-														// Two elements with no `type` field at all: index 0
-														// must read as `Assault` and index 1 as
-														// `Athletics`.
 														[
 															{
 																fields: [
@@ -345,8 +283,6 @@ describe("player development data", () => {
 	});
 
 	test("does not report a level for a field it could not read", async () => {
-		// A blob cut short mid-array must be refused rather than producing confident
-		// zeros, which would read as a level-1 character.
 		const decoded = await decodeContainer(buildFullSave());
 		const node = findNode(decoded.root, "ScriptableSystemsContainer");
 		if (node === undefined) throw new Error("The fixture has no systems node.");
@@ -362,16 +298,12 @@ describe("player development data", () => {
 	});
 });
 
-/** The document shape, exercised through the codec's own contract. */
 describe("document", () => {
 	test("names the fields the game writes", async () => {
 		const decoded = await decodeContainer(buildFullSave());
 		const node = findNode(decoded.root, "ScriptableSystemsContainer");
 		if (node === undefined) throw new Error("The fixture has no systems node.");
 		const development = readDevelopment(readSystemsContainer(node.data));
-		// A projection is only useful if the values are addressable by the names
-		// the quick actions use, so they are asserted as a set rather than only
-		// individually above.
 		const keys: readonly string[] = [
 			...development.attributes.keys(),
 			...development.skills.keys(),
@@ -383,5 +315,3 @@ describe("document", () => {
 		expect(keys).toContain("Attribute");
 	});
 });
-
-/** Re-exported so the codec test can build the same fixture. */

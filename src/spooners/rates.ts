@@ -2,22 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
 import { currencySymbol } from "./price";
 
-/**
- * Daily ECB reference rates (via frankfurter.dev - free, no API key, CORS *).
- * Cached in localStorage for 12h so we are not calling it on every visit.
- *
- * This is the one place in the app where data arrives unchecked, from two
- * untrusted sources (localStorage, which any script or a user can edit, and the
- * network). Both are parsed through `RateTableSchema` and anything that does
- * not match is discarded rather than trusted: a truncated table used to throw
- * `table.rates[code]` during render, and a half-parsed one left prices
- * unconverted but still labelled with the target currency's symbol.
- */
-
 const RatesSchema = z.record(z.string(), z.number().finite());
 
 const RateTableSchema = z.object({
-	/** Units of the currency per one unit of `base`. */
 	base: z.string().min(1),
 	date: z.string().min(1),
 	rates: RatesSchema,
@@ -26,7 +13,6 @@ const RateTableSchema = z.object({
 
 export type RateTable = z.infer<typeof RateTableSchema>;
 
-/** Shape check for a value that crossed a trust boundary. */
 export const parseRateTable = (value: unknown): RateTable | null => {
 	const result = RateTableSchema.safeParse(value);
 	return result.success ? result.data : null;
@@ -36,11 +22,6 @@ const STORAGE_KEY = "spooners.rates.v1";
 const ENDPOINT = "https://api.frankfurter.dev/v1/latest?from=GBP";
 const TTL = 12 * 60 * 60 * 1000;
 
-/**
- * The cached table, or null if it is absent, unparseable or the wrong shape.
- * A rejected entry is deleted so the bad value cannot be re-read on every
- * visit while the app keeps quietly failing to fetch.
- */
 const readCache = (): RateTable | null => {
 	try {
 		const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -55,10 +36,6 @@ const readCache = (): RateTable | null => {
 		}
 		return table;
 	} catch (err) {
-		// Reaching for `localStorage` throws outright in a sandboxed iframe or
-		// under a strict cookie policy, and `getItem` throws when storage is
-		// blocked. Both mean "no cache", not "broken cache" — the app refetches
-		// on every mount and the user never learns why, so say so once.
 		console.error("Spooners: could not read the cached rate table", err);
 		return null;
 	}
@@ -79,8 +56,6 @@ export const useRates = () => {
 			}
 			const parsed = parseRateTable(await response.json());
 			if (!parsed) {
-				// Loud: the caller shows this, so a shape change upstream is
-				// visible instead of silently disabling every conversion.
 				throw new Error("unexpected rate table from frankfurter.dev");
 			}
 			const next: RateTable = { ...parsed, fetchedAt: Date.now() };
@@ -88,9 +63,6 @@ export const useRates = () => {
 			try {
 				window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 			} catch (err) {
-				// Rates still work for this session; only the cache is lost, and the
-				// next visit pays for it. Worth a line, since the failure is otherwise
-				// invisible and indistinguishable from a first run.
 				console.warn(
 					"Spooners: could not cache the rate table; rates work for this session only",
 					err,
@@ -112,17 +84,11 @@ export const useRates = () => {
 	return { table, loading, error, refresh: load };
 };
 
-/**
- * The rates object, or null when there is no usable table. `table` is
- * validated on the way in, but a table written by an older build can still be
- * sitting in localStorage at runtime, so nothing here assumes a shape.
- */
 const ratesOf = (table: RateTable | null): Record<string, number> | null => {
 	const rates = table?.rates;
 	return rates && typeof rates === "object" ? rates : null;
 };
 
-/** How many `to` one `from` is worth, or null when the table cannot say. */
 const unitRate = (
 	from: string,
 	to: string,
@@ -150,17 +116,8 @@ const unitRate = (
 	return rateTo / rateFrom;
 };
 
-// convert() cannot change its signature (callers treat the result as a number),
-// so a failed conversion is reported rather than passed off as a real one.
 const warned = new Set<string>();
 
-/**
- * Convert `amount` from one currency to another using a GBP-based table.
- *
- * A table that cannot express the pair is a bug in the caller, not a reason to
- * relabel a foreign price in pounds, so it is logged once per pair. Callers
- * that care should gate on `canConvertTo` first.
- */
 export const convert = (
 	amount: number,
 	from: string,
@@ -182,11 +139,9 @@ export const convert = (
 	return amount * rate;
 };
 
-/** True when `code` can be converted to with this table. */
 export const canConvertTo = (code: string, table: RateTable | null): boolean =>
 	Boolean(code) && unitRate(code, table?.base ?? "", table) != null;
 
-/** Currency codes offered in settings (GBP/EUR/USD always, plus everything ECB publishes). */
 export const currencyChoices = (table: RateTable | null): string[] => {
 	const codes = new Set<string>(["GBP", "EUR", "USD"]);
 	const rates = ratesOf(table);
@@ -201,17 +156,11 @@ export const currencyChoices = (table: RateTable | null): string[] => {
 	return [...codes].sort();
 };
 
-// Constructing an `Intl` formatter builds a whole locale data structure and the
-// object is designed to be reused, so it is built once when the module loads
-// rather than once per label — the picker re-renders this list on every
-// keystroke. The constructor is absent on runtimes without `Intl.DisplayNames`,
-// where the bare currency code still reads correctly.
 const CURRENCY_NAMES: Intl.DisplayNames | null =
 	typeof Intl.DisplayNames === "function"
 		? new Intl.DisplayNames(["en-GB"], { type: "currency" })
 		: null;
 
-/** Options for the settings currency picker: "£ GBP · British Pound". */
 export const currencySelectOptions = (
 	codes: string[],
 ): { value: string; label: string }[] => {

@@ -6,19 +6,14 @@ import { MapPanel } from "./MapPanel";
 type Props = {
 	compact: boolean;
 	view: MapView;
-	/** The markers for the current mode: pubs, or one per area. */
 	points: MapPoint[];
-	/** Grey markers for pubs with no menu, which only make sense in pub mode. */
 	unpriced: MapPoint[];
-	/** How many of each kind, for the "N pubs" / "N areas" count. */
 	pubCount: number;
 	areaCount: number;
 	scale: { min: number; max: number };
 	currency: string;
-	/** The legend the map shows when it is not in area mode. */
 	legendLabel: string | undefined;
 	median: number | null;
-	/** Pubs the filters removed, which area mode does not report. */
 	hiddenCount: number | undefined;
 	focused: MapPoint | null;
 	onFocus: (point: MapPoint) => void;
@@ -31,15 +26,6 @@ type Props = {
 	onViewport: (center: [number, number], zoom: number) => void;
 };
 
-/**
- * The map half of the page.
- *
- * Its own component for two reasons: the sizing rule, which differs below the
- * breakpoint, and the wording, which differs by mode. Area mode shows one
- * marker per area with no median line and no count of hidden pubs, so what the
- * map's own chrome says belongs here rather than in the caller, which would
- * otherwise repeat that comparison beside every marker.
- */
 export const MapPane = ({
 	compact,
 	view,

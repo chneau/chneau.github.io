@@ -10,8 +10,6 @@ import {
 } from "./records-summary";
 import { dataStore } from "./store";
 
-// Re-exported for the existing importers; the derivation and its caching live
-// in `records-summary.ts`, which is pure and asserts the scorer cost itself.
 export { computeRecords, recordsDiagnostics } from "./records-summary";
 
 type RecordsWidgetProps = {
@@ -80,9 +78,6 @@ const RecordTile = ({
 		</>
 	);
 
-	// The tooltip is only attached to buttons, i.e. to tiles that a keyboard
-	// can already reach. Non-actionable tiles carry their explanation in the
-	// visible hint instead of in hover-only content.
 	const content = onSelect ? (
 		<button
 			type="button"
@@ -115,8 +110,6 @@ export const RecordsWidget = ({ data }: RecordsWidgetProps) => {
 		return summary;
 	}, [people]);
 
-	// No visible people means no record can be awarded; the list above this
-	// widget already explains an empty filter result.
 	if (!records) return null;
 
 	const socialite = records.socialite;

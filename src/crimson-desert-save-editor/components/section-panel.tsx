@@ -20,13 +20,6 @@ import { NamesPanel } from "./names-panel";
 import { QuestsPanel } from "./quests-panel";
 import { SkillsPanel } from "./skills-panel";
 
-/**
- * The warning above the panels when part of a save could not be read.
- *
- * It says so on every view, and it is not an error: the rest of the save is
- * editable. That is why it is its own component rather than a branch in each
- * panel — one reader-facing sentence about withheld records, stated once.
- */
 export const SkippedRecordsAlert = ({
 	count,
 	details,
@@ -49,15 +42,6 @@ export const SkippedRecordsAlert = ({
 	</Alert>
 );
 
-/**
- * The panel for whichever section is on screen.
- *
- * Every panel reads the same three things — the parse result, the staged edits
- * belonging to it, and whether a download is running — and differs only in which
- * ones it wants. The inventory is not here: it is always mounted so its search,
- * sort and selection survive a trip to another section, which is why this
- * returns nothing for `inventory` rather than rendering it.
- */
 export const SectionPanel = ({
 	view,
 	result,

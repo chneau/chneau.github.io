@@ -2,31 +2,8 @@ import { afterAll, describe, expect, setSystemTime, test } from "bun:test";
 import type { Birthday } from "../birthdays";
 import { birthdaySchema, birthdays, recomputeBirthdays } from "../birthdays";
 
-/**
- * Characterisation tests over the FULL derived `Birthday` records built from
- * the real `birthdays.json` (33 records).
- *
- * The UI silently depends on a pile of invariants that nothing enforces:
- * `nextBirthday` really is in the future, `daysBeforeBirthday` really is
- * non-negative, the list really is sorted (it *is* the countdown), and every
- * string field really is present (it is fed straight into `t()`). A single bad
- * record would not throw - it would render `undefined` or count down to a date
- * in the past.
- *
- * These tests deliberately use the real dataset, because that is where the
- * inconsistencies live: synthetic records never trip a decade boundary, a
- * leap-year progress calculation or a combined "A & B" name.
- *
- * NOTE: the reference date ("now") is NOT injectable - `computeBirthdays` is
- * not exported and reads `dayjs()` directly. The only reachable way to move the
- * clock is `bun:test`'s `setSystemTime`, which is what the date-roll tests
- * below use together with the exported `recomputeBirthdays()`.
- */
-
-/** Real system time at import, so we can put the clock back. */
 const realNow = new Date();
 
-/** Midday on a local date: TZ-independent, and unambiguous for `startOf("day")`. */
 const at = (y: number, m: number, d: number) =>
 	new Date(y, m - 1, d, 12, 0, 0, 0);
 
@@ -38,7 +15,6 @@ const startOfToday = () => {
 const daysBetween = (a: Date, b: Date) =>
 	Math.round((b.getTime() - a.getTime()) / 86_400_000);
 
-/** Re-implementation of the module-private per-day hash, for characterisation. */
 const expectedDailyInsight = (
 	name: string,
 	ref: Date,
@@ -56,16 +32,10 @@ const expectedDailyInsight = (
 	return `insight_${Math.abs(hash) % 15}` as Birthday["dailyInsight"];
 };
 
-/**
- * `Birthday` is built as `{ ...raw, ...derived }`, so `date` IS present at
- * runtime but was never added to the exported type. The storage layer and the
- * React keys in `Countdown.tsx` / `ManageBirthdaysModal.tsx` all read it.
- */
 type DerivedRecord = Birthday & { date: string };
 
 const records = birthdays as DerivedRecord[];
 
-/** Everything that must survive a day roll unchanged, i.e. is NOT day-dependent. */
 const TIME_INVARIANT_FIELDS = [
 	"date" as const,
 	"kind",
@@ -92,10 +62,7 @@ const TIME_INVARIANT_FIELDS = [
 	"moonPhaseIcon",
 ] as const satisfies readonly (keyof DerivedRecord)[];
 
-/** Fields the UI derives from the birth date alone and expects to never move. */
 const snapshotTimeInvariant = (list: readonly Birthday[]) =>
-	// sorted by name: the countdown order legitimately changes with the date,
-	// only the *content* is supposed to be stable.
 	[...list]
 		.sort((a, b) => a.name.localeCompare(b.name))
 		.map((b) => ({
@@ -109,8 +76,6 @@ afterAll(() => {
 	setSystemTime(realNow);
 	recomputeBirthdays();
 });
-
-// --- 1. Per-record internal consistency ------------------------------------
 
 describe("every derived record is internally consistent", () => {
 	test("the real dataset is the expected size", () => {
@@ -137,10 +102,8 @@ describe("every derived record is internally consistent", () => {
 		});
 
 		test(`${id}: age units agree with each other`, () => {
-			// 365 is the shortest possible year, so this must hold.
 			expect(b.ageInDays).toBeGreaterThanOrEqual(b.age * 365);
 			expect(b.ageInDays).toBeLessThanOrEqual((b.age + 1) * 366);
-			// month diffs land in [12*age, 12*age+12)
 			expect(b.ageInMonths).toBeGreaterThanOrEqual(b.age * 12);
 			expect(b.ageInMonths).toBeLessThan(b.age * 12 + 12);
 			expect(b.ageInWeeks).toBe(Math.floor(b.ageInDays / 7));
@@ -150,7 +113,6 @@ describe("every derived record is internally consistent", () => {
 			expect(b.progress).toBeGreaterThanOrEqual(0);
 			expect(b.progress).toBeLessThanOrEqual(100);
 			expect(Number.isFinite(b.progress)).toBe(true);
-			// progress counts up to the birthday, so 100 <=> today.
 			if (b.daysBeforeBirthday === 0) expect(b.progress).toBe(100);
 			if (b.progress === 100) expect(b.daysBeforeBirthday).toBe(0);
 		});
@@ -200,8 +162,6 @@ describe("every derived record is internally consistent", () => {
 			expect(b.birthday.getFullYear()).toBe(b.year);
 			expect(b.birthday.getMonth() + 1).toBe(b.month);
 			expect(b.birthday.getDate()).toBe(b.day);
-			// `birthdayString` is what is handed back to the storage layer, so it
-			// must parse back to the very same local date.
 			expect(new Date(`${b.birthdayString}T00:00:00`).getTime()).toBe(
 				new Date(
 					b.birthday.getFullYear(),
@@ -212,8 +172,6 @@ describe("every derived record is internally consistent", () => {
 		});
 	}
 });
-
-// --- 2. Ordering ------------------------------------------------------------
 
 describe("ordering", () => {
 	test("birthdays is sorted by daysBeforeBirthday ascending", () => {
@@ -240,8 +198,6 @@ describe("ordering", () => {
 	});
 });
 
-// --- 3. Uniqueness ---------------------------------------------------------
-
 describe("uniqueness", () => {
 	test("no duplicate name+date pairs", () => {
 		const keys = records.map((b) => `${b.name}-${b.birthdayString}`);
@@ -254,8 +210,6 @@ describe("uniqueness", () => {
 	});
 
 	test("the derived keys actually used as React keys are unique", () => {
-		// Countdown.tsx uses `${name}-${birthdayString}`; ManageBirthdaysModal
-		// uses `${name}-${date}`; CompatibilityMatrix keys rows by `name` alone.
 		for (const keyFn of [
 			(b: DerivedRecord) => `${b.name}-${b.birthdayString}`,
 			(b: DerivedRecord) => `${b.name}-${b.date}`,
@@ -276,7 +230,6 @@ describe("uniqueness", () => {
 			const [a, b] = w.name.split(" & ");
 			expect(a?.length).toBeGreaterThan(0);
 			expect(b?.length).toBeGreaterThan(0);
-			// the ampersand form must not be a person too
 			expect(records.some((x) => x.name === w.name && x.kind !== "💒")).toBe(
 				false,
 			);
@@ -291,15 +244,10 @@ describe("uniqueness", () => {
 	});
 });
 
-// --- 4. Determinism --------------------------------------------------------
-
 describe("determinism", () => {
 	test("computeBirthdays has no Math.random()/Date.now() leaking in", () => {
 		const a = recomputeBirthdays();
 		const b = recomputeBirthdays();
-		// Dates do not survive a structural compare, so deep-clone first:
-		// `structuredClone` keeps the `Date` objects, so this compares the dates
-		// themselves rather than two serialised copies of them.
 		expect(structuredClone(b)).toEqual(structuredClone(a));
 		expect(b).toHaveLength(a.length);
 	});
@@ -311,8 +259,6 @@ describe("determinism", () => {
 	});
 
 	test("dailyInsight is the documented per-day hash of name+date", () => {
-		// It is `name + YYYY-MM-DD` reduced to 15 buckets - a per-day
-		// reshuffle, not a property of the person.
 		const today = startOfToday();
 		for (const b of records) {
 			expect(b.dailyInsight).toBe(expectedDailyInsight(b.name, today));
@@ -322,7 +268,6 @@ describe("determinism", () => {
 	test("the same people get different insights on a different day", () => {
 		const today = startOfToday();
 		const onToday = new Set(records.map((b) => `${b.name}:${b.dailyInsight}`));
-		// 15 buckets over 33 people: a handful of days is enough to move some.
 		const overDays = new Set<string>();
 		for (const offset of [1, 2, 3, 4, 5, 6, 7]) {
 			setSystemTime(new Date(today.getTime() + offset * 86_400_000));
@@ -336,8 +281,6 @@ describe("determinism", () => {
 	});
 });
 
-// --- 5. The date-roll contract --------------------------------------------
-
 describe("the date-roll contract", () => {
 	test("recomputeBirthdays() moves the countdown as the reference date moves", () => {
 		const ref = at(2026, 3, 10);
@@ -345,7 +288,6 @@ describe("the date-roll contract", () => {
 		const before = recomputeBirthdays();
 		const b0 = before[0] as Birthday;
 
-		// one day later, the next birthday is one day closer
 		setSystemTime(new Date(ref.getTime() + 86_400_000));
 		const after = recomputeBirthdays();
 		const a0 = after.find(
@@ -357,7 +299,6 @@ describe("the date-roll contract", () => {
 	});
 
 	test("rolling over a birthday flips age, progress and the milestone", () => {
-		// Charles, 1992-08-13: 33 on 12 Aug 2026, 34 on the 13th.
 		setSystemTime(at(2026, 8, 12));
 		const eve = recomputeBirthdays().find((b) => b.name === "Charles");
 		expect(eve).toBeDefined();
@@ -374,7 +315,6 @@ describe("the date-roll contract", () => {
 		expect(on?.age).toBe(34);
 		expect(on?.daysBeforeBirthday).toBe(0);
 		expect(on?.progress).toBe(100);
-		// 34 is not a milestone age, so the "6 years to 40" countdown remains.
 		expect(on?.milestone).toBeUndefined();
 		expect(on?.milestoneStatus?.params?.diff).toBe(6);
 
@@ -388,7 +328,6 @@ describe("the date-roll contract", () => {
 	});
 
 	test("a milestone birthday reports `status.today` instead of a countdown", () => {
-		// Martin, 1973-01-04 -> 50 in 2023, and 50 is in BIG_BIRTHDAYS.
 		setSystemTime(at(2023, 1, 4));
 		const on = recomputeBirthdays().find((b) => b.name === "Martin");
 		expect(on?.age).toBe(50);
@@ -411,14 +350,9 @@ describe("the date-roll contract", () => {
 				(x) => x.name === b.name && x.birthdayString === b.birthdayString,
 			);
 			expect(next?.age).toBe(b.age + 1);
-			// The same distance to the next birthday - except that a year
-			// containing 29 Feb (2028 here) is one day longer, so the countdown
-			// is one day further away, never closer.
 			const delta = (next?.daysBeforeBirthday ?? 0) - b.daysBeforeBirthday;
 			expect(delta).toBeGreaterThanOrEqual(0);
 			expect(delta).toBeLessThanOrEqual(1);
-			// `progress` divides by the length of the next birthday's year, so
-			// it drifts by a fraction of a percent when a leap day is involved.
 			expect(next?.progress).toBeCloseTo(b.progress, 1);
 		}
 	});
@@ -427,8 +361,6 @@ describe("the date-roll contract", () => {
 		setSystemTime(at(2026, 8, 13));
 		const list = recomputeBirthdays();
 		const today = list.filter((b) => b.daysBeforeBirthday === 0);
-		// Derived from the data rather than hard-coded: whoever was born on
-		// 13 August must be at the top of the list.
 		const expected = records
 			.filter((b) => b.month === 8 && b.day === 13)
 			.map((b) => b.name)
@@ -441,8 +373,6 @@ describe("the date-roll contract", () => {
 	});
 
 	test("all invariants still hold on every day of two sampled years", () => {
-		// Two whole years, so the sweep crosses 29 Feb 2028 and every
-		// "is the next birthday in a leap year or not" branch is taken.
 		const violations: string[] = [];
 		for (let d = 0; d < 730; d += 1) {
 			const ref = new Date(2026, 0, 1 + d, 12);
@@ -495,8 +425,6 @@ describe("the date-roll contract", () => {
 	});
 
 	test("fields that must not change when only the day changes", () => {
-		// Everything below is a property of the birth date alone. If any of it
-		// moved with "now", a table cell would flicker for no reason.
 		const ref = at(2026, 3, 10);
 		setSystemTime(ref);
 		const before = snapshotTimeInvariant(recomputeBirthdays());
@@ -507,8 +435,6 @@ describe("the date-roll contract", () => {
 		expect(after).toEqual(before);
 	});
 });
-
-// --- 6. Schema round-trip ---------------------------------------------------
 
 describe("every record survives birthdaySchema", () => {
 	for (const b of records) {

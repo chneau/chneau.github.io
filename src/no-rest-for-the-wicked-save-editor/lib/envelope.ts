@@ -1,32 +1,14 @@
-/**
- * The CERIMAL envelope: splits the file text around the base64 payload, checks
- * that a document really is one of ours field by field, and decides whether the
- * wrapper text can be spliced back so an untouched save returns byte for byte.
- *
- * Split out of `format.ts` unchanged.
- */
 import { isJsonObject, type JsonValue, type SavePath } from "../../shared";
 import { asNumber } from "./nodes";
 import type { CerimalDocumentView, CerimalFile } from "./types";
 
-/** The exact text a save uses to introduce its base64 payload. */
 const PAYLOAD_KEY = '"binaryInfo":"';
-/**
- * Splits the file text around the base64 payload.
- *
- * Both halves are kept exactly as they were written, because the envelope is
- * re-spliced rather than re-serialised: `"createdAtEpoch":1748808327.0` comes
- * back from `JSON.stringify` as `1748808327`, and the game's own key order is
- * not one `JSON.stringify` would necessarily reproduce.
- */
 export const splitWrapper = (
 	text: string,
 ): { before: string; after: string } => {
 	const start = text.indexOf(PAYLOAD_KEY);
 	if (start < 0) return { before: text, after: "" };
 	const from = start + PAYLOAD_KEY.length;
-	// A base64 payload contains no quote and no backslash, so the next quote
-	// that ends it is the closing one.
 	const end = text.indexOf('"', from);
 	if (end < 0) {
 		throw new Error("This save's binaryInfo field is not terminated.");
@@ -34,7 +16,6 @@ export const splitWrapper = (
 	return { before: text.slice(0, from), after: text.slice(end) };
 };
 
-/** The `unknown` a `JSON.parse` hands back, narrowed to a document. */
 export const toJsonValue = (value: unknown, depth = 0): JsonValue => {
 	if (depth > 256) {
 		throw new Error("This save nests its JSON too deeply to read.");
@@ -59,9 +40,6 @@ export const toJsonValue = (value: unknown, depth = 0): JsonValue => {
 	if (Array.isArray(value)) {
 		return value.map((item) => toJsonValue(item, depth + 1));
 	}
-	// `Object.entries` is typed over `{ [key: string]: T }`, which the parser's
-	// own return type is not; the entries are re-validated one by one below, so
-	// nothing reaches the document unchecked.
 	const entries = Object.entries(value);
 	return Object.fromEntries(
 		entries.map(([key, item]: [string, unknown]) => [
@@ -71,14 +49,6 @@ export const toJsonValue = (value: unknown, depth = 0): JsonValue => {
 	);
 };
 
-/**
- * Whether a value read out of a document is an object.
- *
- * The shared `isJsonObject` takes a `JsonValue`, and a value taken from a
- * document is `JsonValue | undefined` under this project's index-signature
- * rules — absence is an ordinary outcome when a save turns out not to be one of
- * ours, so it is answered here rather than with a non-null assertion.
- */
 export const isRecord = (
 	value: JsonValue | undefined,
 ): value is { readonly [key: string]: JsonValue } =>
@@ -124,17 +94,6 @@ const asPathList = (
 	});
 };
 
-/**
- * The array shapes a document declares, as `[path, extents]` pairs.
- *
- * `readDocument` emits each shape as a two-element tuple (`nodes.ts`) and
- * `writeDocument` consumes exactly that, so this reads the tuple. It used to
- * read an object `{ path, extents }` and take `path[0]` of what it treated as a
- * list of paths — a shape this codec never writes. A save holding any
- * multi-dimensional array therefore decoded fine and then failed to save back
- * with "This save has no array shape", which is unrecoverable from the
- * workbench: the payload is only reachable through this function.
- */
 const asDimensionList = (
 	value: JsonValue | undefined,
 ): readonly (readonly [SavePath, readonly number[]])[] => {
@@ -149,8 +108,6 @@ const asDimensionList = (
 			);
 		}
 		const [rawPath, extents] = entry;
-		// `asPathList` already validates one path per list entry, so the pair is
-		// handed over as a one-element list rather than re-deriving the rule.
 		const path = asPathList(
 			rawPath === undefined ? undefined : [rawPath],
 			"array shapes",
@@ -162,7 +119,6 @@ const asDimensionList = (
 	});
 };
 
-/** Checks that a value really is one of this codec's documents, field by field. */
 export const asCerimalFile = (value: JsonValue): CerimalFile => {
 	const root = asObject(value, "CERIMAL section");
 	const section = asObject(root.$cerimal, "CERIMAL section");
@@ -196,22 +152,12 @@ export const asCerimalFile = (value: JsonValue): CerimalFile => {
 		},
 	};
 };
-/**
- * Whether the envelope is still the one the wrapper text was written around.
- *
- * True means the payload can be spliced back and the file returns byte for
- * byte. False means an envelope field has been edited.
- */
 export const wrapperMatches = (
 	before: string,
 	after: string,
 	envelope: { readonly [key: string]: JsonValue },
 ): boolean => {
 	try {
-		// `wrapperBefore` ends with the opening quote of the payload and
-		// `wrapperAfter` begins with its closing one, so putting the two together
-		// leaves an empty string between the quotes — the only way to read back
-		// what the wrapper originally wrapped.
 		const rebuilt = toJsonValue(JSON.parse(`${before}${after}`));
 		if (!isJsonObject(rebuilt)) return false;
 		const without = { ...rebuilt };
@@ -221,7 +167,6 @@ export const wrapperMatches = (
 		return false;
 	}
 };
-/** Whether a payload-less save's text is still the envelope it was read from. */
 export const plainMatches = (
 	before: string,
 	envelope: { readonly [key: string]: JsonValue },

@@ -26,7 +26,6 @@ type Props = {
 
 const LIMIT = 60;
 
-/** Cross-item value leaderboards: cheapest alcohol, cheapest ml, most food. */
 export const ValueExplorer = ({
 	opened,
 	onClose,
@@ -38,7 +37,6 @@ export const ValueExplorer = ({
 	const [tab, setTab] = useState<ValueKind>("unit");
 	const [query, setQuery] = useState("");
 
-	// only paid for once the explorer is opened
 	const leaders = useMemo(
 		() =>
 			opened
@@ -67,8 +65,6 @@ export const ValueExplorer = ({
 					(row.category ?? "").toLowerCase().includes(needle)),
 		);
 		const dir = valueDirection(tab);
-		// When prices are not converted, keep each currency's ranking together
-		// so £ and € values are never interleaved by their raw numbers.
 		wanted.sort(
 			(a, b) =>
 				(format.targetCurrency ? 0 : a.currency.localeCompare(b.currency)) ||
@@ -78,8 +74,6 @@ export const ValueExplorer = ({
 	}, [leaders, tab, query, format.targetCurrency]);
 
 	const anyKind = leaders.length > 0;
-	// Label the value metric in whatever currency is being shown; when native
-	// prices are mixed the symbol is left neutral.
 	const symbol = format.targetCurrency
 		? currencySymbol(format.targetCurrency)
 		: "currency";

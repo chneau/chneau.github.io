@@ -17,10 +17,6 @@ const VALID = {
 	fetchedAt: Date.now(),
 };
 
-/**
- * A table shaped the way an older build (or an edited localStorage entry)
- * could leave it: right keys, wrong value types, or `rates` missing entirely.
- */
 const malformed: unknown[] = [
 	undefined,
 	null,
@@ -58,9 +54,6 @@ describe("parseRateTable", () => {
 });
 
 describe("malformed tables never reach the render path", () => {
-	// The defect: `canConvertTo`/`currencyChoices` dereferenced `table.rates`
-	// unconditionally, so a corrupt cached table crashed the app during render
-	// with "TypeError: undefined is not an object".
 	test.each(malformed.map((value, index) => [index, value] as const))(
 		"input #%i does not throw and degrades to no conversion",
 		(_index, value) => {
@@ -90,8 +83,6 @@ describe("malformed tables never reach the render path", () => {
 });
 
 describe("a hostile rate table cannot produce a wrong number", () => {
-	// Rates of 0, negatives and infinities divide by zero or invert the price;
-	// they must be treated as "cannot convert" rather than trusted.
 	test.each([
 		["a zero source rate", 0, "EUR"],
 		["a negative source rate", -1.17, "EUR"],
@@ -106,8 +97,6 @@ describe("a hostile rate table cannot produce a wrong number", () => {
 			fetchedAt: Date.now(),
 		});
 		expect(canConvertTo(broken, table)).toBe(false);
-		// The amount comes back untouched, so no price is ever divided by zero
-		// or inverted by a negative rate.
 		expect(convert(10, "EUR", broken, table)).toBe(10);
 		expect(convert(10, broken, "GBP", table)).toBe(10);
 	});
@@ -121,8 +110,6 @@ describe("a hostile rate table cannot produce a wrong number", () => {
 
 describe("convert refuses to mislabel a price", () => {
 	test("an unknown source currency leaves the amount unconverted", () => {
-		// Loud rather than silently wrong: converting() in useSpoonersView
-		// gates on canConvertTo, so this is the last line of defence.
 		const table = parseRateTable(VALID);
 		expect(canConvertTo("XYZ", table)).toBe(false);
 		expect(convert(10, "XYZ", "GBP", table)).toBe(10);
@@ -140,8 +127,6 @@ describe("currencyChoices", () => {
 	});
 
 	test("a table with no rates is inert but still valid", () => {
-		// Well-shaped, so it is kept - but nothing can be converted with it,
-		// which is what stops a price being relabelled.
 		const table = parseRateTable({
 			base: "GBP",
 			date: "2026-09-29",

@@ -1,14 +1,3 @@
-/**
- * The inventory reader's diagnostics.
- *
- * A record missing an identity field cannot be edited safely, so the reader
- * withholds it. `readInventoryWithDiagnostics` names what was withheld instead
- * of dropping it silently; these tests pin that the two views of the same
- * payload agree and that a healthy save withholds nothing.
- *
- * Run with `bun test`.
- */
-
 import { describe, expect, test } from "bun:test";
 import {
 	type InventoryReadResult,

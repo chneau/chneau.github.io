@@ -1,17 +1,3 @@
-/**
- * The staged-edit projection.
- *
- * The projection is what the views draw, so it has one contract worth testing:
- * the record it shows for a staged edit must be the record the engine really
- * produces when that edit is applied. Both halves of each agreement case come
- * from the same fixture — the preview, then the applied save re-described
- * through `planSaveEdits`, which is the dispatch the page uses — and the
- * equipment catalog the page holds, which is what tells an added item what it
- * is.
- *
- * Run with `bun test`.
- */
-
 import { describe, expect, test } from "bun:test";
 import { cheatGearEdits } from "../lib/cheat-gear";
 import type { EquipmentDetails, EquipmentEdit } from "../lib/equipment";
@@ -36,21 +22,14 @@ import { fixture, mergedCatalog, opened } from "./fixtures";
 
 const save = fixture("save.save");
 
-/** The storage every agreement case stages into; the fixture's own inventory. */
 const STORAGE = 2;
 
 let catalogPromise: Promise<EquipmentCatalogFile> | undefined;
-/** The equipment catalog as the page holds it, read once for every case. */
 const catalog = (): Promise<EquipmentCatalogFile> => {
 	catalogPromise ??= equipmentCatalogTable();
 	return catalogPromise;
 };
 
-/**
- * Applies a staged list the way the page does — through the engine's own
- * dispatch, each run starting from the previous run's output — and describes
- * what came out.
- */
 const applied = async (
 	source: Uint8Array,
 	edits: SaveEdit[],
@@ -63,7 +42,6 @@ const applied = async (
 	return describeInventory(await opened(current));
 };
 
-/** A record's own identity: the storage, slot and item a save assigns it. */
 const sameRecord = (left: InventoryRecord, right: InventoryRecord): boolean =>
 	left.inventoryKey === right.inventoryKey &&
 	left.slotNo === right.slotNo &&
@@ -82,11 +60,6 @@ const recordAt = (
 	return found;
 };
 
-/**
- * The record as the save holds it. The projection adds three display-only
- * fields — `staged`, `originalQuantity` and `equipmentChanged` — that an
- * applied save has no equivalent for, so both sides are compared in this shape.
- */
 const savedShape = (record: InventoryRecord): InventoryRecord => ({
 	inventoryKey: record.inventoryKey,
 	itemNo: record.itemNo,
@@ -98,16 +71,6 @@ const savedShape = (record: InventoryRecord): InventoryRecord => ({
 	equipment: record.equipment ?? null,
 });
 
-/**
- * What a staged addition and the record it becomes must agree on: everything
- * but identity, because the preview has no Item No or Slot to show and counts
- * down from -1 instead. Gear state is part of it, and so is whether the editor
- * can configure the item at all — both come from the equipment catalog through
- * the same rule the parse uses.
- *
- * The drawer's `addsAsSingleRecord` is a different question, asked of a catalog
- * entry rather than of a record, so it has no place here.
- */
 const additionShape = (record: InventoryRecord) => ({
 	itemKey: record.itemKey,
 	quantity: record.quantity,
@@ -117,7 +80,6 @@ const additionShape = (record: InventoryRecord) => ({
 	noGearToEdit: record.noGearToEdit ?? false,
 });
 
-/** A refinement level the catalog allows this item and it does not already use. */
 const nextRefinement = (record: InventoryRecord): number | null => {
 	const equipment = record.equipment;
 	if (!equipment || equipment.refinement >= 10) return null;
@@ -128,11 +90,6 @@ const nextRefinement = (record: InventoryRecord): number | null => {
 	);
 };
 
-/**
- * The cheat set's staged list, used here because it is the repository's own
- * list of items the engine accepts: every addition family can be staged without
- * this file inventing keys or donating records.
- */
 const cheatEdits = async (before: InventoryDescription): Promise<SaveEdit[]> =>
 	(
 		await cheatGearEdits({
@@ -142,7 +99,6 @@ const cheatEdits = async (before: InventoryDescription): Promise<SaveEdit[]> =>
 		})
 	).edits;
 
-/** The one staged edit of a family, or a failure naming the family. */
 const editOfType = <Type extends SaveEdit["type"]>(
 	edits: SaveEdit[],
 	type: Type,
@@ -154,7 +110,6 @@ const editOfType = <Type extends SaveEdit["type"]>(
 	return found;
 };
 
-/** Projects one addition, applies it, and compares it against what landed. */
 const expectAddition = async (
 	before: InventoryDescription,
 	edit: SaveEdit,
@@ -203,7 +158,6 @@ const equipmentDetails = (
 	...overrides,
 });
 
-/** One catalog entry, as the generated table types it: every field present. */
 const catalogEntry = (
 	overrides: Partial<EquipmentCatalogEntry> = {},
 ): EquipmentCatalogEntry => ({
@@ -224,7 +178,6 @@ const catalogEntry = (
 	...overrides,
 });
 
-/** A catalog holding exactly the given entries. */
 const catalogOf = (
 	entries: Record<string, Partial<EquipmentCatalogEntry>>,
 ): { items: Record<string, EquipmentCatalogEntry> } => ({
@@ -261,7 +214,6 @@ const equipmentEdit = (
 	...overrides,
 });
 
-/** A stack added by cloning a saved record, with no catalog entry of its own. */
 const insertItemEdit = (
 	target: InventoryRecord,
 	itemKey: number,
@@ -295,7 +247,6 @@ describe("staged edit projection", () => {
 			quantity: 12,
 			originalQuantity: 7,
 		});
-		// Another record in the same storage is untouched.
 		expect(recordAt(projected, other)).toEqual(other);
 	});
 
@@ -332,7 +283,6 @@ describe("staged edit projection", () => {
 			unlockedSockets: 3,
 			socketItems: [900, null, 901, null, null],
 		});
-		// The counts the table and the workshop read come from the same edit.
 		expect(projected.socketCount).toBe(3);
 		expect(projected.filledSockets).toBe(2);
 		expect(projected.equipmentChanged).toBe(true);
@@ -377,10 +327,6 @@ describe("staged edit projection", () => {
 		]);
 		expect(projected[0]?.quantity).toBe(25);
 		expect(projected[1]?.quantity).toBe(1);
-		// With no catalog there is nothing to read an added item against, so it
-		// previews no gear: the socket count is the list the record serializes,
-		// which a fresh one always writes as five positions. Nothing is known to
-		// be gear-less either, so the editor holds out for every addition.
 		expect(projected[1]?.equipment).toBeNull();
 		expect(projected[1]?.socketCount).toBe(5);
 		expect(projected[2]?.socketCount).toBe(5);
@@ -427,7 +373,6 @@ describe("staged edit projection", () => {
 				},
 			}),
 		);
-		// The state the edit states, described under its catalog entry.
 		expect(projected[0]?.equipment).toEqual({
 			refinement: 2,
 			canRefine: true,
@@ -438,8 +383,6 @@ describe("staged edit projection", () => {
 		});
 		expect(projected[0]?.socketCount).toBe(2);
 		expect(projected[0]?.filledSockets).toBe(1);
-		// A fresh record gets the catalog entry's own defaults, which is what
-		// `insertCatalogRecord` writes.
 		expect(projected[1]?.equipment).toEqual({
 			refinement: 0,
 			canRefine: true,
@@ -450,7 +393,6 @@ describe("staged edit projection", () => {
 		});
 		expect(projected[1]?.socketCount).toBe(2);
 		expect(projected[1]?.filledSockets).toBe(0);
-		// Both are gear the editor can configure, so neither is held out for.
 		expect(projected.map((entry) => entry.noGearToEdit)).toEqual([
 			false,
 			false,
@@ -472,13 +414,7 @@ describe("staged edit projection", () => {
 		});
 		const projected = projectRecords(
 			[plain, geared],
-			[
-				// Neither item is equipment: the clone inherits the socket list the
-				// applier copies with the record's bytes.
-				insertItemEdit(plain, 700, 3),
-				// This one is, so the clone reads as the donor does.
-				insertItemEdit(geared, 701, 1),
-			],
+			[insertItemEdit(plain, 700, 3), insertItemEdit(geared, 701, 1)],
 			catalogOf({
 				"700": { characterEquipment: false, canRefine: false },
 				"701": { characterEquipment: true, canRefine: false },
@@ -491,8 +427,6 @@ describe("staged edit projection", () => {
 		expect(projected[1]?.filledSockets).toBe(1);
 		expect(projected[1]?.equipment?.refinement).toBe(4);
 		expect(projected[1]?.equipment?.unlockedSockets).toBe(2);
-		// The clone of a donor the catalog calls gear-less is gear-less too, which
-		// is the rule the save's own parse would reach.
 		expect(projected.map((entry) => entry.noGearToEdit)).toEqual([true, false]);
 	});
 
@@ -599,9 +533,6 @@ describe("the projection against the appliers", () => {
 
 	test("a clone of a record the catalog does not call equipment previews no gear", async () => {
 		const before = await describeInventory(await opened(save));
-		// The applier needs exactly one template record, so the donor is one the
-		// Storage holds once — and not equipment, which is the case where the save's
-		// own socket count is not visible in a description of it.
 		const counts = new Map<number, number>();
 		for (const candidate of before.records) {
 			if (candidate.inventoryKey !== STORAGE) continue;
@@ -616,8 +547,6 @@ describe("the projection against the appliers", () => {
 		);
 		expect(donor).toBeDefined();
 		if (!donor) return;
-		// An item the catalog does call equipment, cloned from that donor: the
-		// engine describes the clone as equipment with no unlocked sockets.
 		const added = editOfType(await cheatEdits(before), "insertCatalogItem");
 		await expectAddition(before, {
 			type: "insertItem",

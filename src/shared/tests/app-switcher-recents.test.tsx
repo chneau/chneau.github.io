@@ -9,26 +9,11 @@ import { ALL_APPS } from "../apps";
 import { AppSwitcher } from "../components/AppSwitcher";
 import { removePersisted } from "../hooks/usePersistentState";
 
-/**
- * The switcher is the only shared chrome on every app page, so it is where the
- * recents/pins feature is actually reachable. These tests pin the contract:
- * every app stays reachable, the store degrades safely, and the whole menu is
- * still keyboard operable.
- */
-
 const RECENTS = "app_recents";
 const PINNED = "app_pinned";
 
 const provider = (ui: ReactNode) => <MantineProvider>{ui}</MantineProvider>;
 
-/**
- * A complete, self-contained `Storage` for the duration of each test.
- *
- * `bun test` runs every suite in one process and other suites install their own
- * `localStorage` stubs on `globalThis`, so relying on whichever one happens to
- * be installed would make these tests order-dependent. See the same helper in
- * `recent-persistence.test.ts`.
- */
 const installStorage = () => {
 	const backing = new Map<string, string>();
 	Object.defineProperty(window, "localStorage", {
@@ -63,12 +48,6 @@ afterEach(() => {
 	removePersisted(PINNED);
 });
 
-/**
- * Seed the store the way a previous session would have left it.
- *
- * `removePersisted` clears both the in-memory cache *and* the key, so the cache
- * must be dropped first and the value written afterwards.
- */
 const seed = (recents: unknown, pinned: unknown = []) => {
 	removePersisted(RECENTS);
 	removePersisted(PINNED);
@@ -94,11 +73,6 @@ describe("AppSwitcher app registry", () => {
 	});
 
 	test("every registry entry, in dashboard order, is present", () => {
-		// Spelled out rather than derived from `APPS`, because the assertion
-		// this guards is the *order* and the *set* — a list rebuilt from the
-		// source would agree with it by construction and prove nothing. Adding an
-		// app means adding a line here, which is the point: it is the registry's
-		// contract with the router, the palette and the 404.
 		expect(ALL_APPS.map((app) => app.href)).toEqual([
 			"/",
 			"/cv/",
@@ -121,7 +95,6 @@ describe("AppSwitcher app registry", () => {
 		seed([{ href: "/deleted-app/", at: Date.now() }]);
 		const view = open("/");
 		expect(hrefs(view)).not.toContain("/deleted-app/");
-		// The real registry is still complete.
 		expect(hrefs(view)).toHaveLength(ALL_APPS.length);
 	});
 });
@@ -154,14 +127,11 @@ describe("AppSwitcher recents and pins", () => {
 		);
 		const view = open("/");
 		const order = hrefs(view);
-		// The strip is capped, and the full registry is still reachable.
 		expect(order).toHaveLength(ALL_APPS.length);
 		for (const app of ALL_APPS) expect(order).toContain(app.href);
 	});
 
 	test("the current app is not offered as somewhere to jump back to", () => {
-		// /cv/ was opened a moment ago and we are standing on it, so it is
-		// filtered out of the strip; /spooners/ is a genuine jump target.
 		seed([
 			{ href: "/cv/", at: Date.now() },
 			{ href: "/spooners/", at: Date.now() - 5_000 },
@@ -174,7 +144,6 @@ describe("AppSwitcher recents and pins", () => {
 		);
 		expect(inStrip).toEqual(["/spooners/"]);
 		expect(inStrip).not.toContain("/cv/");
-		// Still exactly one entry for /cv/ overall, and the registry is whole.
 		expect(hrefs(view).filter((href) => href === "/cv/")).toHaveLength(1);
 		expect(hrefs(view)).toHaveLength(ALL_APPS.length);
 	});
@@ -201,7 +170,6 @@ describe("AppSwitcher recents and pins", () => {
 			window.localStorage.getItem(PINNED) ?? "[]",
 		);
 		expect(pinned).toEqual(["/spooners/"]);
-		// The menu stays open after pinning so several can be toggled in a row.
 		expect(view.getByRole("menu", { name: "Switch app" })).toBeDefined();
 	});
 
@@ -258,11 +226,6 @@ describe("AppSwitcher degrades safely", () => {
 });
 
 describe("AppSwitcher keyboard operation", () => {
-	/**
-	 * Walk the menu with the arrow key, re-reading `document.activeElement` each
-	 * step exactly as a browser would. This keeps the assertions about real
-	 * behaviour rather than about React's node reuse across re-renders.
-	 */
 	const walk = (key: string, steps: number) => {
 		const seen: string[] = [];
 		for (let i = 0; i < steps; i += 1) {
@@ -279,7 +242,6 @@ describe("AppSwitcher keyboard operation", () => {
 
 	test("arrow keys step through every link and every pin toggle", () => {
 		const view = open("/");
-		// One link plus one pin toggle per app.
 		expect(
 			view
 				.getByRole("menu")
@@ -289,14 +251,12 @@ describe("AppSwitcher keyboard operation", () => {
 		view.getAllByRole("menuitem")[0]?.focus();
 		const seen = walk("ArrowDown", ALL_APPS.length * 2 - 1);
 
-		// It alternates link, pin, link, pin… across every app.
 		expect(seen.filter((s) => s.startsWith("menuitem:"))).toHaveLength(
 			ALL_APPS.length - 1,
 		);
 		expect(seen.filter((s) => s.startsWith("menuitemcheckbox:"))).toHaveLength(
 			ALL_APPS.length,
 		);
-		// Every app's pin toggle is reachable by keyboard.
 		for (const app of ALL_APPS) {
 			expect(
 				seen.some((s) => s === `menuitemcheckbox:Pin ${app.title} to the top`),
@@ -309,7 +269,6 @@ describe("AppSwitcher keyboard operation", () => {
 		const first = view.getAllByRole("menuitem")[0] as HTMLElement;
 		first.focus();
 
-		// Up from the first item lands on the very last one.
 		fireEvent.keyDown(document.activeElement as HTMLElement, {
 			key: "ArrowUp",
 		});
@@ -320,7 +279,6 @@ describe("AppSwitcher keyboard operation", () => {
 			focusable[focusable.length - 1] as HTMLElement,
 		);
 
-		// And back down again to the first.
 		fireEvent.keyDown(document.activeElement as HTMLElement, {
 			key: "ArrowDown",
 		});
@@ -384,31 +342,10 @@ describe("AppSwitcher a11y with recents and pins populated", () => {
 	});
 });
 
-/**
- * Where the menu is anchored, read from `base.css` as source.
- *
- * This is a cascade outcome, which is the same reason `header-overflow.test.tsx`
- * reads the stylesheet: the defect is not "the DOM has no menu" but "which edge
- * of the trigger the box is pinned to", and happy-dom computes no layout, so
- * `getBoundingClientRect` here would be zeros and would prove nothing.
- *
- * What went wrong: the base rule anchored the menu with `left: 0` while the
- * switcher sits in `.app-header__actions` — `flex: none`, at the end of a bar
- * whose middle section is `flex: 1`, and the narrow-screen override's own comment
- * puts the trigger "~60px from the right edge". So the menu's left edge lined up
- * with the trigger's and its `min-width: 268px` ran roughly 200px off the right
- * of the screen on a desktop window, hiding the tail of the app list. The
- * `max-width: calc(100vw - 24px)` clamp did not help: it caps the width, it does
- * not move the box back inside the viewport.
- *
- * Only the narrow override had it right, which is why this was a desktop-only
- * report.
- */
 const baseCss = (
 	await Bun.file(new URL("../base.css", import.meta.url)).text()
 ).replace(/\/\*[\s\S]*?\*\//g, "");
 
-/** The declarations of the single-class base rule, media queries excluded. */
 const baseMenuRule = (): string => {
 	const rules = [...baseCss.matchAll(/^\.app-switcher__menu\s*\{([^}]*)\}/gm)];
 	const body = rules[0]?.[1];
@@ -422,17 +359,11 @@ describe("the app switcher menu stays inside the viewport", () => {
 	test("the base rule anchors to the trigger's right edge, not its left", () => {
 		const body = baseMenuRule();
 		expect(body).toMatch(/right:\s*0/);
-		// `left` must be released rather than merely overridden, or the box is
-		// pinned to both edges and the width resolves to the gap between them.
 		expect(body).toMatch(/left:\s*auto/);
 		expect(body).not.toMatch(/left:\s*0/);
 	});
 
 	test("a tall app list scrolls instead of hanging off the bottom", () => {
-		// Thirteen apps plus the pinned and recent groups exceed a short laptop
-		// viewport once the 56px bar is deducted, and an absolutely positioned
-		// box that overflows the bottom is unreachable — there is nothing to
-		// scroll. The narrow override has always had this.
 		const body = baseMenuRule();
 		expect(body).toMatch(/max-height:\s*calc\(100dvh - 76px\)/);
 		expect(body).toMatch(/overflow-y:\s*auto/);
@@ -440,8 +371,6 @@ describe("the app switcher menu stays inside the viewport", () => {
 	});
 
 	test("the narrow-screen sheet still overrides both edges", () => {
-		// Guarded explicitly because the base rule now claims `right: 0` too:
-		// the phone sheet must still span the viewport rather than inherit it.
 		const narrow = baseCss.slice(baseCss.indexOf("@media (max-width: 1100px)"));
 		const sheet = /^\t\.app-switcher__menu\s*\{([^}]*)\}/m.exec(narrow)?.[1];
 		expect(sheet).toBeDefined();

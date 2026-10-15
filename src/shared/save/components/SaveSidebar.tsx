@@ -1,14 +1,3 @@
-/**
- * The workbench's left rail: what is in the save, what can be changed, and what
- * has been changed but not yet written.
- *
- * These three cards are split out of `SaveWorkbench` because each is
- * self-contained and each re-renders on its own schedule: the summary changes
- * with the document, the quick actions with the working document, and the
- * staged list with the edits alone. Keeping them in the parent made one large
- * component out of three small ones and re-rendered all of it on every staged
- * edit.
- */
 import {
 	Box,
 	Button,
@@ -24,7 +13,6 @@ import { previewValue } from "../edits";
 import { formatPath, type JsonValue } from "../json";
 import type { QuickAction, SaveEdit, SummaryRow } from "../types";
 
-/** The one card style the rail uses; three cards pretending to differ is noise. */
 const cardStyle = {
 	border: "1px solid var(--app-border)",
 	background: "var(--app-surface)",
@@ -48,7 +36,6 @@ const CardLabel = ({ children }: { children: string }) => (
 	</Text>
 );
 
-/** The headline facts a codec reports about the loaded save. */
 export const SaveSummary = ({ rows }: { rows: readonly SummaryRow[] }) => (
 	<Card padding="md" radius="md" style={cardStyle}>
 		<CardLabel>This save</CardLabel>
@@ -77,13 +64,6 @@ export const SaveSummary = ({ rows }: { rows: readonly SummaryRow[] }) => (
 	</Card>
 );
 
-/**
- * The codec's one-click changes.
- *
- * Each button previews its own plan on every render to decide whether it
- * applies — an action whose fields this save does not record greys itself out
- * rather than staging an edit that would throw.
- */
 export const QuickChanges = ({
 	actions,
 	doc,
@@ -119,12 +99,6 @@ export const QuickChanges = ({
 	);
 };
 
-/**
- * The staged list, with a per-edit revert.
- *
- * Reverting targets the path rather than the edit's id, so undoing a field
- * undoes that field whichever time the user staged it.
- */
 export const StagedEdits = ({
 	edits,
 	onRevert,

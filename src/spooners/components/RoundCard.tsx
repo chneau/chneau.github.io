@@ -46,7 +46,6 @@ type Props = {
 	onQty: (name: string, qty: number) => void;
 	onRemove: (name: string) => void;
 	onClear: () => void;
-	/** Set right after a clear/replace, so the round can be restored. */
 	onUndo?: (() => void) | null;
 	undoText?: string | null;
 	currencies?: CurrencyOption[];
@@ -55,9 +54,7 @@ type Props = {
 	filters: FilterOption[];
 	activeFilters: string[];
 	onFilters: (ids: string[]) => void;
-	/** Reset every filter (dietary, facilities and the switches) to defaults. */
 	onResetFilters: () => void;
-	/** False when none of the round's items carry a dietary tag. */
 	dietaryRelevant: boolean;
 	facilities: FacilityOption[];
 	activeFacilities: string[];
@@ -126,8 +123,6 @@ const Stepper = ({
 			>
 				<Minus size={12} />
 			</ActionIcon>
-			{/* The stepper's buttons carry their own labels, so the count itself is
-			    the only thing a screen reader hears change after a press. */}
 			<Text size="sm" fw={700} w={22} ta="center" aria-live="polite">
 				{qty}
 			</Text>
@@ -166,7 +161,6 @@ const SectionLabel = ({ children }: { children: string }) => (
 	</Text>
 );
 
-/** Shown after a clear or a replace, so the previous round can come back. */
 const UndoBanner = ({
 	text,
 	onUndo,
@@ -195,10 +189,6 @@ const UndoBanner = ({
 	</Group>
 );
 
-/**
- * What the round currently resolves to: one item's facts, or a note that the
- * map and rankings are showing the whole round.
- */
 const RoundSummary = ({
 	single,
 	totalQty,
@@ -289,7 +279,6 @@ const CurrencyPicker = ({
 	);
 };
 
-/** Dietary tags, pub facilities and the three count-labelled switches. */
 const RoundFilterGroups = ({
 	dietaryRelevant,
 	filters,
@@ -411,7 +400,6 @@ const RoundFilterGroups = ({
 	</>
 );
 
-/** The collapsible filter panel, with its heading and "Clear all". */
 const RoundFilters = ({
 	filtersOpen,
 	activeFilterCount,
@@ -471,7 +459,6 @@ const RoundFilters = ({
 	</Collapse>
 );
 
-/** Whether the browser knows where the user is, and the control to change that. */
 const LocationControl = ({
 	hasLocation,
 	geoState,
@@ -510,7 +497,6 @@ const LocationControl = ({
 	</>
 );
 
-/** The green→red price key, with the two ends of the scale labelled. */
 const PriceScaleKey = ({
 	scale,
 	currency,
@@ -549,10 +535,6 @@ const PriceScaleKey = ({
 	</>
 );
 
-/**
- * The round builder (and the app's only "search"): add drinks, set quantities,
- * then the map/rankings/stats all use the round total.
- */
 export const RoundCard = ({
 	items,
 	basket,
@@ -647,10 +629,6 @@ export const RoundCard = ({
 							size="compact-xs"
 							variant="subtle"
 							color="red"
-							// No confirmation dialog: `appState` already writes an undo entry for a
-							// clear, and the `UndoBanner` below this button restores it. A
-							// blocking native `confirm` asked twice for one action, and
-							// only here — the sidebar's clear path has never asked at all.
 							onClick={onClear}
 						>
 							Clear

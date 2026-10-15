@@ -17,7 +17,6 @@ import { palette } from "../theme";
 import { formatTime } from "../utils";
 
 export const ServiceDetails = () => {
-	// Throttled: the live status line tracks at ~15 Hz, plenty for the panel.
 	const [snap, derivedSnap] = useThrottledSnapshots(railUiStores);
 	const { selectedService } = snap;
 	const { activeTrains } = derivedSnap;
@@ -36,8 +35,6 @@ export const ServiceDetails = () => {
 				position: "absolute",
 				top: 16,
 				right: 16,
-				// As in StatsPanel: the phone breakpoint supplies the width rather
-				// than fighting this inline value.
 				width: "var(--sr-details-w, 344px)",
 				maxWidth: "calc(100vw - 32px)",
 				maxHeight: "calc(100dvh - 180px)",

@@ -1,21 +1,9 @@
 import { useCallback, useState, useSyncExternalStore } from "react";
 
-/**
- * A tiny persistent-state layer shared by every app.
- *
- * Values live in `localStorage`, are cached in a module-level store so
- * components reading the same key share one snapshot, and stay in sync across
- * tabs through the `storage` event. Reads are safe during SSR and when storage
- * is blocked (private mode, sandboxed iframes): we fall back to memory.
- */
-
-/** Marks a store that has never been read from disk yet. */
 const UNINITIALIZED = Symbol("uninitialized");
 
 export type PersistOptions<T> = {
-	/** Encode a value for storage. Defaults to `JSON.stringify`. */
 	serialize?: (value: T) => string;
-	/** Decode a stored value. Defaults to `JSON.parse`. */
 	deserialize?: (raw: string) => T;
 };
 
@@ -36,11 +24,6 @@ const getStore = (key: string): Store => {
 	return store;
 };
 
-/**
- * The raw storage handle, or `undefined` when there is no DOM or the browser
- * refuses to hand one over (sandboxed iframes, blocked third-party storage).
- * Touching the property itself can throw, hence the try.
- */
 export const storage = (): Storage | undefined => {
 	try {
 		return typeof window === "undefined" ? undefined : window.localStorage;
@@ -49,12 +32,6 @@ export const storage = (): Storage | undefined => {
 	}
 };
 
-/**
- * `getItem` is itself allowed to throw — a browser that exposes
- * `window.localStorage` can still reject reads when storage is disabled or the
- * origin is opaque. Treat any failure as "nothing stored" and fall back to
- * memory rather than letting it reach a render.
- */
 const readItem = (key: string): string | null => {
 	try {
 		return storage()?.getItem(key) ?? null;
@@ -73,7 +50,6 @@ const notify = (store: Store) => {
 	for (const listener of store.listeners) listener();
 };
 
-/** Read a persisted value, initialising the shared cache on first access. */
 export const readPersisted = <T>(
 	key: string,
 	fallback: T,
@@ -87,16 +63,13 @@ export const readPersisted = <T>(
 		if (raw !== null) {
 			try {
 				value = deserialize(raw, options);
-			} catch {
-				// Corrupt entry: keep the fallback rather than throwing.
-			}
+			} catch {}
 		}
 		store.value = value;
 	}
 	return store.value as T;
 };
 
-/** Persist a value and notify every subscriber (same tab and other tabs). */
 export const writePersisted = <T>(
 	key: string,
 	value: T,
@@ -107,25 +80,19 @@ export const writePersisted = <T>(
 	store.value = value;
 	try {
 		storage()?.setItem(key, serialize(value, options));
-	} catch {
-		// Quota or blocked storage: keep the in-memory value only.
-	}
+	} catch {}
 	notify(store);
 };
 
-/** Remove a persisted value, resetting readers to their fallback. */
 export const removePersisted = (key: string): void => {
 	const store = getStore(key);
 	store.value = UNINITIALIZED;
 	try {
 		storage()?.removeItem(key);
-	} catch {
-		// Ignore.
-	}
+	} catch {}
 	notify(store);
 };
 
-/** Subscribe to changes of one persisted key. Returns an unsubscribe fn. */
 export const subscribePersisted = (
 	key: string,
 	listener: () => void,
@@ -135,15 +102,9 @@ export const subscribePersisted = (
 	return () => store.listeners.delete(listener);
 };
 
-// Cross-tab sync: another tab writing our key refreshes the shared cache.
 if (typeof window !== "undefined") {
 	window.addEventListener("storage", (event) => {
 		if (event.key == null) {
-			// `key == null` with `key === null` is `localStorage.clear()` in
-			// another tab, not a write to some key. Returning here left every
-			// store in this tab serving its pre-clear value — and each would
-			// re-persist it on its next write, silently undoing the clear. With
-			// `key === undefined` the event is not about storage at all.
 			if (event.key !== null) return;
 			for (const store of stores.values()) {
 				store.value = UNINITIALIZED;
@@ -170,31 +131,11 @@ if (typeof window !== "undefined") {
 	});
 }
 
-/**
- * React binding for {@link readPersisted}. Returns the current value and a
- * setter that accepts either a value or an updater function.
- *
- * `fallback` and `options` are captured on the first render and must be
- * render-invariant — pass literals or module constants, never a value computed
- * per render.
- */
 export const usePersistentState = <T>(
 	key: string,
 	fallback: T,
 	options?: PersistOptions<T>,
 ): [T, (value: T | ((previous: T) => T)) => void] => {
-	// `fallback` is captured once, on the first render, rather than mirrored into
-	// a ref on every render. Reading a ref from `getSnapshot` would be a ref read
-	// during render that a discarded concurrent render could leave pointing at a
-	// value that never committed; capturing once cannot.
-	//
-	// Capturing also means the memoised callbacks below never churn on the
-	// fallback's identity, which matters because callers pass fresh literals —
-	// `useRecents()` passes a new `[]` on every render — and a `fallback` in the
-	// dep arrays would re-create `getSnapshot` every render, tearing down and
-	// re-registering the `useSyncExternalStore` subscription indefinitely. So
-	// `fallback` is required to be render-invariant (a literal, or a module
-	// constant), the same contract `options` below already had.
 	const [stableFallback] = useState(fallback);
 
 	const subscribe = useCallback(
@@ -202,7 +143,6 @@ export const usePersistentState = <T>(
 		[key],
 	);
 
-	// `options` is expected to be module-stable (a literal or module const).
 	const getSnapshot = useCallback(
 		() => readPersisted(key, stableFallback, options),
 		[key, stableFallback, options],

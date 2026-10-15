@@ -1,26 +1,5 @@
-/**
- * ChaCha20 for the Crimson Desert container, ported byte-for-byte from the
- * original JavaScript implementation (including its conservative behaviour) so
- * existing saves decode identically. The raw LZ4 block codec is shared and
- * imported from `src/shared/save/lz4.ts`.
- * SPDX-License-Identifier: MPL-2.0
- */
-
 import { readU32 } from "./bytes";
 
-/**
- * One 64-byte ChaCha20 block, written into `state` as finished keystream words
- * (the rounds plus the original words), so callers only have to XOR them in.
- * `initial` is left untouched, except that the caller advances its counter.
- *
- * All 16 working words live in locals for the whole double round. Driving this
- * through a `Uint32Array` instead costs ~1280 indexed reads and writes per block
- * — 160 quarter rounds times 8 accesses — which dominated the cipher; with the
- * words in locals a block runs about twice as fast. The rotations are inlined
- * for the same reason. Each group below is the canonical quarter round
- * `a += b; d = rotl(d ^ a, 16); c += d; b = rotl(b ^ c, 12); a += b;
- * d = rotl(d ^ a, 8); c += d; b = rotl(b ^ c, 7);` on the named words.
- */
 const chachaBlock = (state: Uint32Array, initial: Uint32Array): void => {
 	let x0 = initial[0] ?? 0;
 	let x1 = initial[1] ?? 0;
@@ -39,7 +18,6 @@ const chachaBlock = (state: Uint32Array, initial: Uint32Array): void => {
 	let x14 = initial[14] ?? 0;
 	let x15 = initial[15] ?? 0;
 	for (let round = 0; round < 10; round++) {
-		// Column rounds: (0,4,8,12) (1,5,9,13) (2,6,10,14) (3,7,11,15).
 		x0 = (x0 + x4) >>> 0;
 		x12 = x12 ^ x0;
 		x12 = (x12 << 16) | (x12 >>> 16);
@@ -92,7 +70,6 @@ const chachaBlock = (state: Uint32Array, initial: Uint32Array): void => {
 		x7 = x7 ^ x11;
 		x7 = (x7 << 7) | (x7 >>> 25);
 
-		// Diagonal rounds: (0,5,10,15) (1,6,11,12) (2,7,8,13) (3,4,9,14).
 		x0 = (x0 + x5) >>> 0;
 		x15 = x15 ^ x0;
 		x15 = (x15 << 16) | (x15 >>> 16);
@@ -181,13 +158,6 @@ export const chacha20 = (
 	}
 	const state = new Uint32Array(16);
 	const output = new Uint8Array(data.length);
-	// XOR the keystream four bytes at a time rather than one shift-and-mask per
-	// byte. XOR is bitwise per byte, so reading both buffers as 32-bit words with
-	// the same (host) byte order reproduces the byte-by-byte result exactly. A
-	// typed-array view needs its offset to be a multiple of 4: `output` is freshly
-	// allocated so it always is, and the payload subarray starts at the 0x80-byte
-	// header, but a caller could still hand us a misaligned view — in which case
-	// no full blocks are taken and the byte loop below handles the whole buffer.
 	const fullBlocks = data.byteOffset % 4 === 0 ? data.length >>> 6 : 0;
 	let start = fullBlocks * 64;
 	if (fullBlocks > 0) {
@@ -206,8 +176,6 @@ export const chacha20 = (
 			initial[12] = ((initial[12] ?? 0) + 1) >>> 0;
 		}
 	}
-	// The trailing partial block keeps the original byte-at-a-time writes: at
-	// most 63 bytes, and it is the only place a partial word can occur.
 	for (; start < data.length; start += 64) {
 		chachaBlock(state, initial);
 		for (let index = 0; index < 16; index++) {
@@ -222,13 +190,3 @@ export const chacha20 = (
 	}
 	return output;
 };
-
-/*
- * The raw LZ4 block codec used to be a second copy here, beside the one the
- * other editors share (`src/shared/save/lz4.ts`). A differential run over 207
- * inputs — the empty block, incompressible noise, a repeating run and 200
- * pseudo-random buffers — showed the two compressors byte-identical and each
- * decompressor able to read the other's output, so the copy is gone: the
- * container imports the shared implementation, and ChaCha20 below is the only
- * thing unique to this format. Fixes to the LZ4 safety checks now land once.
- */

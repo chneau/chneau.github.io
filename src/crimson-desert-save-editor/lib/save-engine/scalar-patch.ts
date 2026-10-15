@@ -1,36 +1,10 @@
-/**
- * In-place scalar writes, applied and proved.
- *
- * Most of the values this editor changes are fixed-width scalars sitting at a
- * known payload offset: an item's endurance, a dye channel, a bond level, a
- * quest state. Every one of those edits is the same three steps — write the
- * bytes, prove nothing else in the payload moved, then re-encode the container
- * and prove it reopens byte-identically.
- *
- * Doing that once here means the feature modules only have to say *which*
- * offsets hold *what*, and a mistake in one of them cannot skip the proof:
- * `assertOnlyChanged` refuses an edit that touched a byte outside the declared
- * field, and the caller's `commitSave` refuses output that does not round-trip.
- * A batch of related fields — one item's red, green and blue channels, say —
- * costs one diff and one re-encode instead of one per field.
- *
- * `patchScalars` is the pure half, so a feature that has already changed the
- * payload structurally (creating a field, say) can plan its writes against the
- * payload that produced and prove them the same way.
- */
-
 import { writeU8, writeU16, writeU32, writeU64 } from "./bytes";
 import { assertOnlyChanged } from "./raw-diff";
 
-/** One fixed-width field to overwrite. */
 export type ScalarWrite = {
-	/** Payload offset of the field. */
 	offset: number;
-	/** Width in bytes: 1, 2, 4 or 8. */
 	size: number;
-	/** New value, unsigned. */
 	value: number;
-	/** Field name, for the audit record and the failure message. */
 	label: string;
 };
 
@@ -97,12 +71,6 @@ const validate = (
 	return ordered;
 };
 
-/**
- * Overwrites the fields in a copy of `payload` and returns it with the offsets
- * that changed. Rejects overlapping fields, out-of-range values, and a write of
- * the value that is already there — a staged edit that changes nothing is a
- * bug, and the caller filters those out before queueing them.
- */
 export const patchScalars = (
 	payload: Uint8Array,
 	context: string,

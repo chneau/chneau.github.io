@@ -58,21 +58,9 @@ import {
 } from "./components";
 import { TOKEN_DEFS, type TokenDef, type TokenLayers } from "./tokens";
 
-/**
- * The gallery's sections, one component per section of the style guide.
- *
- * `App` owns what the page shares — the scheme, the audit findings, the demo
- * counters — and hands each section what it needs. A section that needs nothing
- * owns its own state: the motion demo's toggle is used by one section and one
- * section only, and lifting it into `App` was the only reason the page component
- * had to know it existed.
- */
-
-/** The tokens of one category, in declaration order. */
 const byCategory = (category: TokenDef["category"]) =>
 	TOKEN_DEFS.filter((token) => token.category === category);
 
-/** Every `--app-*` property read back from the live document. */
 type LiveTokens = Record<string, string>;
 
 export const DesignHero = () => (
@@ -104,13 +92,6 @@ export const DesignHero = () => (
 	</div>
 );
 
-/**
- * The page auditing itself.
- *
- * `pending` covers both "the sweep is still running" and "these numbers belong
- * to the other scheme", so the badge says so rather than showing rows that no
- * longer describe what is on screen.
- */
 export const AuditSection = ({
 	findings,
 	pending,
@@ -342,10 +323,6 @@ export const TypographySection = ({ live }: { live: LiveTokens }) => (
 	</Section>
 );
 
-/**
- * Motion. The demo's toggle lives here because this is the only section that
- * uses it — a `moved` flag in `App` existed solely to be read down here.
- */
 export const MotionSection = ({ live }: { live: LiveTokens }) => {
 	const [moved, setMoved] = useState(false);
 
@@ -433,11 +410,6 @@ export const MotionSection = ({ live }: { live: LiveTokens }) => {
 	);
 };
 
-/**
- * Every shared control, then every Mantine one. The first group uses the live
- * handlers — palette, help, scheme — because those are the controls a visitor
- * uses to drive the page they are looking at.
- */
 export const ControlsSection = ({
 	dark,
 	onToggleScheme,
@@ -633,20 +605,6 @@ export const UtilitiesSection = () => (
 		</SimpleGrid>
 		<div className="design-scroll app-scroll" aria-hidden="true">
 			<div className="design-scroll__inner">
-				{/*
-				 * Eight identical, purely decorative placeholders. The list is a
-				 * literal `Array.from({length: 8})` that is never sorted, filtered
-				 * or reordered, and the wrapper is aria-hidden, so there is no
-				 * state for an index key to mis-associate. It is provably correct
-				 * here; a generated id would imply stability it does not need.
-				 *
-				 * The suppression below has to stay a single line and directly
-				 * above the element. Spreading the explanation over several `//`
-				 * lines leaves the directive too far away for biome to attach it,
-				 * and it then reports the suppression as unused while still
-				 * flagging the key - which is a confusing pair of diagnostics for
-				 * what is one decision.
-				 */}
 				{Array.from({ length: 8 }, (_, index) => {
 					const width = `${60 + ((index * 7) % 35)}%`;
 					return <Skeleton key={index} width={width} />;
@@ -704,13 +662,6 @@ export const AppCardsSection = ({
 			are rendered by the shared component, so the audit below is measuring
 			shared code, not this page.
 		</Text>
-		{/*
-		 * A named <section> rather than <div role="group">: the element is a
-		 * region with an accessible name, which is what the ARIA role was
-		 * standing in for, and it does it with a real element instead of a role
-		 * bolted onto a generic one. `role="group"` is for widget groupings,
-		 * not for labelling a region of static content.
-		 */}
 		<section className="app-grid" aria-label="App card examples">
 			{APPS.map((item, index) => (
 				<AppCard

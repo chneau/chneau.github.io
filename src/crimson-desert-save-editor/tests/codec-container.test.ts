@@ -1,14 +1,3 @@
-/**
- * Negative-path tests for the container and the raw LZ4/ChaCha20 codec.
- *
- * The decode happy path is covered through the committed fixtures, but the
- * failure branches — where a damaged or hostile file must be refused — are not.
- * Fuzzing shows the codec is robust; these tests freeze that behaviour so a
- * future optimization cannot turn a throw into a silent misread.
- *
- * Run with `bun test`.
- */
-
 import { describe, expect, test } from "bun:test";
 import { lz4CompressBlock, lz4DecompressBlock } from "../../shared/save/lz4";
 import { bytesEqual, writeU16, writeU32 } from "../lib/save-engine/bytes";
@@ -18,9 +7,8 @@ import { fixture, opened } from "./fixtures";
 
 const HEADER_SIZE = 0x80;
 const PAYLOAD_SIZE_OFFSET = 0x16;
-const MAGIC = [0x53, 0x41, 0x56, 0x45]; // "SAVE"
+const MAGIC = [0x53, 0x41, 0x56, 0x45];
 
-/** A deterministic byte stream, so a failing seed is reproducible. */
 const pseudoRandom = (length: number, seed: number): Uint8Array => {
 	const out = new Uint8Array(length);
 	let state = seed >>> 0;
@@ -31,7 +19,6 @@ const pseudoRandom = (length: number, seed: number): Uint8Array => {
 	return out;
 };
 
-/** A container whose header length matches its payload, with no valid HMAC. */
 const containerOf = (version: number, payloadSize: number): Uint8Array => {
 	const out = new Uint8Array(HEADER_SIZE + payloadSize);
 	out.set(MAGIC, 0);

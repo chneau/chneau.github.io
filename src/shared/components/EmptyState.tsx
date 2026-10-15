@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-/** Composed empty state with an optional icon mark and action. */
 export const EmptyState = ({
 	icon,
 	title,

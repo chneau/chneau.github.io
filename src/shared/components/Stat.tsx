@@ -8,7 +8,6 @@ type StatProps = {
 	onClick?: () => void;
 };
 
-/** A label/value stat block. Renders as a button when `onClick` is given. */
 export const Stat = ({ label, value, icon, hint, onClick }: StatProps) => {
 	const body = (
 		<>

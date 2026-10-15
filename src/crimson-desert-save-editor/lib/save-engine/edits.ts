@@ -1,18 +1,3 @@
-/**
- * The staged-edit vocabulary, and the one place a staged edit is dispatched.
- *
- * A save edit used to be described in three places with three vocabularies: the
- * UI's union, the session's `if (type === …)` chain plus a `Set` of companion
- * types, and the safe-edit plan DSL. Adding a feature meant touching all three.
- * Here the engine declares what it can apply — with the UI's types staying
- * assignable because they carry the same fields plus display data — and the
- * registry below maps each type to its applier once.
- *
- * Consecutive edits that share an applier run together, which is what lets the
- * quantity batch (one pass over the payload) and the companion roster (one
- * block rewrite) work.
- */
-
 import {
 	applyEquipmentChange,
 	type EquipmentChange,
@@ -47,23 +32,18 @@ import {
 	type QuestPresetEdit,
 } from "./quests";
 
-/** One audit record, as the engine reports it. */
 export type EditAudit = Record<string, unknown>;
 
-/** A stack-count change in one inventory slot. */
 export type QuantityEdit = InventoryTarget & {
 	type: "quantity";
 	expectedQuantity: number;
 	newQuantity: number;
 };
 
-/** Adding a copy of an item already present in the save. */
 export type InsertItemEdit = InsertBrowserItemEdit & { type: "insertItem" };
 
-/** A progression change (skills, knowledge, stats). */
 export type SkillsEdit = SkillChange & { type: "skills" };
 
-/** Adding companions or robo workers to the roster. */
 type CompanionEdit =
 	| { type: "addCompanion"; characterKey: number }
 	| { type: "addRoboWorkers"; quantity: number };
@@ -82,21 +62,10 @@ export type SaveEdit =
 	| QuestPresetEdit
 	| CompanionRenameEdit;
 
-/**
- * Reports one finished edit inside a batch, and gives the caller the chance to
- * hand the main thread back before the next one starts.
- *
- * A batch can run for minutes — every equipment edit re-serializes, re-encrypts
- * and re-parses the whole save — so a run that never yields freezes the tab it
- * is drawn in, with the progress bar stuck and the browser offering to kill the
- * page.
- */
 type EditProgress = (completed: number) => Promise<void>;
 
 type Batch<Type extends SaveEdit["type"]> = {
-	/** Edit types this batch applies. */
 	types: readonly Type[];
-	/** Progress message shown while the batch runs. */
 	label: string;
 	apply: (
 		source: Uint8Array,
@@ -105,7 +74,6 @@ type Batch<Type extends SaveEdit["type"]> = {
 	) => Promise<[Uint8Array, EditAudit[]]>;
 };
 
-/** Applies one edit at a time, collecting an audit for each. */
 const sequentially =
 	<Edit extends SaveEdit>(
 		apply: (source: Uint8Array, edit: Edit) => Promise<[Uint8Array, EditAudit]>,
@@ -126,11 +94,6 @@ const sequentially =
 		return [current, audits];
 	};
 
-/**
- * Groups a batch's edits back into the union. The registry stays a plain list
- * of typed entries; the mismatch is erased here once rather than at every call
- * site.
- */
 type AnyBatch = {
 	types: readonly SaveEdit["type"][];
 	label: string;
@@ -154,7 +117,6 @@ const batchOf = <Type extends SaveEdit["type"]>(
 		),
 });
 
-/** Every edit the engine can apply, with the applier that owns its type. */
 const BATCHES: readonly AnyBatch[] = [
 	batchOf({
 		types: ["quantity"],
@@ -233,11 +195,8 @@ const BATCHES: readonly AnyBatch[] = [
 	}),
 ];
 
-/** One entry of a staged edit list, ready to run against the open save. */
 type EditRun = {
-	/** Progress message for this run. */
 	label: string;
-	/** How many staged edits it covers. */
 	size: number;
 	run: (
 		source: Uint8Array,
@@ -255,10 +214,6 @@ const batchFor = (edit: SaveEdit): AnyBatch => {
 	return batch;
 };
 
-/**
- * Turns a staged edit list into sequential runs, grouping neighbours that share
- * an applier so batched edits stay in one pass.
- */
 export const planSaveEdits = (edits: SaveEdit[]): EditRun[] => {
 	const runs: EditRun[] = [];
 	let index = 0;

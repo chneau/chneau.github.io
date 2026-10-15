@@ -1,16 +1,3 @@
-/**
- * The codec, against the real save.
- *
- * The fixture is a committed 57,280-byte `PowerFantasySave.es3` taken from a
- * played game, and it is the only authority for every field name claimed in
- * `lib/format.ts`. A test written against a hand-made document would pass
- * against a codec that had the crypto right and the vocabulary wrong, which is
- * precisely the defect that turns a rebuilt save into a file the game refuses.
- *
- * The second fixture is what the original command-line tool produced from that
- * same save: the same JSON, a fresh IV, different bytes. It is here to pin the
- * reason the codec reuses the header rather than drawing a new one.
- */
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -32,42 +19,29 @@ import {
 
 const root = join(import.meta.dir, "..");
 
-/** One committed save, as bytes. */
 const fixture = (name: string): Bytes =>
 	new Uint8Array(readFileSync(join(root, "saves", name)));
 
 const SAVE = fixture("PowerFantasySave.es3");
 const RE_ENCRYPTED = fixture("PowerFantasySave-reencrypted.es3");
 
-/** The document every suite works against, decoded through the real codec. */
 const decodeSave = (): Promise<JsonValue> => powerFantasy.decode(SAVE);
 
-/** A quick action by id, or the test fails loudly rather than silently. */
 const actionOf = (id: string) => {
 	const action = powerFantasy.actions.find((candidate) => candidate.id === id);
 	if (!action) throw new Error(`no quick action called ${id}`);
 	return action;
 };
 
-/** The paths an action would write, as strings so they can be compared. */
 const pathsOf = (
 	edits: readonly { readonly path: readonly (string | number)[] }[],
 ): readonly string[] => edits.map((edit) => JSON.stringify(edit.path));
 
-/** The number inside a Unity `{__type, value}` record, if it holds one. */
 const numberIn = (value: JsonValue | undefined): number | undefined =>
 	value !== undefined && isJsonObject(value) && typeof value.value === "number"
 		? value.value
 		: undefined;
 
-/**
- * The same save with every counter zeroed and every list emptied.
- *
- * What a fresh playthrough looks like, built from the fixture rather than
- * written by hand: same keys, same types, nothing earned. It is what lets the
- * suite check that a quick action has something to do on a save that has not
- * already been cheated at, which the fixture itself cannot show.
- */
 const zeroedCounters = (doc: JsonValue): JsonValue => {
 	if (!isJsonObject(doc)) throw new Error("expected a decoded save");
 	return Object.fromEntries(
@@ -85,13 +59,6 @@ const zeroedCounters = (doc: JsonValue): JsonValue => {
 	);
 };
 
-/**
- * Unity's type name for the inventory stack list.
- *
- * Written out rather than read from a save, so this test pins that the codec
- * copies the string off the record rather than shipping its own copy of a long
- * generic name that a patch could change under it.
- */
 const STACK_TYPE =
 	"System.Collections.Generic.List`1[[InventoryManager+StackEntry, Assembly-CSharp, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null]],mscorlib";
 
@@ -101,9 +68,6 @@ describe("Power Fantasy container", () => {
 	});
 
 	test("has the top-level keys the game writes", async () => {
-		// Named one by one rather than as a count: a summary or a cheat built
-		// on keys the save does not have is the failure this suite exists for,
-		// and a count would not notice it happening.
 		const doc = await decodeSave();
 		for (const key of [
 			"s_bloodRuby",
@@ -130,8 +94,6 @@ describe("Power Fantasy container", () => {
 	});
 
 	test("every value is one of Unity's {__type, value} records", async () => {
-		// The one structural claim the summary and every cheat rests on: there
-		// is no nesting below the top level, so a path is always one segment.
 		const doc = await decodeSave();
 		if (!isJsonObject(doc)) throw new Error("the fixture did not decode");
 		const odd = Object.entries(doc).filter(
@@ -153,11 +115,6 @@ describe("Power Fantasy container", () => {
 	});
 
 	test("a wrong password fails cleanly rather than surfacing a cipher error", async () => {
-		// The padding check is what catches a wrong key, and WebCrypto reports
-		// it as a bare `OperationError` with no explanation. What the user must
-		// not see is that, so it is caught and said in their terms — and the
-		// one-in-256 chance of valid padding on garbage lands on the same
-		// message, as a parse failure rather than a cipher failure.
 		await expect(decryptSave(SAVE, "not-the-password")).rejects.toThrow(
 			/did not decrypt to a Power Fantasy save/,
 		);
@@ -174,10 +131,6 @@ describe("Power Fantasy container", () => {
 
 describe("Power Fantasy round trip", () => {
 	test("re-encoding an untouched save is byte for byte identical", async () => {
-		// The strongest claim the shared round-trip check can make, and the one
-		// the page shows the user. It holds only because `encode` reuses the
-		// header `decode` read: a fresh IV changes every block of a CBC stream,
-		// so the claim would quietly become false.
 		const doc = await decodeSave();
 		expect(bytesEqual(await powerFantasy.encode(doc), SAVE)).toBe(true);
 	});
@@ -191,10 +144,6 @@ describe("Power Fantasy round trip", () => {
 	});
 
 	test("the same document under a fresh IV is a different file", async () => {
-		// Which is what the original tool produced, and what the second fixture
-		// is: `saves/PowerFantasySave-reencrypted.es3` decrypts to byte-identical
-		// JSON and shares no bytes on disk with the save it came from. Pinned so
-		// the note on the page and the codec's header reuse cannot drift apart.
 		const doc = await decodeSave();
 		expect(bytesEqual(RE_ENCRYPTED, SAVE)).toBe(false);
 		expect(JSON.stringify(await decryptSave(RE_ENCRYPTED))).toBe(
@@ -209,9 +158,6 @@ describe("Power Fantasy round trip", () => {
 	});
 
 	test("editing a counter survives the whole trip", async () => {
-		// A save round-trip, driven rather than reasoned about: change the ruby
-		// total, rebuild, read back, and confirm the game would see the new
-		// number rather than the old one.
 		const doc = await decodeSave();
 		const cheated = applyEdits(doc, [
 			{
@@ -251,8 +197,6 @@ describe("Power Fantasy summary", () => {
 	});
 
 	test("says so rather than inventing a value for a key the save lacks", () => {
-		// A fresh game has no ruby total and no stack list. Reporting a zero
-		// there would read as a fact about the player's save.
 		const rows = Object.fromEntries(
 			powerFantasy
 				.summarise({ a_level_1: { __type: "int", value: 1 } })
@@ -270,9 +214,6 @@ describe("Power Fantasy summary", () => {
 
 describe("Power Fantasy quick actions", () => {
 	test("every planned edit lands on a field the save really records", async () => {
-		// The safety property: `setAtPath` refuses a path the document does not
-		// have, so an action that planned a missing key would throw inside a
-		// render rather than quietly do nothing.
 		const doc = await decodeSave();
 		for (const action of powerFantasy.actions) {
 			for (const edit of action.plan(doc)) {
@@ -309,12 +250,6 @@ describe("Power Fantasy quick actions", () => {
 				.plan(doc)
 				.map((edit) => edit.after),
 		).toEqual([{ __type: "int", value: 9999999 }]);
-		// The eleven stacks this save holds below 999. The seven above it are
-		// left exactly as they are: the original tool wrote 999 into every
-		// counter it found, which on this save would have quietly taken items
-		// away from the player. `inv/index` is absent for the same reason — its
-		// amounts all read 999 already, and an edit that writes the value in the
-		// file is not staged.
 		expect(pathsOf(actionOf("cheat-items").plan(doc))).toEqual([
 			'["inv/fish_bloodruby"]',
 			'["inv/fish_common"]',
@@ -331,9 +266,6 @@ describe("Power Fantasy quick actions", () => {
 	});
 
 	test("no action ever writes a count below the one the save holds", async () => {
-		// The property that makes these cheats safe to press twice, and the one
-		// the original tool did not have: three achievements in this save read
-		// 193,517 and one reads 100,000, all above the 99,999 unlock value.
 		const doc = await decodeSave();
 		const lowered: unknown[] = [];
 		let checked = 0;
@@ -349,14 +281,10 @@ describe("Power Fantasy quick actions", () => {
 			}
 		}
 		expect(lowered).toEqual([]);
-		// A vacuous pass is worse than a failure here: the count says the
-		// property was actually exercised rather than skipped over.
 		expect(checked).toBeGreaterThan(0);
 	});
 
 	test("the stack list is rewritten too, keeping Unity's type name", () => {
-		// A stack list that disagrees with the per-item counters is exactly the
-		// state the original tool learned to fix by writing both.
 		const disagreeing: JsonValue = {
 			"inv/index": {
 				__type: STACK_TYPE,
@@ -397,13 +325,8 @@ describe("Power Fantasy quick actions", () => {
 
 	test("passives and infusions are planned per hero, on the game's own keys", async () => {
 		const doc = await decodeSave();
-		// The fixture already has every passive learned and every infusion
-		// maxed, so both plans come back empty and the buttons grey out — the
-		// honest answer for this save, and asserted rather than assumed.
 		expect(actionOf("cheat-passives").plan(doc)).toEqual([]);
 		expect(actionOf("cheat-infusions").plan(doc)).toEqual([]);
-		// Which is what makes the next test necessary: an empty plan proves
-		// nothing about whether those 459 and 17 paths exist.
 		const fresh: JsonValue = Object.fromEntries(
 			HEROES.flatMap((hero) => [
 				[`br_${hero}_ButtonDamage`, { __type: "int", value: 0 }],
@@ -425,11 +348,6 @@ describe("Power Fantasy quick actions", () => {
 	});
 
 	test("every action is a real, non-empty command on a save that needs it", async () => {
-		// The fixture has already been cheated at, which filters several plans
-		// to nothing. Zeroing that same save's counters — the game's own
-		// vocabulary, none of it invented — is what a fresh playthrough looks
-		// like, and on it all nine must plan something. This is what catches an
-		// action whose every path turned out not to exist.
 		const blanked = zeroedCounters(await decodeSave());
 		for (const action of powerFantasy.actions) {
 			expect({
@@ -446,16 +364,9 @@ describe("Power Fantasy quick actions", () => {
 		const companions = pathsOf(actionOf("unlock-companions").plan(doc));
 		const upgrades = pathsOf(actionOf("unlock-upgrades").plan(doc));
 
-		// A partition, not a subset: every achievement and blood rune this save
-		// records is claimed exactly once across the three, so applying two of
-		// them cannot stage the same field twice.
 		expect(all.slice().sort()).toEqual(
 			[...characters, ...companions, ...upgrades].sort(),
 		);
-		// The DLC ids are a subset of the hero ids in the game's own naming,
-		// which is why unlocking the DLC is a nine-line action rather than a
-		// separate branch of the unlock logic. All nine already read 99,999 in
-		// this save, so the plan is empty here and is proved on the blanked one.
 		expect(actionOf("unlock-dlc").plan(doc)).toEqual([]);
 		const blanked = zeroedCounters(doc);
 		expect(pathsOf(actionOf("unlock-dlc").plan(blanked))).toEqual(
@@ -489,7 +400,6 @@ describe("Power Fantasy quick actions", () => {
 	});
 });
 
-/** The seventeen playable heroes, as the save names them. */
 const HEROES = [
 	"Aric",
 	"Croak",
@@ -520,8 +430,6 @@ describe("the codec contract", () => {
 	});
 
 	test("the password is the game's, and it is not a secret of ours", () => {
-		// Naming it is the point of the third note on the page: a password that
-		// ships inside the game is the whole of this format's weakness.
 		expect(PASSWORD).toBe("godisdad");
 	});
 });

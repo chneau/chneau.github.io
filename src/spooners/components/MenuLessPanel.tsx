@@ -9,10 +9,6 @@ type Props = {
 	onSelect: (ref: number) => void;
 };
 
-/**
- * Pubs the API knows about but never quotes - airports and Haven parks whose
- * menu is not published. Listed so they are not simply invisible.
- */
 export const MenuLessPanel = ({ venues, onSelect }: Props) => {
 	if (!venues.length) {
 		return null;

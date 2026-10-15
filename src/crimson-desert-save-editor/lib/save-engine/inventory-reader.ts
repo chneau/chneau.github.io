@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/inventory_reader.py`.
- */
-
 import { readU16 } from "./bytes";
 import { defined } from "./defined";
 import {
@@ -28,21 +24,12 @@ export type InventoryRecord = {
 	sockets: ItemSocketRecord[];
 };
 
-/**
- * What addresses one inventory record. All three parts belong to the identity:
- * an item can sit in the same slot of two storages, and two slots of one
- * storage can hold the same item, so none of them is optional.
- */
 export type InventoryRecordTarget = {
 	inventoryKey: number;
 	slotNo: number;
 	itemKey: number;
 };
 
-/**
- * The single record a staged edit addresses. Matching several records (or none)
- * means the caller's target was wrong, so it fails rather than guessing.
- */
 export const findInventoryRecord = (
 	records: InventoryRecord[],
 	target: InventoryRecordTarget,
@@ -61,17 +48,7 @@ export const findInventoryRecord = (
 	return defined(matches[0], "inventory record");
 };
 
-/**
- * A record the reader could see but not safely identify.
- *
- * `readInventory` refuses to emit a record missing an identity field rather
- * than inventing a zero and letting an edit match the wrong row, but a refusal
- * that silently disappears leaves the user with a count that cannot be
- * explained. The diagnostic keeps the reason and the raw values so both the
- * parse result and a test can account for it.
- */
 export type SkippedInventoryRecord = {
-	/** The identity fields that were absent, e.g. `_slotNo`. */
 	missing: string[];
 	recordStart: number;
 	recordEnd: number;
@@ -248,13 +225,5 @@ export const readInventoryWithDiagnostics = (
 	return { records, skipped };
 };
 
-/**
- * The identified records of a payload.
- *
- * Records missing an identity field are omitted here and reported through
- * `readInventoryWithDiagnostics`; callers that mutate records still use this
- * shape, while the parse path reads the diagnostics to surface what was left
- * out.
- */
 export const readInventory = (raw: Uint8Array): InventoryRecord[] =>
 	readInventoryWithDiagnostics(raw).records;

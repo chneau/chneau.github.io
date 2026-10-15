@@ -23,9 +23,6 @@ describe("buildHistogram", () => {
 	});
 
 	test("an identical price still produces one bin", () => {
-		// min === max whenever the price is an exact multiple of 0.5, so the
-		// bin-building loop used to produce nothing and the panel fell through
-		// to "No prices to plot" while the StatsBar above printed the price.
 		const bins = buildHistogram([2.5, 2.5, 2.5]);
 		expect(bins).toHaveLength(1);
 		expect(bins[0]?.count).toBe(3);
@@ -46,15 +43,6 @@ describe("buildHistogram", () => {
 	});
 });
 
-/**
- * The real-data budget.
- *
- * `cache` is the whole 24 MB dataset and the test walks every item in it,
- * building a histogram for each price series. It completes in ~3.9s on its own,
- * which leaves almost nothing under Bun's 5s default once twelve `--parallel`
- * workers are competing for the same cores — it failed at 5126ms. Same class as
- * the `cheat-gear` timeouts: real work, real budget, stated rather than implied.
- */
 const REAL_DATA_TIMEOUT = 30_000;
 
 describe("buildHistogram on real pub prices", () => {
@@ -80,8 +68,6 @@ describe("buildHistogram on real pub prices", () => {
 		REAL_DATA_TIMEOUT,
 	);
 
-	// The three items the defect report named: all-£3/£3.50 prices, i.e.
-	// min === max after rounding to half pounds.
 	test.each([
 		["SOURZ Cherry", 2.5],
 		["Greene King Abbot Reserve", 3.5],

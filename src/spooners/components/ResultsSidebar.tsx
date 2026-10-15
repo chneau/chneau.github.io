@@ -13,21 +13,12 @@ import { RankingPanel } from "./RankingPanel";
 import { RoundCard } from "./RoundCard";
 import { StatsBar } from "./StatsBar";
 
-/** One row of the by-area panel. */
 type AreaStat = Parameters<typeof GeographyPanel>[0]["stats"][number];
 
 type Props = {
-	/**
-	 * Everything derived from the round and the filters: the pubs, the counts,
-	 * the options. One object rather than forty props, because this panel draws
-	 * nothing of its own — it is the view, laid out.
-	 */
 	view: SpoonersView;
-	/** Every pub, for the search box; not narrowed, so a name is findable. */
 	venues: VenueInfo[];
-	/** National price history per item, when the dataset carries any. */
 	history: NonNullable<SpoonersCache["history"]>["items"];
-	/** The filters' own state and handlers, which are not derivations. */
 	activeFilters: string[];
 	onFilters: (ids: string[]) => void;
 	activeFacilities: string[];
@@ -42,7 +33,6 @@ type Props = {
 	onlyComplete: boolean;
 	onOnlyComplete: (value: boolean) => void;
 
-	/** The round, as edited, and what may be done to it. */
 	resolvedBasket: BasketItem[];
 	onAdd: (name: string) => void;
 	onQty: (name: string, qty: number) => void;
@@ -66,11 +56,9 @@ type Props = {
 	selectedArea: string | null;
 	onSelectArea: (stat: AreaStat) => void;
 	onOnlyItem: (name: string) => void;
-	/** How many pubs each ranking list shows, from the saved settings. */
 	rankingRows: number;
 };
 
-/** Cheapest, median and dearest across the pubs the filters left. */
 const PriceStats = ({
 	view,
 	portion,
@@ -91,11 +79,6 @@ const PriceStats = ({
 		</Section>
 	) : null;
 
-/**
- * Nothing matched, and the ways out of it. Each action is offered only when it
- * would change something: "include partial" is pointless unless "whole round
- * only" is what excluded them.
- */
 const NoMatches = ({
 	partialCount,
 	onlyComplete,
@@ -134,14 +117,6 @@ const NoMatches = ({
 	/>
 );
 
-/**
- * The scrollable left column: what you are ordering, and everything the app
- * knows about the pubs that can serve it.
- *
- * Split out of `App` because this is the app's second screen, not part of its
- * shell. It re-renders on every keystroke in the round, and taking it out of
- * `App` lets the header, the map and the dialogs stay put while it does.
- */
 export const ResultsSidebar = ({
 	view,
 	venues,
@@ -183,8 +158,6 @@ export const ResultsSidebar = ({
 	rankingRows,
 }: Props) => {
 	const { displayCurrency, withDistance, areas } = view;
-	// The portion belongs to the pub, so it is only meaningful while the round
-	// is a single item; a whole round has no one portion to quote.
 	const portion = view.singleName
 		? (view.completeVenues[0]?.portion ?? null)
 		: null;

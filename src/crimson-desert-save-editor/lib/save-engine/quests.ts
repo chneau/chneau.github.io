@@ -1,27 +1,3 @@
-/**
- * Quest progress: the four state tables `QuestSaveData` holds.
- *
- * A save tracks the story four times over, and each table is a list of keys with
- * a one-byte `QuestStateType`:
- *
- *   - `_questStateList` — one row per quest, the entry the journal shows;
- *   - `_missionStateList` — missions, plus the UI flag that decides whether the
- *     journal lists them;
- *   - `_stageStateData` — stages, by far the largest table (46k rows in the
- *     early save, 49k in the endgame one) and the one the world actually acts
- *     on;
- *   - `_questGaugeStateList` — repeatable objective gauges.
- *
- * The state values are shared: 1 locked, 2 available, 3 in progress, 4 ready,
- * 5 completed. Setting a row back to locked or available also clears the
- * timestamps and completion count, because a row that still says it was
- * finished at timestamp 81532 while claiming to be available is the kind of
- * inconsistency the journal renders as a bug.
- *
- * Rows whose state field the record does not carry are listed but not editable
- * — the mask says the field is absent, so there is nothing to write.
- */
-
 import { type DecodedSave, decodeSave } from "./container";
 import { type GameNamesFile, gameNamesTable } from "./data";
 import {
@@ -33,7 +9,6 @@ import {
 import { patchScalars, type ScalarWrite } from "./scalar-patch";
 import { commitSave } from "./transaction";
 
-/** Which of the four tables a row came from. */
 export type QuestKind = "quest" | "mission" | "stage" | "gauge";
 
 export const questKindLabels: Record<QuestKind, string> = {
@@ -43,7 +18,6 @@ export const questKindLabels: Record<QuestKind, string> = {
 	gauge: "Gauges",
 };
 
-/** Player-facing name for each `QuestStateType`, shared by all four tables. */
 export const questStateLabels: Record<number, string> = {
 	1: "Locked",
 	2: "Available",
@@ -52,9 +26,7 @@ export const questStateLabels: Record<number, string> = {
 	5: "Completed",
 };
 
-/** The value a completed row carries in every table. */
 export const questCompletedState = 5;
-/** The value a reset row carries: present again, not started. */
 export const questAvailableState = 2;
 
 export const questStateLabel = (state: number | null): string => {
@@ -62,19 +34,15 @@ export const questStateLabel = (state: number | null): string => {
 	return questStateLabels[state] ?? `0x${state.toString(16).toUpperCase()}`;
 };
 
-/** One row as the editor shows it. */
 export type QuestEntry = {
-	/** `kind:key`, stable across re-reads. */
 	id: string;
 	kind: QuestKind;
 	key: number;
 	name: string | null;
-	/** Owning quest, for stage rows only. */
 	questName: string | null;
 	state: number | null;
 	stateLabel: string;
 	completedTime: number | null;
-	/** False when the record's mask leaves the state field out. */
 	editable: boolean;
 };
 
@@ -85,7 +53,6 @@ export type QuestDescription = {
 	error: string | null;
 };
 
-/** One row plus the offsets behind it. */
 type Slot = { offset: number; size: number };
 
 type Row = {
@@ -96,7 +63,6 @@ type Row = {
 	questName: string | null;
 	state: number | null;
 	completedTime: number | null;
-	/** Values the reset cleanup has to clear, and where they live. */
 	counters: Array<{ name: string; value: number; slot: Slot }>;
 	slots: {
 		state: Slot | null;
@@ -104,7 +70,6 @@ type Row = {
 	};
 };
 
-/** Tables in the order the editor lists them. */
 const TABLES: Array<{
 	kind: QuestKind;
 	field: string;
@@ -116,13 +81,6 @@ const TABLES: Array<{
 	{ kind: "gauge", field: "_questGaugeStateList", keyField: "_key" },
 ];
 
-/**
- * One field of a columnar walk, as the quest reader sees it. The walk never
- * materializes per-row objects: a row's value is `column.values[rows[i]]` and
- * its payload offset is `column.starts[rows[i]]`, with `rows[i] < 0` meaning
- * the row's mask leaves the field out — the same distinction `slot()` used to
- * report per object, now read straight off the typed array.
- */
 type QuestColumn = {
 	starts: number[];
 	values: unknown[];
@@ -157,11 +115,6 @@ const slotAt = (
 	return { offset: column.starts[row] ?? 0, size };
 };
 
-/**
- * The fields a reset has to clear. Stages carry `_completedCount`, missions
- * `_completeCount`, and both carry the two timestamps, but only where the mask
- * says so — an absent field is already zero as far as the game is concerned.
- */
 const countersAt = (
 	walk: ColumnarWalk,
 	index: number,
@@ -186,7 +139,6 @@ const countersAt = (
 	return counters;
 };
 
-/** Stage key -> quest name, from the generated quest table's stage lists. */
 const stageQuestNames = (names: GameNamesFile): Map<number, string> => {
 	const index = new Map<number, string>();
 	for (const quest of Object.values(names.quests)) {
@@ -274,7 +226,6 @@ const toEntry = (row: Row): QuestEntry => ({
 	editable: row.slots.state !== null,
 });
 
-/** Reads every quest, mission, stage and gauge row with its state. */
 export const describeQuests = async (
 	save: DecodedSave,
 ): Promise<QuestDescription> => {
@@ -300,16 +251,13 @@ export const describeQuests = async (
 	}
 };
 
-/** One state change, on one row or on a chosen set of rows. */
 export type QuestEdit = {
 	type: "quest";
-	/** `kind:key` ids to change. */
 	ids: string[];
 	label: string;
 	state: number;
 };
 
-/** A state change applied to every row of the chosen kinds. */
 export type QuestPresetEdit = {
 	type: "questPreset";
 	preset: "completeAll" | "resetAll";
@@ -320,7 +268,6 @@ export type QuestPresetEdit = {
 const isReset = (state: number): boolean =>
 	state === questAvailableState || state === 1;
 
-/** The writes one row's new state needs, including its reset cleanup. */
 const writesFor = (row: Row, state: number): ScalarWrite[] => {
 	if (!row.slots.state) {
 		throw new Error(
@@ -354,10 +301,6 @@ const applyState = async (
 	context: string,
 	select: (rows: Row[]) => Array<{ row: Row; state: number }>,
 ): Promise<[Uint8Array, Record<string, unknown>]> => {
-	// The names table and the decode read two independent inputs; the decode does
-	// not mutate `sourceBytes` and the names table is a cached load, so they are
-	// awaited together. Nothing is written back to the save until `commitSave`,
-	// well below, which is where the engine's single write point lives.
 	const [names, decoded] = await Promise.all([
 		gameNamesTable(),
 		decodeSave(sourceBytes),
@@ -380,9 +323,6 @@ const applyState = async (
 		patched.payload,
 	);
 
-	// The stage table alone runs to tens of thousands of rows, so both sides of
-	// the comparison are indexed: a linear search per row would make the check
-	// quadratic, and the check runs on every edit.
 	const after = readRows(reopenedPayload, names);
 	const afterById = new Map(after.map((row) => [row.id, row]));
 	const touched = new Map(chosen.map((entry) => [entry.row.id, entry.state]));
@@ -426,7 +366,6 @@ const applyState = async (
 	];
 };
 
-/** Sets the state of the named rows. */
 export const applyQuestEdit = async (
 	sourceBytes: Uint8Array,
 	edit: QuestEdit,
@@ -447,11 +386,6 @@ export const applyQuestEdit = async (
 	});
 };
 
-/**
- * Completes or resets every row of the chosen tables. Completing only touches
- * rows that are not already complete, so the edit's size is proportional to the
- * work it still has to do.
- */
 export const applyQuestPreset = async (
 	sourceBytes: Uint8Array,
 	edit: QuestPresetEdit,

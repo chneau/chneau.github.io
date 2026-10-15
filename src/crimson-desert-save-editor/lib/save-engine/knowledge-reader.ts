@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/knowledge_reader.py`.
- */
-
 import { listLayout, locator } from "./parc";
 import { BlockParser, parseParcBlob } from "./parc-serializer";
 

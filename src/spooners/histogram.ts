@@ -1,12 +1,5 @@
 export type Bin = { start: number; end: number; count: number };
 
-/**
- * Bin prices into a fixed-width histogram.
- *
- * Its own module, not part of `Distribution`, because it is arithmetic over
- * prices rather than markup: a component module that also exports a function
- * cannot be Fast-Refreshed without losing the component's state.
- */
 export const buildHistogram = (prices: number[]): Bin[] => {
 	if (!prices.length) {
 		return [];
@@ -19,8 +12,6 @@ export const buildHistogram = (prices: number[]): Bin[] => {
 	for (let start = min; start < max - 1e-9; start += step) {
 		bins.push({ start, end: start + step, count: 0 });
 	}
-	// When every price is identical, min === max and the loop above produces
-	// nothing; one bin is still enough to render the histogram.
 	if (!bins.length) {
 		bins.push({ start: min, end: min + step, count: 0 });
 	}
@@ -37,10 +28,6 @@ export const buildHistogram = (prices: number[]): Bin[] => {
 	return bins;
 };
 
-/**
- * Where the median sits across the scale, as a percentage, or `null` when the
- * scale has no width to place it against.
- */
 export const medianPosition = (
 	median: number | undefined,
 	scale: { min: number; max: number },

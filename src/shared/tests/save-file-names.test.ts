@@ -11,10 +11,6 @@ describe("rebuiltName", () => {
 		expect(rebuiltName("noext")).toBe("noext-edited");
 	});
 
-	// A leading dot is not an extension, so `-edited` belongs after the name and
-	// before nothing — `.hidden-edited`, never `.hidden-edited.` and never a
-	// name identical to the original, which would clobber it in the Downloads
-	// folder without the user noticing.
 	test("treats a dotfile as having no extension", () => {
 		expect(rebuiltName(".hidden")).toBe(".hidden-edited");
 	});
@@ -27,8 +23,6 @@ describe("rebuiltName", () => {
 });
 
 describe("formatBytes", () => {
-	// The byte count is what tells a user whether they dropped the right file,
-	// so the boundaries are asserted exactly rather than approximately.
 	test("switches unit at each power of 1024", () => {
 		expect(formatBytes(0)).toBe("0 B");
 		expect(formatBytes(1023)).toBe("1023 B");

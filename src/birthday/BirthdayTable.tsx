@@ -53,8 +53,6 @@ type ColumnDef = {
 
 const PAGE_SIZE_OPTIONS = [10, 15, 25, 50, 100];
 
-// Re-exported for the existing importers; the key derivation lives in
-// `row-keys.ts` so the table and the countdown provably share one rule.
 export { withRowKeys } from "./row-keys";
 
 const getColumns = (search: string, t: TFunction): ColumnDef[] => [
@@ -226,8 +224,6 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 		}
 	};
 
-	// Keys are assigned in `data` order, before sorting, so a record keeps the
-	// same key — and the same expanded state — whatever the user sorts by.
 	const keyed = useMemo(() => withRowKeys(data), [data]);
 
 	const sorted = useMemo(() => {
@@ -319,8 +315,6 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 					</Table.Thead>
 					<Table.Tbody>
 						{pageRows.map(({ record, key: rowKey }) => {
-							// A collision-free key means two rows that happen to share
-							// name and date can no longer drive each other's panel.
 							const expanded = expandedKey === rowKey;
 							return (
 								<Fragment key={rowKey}>

@@ -50,7 +50,6 @@ describe("analytics consent", () => {
 	test("ignores tampered storage values", () => {
 		window.localStorage.setItem(CONSENT_KEY, "maybe");
 		expect(getAnalyticsConsent()).toBe("unset");
-		// A tampered value must not be treated as an opt-in.
 		expect(hasAnalyticsConsent()).toBe(false);
 	});
 
@@ -80,27 +79,6 @@ describe("analytics is a safe no-op", () => {
 		expect(getAnalyticsApp()).toBe("spooners");
 	});
 
-	/**
-	 * Every app's own path must resolve back to that app.
-	 *
-	 * `initAnalytics` with no argument falls back to `appFromPath`, which reads
-	 * the first path segment against a known-app set. That set was a separate
-	 * seven-entry declaration from the thirteen-member app union, and the six
-	 * save editors added later were missing from it — so their events were tagged
-	 * `"root"`. `mountApp` always passes the id explicitly, which is why this
-	 * never showed up as broken.
-	 *
-	 * Driven through `window.location` rather than a direct call, because
-	 * `appFromPath` is private and this is the path that reaches it.
-	 *
-	 * The comparison needs no widening. `KNOWN_APPS` is now
-	 * `APP_META.map((meta) => meta.slug)` and `APP_META` is const-asserted, so
-	 * `meta.slug` and `getAnalyticsApp()` are the same literal union and a row
-	 * that somehow stopped matching would be a type error here as well as a
-	 * failed assertion. For as long as the two were separate declarations this
-	 * had to be widened to `string` — which is the type error that used to be
-	 * the warning.
-	 */
 	test("every app's path resolves to that app, not to root", () => {
 		for (const meta of APP_META) {
 			window.location.href = `https://chneau.github.io${meta.path}`;
@@ -109,26 +87,11 @@ describe("analytics is a safe no-op", () => {
 		}
 	});
 
-	/**
-	 * The app table stays plain data, so this module keeps loading outside a
-	 * browser.
-	 *
-	 * Deriving `KNOWN_APPS` from `APP_META` is only safe because `app-meta.ts`
-	 * imports nothing: it is read by `rsbuild.config.ts` in Node and by the
-	 * manifest generator in Bun, both before a DOM exists. One `import "react"`
-	 * or a CSS import there would break the build for a field a dashboard card
-	 * could have kept to itself — so the constraint is asserted rather than
-	 * trusted, and read off the source rather than inferred from this suite
-	 * running (which it would pass under happy-dom either way).
-	 */
 	test("the app table imports nothing, so this module stays Node-loadable", () => {
 		const source = readFileSync(
 			new URL("../app-meta.ts", import.meta.url),
 			"utf8",
 		);
-		// Only real import statements: the header comment quotes prose that
-		// happens to contain `from "…"` (a reconciliation note does), and a
-		// regex over the whole file would assert on that.
 		const specifiers = source
 			.split("\n")
 			.filter((line) => /^(import|export)\b/.test(line))

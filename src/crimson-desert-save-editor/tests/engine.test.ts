@@ -1,13 +1,3 @@
-/**
- * Fixture tests for the save engine.
- *
- * These run against the two committed saves in `saves/`. Every edit is checked
- * by re-reading the output rather than by comparing golden bytes: the container
- * is re-encrypted on write, so the plaintext is the only meaningful contract.
- *
- * Run with `bun test`.
- */
-
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -94,14 +84,7 @@ const endgame = fixture("endgame.save");
 const withSave = async <T>(bytes: Uint8Array, use: (raw: Uint8Array) => T) =>
 	use((await decodeSave(bytes)).rawPayload);
 
-/**
- * Fixture reads are memoized by fixture identity: the container decode and
- * the per-feature parses are pure, so every test that only inspects a fixture
- * shares one decode instead of paying it again. Edit outputs are always
- * freshly decoded through `withSave` and are never passed to these helpers.
- */
 const openedFixtures = new Map<Uint8Array, Promise<DecodedSave>>();
-/** Decodes a fixture once: the decode is pure, so every reader shares it. */
 const opened = (fixture: Uint8Array): Promise<DecodedSave> => {
 	let decoded = openedFixtures.get(fixture);
 	if (decoded === undefined) {
@@ -114,7 +97,6 @@ const opened = (fixture: Uint8Array): Promise<DecodedSave> => {
 const cachedRaw = async (fixture: Uint8Array): Promise<Uint8Array> =>
 	(await opened(fixture)).rawPayload;
 
-/** Memoizes a pure `(save) => …` reader by the fixture it was opened from. */
 const perFixture = <D>(read: (save: DecodedSave) => Promise<D>) => {
 	const memo = new Map<Uint8Array, Promise<D>>();
 	return (fixture: Uint8Array): Promise<D> => {
@@ -239,7 +221,6 @@ describe("inventory", () => {
 			itemKey: target.itemKey,
 		};
 		expect(findInventoryRecord(records, address)).toBe(target);
-		// The same record twice stands in for a genuinely ambiguous target.
 		expect(() => findInventoryRecord([...records, target], address)).toThrow(
 			/found 2/,
 		);
@@ -375,7 +356,6 @@ describe("knowledge and skills", () => {
 			checked += 1;
 		}
 		expect(checked).toBeGreaterThan(200);
-		// Unrelated knowledge is untouched by this mode.
 		const beforeLevels = new Map(
 			before.map((record) => [record.key, record.level]),
 		);
@@ -432,11 +412,8 @@ describe("companions", () => {
 		const roster = await describeSavedCompanions(endgame);
 		expect(roster.error).toBeNull();
 		expect(roster.records.length).toBe(246);
-		// No template matches that save's format, so nothing is offered...
 		expect(roster.availableKeys).toEqual([]);
 
-		// ...and an addable companion the player does not own yet is refused by
-		// the format guard rather than written with a bad schema.
 		const catalog = (await import("../lib/generated/companion-catalog.json"))
 			.default as {
 			entries: Record<string, { addable?: boolean; ownershipGroup?: string }>;
@@ -488,7 +465,6 @@ const findDescribed = (
 			record.itemKey === target.itemKey,
 	);
 
-/** Gear keys the compatibility rules allow on this equipment. */
 const compatibleGear = (
 	rules: AbyssGearRulesFile,
 	equipmentKey: number,
@@ -502,14 +478,12 @@ const compatibleGear = (
 		.sort((a, b) => a - b);
 };
 
-/** Everything the shared transaction lifecycle must report on every edit. */
 const verificationHolds = (audit: Record<string, unknown>): void => {
 	expect(audit.output_reopened).toBe(true);
 	expect(audit.raw_payload_reopened_identically).toBe(true);
 	expect(String(audit.output_sha256)).toMatch(/^[0-9a-f]{64}$/);
 };
 
-/** Refinements of every equipment record except `target`, for comparisons. */
 const otherEquipment = (
 	records: DescribedRecord[],
 	target: EquipmentTarget,
@@ -531,7 +505,6 @@ const otherEquipment = (
 			.sort(),
 	);
 
-/** A socket the engine will accept a replacement in, with gear it allows. */
 const swappableSocket = (
 	before: InventoryDescription,
 	rules: AbyssGearRulesFile,
@@ -599,7 +572,6 @@ describe("equipment", () => {
 			otherEquipment(before.records, target),
 		);
 
-		// A stale expected level is still refused rather than overwritten.
 		await expect(
 			editEnchantLevel(save, target, chosen.equipment.refinement + 1, level),
 		).rejects.toThrow(/Expected enchant level/);
@@ -642,7 +614,6 @@ describe("equipment", () => {
 			chosen.equipment.socketItems,
 		);
 
-		// The gameplay cap is enforced, not just the serialized five slots.
 		const cap = defined(caps.get(chosen.itemKey), "socket cap").maxSockets;
 		await expect(
 			editValidSocketCount(save, target, unlocked, cap + 1),
@@ -680,7 +651,6 @@ describe("equipment", () => {
 			record.equipment.socketItems.filter((_, other) => other !== index),
 		);
 
-		// The stale socket item is refused too.
 		await expect(
 			replaceSocketItem(endgame, target, index, gearKey + 1, current),
 		).rejects.toThrow(/Expected socket item/);
@@ -763,7 +733,6 @@ describe("equipment", () => {
 			),
 		);
 
-		// Gear already socketed elsewhere in the same item is refused.
 		const duplicate = record.equipment.socketItems
 			.filter((item): item is number => item !== null)
 			.find((key) => compatibleGear(rules, record.itemKey).includes(key));
@@ -813,7 +782,6 @@ describe("equipment", () => {
 		);
 		expect(inserted).toBeDefined();
 		expect(inserted?.equipment?.refinement).toBe(refinement);
-		// Everything that was already there kept its identity and slot.
 		expect(
 			otherEquipment(after.records, targetOf(defined(inserted, "inserted"))),
 		).toBe(
@@ -846,7 +814,6 @@ describe("equipment", () => {
 	});
 });
 
-/** Equipped records the donor path will accept for `inventoryKey`. */
 const cleanDonors = async (bytes: Uint8Array, inventoryKey = 2) => {
 	const raw = await cachedRaw(bytes);
 	const present = new Set(
@@ -866,7 +833,6 @@ const cleanDonors = async (bytes: Uint8Array, inventoryKey = 2) => {
 	};
 };
 
-/** What the equipped loadout holds, ignoring where it sits in the payload. */
 const loadoutSignature = (raw: Uint8Array): string =>
 	JSON.stringify(
 		readEquipmentLayout(raw).records.map((record) => [
@@ -879,7 +845,6 @@ const loadoutSignature = (raw: Uint8Array): string =>
 		]),
 	);
 
-/** Knowledge contents, again without the absolute offsets of the records. */
 const knowledgeSignature = (raw: Uint8Array): string =>
 	JSON.stringify(
 		readKnowledge(raw).map((record) => [
@@ -890,8 +855,6 @@ const knowledgeSignature = (raw: Uint8Array): string =>
 		]),
 	);
 
-// Minimal shapes for planning tests: the values only matter where a run is
-// actually executed.
 const quantityEdit = (slot: number): SaveEdit => ({
 	type: "quantity",
 	inventoryKey: 2,
@@ -969,7 +932,6 @@ describe("edit plan", () => {
 		]);
 		expect(split.map((run) => run.size)).toEqual([1, 1, 1]);
 
-		// Different types are still one run when one applier owns both.
 		const shared = planSaveEdits([equipmentEdit(0), catalogEdit(8501)]);
 		expect(shared.map((run) => run.size)).toEqual([2]);
 	});
@@ -996,7 +958,6 @@ describe("edit plan", () => {
 		expect(() => planSaveEdits([unknown])).toThrow(
 			/Unsupported edit type: nonsense/,
 		);
-		// Known edits before it are planned, then planning stops at the unknown one.
 		expect(() => planSaveEdits([quantityEdit(1), unknown])).toThrow(
 			/Unsupported edit type: nonsense/,
 		);
@@ -1103,11 +1064,9 @@ describe("donor insertion", () => {
 		expect(Number(inserted?.values._enchantLevel ?? 0)).toBe(
 			Number(donor.values._enchantLevel ?? 0),
 		);
-		// The loadout it was copied from, and the knowledge tree, are untouched.
 		expect(loadoutSignature(reopened)).toBe(loadoutSignature(raw));
 		expect(knowledgeSignature(reopened)).toBe(knowledgeSignature(raw));
 
-		// The same item cannot be inserted into the same inventory twice.
 		await expect(
 			insertDonorEquipmentIntoInventory(output, output, {
 				donorSlot: donor.slotNo,
@@ -1162,9 +1121,6 @@ describe("donor insertion", () => {
 		);
 	});
 
-	// The successful preserve path re-encrypts and re-verifies the 9 MB
-	// endgame payload, which alone costs most of a second under parallel load;
-	// give the whole test headroom over the 5 s default.
 	test("a dyed donor needs its dyes preserved on purpose", async () => {
 		const raw = await cachedRaw(endgame);
 		const donor = readEquipmentLayout(raw).records.find(
@@ -1174,11 +1130,9 @@ describe("donor insertion", () => {
 		if (!donor) return;
 		const options = { donorSlot: donor.slotNo };
 
-		// Accepting the copy silently would drop the dye data.
 		await expect(
 			insertDonorEquipmentIntoInventory(endgame, endgame, options),
 		).rejects.toThrow(/contains dye data/);
-		// Stripping is gated behind an explicit experimental opt-in.
 		await expect(
 			insertDonorEquipmentIntoInventory(endgame, endgame, {
 				...options,
@@ -1537,7 +1491,6 @@ describe("levels", () => {
 		const edited = after.entries.find((entry) => entry.id === player.id);
 		expect(edited?.experience).toBe(1234567);
 		expect(edited?.level).toBe(player.level);
-		// Once the field is there the row neither needs nor offers a creation.
 		expect(edited?.creatable).toEqual([]);
 		for (const entry of after.entries) {
 			if (entry.id === player.id) continue;
@@ -1697,8 +1650,6 @@ describe("root scalars", () => {
 
 		const after = readRoot(inserted.payload, "CharacterStatusSaveData");
 		expect(after.values._remainSkillPoint).toBe(321);
-		// The block grew in the middle, so every field it already had still reads
-		// the same value at its new offset.
 		for (const [name, value] of Object.entries(before.values)) {
 			expect(after.values[name]).toBe(value);
 		}

@@ -4,10 +4,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import axe from "axe-core";
 
-// Root's `App.tsx` reads the build timestamp from a compile-time global.
 (globalThis as unknown as { BUILD_DATE: string }).BUILD_DATE = "30 Sep 2026";
 
-/** React 19 needs the native value setter to see input changes in happy-dom. */
 const NATIVE_VALUE = Object.getOwnPropertyDescriptor(
 	HTMLInputElement.prototype,
 	"value",
@@ -46,7 +44,6 @@ describe("dashboard a11y", () => {
 		const view = render(<App />);
 		const input = view.getByLabelText("Search apps") as HTMLInputElement;
 		type(input, "zzzzzz");
-		// The "Results" section is an `<h2>`, so the EmptyState `<h3>` is valid.
 		expect(view.container.querySelector("h2.app-section-title")).not.toBeNull();
 		await expectNoViolations(view.baseElement);
 	});

@@ -43,25 +43,11 @@ const GroupHeading = ({ children }: { children: string }) => (
 type ShortcutsHelpProps = {
 	opened: boolean;
 	onClose: () => void;
-	/** App-specific groups, shown above the shared global one. */
 	groups: readonly ShortcutGroup[];
-	/** Extra site-wide keys for apps that support them (see `APP_SWITCH_SHORTCUTS`). */
 	globalShortcuts?: ShortcutItem[];
-	/**
-	 * Whether this app actually binds the command palette.
-	 *
-	 * The ⌘/Ctrl+K row used to be listed unconditionally, which is a claim the
-	 * dialog cannot check. Six save editors have no palette, so opening help
-	 * there advertised a key that does nothing — previously invisible only
-	 * because those apps had no help dialog at all.
-	 */
 	hasCommandPalette?: boolean;
 };
 
-/**
- * The one keyboard-shortcut dialog. Pair with `useShortcutsHelp` for the open
- * state and a `ShortcutsHelpButton` in the header.
- */
 export const ShortcutsHelp = ({
 	opened,
 	onClose,
@@ -126,7 +112,6 @@ type ShortcutsHelpButtonProps = {
 	expanded?: boolean;
 };
 
-/** Header trigger for `ShortcutsHelp`, sized like every other navbar control. */
 export const ShortcutsHelpButton = ({
 	onClick,
 	expanded,
@@ -142,17 +127,6 @@ export const ShortcutsHelpButton = ({
 	/>
 );
 
-/**
- * The open state is shared by every caller, not per-hook.
- *
- * `useShortcutsHelp` is called both by `AppNav`, which renders the dialog, and
- * by apps that need the same state for their own handlers — the dashboard's
- * palette command, cv's Escape guard. Per-instance state made those two
- * disagree: the palette would set `opened` on an instance whose dialog nothing
- * rendered, so "Keyboard shortcuts" silently did nothing, and every caller
- * registered its own `?` listener. A module-level store makes the hook
- * idempotent, so a second caller is free and cannot drift from the first.
- */
 let sharedOpened = false;
 const subscribers = new Set<() => void>();
 
@@ -161,7 +135,6 @@ const setSharedOpened = (next: boolean | ((prev: boolean) => boolean)) => {
 	for (const notify of subscribers) notify();
 };
 
-/** Install the `?` binding exactly once, however many hooks ask for it. */
 let keyBound = false;
 const bindQuestionKey = () => {
 	if (keyBound || typeof window === "undefined") return;
@@ -186,13 +159,10 @@ const bindQuestionKey = () => {
 	});
 };
 
-/** Open state for `ShortcutsHelp`, bound to the `?` key (ignored while typing). */
 export const useShortcutsHelp = () => {
 	const [opened, setOpened] = useState(sharedOpened);
 
 	useEffect(() => {
-		// Adopt whatever the shared store already holds, so a hook mounted after
-		// the dialog was opened does not render a stale `false`.
 		setOpened(sharedOpened);
 		const notify = () => setOpened(sharedOpened);
 		subscribers.add(notify);

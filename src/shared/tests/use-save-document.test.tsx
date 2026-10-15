@@ -6,16 +6,6 @@ import type { JsonValue } from "../save/json";
 import type { SaveCodec, SaveEdit } from "../save/types";
 import { useSaveDocument } from "../save/useSaveDocument";
 
-/**
- * The unsaved-work guard.
- *
- * A staged edit is work the file on disk does not have, so leaving the tab with
- * one staged has to warn — and a save with nothing staged must *not* warn, or
- * every read-only visit to a save editor prompts the reader to leave a page they
- * are only reading. The guard is an effect keyed on the number of staged edits,
- * so both directions are asserted here rather than reasoned about.
- */
-
 afterEach(() => cleanup());
 
 const CODEC: SaveCodec = {
@@ -38,13 +28,6 @@ const EDIT: SaveEdit = {
 	after: "after",
 };
 
-/**
- * A probe holding the hook's own value.
- *
- * The tests act on the hook's `stage` / `clearEdits`, which is what the
- * workbench drives, rather than on a hand-set edit list — a list set from
- * outside would pass even if the guard never re-ran on a change.
- */
 const mount = () => {
 	let current: ReturnType<typeof useSaveDocument> | null = null;
 	const Probe = () => {

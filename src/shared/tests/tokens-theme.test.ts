@@ -4,22 +4,11 @@ import { join } from "node:path";
 import { APP_META } from "../app-meta";
 import { collectUsages } from "./css-vars";
 
-/**
- * Static integrity tests for the design-token layer.
- *
- * There is no jsdom in this repo, so instead of parsing CSS in a DOM we read
- * the sources as text and assert the invariants a typechecker cannot see: an
- * undefined custom property renders as empty/initial and no compiler ever
- * complains about it.
- */
-
 const SHARED_DIR = join(import.meta.dir, "..");
 const read = (relative: string) => Bun.file(join(SHARED_DIR, relative)).text();
 
-/** The repository root, for the entry modules `APP_META` names. */
 const REPO_ROOT = join(SHARED_DIR, "..", "..");
 
-/** Strip block comments so commented-out tokens never count. */
 const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 const tokensCss = await read("tokens.css");
@@ -43,12 +32,6 @@ const components = new Map<string, string>(
 const cleanTokens = stripComments(tokensCss);
 const cleanBase = stripComments(baseCss);
 
-/**
- * Tokens deliberately absent from `tokens.css` because each of the six apps
- * supplies its own value. They must therefore always be read with a
- * `var(--x, fallback)` fallback, so a site that forgets to define one degrades
- * to something sane instead of an empty declaration.
- */
 const SITE_PROVIDED = [
 	"--app-accent",
 	"--app-accent-hover",
@@ -58,7 +41,6 @@ const SITE_PROVIDED = [
 	"--app-index",
 ];
 
-/** Custom properties Mantine itself puts on the root element. */
 const MANTINE_PROVIDED = [
 	"--mantine-primary-color-contrast",
 	"--mantine-primary-color-filled",
@@ -68,14 +50,10 @@ const MANTINE_PROVIDED = [
 	"--mantine-primary-color-light-hover",
 ];
 
-/** Stands in for a missing token so a gap cannot silently compare equal. */
 const MISSING = "<missing-token>";
-
-/* ── token inventory ──────────────────────────────────────────────────── */
 
 type TokenDef = { name: string; value: string };
 
-/** Every `--x: value;` declaration, with whitespace normalised. */
 const definitionsIn = (css: string): TokenDef[] =>
 	[...stripComments(css).matchAll(/(--[a-zA-Z0-9_-]+)\s*:\s*([^;]+);/g)].map(
 		(match) => ({
@@ -94,8 +72,6 @@ const darkBlock =
 		/:root\[data-mantine-color-scheme="dark"\][^{]*\{([\s\S]*?)\n\}/,
 	)?.[1] ?? "";
 
-/* ── usage inventory ──────────────────────────────────────────────────── */
-
 const sources: [string, string][] = [
 	["tokens.css", cleanTokens],
 	["base.css", cleanBase],
@@ -109,20 +85,13 @@ const undefinedTokens = referenced.filter(
 	(token) => !defined.has(token) && !external.has(token),
 );
 
-/* ── helpers ──────────────────────────────────────────────────────────── */
-
-/** Normalised value of a token declared in a given block, if any. */
 const valueIn = (block: string, token: string): string =>
 	definitionsIn(block).find((def) => def.name === token)?.value ?? MISSING;
 
-/** Reduce a whitespace-wrapped CSS value so it can be compared as one string. */
 const normalise = (value: string) => value.replace(/\s+/g, " ").trim();
-
-/* ── 1. references resolve ────────────────────────────────────────────── */
 
 describe("token references resolve", () => {
 	test("every referenced custom property is defined or externally provided", () => {
-		// Reported as a list so a regression names every broken token at once.
 		expect(
 			undefinedTokens.map(
 				(token) =>
@@ -159,8 +128,6 @@ describe("token references resolve", () => {
 	});
 
 	test("every externally provided token really is used and really is undefined here", () => {
-		// Stops the allowlists rotting into dead weight, and stops a site token
-		// being wrongly excused by the allowlist.
 		const declared = [...external].filter((token) => defined.has(token));
 		expect(declared).toEqual([]);
 		const unused = [...external].filter((token) => !referenced.includes(token));
@@ -176,12 +143,8 @@ describe("token references resolve", () => {
 	});
 });
 
-/* ── 2. Mantine theme vs CSS tokens ───────────────────────────────────── */
-
 describe("theme and tokens agree", () => {
 	const themeFont = (constName: string): string => {
-		// Collect every quoted segment up to the terminating `;`, concatenating
-		// the implicit string joins the formatter leaves in the source.
 		const declaration = themeTs.match(
 			new RegExp(`const ${constName}\\s*=([\\s\\S]*?);`),
 		)?.[1];
@@ -213,9 +176,6 @@ describe("theme and tokens agree", () => {
 	});
 
 	test("theme radii do not hardcode pixel values that tokens also own", () => {
-		// theme.ts configures Mantine by radius *name* (`defaultRadius: "md"`)
-		// and leaves geometry to Mantine, so it must not carry a second copy of
-		// the `--app-radius-*` scale.
 		const pxRadii = [...themeTs.matchAll(/radius[^:]*:\s*"?(\d+)px/g)].map(
 			(m) => m[1],
 		);
@@ -223,10 +183,6 @@ describe("theme and tokens agree", () => {
 	});
 
 	test("known gap: theme's neutral ramp is NOT mirrored by tokens.css", () => {
-		// theme.ts claims "the shared CSS tokens mirror the same values" for its
-		// `neutral` tuple, but the two sets of hexes are disjoint. The comment is
-		// wrong. Locked in as a known gap: fixing it means editing theme.ts or
-		// tokens.css and updating this expectation.
 		const ramp = [...themeTs.matchAll(/#[0-9a-f]{6}/gi)].map((m) =>
 			(m[0] ?? "").toLowerCase(),
 		);
@@ -237,8 +193,6 @@ describe("theme and tokens agree", () => {
 		).toEqual([]);
 	});
 });
-
-/* ── 3. naming consistency ────────────────────────────────────────────── */
 
 describe("token naming is consistent", () => {
 	test("all token names are kebab-case and prefixed with --app-", () => {
@@ -283,10 +237,7 @@ describe("token naming is consistent", () => {
 	});
 });
 
-/* ── 4. dark mode ─────────────────────────────────────────────────────── */
-
 describe("dark mode", () => {
-	/** Colour and shadow tokens that must be re-declared for the dark scheme. */
 	const SCHEME_TOKENS = [
 		"--app-bg",
 		"--app-bg-deep",
@@ -347,8 +298,6 @@ describe("dark mode", () => {
 	});
 
 	test("every :root dark rule in base.css also targets data-theme", () => {
-		// Selector lists may be comma-separated across lines, so match the whole
-		// run of selectors that precedes each `{`.
 		const groups = [
 			...cleanBase.matchAll(/([^{}]+:root\[[^\]]*\][^{}]*)\{/g),
 		].map((match) => match[1] ?? "");
@@ -360,13 +309,9 @@ describe("dark mode", () => {
 	});
 
 	test("known gap: tokens.css does not follow the OS prefers-color-scheme", () => {
-		// The apps always toggle `data-theme` on <html>, so this is intentional,
-		// but a visitor with JS disabled always gets the light scheme.
 		expect(cleanTokens).not.toContain("prefers-color-scheme");
 	});
 });
-
-/* ── 5. reduced motion ────────────────────────────────────────────────── */
 
 describe("reduced motion", () => {
 	const override = cleanBase.match(
@@ -379,8 +324,6 @@ describe("reduced motion", () => {
 
 	test("the override neutralises animation, iteration and transition for every element", () => {
 		const block = override ?? "";
-		// The universal selector list must be present, and each of the three
-		// longhands that make motion non-terminating must be reset.
 		expect(block).toMatch(/\*,\s*\*::before,\s*\*::after/);
 		for (const property of [
 			"animation-duration",
@@ -392,23 +335,7 @@ describe("reduced motion", () => {
 	});
 
 	test("each reset carries !important, or the override is inert", () => {
-		// This is the assertion whose absence let a real regression through.
-		//
-		// `*` has specificity (0,0,0) and a media query contributes none, so a
-		// reset written without `!important` loses to every class rule that
-		// declares its own duration - which is most of the shared layer. The
-		// block above can list all three properties and still protect nothing.
-		//
-		// Measured in Chromium against the design gallery, which is dense with
-		// animated class rules: 14 elements still animating under
-		// `prefers-reduced-motion: reduce` without `!important`, 0 with it.
-		//
-		// Both states of this file have existed in the tree at different times,
-		// which is why it is asserted rather than assumed.
 		const block = override ?? "";
-		// Each property has its own reset value: durations go to 0.001ms, the
-		// iteration count to 1 (an infinite animation is exactly what an
-		// iteration count of 1 stops).
 		for (const [property, value] of [
 			["animation-duration", "0\\.001ms"],
 			["animation-iteration-count", "1"],
@@ -438,22 +365,6 @@ describe("reduced motion", () => {
 	});
 });
 
-/* ── 6. Mantine's second text step ────────────────────────────────────── */
-
-/**
- * `c="dimmed"` is Mantine's variable, and the site repoints it at
- * `--app-text-muted` in `base.css`, because Mantine's own value is
- * `--mantine-color-gray-6` (`#868e96`): 3.02:1 on `--app-bg` and 3.32:1 on a
- * white card, both under AA. The override is only sound while two things hold,
- * and neither is visible to a typechecker:
- *
- *   1. It names both schemes. Mantine declares the variable inside its light
- *      and dark blocks, so a `:root` declaration of equal-or-lower specificity
- *      loses the cascade and the failing value comes back.
- *   2. `base.css` is imported after `@mantine/core/styles.css` in every entry.
- *      The two rules tie on specificity, so order is the only thing deciding —
- *      and reordering two imports is a change no test would otherwise notice.
- */
 describe("Mantine's dimmed colour", () => {
 	test("is repointed at the checked text token, in both schemes", () => {
 		const declaration = cleanBase.match(
@@ -473,9 +384,6 @@ describe("Mantine's dimmed colour", () => {
 	});
 
 	test("every entry imports Mantine's stylesheet before base.css", () => {
-		// Routed through `APP_META` rather than a list: a fourteenth app that
-		// imports them the other way round reintroduces the failing contrast on
-		// its own pages, and this is the only place that would say so.
 		const entries = APP_META.map((meta) => ({
 			slug: meta.slug,
 			imports: [

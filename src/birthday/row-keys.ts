@@ -1,12 +1,3 @@
-/**
- * Collision-free React keys for lists of records that carry no id of their own.
- *
- * Separate from the components that render the lists (`BirthdayTable`, the
- * countdown) because the key derivation is the load-bearing part and has to be
- * testable, and provable identical, without rendering a table.
- */
-
-/** Short, stable, non-cryptographic fingerprint, same shape as `birthdays.ts`. */
 const fingerprint = (input: string): string => {
 	let hash = 0;
 	for (let i = 0; i < input.length; i++) {
@@ -16,7 +7,6 @@ const fingerprint = (input: string): string => {
 	return (hash >>> 0).toString(36);
 };
 
-/** The identity fields a row key is derived from; `Birthday` satisfies this. */
 type RowIdentity = {
 	name: string;
 	birthdayString: string;
@@ -25,18 +15,6 @@ type RowIdentity = {
 
 type KeyedRow<T> = { record: T; key: string };
 
-/**
- * Pairs every record with a collision-free row key: a fingerprint of the full
- * identity the row shows — name, date *and* kind, since `birthdays.ts` keys its
- * CRUD on `(name, date)` alone and two people can share both — plus the record's
- * occurrence index within that fingerprint.
- *
- * This is a fallback, not a true id: `Birthday` carries no id of its own, so a
- * key can only be derived from what a record displays, and it stays valid only
- * as long as the underlying list keeps its order. A real `id` on `RawBirthday`
- * (and the `Birthday` derived from it) is the real fix; that type lives in
- * `birthdays.ts`, which this module does not own.
- */
 export const withRowKeys = <T extends RowIdentity>(
 	list: readonly T[],
 ): KeyedRow<T>[] => {

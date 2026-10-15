@@ -12,7 +12,6 @@ type State = {
 };
 
 type FallbackProps = {
-	/** Already translated by the caller; falls back to a generic section name. */
 	label?: string;
 	message: string;
 	onRetry: () => void;

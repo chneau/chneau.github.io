@@ -12,31 +12,10 @@ import {
 import type { Options as ConfettiOptions } from "canvas-confetti";
 import { confettiPalette } from "../celebration";
 
-/**
- * Tests for `celebration.ts`.
- *
- * The module is a thin wrapper around three external things, each of which is
- * stubbed here so the tests stay deterministic and assert the *decisions*
- * rather than the pixels:
- *
- *   - `canvas-confetti`, via `mock.module`, so every call is recorded;
- *   - `setInterval` / `clearInterval`, so the burst is driven frame by frame
- *     instead of by wall-clock luck, and so the cleanup can be observed rather
- *     than inferred;
- *   - `matchMedia` and `localStorage`, so "user asked for less motion" and
- *     "site data is blocked" are states we can put the module into.
- *
- * `celebration.ts` keeps one piece of module state — the in-memory throttle
- * fallback — so each test re-imports it through a `?instance=N` query, exactly
- * as `store.test.ts` does, and starts from a module with nothing in it.
- */
-
 type Celebration = typeof import("../celebration");
 type ConfettiSubject = NonNullable<
 	Parameters<Celebration["triggerConfetti"]>[0]
 >["subject"];
-
-// --- the confetti stub ---------------------------------------------------
 
 const confettiCalls: ConfettiOptions[] = [];
 
@@ -47,11 +26,7 @@ mock.module("canvas-confetti", () => ({
 	},
 }));
 
-// --- the timer stub ------------------------------------------------------
-
-/** Every interval the module has running, keyed by the id it was handed. */
 const timers = new Map<number, { fn: () => void; ms: number }>();
-/** Every id passed to `clearInterval`, in order, including repeat calls. */
 const cleared: number[] = [];
 let nextTimerId = 1;
 
@@ -76,14 +51,12 @@ const installTimers = () => {
 	};
 };
 
-/** Run one tick of the interval that is still alive. */
 const tick = (id: number) => {
 	const timer = timers.get(id);
 	if (!timer) throw new Error(`no live interval ${id}`);
 	timer.fn();
 };
 
-/** The single id the module should be running, or a clear failure. */
 const onlyTimer = (): number => {
 	const ids = [...timers.keys()];
 	if (ids.length !== 1 || ids[0] === undefined) {
@@ -92,24 +65,8 @@ const onlyTimer = (): number => {
 	return ids[0];
 };
 
-// --- the environment stub ------------------------------------------------
-
 const realWindow = globalThis.window;
 
-/**
- * The `localStorage` descriptor as it was before this file touched it.
- *
- * This must be captured, not assumed. `bun test` runs every file in ONE
- * process, so `happy-dom`'s `GlobalRegistrator` (imported above) has already
- * installed a working `localStorage` that other files depend on. Restoring
- * `undefined` here - as this file used to - destroys it for every file that
- * runs afterwards, which is how 70+ unrelated tests came to fail with
- * "localStorage.clear is not a function" while passing in isolation.
- *
- * Capture the DESCRIPTOR rather than the value, because the property may be an
- * accessor (a throwing getter is one of the states under test) and copying the
- * value would evaluate it.
- */
 const realLocalStorage = Object.getOwnPropertyDescriptor(
 	globalThis,
 	"localStorage",
@@ -117,14 +74,12 @@ const realLocalStorage = Object.getOwnPropertyDescriptor(
 
 const DAY = 24 * 60 * 60 * 1000;
 
-/** Local `YYYY-MM-DD` for a timestamp, matching what the module stamps. */
 const dayOf = (ms: number) => {
 	const d = new Date(ms);
 	const pad = (n: number) => String(n).padStart(2, "0");
 	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
-/** A `matchMedia` that reports `reduce` exactly when asked about it. */
 const matchMediaAnswering = (reduce: boolean) => {
 	window.matchMedia = ((query: string) => ({
 		matches: reduce && query.includes("prefers-reduced-motion"),
@@ -138,7 +93,6 @@ const matchMediaAnswering = (reduce: boolean) => {
 	})) as typeof window.matchMedia;
 };
 
-/** `localStorage` that throws on every call, as in private mode. */
 const blockedStorage = () => {
 	const boom = () => {
 		throw new DOMException("site data blocked", "SecurityError");
@@ -149,7 +103,6 @@ const blockedStorage = () => {
 	});
 };
 
-/** A working `localStorage`, for the tests that need persistence to be absent. */
 const memoryStorage = () => {
 	const map = new Map<string, string>();
 	Object.defineProperty(globalThis, "localStorage", {
@@ -169,8 +122,6 @@ const memoryStorage = () => {
 	return map;
 };
 
-// --- loading a fresh module ----------------------------------------------
-
 let instanceCounter = 0;
 const load = async (): Promise<Celebration> =>
 	(await import(`../celebration?instance=${instanceCounter++}`)) as Celebration;
@@ -179,9 +130,6 @@ const restoreGlobals = () => {
 	globals.setInterval = realTimers.setInterval;
 	globals.clearInterval = realTimers.clearInterval;
 	globalThis.window = realWindow;
-	// Put back exactly what was there before, and remove the property entirely
-	// if there was none - rather than leaving `undefined` behind for the rest
-	// of the process to trip over.
 	if (realLocalStorage) {
 		Object.defineProperty(globalThis, "localStorage", realLocalStorage);
 	} else {
@@ -207,8 +155,6 @@ afterEach(() => {
 
 afterAll(restoreGlobals);
 
-// --- reduced motion ------------------------------------------------------
-
 describe("celebration / prefers-reduced-motion", () => {
 	test("a burst is a no-op when the user has asked for less motion", async () => {
 		matchMediaAnswering(true);
@@ -216,11 +162,9 @@ describe("celebration / prefers-reduced-motion", () => {
 
 		const stop = triggerConfetti({ subject: { name: "Ada", kind: "♀️" } });
 
-		// no interval started, and even a forced manual tick fires nothing
 		expect(timers.size).toBe(0);
 		confettiCalls.length = 0;
 		expect(confettiCalls).toEqual([]);
-		// the caller still gets a callable, so its own cleanup path is unchanged
 		expect(() => stop()).not.toThrow();
 		expect(confettiCalls).toEqual([]);
 	});
@@ -230,7 +174,6 @@ describe("celebration / prefers-reduced-motion", () => {
 		const first = await load();
 		first.triggerConfetti({ subject: { name: "Ada", kind: "♀️" } });
 
-		// the user later turns reduced motion off and reloads
 		matchMediaAnswering(false);
 		const second = await load();
 		second.triggerConfetti({ subject: { name: "Ada", kind: "♀️" } });
@@ -239,7 +182,6 @@ describe("celebration / prefers-reduced-motion", () => {
 	});
 
 	test("an absent matchMedia means no preference, not a request for less motion", async () => {
-		// SSR/prerender and some embedded webviews have no matchMedia at all.
 		Object.defineProperty(window, "matchMedia", {
 			configurable: true,
 			writable: true,
@@ -276,8 +218,6 @@ describe("celebration / prefers-reduced-motion", () => {
 	});
 });
 
-// --- throttling ----------------------------------------------------------
-
 describe("celebration / throttling", () => {
 	const subject = (name: string): ConfettiSubject => ({ name, kind: "♂️" });
 
@@ -287,7 +227,6 @@ describe("celebration / throttling", () => {
 		triggerConfetti({ subject: subject("Ada") });
 		expect(timers.size).toBe(1);
 
-		// a page reload, an SPA remount, a second tab: same person, same day
 		const reload = await load();
 		reload.triggerConfetti({ subject: subject("Ada") });
 
@@ -309,13 +248,11 @@ describe("celebration / throttling", () => {
 		const { triggerConfetti } = await load();
 		triggerConfetti({ subject: subject("Ada") });
 
-		// 23:59:30 the same day: still refused
 		setSystemTime(new Date(new Date(START).setHours(23, 59, 30, 0)));
 		const evening = await load();
 		evening.triggerConfetti({ subject: subject("Ada") });
 		expect(timers.size).toBe(1);
 
-		// 00:00:01 the next day: allowed again
 		setSystemTime(new Date(START + DAY + 60_000));
 		const nextDay = await load();
 		nextDay.triggerConfetti({ subject: subject("Ada") });
@@ -326,13 +263,11 @@ describe("celebration / throttling", () => {
 		const { triggerConfetti } = await load();
 		triggerConfetti({ subject: subject("Ada") });
 
-		// 13 hours later is 23:00 the same local day, so still refused
 		setSystemTime(new Date(START + 13 * 60 * 60 * 1000));
 		const later = await load();
 		later.triggerConfetti({ subject: subject("Ada") });
 		expect(timers.size).toBe(1);
 
-		// and the stamp written is that local day, not the UTC one
 		expect(globalThis.localStorage.getItem("confetti:last:Ada | ♂️")).toBe(
 			dayOf(START),
 		);
@@ -346,7 +281,6 @@ describe("celebration / throttling", () => {
 		reload.triggerConfetti({ subject: subject("Ada"), force: true });
 		expect(timers.size).toBe(2);
 
-		// ... and having forced it, an automatic burst later that day is refused
 		const later = await load();
 		later.triggerConfetti({ subject: subject("Ada") });
 		expect(timers.size).toBe(2);
@@ -375,15 +309,9 @@ describe("celebration / throttling", () => {
 		expect(() => triggerConfetti({ subject: subject("Ada") })).not.toThrow();
 		expect(timers.size).toBe(1);
 
-		// The in-memory map is what throttles here. It covers everything within
-		// the loaded page...
 		triggerConfetti({ subject: subject("Ada") });
 		expect(timers.size).toBe(1);
 
-		// ...and a real page reload cannot be covered at all, because with no
-		// storage there is nothing to carry the stamp across. That is the honest
-		// ceiling, not a silent failure: the burst is at least still throttled
-		// for the visit.
 		const reload = await load();
 		expect(() =>
 			reload.triggerConfetti({ subject: subject("Ada") }),
@@ -404,8 +332,6 @@ describe("celebration / throttling", () => {
 	});
 });
 
-// --- the burst and its cleanup -------------------------------------------
-
 describe("celebration / burst lifecycle", () => {
 	test("the interval runs at 250ms and the burst lasts about five seconds", async () => {
 		const { triggerConfetti } = await load();
@@ -414,7 +340,6 @@ describe("celebration / burst lifecycle", () => {
 		const id = onlyTimer();
 		expect(timers.get(id)?.ms).toBe(250);
 
-		// 10 frames in, still running, and two bursts per frame
 		setSystemTime(new Date(START + 10 * 250));
 		tick(id);
 		expect(timers.size).toBe(1);
@@ -454,14 +379,12 @@ describe("celebration / burst lifecycle", () => {
 		const stop = triggerConfetti({ subject: { name: "Ada", kind: "♀️" } });
 		const id = onlyTimer();
 
-		// this is the unmount: nothing was asked for, so nothing is cleared yet
 		expect(cleared).toEqual([]);
 
 		stop();
 		expect(cleared).toEqual([id]);
 		expect(timers.size).toBe(0);
 
-		// React strict mode mounts, unmounts, remounts: the cleanup runs twice
 		expect(() => stop()).not.toThrow();
 		expect(cleared).toEqual([id]);
 	});
@@ -476,7 +399,6 @@ describe("celebration / burst lifecycle", () => {
 		expect(afterOneFrame).toBe(2);
 
 		stop();
-		// the frame the caller was inside when it unmounted
 		expect(() => tick(id)).toThrow();
 		expect(confettiCalls.length).toBe(afterOneFrame);
 	});
@@ -486,7 +408,6 @@ describe("celebration / burst lifecycle", () => {
 		triggerConfetti({ subject: { name: "Ada", kind: "♀️" } })();
 		expect(timers.size).toBe(0);
 
-		// the day is still stamped, so the automatic burst stays refused
 		const reload = await load();
 		expect(() =>
 			reload.triggerConfetti({ subject: { name: "Ada", kind: "♀️" } }),
@@ -494,8 +415,6 @@ describe("celebration / burst lifecycle", () => {
 		expect(timers.size).toBe(0);
 	});
 });
-
-// --- environment guards --------------------------------------------------
 
 describe("celebration / non-DOM environments", () => {
 	test("without a window or a document it is inert, and importing is safe", async () => {
@@ -512,13 +431,9 @@ describe("celebration / non-DOM environments", () => {
 
 	test("a document without a body still cannot throw", async () => {
 		const { triggerConfetti } = await load();
-		// the stubbed confetti never touches the DOM, so the only question is
-		// whether the module's own guards hold without a real canvas host
 		expect(() => triggerConfetti()).not.toThrow();
 	});
 });
-
-// --- stacking and colour -------------------------------------------------
 
 describe("celebration / stacking and palette", () => {
 	test("the canvas is stacked above the sticky header, the grain and modals", async () => {
@@ -526,7 +441,6 @@ describe("celebration / stacking and palette", () => {
 		triggerConfetti({ subject: { name: "Ada", kind: "♀️" } });
 		tick(onlyTimer());
 
-		// .app-header 40, .app-grain 60, Mantine modals 200, .app-skip-link 2000
 		const z = confettiCalls[0]?.zIndex ?? 0;
 		expect(z).toBeGreaterThan(2000);
 	});
@@ -541,7 +455,6 @@ describe("celebration / stacking and palette", () => {
 			stop();
 		}
 
-		// three kinds, three distinct palettes
 		expect(new Set([...seen.values()].map((c) => c.join(","))).size).toBe(3);
 		for (const colors of seen.values()) {
 			expect(colors.length).toBeGreaterThan(2);
@@ -558,7 +471,6 @@ describe("celebration / stacking and palette", () => {
 	});
 
 	test("every colour is legible against BOTH the light and the dark background", async () => {
-		// The app flips --app-bg between these two; see tokens.css.
 		const LIGHT = "#f4f4f5";
 		const DARK = "#09090b";
 		const channel = (v: number) => {
@@ -585,8 +497,6 @@ describe("celebration / stacking and palette", () => {
 			confettiPalette(),
 		];
 
-		// WCAG 1.4.11 non-text contrast: 3:1 is the floor for a graphic that
-		// carries meaning, and these are particles, not hairlines.
 		for (const palette of palettes) {
 			for (const color of palette) {
 				expect(color).toMatch(/^#[0-9a-f]{6}$/);

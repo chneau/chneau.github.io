@@ -13,18 +13,11 @@ import { groupByBucket } from "./timeline-buckets";
 
 const KINDS = ["♂️", "♀️", "💒"] as const satisfies readonly Birthday["kind"][];
 
-// Re-exported for the existing importers; the bucketing is a pure pass over a
-// list and lives in `timeline-buckets.ts` so it is testable without a render.
 export { bucketOf, groupByBucket } from "./timeline-buckets";
 
 export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 	const { t, i18n } = useTranslation();
 
-	// The buckets are relative to today, so a tab left open overnight must not
-	// keep showing yesterday's "Today". Subscribing to the calendar day
-	// re-renders at midnight, which is exactly when the grouping must change;
-	// `groupByBucket` is a linear pass over the list, so it is cheap enough to
-	// re-run inline rather than memoising a value nothing else feeds.
 	useCalendarDay();
 
 	const buckets = groupByBucket(data);
@@ -54,10 +47,6 @@ export const TimelineView = ({ data }: { data: readonly Birthday[] }) => {
 	}
 
 	return (
-		// The scroll container is focusable on purpose (WCAG 2.1.1: a scrollable
-		// region that cannot take focus is unreachable by keyboard). A named
-		// `<section>` is the announced scrollable landmark, and the shared CSS
-		// draws a focus ring on it, so the extra tab stop costs nothing.
 		<section
 			// biome-ignore lint/a11y/noNoninteractiveTabindex: WCAG 2.1.1 - the list scrolls, so it has to be focusable to be scrolled by keyboard.
 			tabIndex={0}

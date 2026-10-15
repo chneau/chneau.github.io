@@ -1,9 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/browser_inventory.py`.
- *
- * Browser stackable additions with authoritative, automatic item discovery.
- */
-
 import { insertInventoryItem } from "./inventory-inserter";
 import { applyItemDiscovery, discoveryKeys } from "./item-discovery";
 
@@ -23,7 +17,6 @@ export const insertBrowserItem = async (
 	if (!Number.isInteger(key) || key <= 0) {
 		throw new Error("Item key must be a positive whole number.");
 	}
-	// Older clients can still supply knowledgeKey, but cannot grant unrelated keys.
 	await discoveryKeys(key, edit.knowledgeKey);
 	const [inserted, audit] = await insertInventoryItem(source, {
 		inventoryKey: Math.trunc(edit.inventoryKey),

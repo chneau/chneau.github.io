@@ -1,21 +1,3 @@
-/**
- * Builds `lib/generated/game-names.json` — the names the editors label their
- * rows with — from a Crimson Desert editor checkout's own extracted data.
- *
- *     bun scripts/build-game-names.ts <path-to-CrimsonSaveEditor>
- *
- * `game_map.json` is the game's table dump (23 MB): every character, sub-level,
- * quest, mission and quest gauge key with the name the game's own data uses.
- * `quest_database.json` adds the quest category and the stages each quest owns.
- * The save file only stores keys, so without this table the quest editor can
- * only show numbers.
- *
- * Only the fields these editors read are kept, which is what makes the output
- * small enough to ship next to the item catalogs. English display strings that
- * the game never resolved (`{StaticInfo:...}` placeholders) are dropped in
- * favour of the internal name, which at least names the thing.
- */
-
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
@@ -38,11 +20,6 @@ type QuestRecord = {
 	missions?: number[];
 };
 
-/**
- * The player-facing string when the game resolved one, otherwise the internal
- * name, otherwise nothing. A `{StaticInfo:...}` value is a template the game
- * fills in at runtime and is useless to a list view.
- */
 const label = (entry: Named): string => {
 	const english = entry.english_name ?? "";
 	if (english && !english.startsWith("{StaticInfo:")) return english;

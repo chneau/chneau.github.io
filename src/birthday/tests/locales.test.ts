@@ -1,23 +1,9 @@
-/**
- * Locale integrity across all seven shipped languages.
- *
- * This exists because the failure it guards against is silent and total: 64
- * keys were missing from every non-English locale, so the entire Manage modal,
- * the whole Weather tab and `common.cancel`/`common.confirm` rendered in
- * English for every non-English user. Nothing failed, nothing warned, and a
- * key-count spot check would not have caught it either - `en` and `fr` simply
- * had different shapes.
- *
- * Seven locales, not six: `gd` (Gàidhlig) is fully supported and offered in the
- * language menu, and `ty` (Tahitian) mirrors `fr` by the repo's convention.
- */
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
 const LOCALES = ["en", "fr", "es", "de", "zh", "ty", "gd"] as const;
 type Locale = (typeof LOCALES)[number];
 
-/** English is the source of truth: the i18next type union is derived from it. */
 const SOURCE: Locale = "en";
 
 const load = (locale: Locale): Record<string, unknown> =>
@@ -25,7 +11,6 @@ const load = (locale: Locale): Record<string, unknown> =>
 		readFileSync(new URL(`../locales/${locale}.json`, import.meta.url), "utf8"),
 	) as Record<string, unknown>;
 
-/** Every leaf path -> string, so a missing key is a missing leaf, not a branch. */
 const flatten = (
 	value: unknown,
 	prefix = "",
@@ -43,15 +28,6 @@ const flatten = (
 	return out;
 };
 
-/**
- * The interpolation variables a string depends on.
- *
- * A missing placeholder renders a hole; an extra one renders empty. Both are
- * invisible in English and obvious in German, so this is checked per locale
- * rather than trusted. Plural selectors are reduced to their base variable
- * (`{{count, plural, ...}}` -> `count`) because the selector form is a
- * formatting choice, not a different variable.
- */
 const placeholders = (value: string): string[] =>
 	[
 		...new Set(
@@ -113,22 +89,7 @@ describe("locale files", () => {
 			});
 
 			test("user-facing UI chrome is not left in English", () => {
-				// A locale can legitimately match English exactly: product
-				// names, "CC BY-SA 4.0", "Gen Z", and gem names that are spelled
-				// the same in French, Spanish and German. So a blanket
-				// "not equal to English" check is the wrong instrument - it
-				// flags ~5% of correct strings.
-				//
-				// What must never be English is the interface itself. That is
-				// exactly the defect that shipped once: `app.hero.*` and
-				// `app.list.*` were present in every file with the English
-				// string verbatim, so a key-completeness check passed while a
-				// French user's entire first screen stayed English.
 				const UI = /^(app|manage|common|table|consent|biorhythms)\./;
-				// Cognates: the French or German word is genuinely spelled the
-				// same as the English one, so flagging them would make this
-				// test noise to be silenced rather than a signal to act on.
-				// Each entry is the language where the overlap is correct.
 				const COGNATE: Record<string, string> = {
 					"app.filters.shortcuts.gen_z": "all - 'Gen Z' is a generation label",
 					"app.header.github": "all - product name",
@@ -158,9 +119,6 @@ describe("locale files", () => {
 			});
 
 			test("data namespaces keep proper nouns and shared spellings", () => {
-				// The reverse check on `data.*`: these SHOULD be identical far
-				// more often, so a strict rule here would be wrong. This simply
-				// records the expected shape and catches a wholesale wipe.
 				const data = [...target].filter(([key]) => key.startsWith("data."));
 				expect(data.length).toBeGreaterThan(50);
 			});
@@ -168,9 +126,6 @@ describe("locale files", () => {
 	}
 
 	test("plural families are symmetric across locales", () => {
-		// i18next silently falls back to English when a locale lacks a category
-		// the language actually selects. Gaelic is the live case: with only
-		// _one/_other, counts 2, 3, 5, 10, 12 and 13 leaked English mid-list.
 		const families = new Map<string, Set<string>>();
 		const collect = (value: unknown, prefix = "") => {
 			if (!value || typeof value !== "object") return;

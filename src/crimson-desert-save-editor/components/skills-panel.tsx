@@ -53,14 +53,6 @@ type PanelProps = {
 
 const PAGE_SIZE = 25;
 
-/**
- * The staged edit one "Stage change" press produces.
- *
- * The overrides are an object, and the applier walks them in key order, so the
- * sort is not cosmetic: without it the written save differs byte for byte
- * depending on the order the user happened to type into the table, and the
- * round-trip suites could no longer hold it.
- */
 const skillEditFor = (
 	mode: SkillMode,
 	overrides: Record<number, number>,
@@ -222,14 +214,6 @@ const EntryRow = ({
 	</Table.Tr>
 );
 
-/**
- * Search, group and unlearned-only, as one filter row.
- *
- * The panel's own "clear filters" button only exists when the filters have
- * matched nothing, so this takes the three values rather than a reset: making
- * the reset unconditional would change when that button appears, which is a
- * change to what a reader sees and not one this refactor is for.
- */
 const SkillFilters = ({
 	description,
 	query,
@@ -292,13 +276,6 @@ const SkillFilters = ({
 	);
 };
 
-/**
- * The staged progression change, and the button that replaces it.
- *
- * The table edits one entry at a time while the stage button commits all of
- * them, so the two sit together: what the button will do is stated next to the
- * entries it will do it to.
- */
 const SkillStageBar = ({
 	mode,
 	edit,
@@ -376,18 +353,6 @@ export const SkillsPanel = ({
 	const current = Math.min(page, pages - 1);
 	const visible = matches.slice(current * PAGE_SIZE, (current + 1) * PAGE_SIZE);
 	const overrideCount = Object.keys(overrides).length;
-	/**
-	 * Return to the first page after a filter change.
-	 *
-	 * This used to take the change as a callback — `applyFilter(() => setQuery(v))`
-	 * — which reads exactly like a `useState` updater, so
-	 * `no-impure-state-updater` flagged every call that closed over `setQuery`
-	 * and friends. Nothing was ever handed to React: the closure ran once,
-	 * synchronously, from a real event handler. But the shape was a genuine
-	 * ambiguity, so the callback is gone and each handler says what it sets.
-	 * The page reset is shared here because "a filter changed, so page 0" is the
-	 * invariant, not a detail worth repeating at every call site.
-	 */
 	const toFirstPage = () => setPage(0);
 	const setOverride = (key: number, level: number | undefined) => {
 		setOverrides((existing) => {

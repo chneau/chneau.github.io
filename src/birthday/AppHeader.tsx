@@ -26,10 +26,6 @@ declare const BUILD_DATE: string;
 type AppHeaderProps = {
 	data: readonly Birthday[];
 	onOpenManage?: () => void;
-	/**
-	 * Shortcut groups for the help dialog `AppNav` owns. They arrive from the
-	 * app, which also holds the translated strings.
-	 */
 	shortcuts: ShortcutGroup[];
 };
 
@@ -144,20 +140,12 @@ export const AppHeader = ({
 
 	return (
 		<AppNav
-			// This app binds the command palette, so the shared help dialog
-			// may advertise it.
 			hasCommandPalette
 			icon={<Cake size={18} strokeWidth={1.9} />}
 			title={t("app.title")}
 			subtitle={t("app.header.build", { date: BUILD_DATE })}
 			shortcuts={shortcuts}
 			theme={{ dark, onToggle: toggle }}
-			// Ten controls is 494px in a 360px bar, so on a phone only
-			// BackHome and the switcher stay inline and the rest move behind
-			// "More" (`AppNav` wraps this slot in `HeaderOverflow`). Above the
-			// breakpoint they render inline, so a wide bar is unchanged. The two
-			// Mantine `Menu` triggers are inside deliberately: their dropdowns
-			// render in a portal, which is what makes them safe to nest there.
 			actions={
 				<>
 					<Menu position="bottom-end" shadow="md" withinPortal>
@@ -212,10 +200,6 @@ export const AppHeader = ({
 						<HeaderAction
 							icon={<Download size={15} />}
 							onClick={async () => {
-								// `prompt()` rejects when the event has already been
-								// spent (Chrome allows one prompt per event), and an
-								// unawaited rejection surfaces as an unhandled
-								// rejection with nothing shown to the user.
 								try {
 									await installPrompt.prompt();
 								} catch {
@@ -224,9 +208,6 @@ export const AppHeader = ({
 									return;
 								}
 								const { outcome } = await installPrompt.userChoice;
-								// "Dismissed" is a real answer, not a no-op: the event is
-								// consumed either way, so the button must stop offering a
-								// choice the browser will no longer honour.
 								setInstallPrompt(undefined);
 								if (outcome === "dismissed") {
 									notify.info(t("app.header.install_dismissed"));

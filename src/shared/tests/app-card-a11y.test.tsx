@@ -44,9 +44,6 @@ describe("AppCard a11y", () => {
 
 		const link = view.getByRole("link", { name: /Sample App/ });
 		expect(link.getAttribute("href")).toBe("/sample/");
-		// Named by its content, not by an `aria-label`: WCAG 2.5.3 needs the
-		// visible text inside the accessible name, and no short label can hold a
-		// card's title, tag, description and footer at once.
 		expect(link.getAttribute("aria-label")).toBeNull();
 		expect(link.textContent).toContain(ITEM.description);
 	});

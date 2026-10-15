@@ -13,30 +13,14 @@ import { useTranslation } from "react-i18next";
 import type { RawBirthday } from "./birthdays";
 import { ConfirmPopover } from "./ConfirmPopover";
 
-/**
- * The add/edit sub-modal.
- *
- * Its own component because the form is a unit with its own lifecycle: it owns
- * the draft fields, the per-field validation messages, the dirty check that
- * guards a discard, and the "are you sure" popover. The parent above it only
- * ever deals in whole records and never sees a half-typed name.
- *
- * The parent mounts this with a `key` derived from the row being edited, so a
- * fresh open always starts from that record's own values. Seeding the draft
- * from props during render would be a render-phase write to state, and syncing
- * it in an effect would flash the previous row's values first.
- */
-
 type BirthdayDraftErrors = {
 	name?: string;
 	date?: string;
 	kind?: string;
 };
 
-/** What the parent's `onSubmit` returns: field errors, or nothing accepted. */
 type BirthdayDraftResult = BirthdayDraftErrors | undefined;
 
-/** The row the form is editing, and whether it is a row at all yet. */
 type BirthdayEditTarget = {
 	original: RawBirthday;
 	occurrence: number;
@@ -92,8 +76,6 @@ export const BirthdayEditorModal = ({
 			setErrors(result);
 			return;
 		}
-		// The parent accepted the record and is closing this modal; clear the
-		// validation state so the next open starts clean.
 		setErrors({});
 	};
 

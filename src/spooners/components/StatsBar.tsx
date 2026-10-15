@@ -6,7 +6,6 @@ type Props = {
 	median: string;
 	dearest: string;
 	portion: string | null;
-	/** Insight about special venues, when there are some. */
 	premium?: string | null;
 };
 

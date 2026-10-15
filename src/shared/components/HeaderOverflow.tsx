@@ -10,55 +10,7 @@ import {
 } from "react";
 import { useRovingFocus } from "../hooks/useRovingFocus";
 
-/**
- * Controls that do not fit a phone's navbar, inline on a wide one.
- *
- * Measured at 360px with touch, the apps carry five to ten header controls at a
- * 44px hit area: birthday's row alone is 494px in a 360px viewport.
- * `.app-header__actions` is `flex: none` and the brand is what names the app, so
- * the actions win and the brand collapses to zero width — the app stops saying
- * which app you are in, and the row pushes the document sideways.
- *
- * So on a narrow screen the app declares only `BackHome` and the app switcher
- * inline and hands everything else to this, which puts it behind one "More"
- * control. The header stays a single 56px row.
- *
- * The breakpoint is 1100px rather than a phone width because the constraint is
- * not "is this a phone" but "do the controls fit": birthday's ten controls need
- * ~1000px, which overflows a 768px tablet just as badly as a 360px phone. A
- * desktop bar only goes inline again once there is genuinely room for it.
- *
- * A horizontally scrollable strip is the other option and it is the wrong one
- * here for a specific reason: `AppSwitcher`'s dropdown lives *inside* the
- * actions row, so any scroll container there clips the one menu that must stay
- * reachable.
- *
- * The menu mirrors `AppSwitcher`'s own dropdown contract — roving arrow-key
- * focus, Escape closing and restoring focus to the trigger — so the two menus
- * in a bar behave identically under the keyboard. That is why it is hand-rolled
- * rather than delegating to Mantine's `Menu`, whose `Menu.Item` cannot adopt an
- * existing `HeaderAction` without every app rebuilding its controls.
- *
- * Above the breakpoint the children render inline and no trigger appears at
- * all, so a desktop bar is unchanged and pays nothing for this component.
- */
 export const HeaderOverflow = ({ children }: { children: React.ReactNode }) => {
-	/**
-	 * `getInitialValueInEffect: false` is load-bearing, not a preference.
-	 *
-	 * `useMediaQuery` reads `window.matchMedia` in an effect by default and
-	 * returns `matches || false` until that effect runs, so the first render
-	 * answered `false` — "wide" — at *every* viewport. On a narrow screen that
-	 * first paint therefore rendered the children inline: the 494px desktop bar
-	 * this component exists to prevent, pushing the document sideways for a
-	 * frame before the listener attached and collapsed it into the "More"
-	 * trigger. This wraps `AppNav`, so it was every app on the site.
-	 *
-	 * Reading synchronously makes the first render correct in both directions,
-	 * and `isNarrow === false` below stays a true answer rather than a
-	 * provisional one. With no `matchMedia` at all (SSR, or a browser lacking it)
-	 * Mantine falls back to `false`, which keeps the wide layout as the default.
-	 */
 	const isNarrow = useMediaQuery("(max-width: 1100px)", undefined, {
 		getInitialValueInEffect: false,
 	});
@@ -68,7 +20,6 @@ export const HeaderOverflow = ({ children }: { children: React.ReactNode }) => {
 	const menu = useRef<HTMLFieldSetElement>(null);
 	const menuId = useId();
 
-	// A resize out of narrow mode must not leave an orphaned open menu behind.
 	useEffect(() => {
 		if (!isNarrow) setOpen(false);
 	}, [isNarrow]);
@@ -78,11 +29,6 @@ export const HeaderOverflow = ({ children }: { children: React.ReactNode }) => {
 		if (restoreFocus) trigger.current?.focus();
 	};
 
-	// Shared with `AppSwitcher`. This menu used to query `a, button` where the
-	// switcher queried `a[href], button:not([disabled])`, so the same key press
-	// moved focus differently depending on which menu was open — and an anchor
-	// with no `href`, or a disabled button, counted as focusable here and not
-	// there. One hook, one contract.
 	const { focusFirst, onKeyDown } = useRovingFocus({ menuRef: menu, close });
 
 	useEffect(() => {
@@ -104,24 +50,6 @@ export const HeaderOverflow = ({ children }: { children: React.ReactNode }) => {
 		return <>{children}</>;
 	}
 
-	/**
-	 * The menu is a labelled `group`, not a `menu`.
-	 *
-	 * A `role="menu"` admits only menuitem children, which would mean every
-	 * control in here has to accept and forward a `role` prop — and three of
-	 * them do not: `SchemeToggle`, `ShortcutsHelpButton`, and any action wrapped
-	 * in a Mantine `Tooltip` (which renders its child, so the role would land on
-	 * the wrapper and never reach the button). Those landed in the menu
-	 * unlabelled, which is an `aria-required-children` violation. A group
-	 * imposes no such contract on its children, so a control is whatever the
-	 * app already made it — a link or a button, with its own name and state.
-	 *
-	 * `AppSwitcher` keeps true `menu` semantics because its rows are always its
-	 * own `menuitem` links; the two differ deliberately rather than by accident.
-	 *
-	 * The children are wrapped only to hang the switcher's row styling off them,
-	 * which keeps a menu entry looking like the app list beside it.
-	 */
 	const items = Children.map(children, (child) =>
 		isValidElement(child) ? (
 			<div role="none" className="app-header-overflow__row">
@@ -132,12 +60,6 @@ export const HeaderOverflow = ({ children }: { children: React.ReactNode }) => {
 		),
 	);
 
-	/**
-	 * Roving focus across the menu's controls. Querying by focusability rather
-	 * than by tag name is what lets the list hold an anchor and a button side by
-	 * side, exactly as `AppSwitcher` does.
-	 */
-
 	return (
 		<div className="app-header-overflow" ref={container}>
 			<button
@@ -146,15 +68,6 @@ export const HeaderOverflow = ({ children }: { children: React.ReactNode }) => {
 				className="app-header-action app-header-action--icon app-header-overflow__trigger"
 				aria-label="More actions"
 				title="More actions"
-				/**
-				 * No `aria-haspopup`: its default value is `menu`, and the popup
-				 * above is a labelled `group` — which is the whole point of the
-				 * block of reasoning before `items`. Announcing a menu and then
-				 * moving focus into a group of plain links is a promise the
-				 * markup does not keep, and JAWS/NVDA switch input modes on that
-				 * announcement. `aria-expanded` + `aria-controls` are the
-				 * disclosure contract, and they are true.
-				 */
 				aria-expanded={open}
 				aria-controls={menuId}
 				onClick={() => setOpen((value) => !value)}

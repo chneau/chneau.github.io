@@ -1,22 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { collectUsages } from "./css-vars";
 
-/**
- * The `var()` scanner behind `tokens-theme.test.ts`.
- *
- * This is the checker that decides whether every token read in the site's CSS
- * carries a fallback, so a bug in it is a rule that passes wrongly — worse than
- * no rule, because it is believed. It had one: the closing paren was found with
- * `indexOf(")")`, which returns the *inner* close for a nested fallback, so
- * `var(--a, var(--b, c))` read a body of `var(--b, c` and then popped its stack
- * on the leftover parens. These tests pin the cases that exposed it.
- */
-
-/** The token names read, in order. */
 const names = (css: string): string[] =>
 	collectUsages(css, "test.css").map((usage) => usage.token);
 
-/** Read a token's fallback status. */
 const covered = (css: string, token: string): boolean | undefined =>
 	collectUsages(css, "test.css").find((usage) => usage.token === token)
 		?.hasFallback;
@@ -34,9 +21,6 @@ describe("collectUsages", () => {
 	});
 
 	test("a nested read is recorded as a reference in its own right", () => {
-		// The old scanner skipped past the inner close and never reported `--b` at
-		// all, so a token referenced only inside another token's fallback was
-		// invisible to the "is this token defined?" check.
 		expect(names("color: var(--app-a, var(--app-b, red));")).toEqual([
 			"--app-a",
 			"--app-b",
@@ -44,18 +28,14 @@ describe("collectUsages", () => {
 	});
 
 	test("a nested read inherits its parent's fallback", () => {
-		// If `--app-a` resolves, `--app-b` is never consulted, so it is covered.
 		expect(covered("color: var(--app-a, var(--app-b, red));", "--app-b")).toBe(
 			true,
 		);
 	});
 
 	test("a nested read with no fallback anywhere is uncovered", () => {
-		// Neither read supplies a fallback, so both are on the hook.
 		const css = "color: var(--app-a, var(--app-b));";
 		expect(covered(css, "--app-a")).toBe(true);
-		// `--app-b` is the inner one and has no fallback of its own; the parent
-		// does, so it inherits coverage.
 		expect(covered(css, "--app-b")).toBe(true);
 	});
 
@@ -66,9 +46,6 @@ describe("collectUsages", () => {
 	});
 
 	test("a sibling read after a nested one is not confused by it", () => {
-		// The regression the old scanner's stack popping caused: the leftover
-		// parens unbalanced the stack, so a later read inherited the wrong
-		// fallback status.
 		const css =
 			"a { color: var(--one, var(--two, blue)); } b { color: var(--three); }";
 		expect(covered(css, "--three")).toBe(false);
@@ -88,7 +65,6 @@ describe("collectUsages", () => {
 	});
 
 	test("a var( with no closing paren does not hang or throw", () => {
-		// Malformed CSS should degrade to "read what is there", not loop.
 		expect(() => collectUsages("color: var(--a", "broken.css")).not.toThrow();
 		expect(names("color: var(--a")).toEqual(["--a"]);
 	});
@@ -104,8 +80,6 @@ describe("collectUsages", () => {
 	});
 
 	test("var() inside a comment and a string is still a read", () => {
-		// Not stripped: the caller passes comment-stripped source, and pretending
-		// otherwise here would hide a caller that forgets to strip.
 		expect(
 			names("/* var(--in-comment) */ a { content: 'var(--in-string)' }"),
 		).toEqual(["--in-comment", "--in-string"]);

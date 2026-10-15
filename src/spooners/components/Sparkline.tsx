@@ -1,6 +1,5 @@
 import { Box } from "@mantine/core";
 
-/** A tiny SVG sparkline - no chart library. */
 export const Sparkline = ({
 	points,
 	width = 120,

@@ -1,16 +1,3 @@
-/**
- * Generic PARC container mechanics: object-list layout, locators, field
- * parsing, and the pointer bookkeeping needed to insert or move serialized
- * blocks without disturbing anything else.
- *
- * These helpers are not inventory-, equipment- or companion-specific, but they
- * used to live in whichever feature module needed them first — so features
- * imported each other sideways (`companions` -> `equipment-editor`,
- * `catalog-equipment` -> `equipment-editor`) and several of them were
- * duplicated. Importing them from here keeps feature modules depending on the
- * format, not on each other.
- */
-
 import {
 	concatBytes,
 	indexOfBytes,
@@ -33,7 +20,6 @@ import {
 
 const SENTINEL = new Uint8Array(8).fill(0xff);
 
-/** One serialized socket entry, as parsed from an object list. */
 export type ItemSocketRecord = {
 	currentEndurance: number | null;
 	itemKey: number | null;
@@ -41,7 +27,6 @@ export type ItemSocketRecord = {
 	values: Record<string, unknown>;
 };
 
-/** Shorthand for the identity fields every object-list element carries. */
 type IdentifiedRecord = {
 	itemNo: number;
 };
@@ -53,7 +38,6 @@ const isZero = (data: Uint8Array, start: number, end: number): boolean => {
 	return true;
 };
 
-/** Decode an object-list header, returning `[count, cursorAfterHeader]`. */
 export const listLayout = (
 	data: Uint8Array,
 	start: number,
@@ -195,12 +179,6 @@ export const readObjectListValues = (
 	return values;
 };
 
-/**
- * Parse fields while accounting for PARC's list terminator bytes.
- *
- * ItemSaveData serializes an additional 0x01 terminator before the next scalar
- * field; missing it shifts every post-list field by one byte.
- */
 export const parseFieldsWithListTrailers = (
 	raw: Uint8Array,
 	parser: BlockParser,
@@ -239,11 +217,6 @@ export const parseFieldsWithListTrailers = (
 	return parsed;
 };
 
-/**
- * Recover fixed-width ItemSaveData tail fields by locating them backwards from
- * the record boundary. Records containing character-conversion data (mask bit
- * 23) keep the conservative forward parse.
- */
 export const readPostListScalarsFromEnd = (
 	_raw: Uint8Array,
 	parser: BlockParser,
@@ -268,7 +241,6 @@ export const readPostListScalarsFromEnd = (
 	return [values, offsets];
 };
 
-/** Write a new object-list count back into its header. */
 export const writeListCount = (
 	block: Uint8Array,
 	absoluteStart: number,
@@ -327,7 +299,6 @@ export const writeListCount = (
 	throw new Error("Unsupported object-list count encoding");
 };
 
-/** Retarget a cloned record's inline self-pointers to its new position. */
 export const rebaseClonePointers = (
 	clone: Uint8Array,
 	sourceStart: number,
@@ -355,28 +326,12 @@ export const rebaseClonePointers = (
 	}
 };
 
-/**
- * A run of bytes to splice into a block, at an absolute payload offset.
- *
- * `remove` turns an insertion into a replacement, which is what rewriting a
- * field whose bytes are already there needs: a name is stored length-prefixed,
- * so a longer one is not a write to the old bytes but a swap of them.
- */
 export type BlockInsertion = {
 	at: number;
 	bytes: Uint8Array;
-	/** Bytes already at `at` to drop first; 0 inserts without removing. */
 	remove?: number;
 };
 
-/**
- * Old absolute offset, moved by every edit at or before it.
- *
- * The comparison includes the edit point on purpose: bytes inserted *at*
- * `offset` push the byte that used to sit there, so both a pointer stored at
- * the edit point and a value addressing it have to move. Field creators rely on
- * this — a record's size word sits at the very offset a field is inserted at.
- */
 export const shiftedOffset = (
 	insertions: readonly BlockInsertion[],
 	offset: number,
@@ -390,24 +345,6 @@ export const shiftedOffset = (
 	return offset + total;
 };
 
-/**
- * Splices byte runs into a block and moves every inline self-pointer with the
- * data it addresses.
- *
- * This is the block-level counterpart of `shiftExistingBlockPointers`, with two
- * differences the field-creation path needs. It scans the *original* block for
- * pointers, so bytes that arrive with an insertion — a name, a colour — can
- * never be mistaken for one; and it relocates each pointer by `shiftedOffset`
- * rather than by a single uniform delta, so several runs can go into one
- * block. A sentinel whose following word does not address the block is left
- * alone.
- *
- * A run with `remove` set replaces those bytes instead of inserting before
- * them. Pointers are read from the original block, so one that pointed into a
- * removed run has nothing left to address; that is reported rather than
- * silently relocated, because it means the caller overwrote a nested object
- * rather than a flat field.
- */
 export const spliceInsertions = (
 	block: Uint8Array,
 	blockStart: number,
@@ -457,7 +394,6 @@ export const spliceInsertions = (
 	return output;
 };
 
-/** Move every inline pointer that pointed past `insertAbs` by `delta`. */
 export const shiftExistingBlockPointers = (
 	oldBlock: Uint8Array,
 	newBlock: Uint8Array,
@@ -484,7 +420,6 @@ export const shiftExistingBlockPointers = (
 	}
 };
 
-/** First `itemNo` that does not already occur anywhere in the payload. */
 export const unusedItemNo = (
 	raw: Uint8Array,
 	records: IdentifiedRecord[],
@@ -504,7 +439,6 @@ export const typeSignatureArray = (typeDef: TypeDef): unknown[][] => {
 	]);
 };
 
-/** The payload of `entry` with every inline self-pointer made block-relative. */
 export const normalizedBlock = (
 	parc: ParcBlob,
 	entry: TOCEntry,
@@ -529,11 +463,6 @@ export const normalizedBlock = (
 	return block;
 };
 
-/**
- * Compare bytes allowing only actual inline pointers to relocate. Range-based
- * normalization can mistake an unrelated scalar for a pointer when a growing
- * earlier block moves this root's address range across that scalar.
- */
 export const relocatedRoot = (
 	before: ParcBlob,
 	oldEntry: TOCEntry,
@@ -578,12 +507,6 @@ const sameBytes = (a: Uint8Array, b: Uint8Array): boolean => {
 	return true;
 };
 
-/**
- * Serializes an edited blob while relocating every root the caller did not
- * change itself. `serializeParc` shifts inline pointers by a heuristic when a
- * block grows; overwriting the untouched roots with their deterministic
- * relocation removes any doubt about the ones that only moved.
- */
 export const serializeWithPreservedRoots = (
 	parc: ParcBlob,
 	modifiedTocIndices: Iterable<number> = parc.modifiedBlocks.keys(),
@@ -600,10 +523,6 @@ export const serializeWithPreservedRoots = (
 	return edited;
 };
 
-/**
- * Make every inline self-pointer block-relative, so a record read from one
- * payload can be compared against the same record read from another.
- */
 export const relativizeInlinePointers = (
 	blob: Uint8Array,
 	base: number,
@@ -620,10 +539,6 @@ export const relativizeInlinePointers = (
 	}
 };
 
-/**
- * Refuse an edit that changed the schema, the TOC order, or any root other
- * than the ones the caller edited.
- */
 const assertRootsPreserved = (
 	beforeRaw: Uint8Array,
 	afterRaw: Uint8Array,
@@ -657,10 +572,6 @@ const assertRootsPreserved = (
 	}
 };
 
-/**
- * Refuse an edit that changed the schema, the TOC order, or any root other
- * than the inventory the caller meant to touch.
- */
 export const assertNonInventoryBlocksUnchanged = (
 	beforeRaw: Uint8Array,
 	afterRaw: Uint8Array,

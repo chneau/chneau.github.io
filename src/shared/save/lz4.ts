@@ -1,69 +1,14 @@
-/**
- * LZ4 block format — the compression the VASC container actually uses, and the
- * compression the Witcher 3 container stores as well. Two editors that had
- * each grown their own decoder, with different error text and different match
- * copy strategies, now share these three functions.
- *
- * ## Why this file exists rather than a `DecompressionStream`
- *
- * The reference implementation this codec was ported from calls
- * `lz4js.decompressBlock`, and `DecompressionStream` in every shipping browser
- * accepts exactly three formats: `deflate`, `deflate-raw` and `gzip`. There is
- * no LZ4. The `zlibInflate` helper in `src/shared/save/bytes.ts` would therefore
- * not merely compress differently — it would reject the chunks outright. So the
- * block codec is written here, in about two hundred lines, rather than pulled in
- * as a dependency the site would then have to carry.
- *
- * A *block* is the raw sequence format with no frame header, no checksum and no
- * size field: which is exactly what the container stores, because the size it
- * inflates to is already in the chunk descriptor. That is also why
- * `lz4DecompressBlock` is given `expectedSize` and treats a mismatch as an
- * error — there is nothing else in the block to check it against.
- *
- * ## The format, in full
- *
- * A block is a run of sequences. Each sequence is one token byte:
- *
- * - the high nibble is the literal length, the low nibble the match length minus
- *   four (the minimum match LZ4 encodes);
- * - a nibble of fifteen means the real value follows as a chain of 255 bytes:
- *   read one, add it, repeat while the byte was 255;
- * - the literals come next, then a two-byte little-endian offset, then — only if
- *   the match length overflowed its nibble — the extension bytes.
- *
- * Two constraints are the compressor's business and the decompressor's are not:
- * the last five bytes of a block are always literals, and no match may start
- * within the last twelve. They exist because the reference decoder needs the
- * slack; a decoder that does not care (this one) will happily read either.
- */
-
-/** The smallest match LZ4 will encode, which is why the length is offset by 4. */
 const MIN_MATCH = 4;
 
-/** Below this length a byte loop beats a typed-array `set`, which allocates a view. */
 const LITERAL_LOOP_LIMIT = 128;
 
-/** A match copy costs one call at any length; under this a loop is cheaper. */
 const MATCH_COPY_LIMIT = 24;
 
-/**
- * Bytes a block of `size` uncompressed bytes can expand to.
- *
- * Every 255 literals costs one extra extension byte, and the token byte per
- * sequence can never make that worse, so this bound holds for any legal block.
- */
 export const lz4CompressBound = (size: number): number =>
 	size + Math.floor(size / 255) + 16;
 
-/** A length read out of a nibble plus the chain that may follow it. */
 type Extended = { readonly total: number; readonly cursor: number };
 
-/**
- * Reads the 255-terminated length chain a nibble of fifteen introduces.
- *
- * `nibble` is the token's own contribution and the result is nibble plus every
- * extension byte, so a nibble of fifteen and an empty chain still yields fifteen.
- */
 const readExtended = (
 	data: Uint8Array,
 	at: number,
@@ -80,13 +25,6 @@ const readExtended = (
 	}
 };
 
-/**
- * Expands one LZ4 block that is known to hold exactly `expectedSize` bytes.
- *
- * The declared size comes from the chunk descriptor, which is part of the file
- * but is not covered by anything else — there is no checksum here — so every
- * read is bounds-checked against it and against the input rather than trusted.
- */
 export const lz4DecompressBlock = (
 	data: Uint8Array,
 	expectedSize: number,
@@ -94,9 +32,6 @@ export const lz4DecompressBlock = (
 	if (!Number.isSafeInteger(expectedSize) || expectedSize < 0) {
 		throw new Error("The LZ4 chunk declares an impossible size.");
 	}
-	// A length chain adds at most 255 bytes per byte, so a declared size beyond
-	// that cannot come from this input. Checked before allocating, because the
-	// number is attacker-adjacent: it came off someone's disk.
 	if (expectedSize > data.length * 255) {
 		throw new Error("The LZ4 chunk declares more output than it can hold.");
 	}
@@ -130,7 +65,6 @@ export const lz4DecompressBlock = (
 		cursor += literals;
 		end += literals;
 
-		// The last sequence of a block carries literals only. There is no offset.
 		if (cursor === data.length) break;
 
 		if (cursor + 2 > data.length) {
@@ -164,16 +98,6 @@ export const lz4DecompressBlock = (
 	return output;
 };
 
-/**
- * Copies `length` bytes from `offset` behind `at`, left to right.
- *
- * Overlapping matches are legal and common in LZ4 — a run of zeros compresses to
- * one literal followed by a match at offset 1 — so a `copyWithin` wide enough to
- * straddle the cursor would read bytes this match has not written yet. Copying
- * forward in short steps is the semantics the format means, and it is also what
- * the short-match case wants, since most matches move fewer bytes than the call
- * itself costs.
- */
 const copyMatch = (
 	output: Uint8Array,
 	at: number,
@@ -198,19 +122,6 @@ const copyMatch = (
 	}
 };
 
-/**
- * Compresses `data` into a single LZ4 block.
- *
- * A single-candidate match finder rather than a full hash chain: one 4-byte hash
- * table, one candidate per position, verified byte for byte before it is taken.
- * That costs a few per cent of ratio against the reference implementation and
- * roughly a third of the code, which is the right trade for a container that has
- * to be *correct* rather than small.
- *
- * The last five bytes are emitted as literals and no match is started within the
- * last twelve, which are the block-format rules rather than choices of this
- * implementation.
- */
 export const lz4CompressBlock = (data: Uint8Array): Uint8Array => {
 	const size = data.length;
 	const output = new Uint8Array(lz4CompressBound(size));
@@ -249,10 +160,6 @@ export const lz4CompressBlock = (data: Uint8Array): Uint8Array => {
 		end += length;
 	};
 
-	// `size - 12` keeps a match from *starting* in the reserved tail; the
-	// extension bound below keeps it from *reaching* the last five bytes,
-	// which the format requires to be literals. Verified against the block
-	// walk: every output ends with a literal run and no trailing match.
 	while (size >= 13 && cursor <= size - 12) {
 		const sequence = wordAt(cursor);
 		const slot = slotOf(sequence);
@@ -289,8 +196,6 @@ export const lz4CompressBlock = (data: Uint8Array): Uint8Array => {
 
 		cursor = matchEnd;
 		anchor = cursor;
-		// Re-seed the positions the match skipped, or a repeated pattern would
-		// not be found when it recurs past the table's window.
 		for (let index = Math.max(0, cursor - 3); index < cursor; index += 1) {
 			table[slotOf(wordAt(index))] = index;
 		}
@@ -304,16 +209,6 @@ export const lz4CompressBlock = (data: Uint8Array): Uint8Array => {
 	return output.slice(0, end);
 };
 
-/**
- * A block that encodes its input as pure literals.
- *
- * Conformant — a single token with no match after it is the format's ordinary
- * answer for incompressible data — so it needs no compressor at all. It is not
- * the default: on the Witcher 3 reference save it costs 3.8× the file size, where
- * `lz4CompressBlock` costs slightly *less* than the original. It exists so that
- * a container's bookkeeping can be proved independently of the compressor, which
- * is the part that is genuinely easy to get wrong.
- */
 export const lz4StoredBlock = (data: Uint8Array): Uint8Array => {
 	const output = new Uint8Array(lz4CompressBound(data.length));
 	let end = 0;

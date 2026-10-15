@@ -1,18 +1,3 @@
-/**
- * The workbench's load/rebuild state machine, apart from its layout.
- *
- * What is hard about a save editor — parsing a save, staging edits without
- * touching the document, proving a rebuild reads back before it is offered —
- * is identical across the six formats, and it lived inside `SaveWorkbench`
- * beside the markup. It is a hook now so the component is what it looks like:
- * a landing screen and a workspace, each wired to the values below.
- *
- * The document is deliberately returned *derived*. `working` is a function of
- * the loaded bytes and the staged edits, and keeping it a render-time
- * computation is what stops a render reading a document a previous render
- * changed.
- */
-
 import { notifications } from "@mantine/notifications";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Bytes } from "./bytes";
@@ -27,12 +12,6 @@ import {
 } from "./roundtrip";
 import type { SaveCodec, SaveEdit, SummaryRow } from "./types";
 
-/**
- * Everything the workbench's two layouts read.
- *
- * `working`, `stagedPaths` and `summary` are derived during render rather than
- * stored, so a render can never observe a half-applied document.
- */
 type SaveDocument = {
 	readonly name: string | null;
 	readonly bytes: Bytes | null;
@@ -71,16 +50,10 @@ export const useSaveDocument = (codec: SaveCodec): SaveDocument => {
 	const [search, setSearch] = useState("");
 	const [tab, setTab] = useState<string | null>("inspect");
 
-	// Staged edits are unsaved work the user cannot recover — the file on disk
-	// is still the original — so leaving the page must warn. The guard is
-	// attached only while there is something to lose, so a loaded save with no
-	// edits navigates away without the browser's generic "leave site?" prompt.
 	useEffect(() => {
 		if (edits.length === 0) return;
 		const warn = (event: BeforeUnloadEvent) => {
 			event.preventDefault();
-			// Browsers ignore the message these days, but `returnValue` is what
-			// historically triggered the prompt and is still required to be set.
 			event.returnValue = "";
 		};
 		window.addEventListener("beforeunload", warn);
@@ -93,9 +66,6 @@ export const useSaveDocument = (codec: SaveCodec): SaveDocument => {
 			setError("");
 			setStatus(`Reading ${fileName}`);
 			try {
-				// Yield once so the loading state paints before a multi-megabyte
-				// parse starts; otherwise the tab freezes on the old screen and
-				// the progress indicator is never seen.
 				await yieldToBrowser();
 				const decoded = await codec.decode(source);
 				setName(fileName);
@@ -155,23 +125,12 @@ export const useSaveDocument = (codec: SaveCodec): SaveDocument => {
 		setSearch("");
 	}, []);
 
-	// Computed during render rather than stored: the working document is a
-	// function of the loaded save and the staged edits, and keeping it derived
-	// is what stops a render reading a document a previous render changed.
-	// `applyEdits` reports rather than throws: see the note there for what an
-	// unresolvable path used to cost. `unapplicable` is the edits that could not
-	// be folded in, surfaced so the workbench can tell the user which staged
-	// edit to revert instead of silently writing a save missing it.
 	const { doc: working, failed: unapplicable } = useMemo(
 		() =>
 			doc === null ? { doc: null, failed: [] } : applyEditsSafely(doc, edits),
 		[doc, edits],
 	);
 
-	// An edit this save cannot carry is skipped rather than thrown, but it must
-	// not be silent: a save written without it is a save the user did not ask
-	// for. One notification per set of unapplicable paths, so a re-render of
-	// the same staged edits does not repeat it.
 	const warnedRef = useRef<string>("");
 	useEffect(() => {
 		const names = unapplicable.map((edit) => formatPath(edit.path)).join(", ");
@@ -185,16 +144,6 @@ export const useSaveDocument = (codec: SaveCodec): SaveDocument => {
 		});
 	}, [unapplicable]);
 
-	/**
-	 * Which paths have a staged edit, keyed by `pathKey` and not by `formatPath`.
-	 *
-	 * These two were different relations. `stageEdits` and `withoutPath` compare
-	 * paths structurally, while this set keyed on the *rendered* form — and
-	 * `formatPath` is lossy, so `["a.b"]` and `["a", "b"]` share a key, as do
-	 * `["a[0]"]` and `["a", 0]`. A save with a dotted or bracketed key would
-	 * therefore mark the wrong leaf as staged. The inspector now looks these up
-	 * with the same key, so identity is one function.
-	 */
 	const stagedPaths = useMemo(
 		() => new Set(edits.map((edit) => pathKey(edit.path))),
 		[edits],
@@ -216,9 +165,6 @@ export const useSaveDocument = (codec: SaveCodec): SaveDocument => {
 				edits.length > 0,
 			);
 			if (verdict.kind === "failed") {
-				// A failed verification must not produce a file. Handing over
-				// bytes that do not read back is precisely the outcome these
-				// tools exist to prevent.
 				notifications.show({
 					color: "red",
 					title: "Not handing this one over",

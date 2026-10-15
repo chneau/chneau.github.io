@@ -72,44 +72,40 @@ export const abyssGearOptions = (
 	const byInternalName = new Map(
 		Object.values(items).map((item) => [item.legacy_internal_name_hint, item]),
 	);
-	return (
-		Object.entries(items)
-			// Blueprints and unidentified gear belong in Add Item, not in an equipment socket.
-			.filter(([, item]) =>
-				/^Item_(Stat|Skill)_AbyssGear_/i.test(
-					item.legacy_internal_name_hint ?? "",
-				),
-			)
-			.map(([key, item]): [string, AbyssGearOption] => {
-				const internalName = item.legacy_internal_name_hint ?? "";
-				let effect =
-					effectText(item.description) ||
-					effectText(byInternalName.get(`Recipe_${internalName}`)?.description);
-				if (!effect) {
-					const familyName = internalName.replace(/_(LV\d+|Special)$/i, "_LV1");
-					const familyEffect =
-						effectText(byInternalName.get(familyName)?.description) ||
-						effectText(byInternalName.get(`Recipe_${familyName}`)?.description);
-					// A level-one numerical bonus must never be presented as a higher tier's bonus.
-					if (/\d/.test(familyEffect)) {
-						const levelBonus = familyEffect.match(/^(.+? Level)\s*\+\d+\.?$/i);
-						effect = levelBonus
-							? `Increases ${
-									levelBonus[1]
-								}. Exact bonus for this tier is unavailable.`
-							: "";
-					} else {
-						effect = familyEffect;
-					}
+	return Object.entries(items)
+		.filter(([, item]) =>
+			/^Item_(Stat|Skill)_AbyssGear_/i.test(
+				item.legacy_internal_name_hint ?? "",
+			),
+		)
+		.map(([key, item]): [string, AbyssGearOption] => {
+			const internalName = item.legacy_internal_name_hint ?? "";
+			let effect =
+				effectText(item.description) ||
+				effectText(byInternalName.get(`Recipe_${internalName}`)?.description);
+			if (!effect) {
+				const familyName = internalName.replace(/_(LV\d+|Special)$/i, "_LV1");
+				const familyEffect =
+					effectText(byInternalName.get(familyName)?.description) ||
+					effectText(byInternalName.get(`Recipe_${familyName}`)?.description);
+				if (/\d/.test(familyEffect)) {
+					const levelBonus = familyEffect.match(/^(.+? Level)\s*\+\d+\.?$/i);
+					effect = levelBonus
+						? `Increases ${
+								levelBonus[1]
+							}. Exact bonus for this tier is unavailable.`
+						: "";
+				} else {
+					effect = familyEffect;
 				}
-				return [
-					key,
-					{
-						...item,
-						effect: effect || "Effect description unavailable.",
-					},
-				];
-			})
-			.sort(([, a], [, b]) => a.name.localeCompare(b.name))
-	);
+			}
+			return [
+				key,
+				{
+					...item,
+					effect: effect || "Effect description unavailable.",
+				},
+			];
+		})
+		.sort(([, a], [, b]) => a.name.localeCompare(b.name));
 };

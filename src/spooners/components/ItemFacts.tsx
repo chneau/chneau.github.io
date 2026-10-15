@@ -64,13 +64,10 @@ const OptionRow = ({
 
 type Props = {
 	def: ItemDefinition | null;
-	/** Show the add-ons / swaps / tags with their prices. */
 	showOptions?: boolean;
-	/** Currency conversion for the option prices. */
 	format: Formatter;
 };
 
-/** Everything the API keeps about one item, in readable form. */
 export const ItemFacts = ({ def, showOptions, format }: Props) => {
 	if (!def) {
 		return null;

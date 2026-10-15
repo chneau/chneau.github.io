@@ -6,10 +6,6 @@ import "../../shared/base.css";
 import { mountApp } from "../../shared/mountApp";
 import { Home } from "./page";
 
-/**
- * Sun-bleached tarmac and hazard amber, for a game about a road trip across a
- * dust bowl. Index 5 is the dark-scheme shade, 6 the light-scheme one.
- */
 const brand: MantineColorsTuple = [
 	"#fdf3e3",
 	"#f8e2c0",

@@ -17,19 +17,8 @@ import { generateIcs, type IcsRecord, icsFileName } from "./ics";
 import { hostedIcsUrl, toWebcal } from "./ics-url";
 import { notify } from "./notify";
 
-// Re-exported for the existing importers; the definitions are pure URL work and
-// live in `ics-url.ts` beside the reasoning about why the path is site-root.
 export { hostedIcsUrl, toWebcal } from "./ics-url";
 
-/**
- * Hand a generated file to the browser as a download.
- *
- * The object URL is created, clicked and revoked. An object URL pins its Blob
- * in memory until it is revoked, so leaking one per export grows without bound
- * in a long-lived tab. The revoke is deferred by a tick because some browsers
- * resolve the `download` navigation asynchronously and cancelling the URL
- * mid-flight aborts the save.
- */
 const downloadText = (content: string, fileName: string) => {
 	const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
 	const url = URL.createObjectURL(blob);
@@ -45,14 +34,6 @@ const downloadText = (content: string, fileName: string) => {
 	}, 0);
 };
 
-/**
- * The `.ics` for a set of the user's OWN records.
- *
- * This is the point of the whole file: the hosted calendar is frozen at the
- * last build and cannot know about anything added, edited or deleted in the
- * app, so an export has to be generated here to be correct. It goes through
- * the same generator as the build-time script, so the two agree.
- */
 const buildIcs = (
 	records: readonly RawBirthday[],
 	summary: (record: IcsRecord) => string,
@@ -61,18 +42,12 @@ const buildIcs = (
 	generateIcs(records, {
 		summary,
 		calendarName,
-		// A fresh timestamp per export: DTSTAMP marks when this revision was
-		// produced, and a stale one makes a subscriber ignore it.
 		now: new Date(),
 	});
 
 export const CalendarActions = () => {
 	const { t } = useTranslation();
 
-	// The add / edit / delete flow writes straight to localStorage and fires
-	// `subscribeBirthdays`, so the list is re-read on that signal rather than
-	// snapshotted once: a stale list here is exactly the bug this file exists
-	// to fix.
 	const [records, setRecords] = useState<readonly RawBirthday[]>(() =>
 		getRawBirthdays(),
 	);
@@ -98,14 +73,9 @@ export const CalendarActions = () => {
 
 	const downloadOne = (record: RawBirthday) => {
 		downloadText(
-			// The same generator over one person, so a shared family calendar
-			// can carry a single person without diverging from the full file.
 			buildIcs([record], summaryFor, record.name),
 			icsFileName(record.name),
 		);
-		// Same confirmation as the whole-calendar export: `downloadText` gives
-		// the browser a file and nothing comes back to prove it arrived, so the
-		// only honest signal is telling the user we handed it over.
 		notify.success(t("app.calendar.exported_one", { name: record.name }));
 	};
 
@@ -114,16 +84,9 @@ export const CalendarActions = () => {
 	};
 
 	const addToGoogleCalendar = () => {
-		// Google fetches the URL itself, so this must be the hosted https
-		// file, not a blob: a blob URL is scoped to this tab and Google cannot
-		// resolve it.
 		const googleUrl = `https://calendar.google.com/calendar/u/0/r?cid=${encodeURIComponent(
 			hostedIcsUrl(window.location.origin),
 		)}`;
-		// `window.open` returns null when a popup blocker refuses the window,
-		// which is the usual outcome here because the click arrives through a
-		// menu item. Saying nothing leaves the user staring at a menu that did
-		// nothing, so the refusal is reported rather than swallowed.
 		if (window.open(googleUrl, "_blank", "noopener") === null) {
 			notify.warning(t("app.calendar.google_blocked"));
 		}
@@ -149,8 +112,6 @@ export const CalendarActions = () => {
 			key: "one",
 			label: t("app.calendar.export_one"),
 			icon: <UserRound size={14} />,
-			// A submenu target rather than a command: the per-person list is
-			// rendered by `PerPersonExport` below.
 			onClick: () => undefined,
 		},
 		{ type: "divider" },
@@ -171,10 +132,6 @@ export const CalendarActions = () => {
 			label: t("app.calendar.copy"),
 			icon: <LinkIcon size={14} />,
 			onClick: async () => {
-				// `writeText` rejects when the document is not focused or the
-				// clipboard permission is refused, and a rejected promise is
-				// silent: the toast that follows would otherwise claim a copy
-				// that never happened. Await it, so the toast matches reality.
 				try {
 					await navigator.clipboard.writeText(
 						hostedIcsUrl(window.location.origin),
@@ -220,10 +177,6 @@ export const CalendarActions = () => {
 				<Menu.Divider />
 				<Menu.Item
 					leftSection={<Info size={14} />}
-					// A caption, not a command. The two groups of actions above
-					// look alike but behave completely differently -- downloads
-					// include your own edits, subscriptions cannot -- and the
-					// difference is invisible unless it is spelled out here.
 					closeMenuOnClick={false}
 					component="div"
 					style={{ pointerEvents: "none", whiteSpace: "normal" }}
@@ -235,7 +188,6 @@ export const CalendarActions = () => {
 	);
 };
 
-/** A submenu listing every person, for a single-person `.ics`. */
 const PerPersonExport = ({
 	label,
 	icon,
@@ -250,8 +202,6 @@ const PerPersonExport = ({
 	const [opened, setOpened] = useState(false);
 
 	return (
-		// No portalling: a submenu has to stay a DOM descendant of its parent
-		// dropdown for the hover tracking and outside-click detection to work.
 		<Menu.Sub position="right-start" opened={opened} onChange={setOpened}>
 			<Menu.Sub.Target>
 				<Menu.Item leftSection={icon}>{label}</Menu.Item>

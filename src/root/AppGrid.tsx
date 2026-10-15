@@ -9,14 +9,12 @@ type AppGridProps = {
 	onTogglePin: (href: string) => void;
 };
 
-/** A responsive grid of app cards with arrow-key roving focus between them. */
 export const AppGrid = ({
 	items,
 	isPinned,
 	visitedAt,
 	onTogglePin,
 }: AppGridProps) => {
-	/** Arrow-key roving focus across the visible card grid. */
 	const onGridKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
 		const links = Array.from(
 			event.currentTarget.querySelectorAll<HTMLAnchorElement>(

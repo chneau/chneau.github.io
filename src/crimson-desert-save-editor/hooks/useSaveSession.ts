@@ -14,11 +14,6 @@ import { describeError } from "../lib/save-engine/errors";
 import { type SaveEngineEvent, SaveSession } from "../lib/save-engine/session";
 import type { SaveEdit } from "../lib/staged-edits";
 
-/**
- * The page-owned state `useSaveSession` must touch when it clears the deck for
- * a newly opened save. Each is a `useState` setter, so it is stable and the
- * callbacks below keep a steady identity.
- */
 type SaveSessionCoordination = {
 	setView: Dispatch<SetStateAction<SaveView>>;
 	setActiveStorage: Dispatch<SetStateAction<number | null>>;
@@ -28,23 +23,11 @@ type SaveSessionCoordination = {
 };
 
 type UseSaveSessionOptions = SaveSessionCoordination & {
-	/** The view a save opened from a deep link should land on. */
 	initialView: SaveView;
-	/** The storage the deep link asked for, taken by the first parse. */
 	initialStorage: number | null;
-	/** The staged edits, read when a download is requested. */
 	edits: SaveEdit[];
 };
 
-/**
- * The open save session: the engine, the file it read, what it parsed into and
- * the progress a rebuild reports.
- *
- * The engine stays on the main thread (ADR-0001) and every byte stays in the
- * page (ADR-0003); this hook is only the React seam over `SaveSession`'s event
- * stream, so the page does not own progress state, the parsed result or the
- * parse/download callbacks itself.
- */
 export const useSaveSession = ({
 	initialView,
 	initialStorage,

@@ -1,9 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/browser_equipment.py`.
- *
- * Browser-facing equipment descriptions and guarded edit-plan translation.
- */
-
 import { requireCompatibleGear } from "./abyss-gear-compatibility";
 import {
 	equipmentCatalog,
@@ -43,23 +37,17 @@ export type InventoryDescription = {
 	containerVersion: number;
 	payloadBytes: number;
 	records: InventoryDescriptionRecord[];
-	/** Inventory records withheld because an identity field was absent. */
 	skippedRecords: number;
-	/** One short reason per skipped record, for the UI to show. */
 	skippedDetails: string[];
 };
 
-/** What a record's own fields hold about its gear, before the catalog is read. */
 export type RecordGearState = {
 	refinement: number;
 	unlockedSockets: number;
-	/** Every socket position, a filled one holding the Gear it holds. */
 	socketItems: Array<number | null>;
-	/** How many of those positions hold Gear. */
 	filledSockets: number;
 };
 
-/** Whether the catalog presents an item as equipment the editor can configure. */
 const isEquipmentItem = (
 	definition: EquipmentCatalogEntry | undefined,
 ): definition is EquipmentCatalogEntry =>
@@ -67,15 +55,6 @@ const isEquipmentItem = (
 		definition && (definition.characterEquipment || definition.canRefine),
 	);
 
-/**
- * The gear one record has: its own numbers, read under its catalog entry.
- *
- * This is the only place that decides the shape, and both callers come through
- * it — the parse of a saved record, and the projection that previews a record
- * a staged edit will create — so a preview cannot drift from what the engine
- * writes. A definition the catalog does not call equipment leaves the record
- * with no gear to configure, whatever socket list it serializes.
- */
 export const equipmentStateOf = (
 	own: RecordGearState,
 	definition: EquipmentCatalogEntry | undefined,
@@ -98,8 +77,6 @@ export const equipmentStateOf = (
 			}
 		: {
 				equipment: null,
-				// Such a record still serializes a socket list, and its length is what
-				// the views count.
 				socketCount: own.socketItems.length,
 				filledSockets: own.filledSockets,
 			};
@@ -116,7 +93,6 @@ export const describeInventory = async (
 		const definition = catalog[String(record.itemKey)];
 		records.push({
 			inventoryKey: record.inventoryKey,
-			// Item identities are uint64 and must not be rounded by JavaScript.
 			itemNo: String(record.itemNo),
 			itemKey: record.itemKey,
 			slotNo: record.slotNo,
@@ -199,19 +175,12 @@ export const applyEquipmentChange = async (
 	edit: EquipmentChange,
 ): Promise<[Uint8Array, Record<string, unknown>]> => {
 	if (edit.type === "insertEquipment" || edit.type === "equipment") {
-		// Check the complete requested configuration, including unchanged sockets,
-		// before constructing an item or applying any scalar/socket operations.
 		const sockets: Array<number | null> = (edit.type === "insertEquipment"
 			? edit.socketItems
 			: edit.socketItems) ?? [null, null, null, null, null];
 		if (!Array.isArray(sockets) || sockets.length !== 5) {
 			throw new Error("Expected exactly five socket positions.");
 		}
-		// Every socket is checked before anything is constructed or written, and the
-		// checks are independent lookups against the rules table — so they run
-		// together. `allSettled` rather than `all`, because the refusal a user sees
-		// must still be the first socket's and not whichever lookup lost the race.
-		// Validity is order-free; the report is not.
 		const gearKeys = sockets.filter(
 			(gearKey): gearKey is number => gearKey !== null && gearKey !== undefined,
 		);
@@ -253,8 +222,6 @@ export const applyEquipmentChange = async (
 			(await equipmentCatalog())[String(edit.itemKey)],
 			"equipment definition",
 		);
-		// Resolve the new slot internally, then configure it before returning any
-		// output. A failed socket edit discards the entire in-memory addition.
 		const [configured, changes] = await applyEquipmentChange(inserted, {
 			type: "equipment",
 			inventoryKey: edit.inventoryKey,
@@ -300,8 +267,6 @@ export const applyEquipmentChange = async (
 			? null
 			: whole(value, "Abyss Gear", 1),
 	);
-	// One write for the whole record: `setEquipment` owns the guards and pays a
-	// single decode, commit and reopen however many fields change.
 	return setEquipment(source, target, {
 		refinement: level,
 		unlockedSockets: unlocked,

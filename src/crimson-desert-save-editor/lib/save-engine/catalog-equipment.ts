@@ -1,10 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/catalog_equipment.py`.
- *
- * Constructs fresh equipment using the uploaded save's own PARC schema. It
- * never copies dyes, upgrades or special state.
- */
-
 import { concatBytes, readU32, writeU16, writeU32 } from "./bytes";
 import { decodeSave } from "./container";
 import { type EquipmentCatalogEntry, equipmentCatalogTable } from "./data";

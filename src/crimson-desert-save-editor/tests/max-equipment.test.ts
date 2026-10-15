@@ -1,14 +1,3 @@
-/**
- * The "Max Equipment" planner.
- *
- * The rules are pinned against the generated tables and the committed saves.
- * The last-but-one case then proves the engine takes a whole storage's plan:
- * the planner exists to produce payloads `applyEquipmentChange` accepts, and
- * that applier re-checks the refinement level, the socket cap, gear
- * compatibility, duplicates and removals — so a unit test alone would not show
- * the thing that actually matters.
- */
-
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -31,7 +20,6 @@ const fixture = (name: string): Uint8Array =>
 const endgame = fixture("endgame.save");
 
 const openedFixtures = new Map<Uint8Array, Promise<DecodedSave>>();
-/** Decodes a fixture once; these cases retarget the same saves repeatedly. */
 const opened = (bytes: Uint8Array): Promise<DecodedSave> => {
 	let decoded = openedFixtures.get(bytes);
 	if (decoded === undefined) {
@@ -41,7 +29,6 @@ const opened = (bytes: Uint8Array): Promise<DecodedSave> => {
 	return decoded;
 };
 
-/** The identity the engine uses to pick one record. */
 const keyOf = (record: {
 	inventoryKey: number;
 	slotNo: number;
@@ -51,7 +38,6 @@ const keyOf = (record: {
 const byKey = (records: InventoryDescription["records"]) =>
 	new Map(records.map((record) => [keyOf(record), record]));
 
-/** Every storage that holds equipment, in the order the save lists them. */
 const equipmentStorages = (before: InventoryDescription): number[] => [
 	...new Set(
 		before.records
@@ -60,16 +46,11 @@ const equipmentStorages = (before: InventoryDescription): number[] => [
 	),
 ];
 
-/** The refinement the planner must aim for: the item's own table, capped at 10. */
 const ceiling = (equipment: EquipmentDetails): number =>
 	equipment.canRefine && equipment.refinementLevels.length > 0
 		? Math.min(10, Math.max(...equipment.refinementLevels))
 		: equipment.refinement;
 
-/**
- * The tier the planner ranks by: `_LVn` counts up, and `_Special` and the
- * unique named drops — which carry no tier suffix — lead.
- */
 const tier = (internalName: string): number => {
 	const level = /_LV(\d+)$/.exec(internalName)?.[1];
 	return level === undefined ? Number.POSITIVE_INFINITY : Number(level);
@@ -77,14 +58,12 @@ const tier = (internalName: string): number => {
 
 type Rules = Awaited<ReturnType<typeof abyssGearRulesTable>>;
 
-/** A gear key's family: its internal name with the tier suffix stripped. */
 const familyOf = (rules: Rules, gearKey: number): string =>
 	defined(rules.gear[String(gearKey)], "gear").internalName.replace(
 		/_(LV\d+|Special)$/i,
 		"",
 	);
 
-/** A gear key's tier, with untiered gear ranked as `_Special` is. */
 const tierOf = (rules: Rules, gearKey: number): number => {
 	const internalName = defined(
 		rules.gear[String(gearKey)],
@@ -94,7 +73,6 @@ const tierOf = (rules: Rules, gearKey: number): number => {
 	return level === undefined ? 1000 : Number(level);
 };
 
-/** The highest tier the family of `gearKey` reaches anywhere in the table. */
 const bestTierOf = (rules: Rules, gearKey: number): number => {
 	const family = familyOf(rules, gearKey);
 	return Object.keys(rules.gear)
@@ -125,13 +103,8 @@ describe("max equipment", () => {
 				);
 				const current = equipment.socketItems;
 
-				// Refinement stops at the item's own ceiling. Most equipment
-				// cannot be refined at all and keeps the level it has.
 				expect(edit.refinement).toBe(ceiling(equipment));
 
-				// Sockets go to the item's own cap, unless the planner refused the
-				// layout — in which case the record is left exactly as it was
-				// while the refinement still moves.
 				if (equipment.socketCap === null || equipment.socketCap === 0) {
 					expect(edit.unlockedSockets).toBe(equipment.unlockedSockets);
 					expect(edit.socketItems).toEqual(current);
@@ -152,10 +125,6 @@ describe("max equipment", () => {
 				}
 				expect(edit.socketItems).toHaveLength(5);
 
-				// Gear only where it fits, never removed, and a locked socket
-				// keeps exactly what it held. A duplicate is only a problem when
-				// the engine would re-check it: either one of the pair is being
-				// re-staged, or neither is.
 				const fitted = edit.socketItems.filter(
 					(gearKey): gearKey is number => gearKey !== null,
 				);
@@ -174,7 +143,6 @@ describe("max equipment", () => {
 					expect(restaged(index)).toBe(restaged(twin));
 				});
 
-				// A record already at its ceiling stages nothing.
 				const changed =
 					edit.refinement !== equipment.refinement ||
 					edit.unlockedSockets !== equipment.unlockedSockets ||
@@ -222,9 +190,6 @@ describe("max equipment", () => {
 						untouched += 1;
 						continue;
 					}
-					// A replacement of gear the item can take must be a higher
-					// tier of the same family — never a sideways move, and never
-					// a lower one.
 					upgraded += 1;
 					expect(planned).not.toBeNull();
 					expect(familyOf(rules, planned as number)).toBe(
@@ -235,8 +200,6 @@ describe("max equipment", () => {
 					);
 				}
 
-				// A socket that was empty or unusable ends up with a top-tier
-				// item that fits it.
 				const roomToFill = Array.from(
 					{ length: edit.unlockedSockets },
 					(_, index) => index,
@@ -266,8 +229,6 @@ describe("max equipment", () => {
 	test("the engine takes the plan for a whole storage", async () => {
 		const rules = await abyssGearRulesTable();
 		const before = await describeInventory(await opened(endgame));
-		// The smallest plan that changes something keeps the round-trip cheap;
-		// applying one edit re-encrypts and re-parses the whole save.
 		const [chosen] = equipmentStorages(before)
 			.map((inventoryKey) => ({
 				inventoryKey,
@@ -299,7 +260,6 @@ describe("max equipment", () => {
 			expect(equipment.socketItems).toEqual(edit.socketItems);
 		}
 
-		// Nothing left to raise on the result, so pressing twice is pressing once.
 		const again = maxEquipmentEdits({
 			records: after.records,
 			inventoryKey: storage.inventoryKey,
@@ -310,7 +270,6 @@ describe("max equipment", () => {
 
 	test("leaves sockets alone when the item's cap or equip type is unknown", async () => {
 		const rules = await abyssGearRulesTable();
-		// Visione: refinable to 10, one socket, cap unknown in this scenario.
 		const known = {
 			inventoryKey: 2,
 			itemNo: 1,
@@ -338,8 +297,6 @@ describe("max equipment", () => {
 		expect(edits[0]?.unlockedSockets).toBe(1);
 		expect(edits[0]?.socketItems).toEqual([1002785, null, null, null, null]);
 
-		// An item the rules cannot place gear on is skipped while it holds gear,
-		// because the engine re-checks every socket it already carries.
 		const unknown = {
 			...known,
 			itemKey: 999_999_999,
@@ -352,7 +309,6 @@ describe("max equipment", () => {
 });
 
 describe("randomized sockets", () => {
-	/** The highest tier each family reaches, over the whole gear table. */
 	const bestTiers = async (): Promise<Map<string, number>> => {
 		const rules = await abyssGearRulesTable();
 		const best = new Map<string, number>();
@@ -376,8 +332,6 @@ describe("randomized sockets", () => {
 		let unexplained = 0;
 
 		for (const inventoryKey of equipmentStorages(before)) {
-			// A fixed generator keeps the run reproducible while still varying
-			// which candidate each socket draws.
 			let seed = 7;
 			const { edits } = maxEquipmentEdits({
 				records: before.records,
@@ -394,9 +348,6 @@ describe("randomized sockets", () => {
 				const current =
 					defined(original.get(keyOf(edit)), "record").equipment?.socketItems ??
 					[];
-				// A record whose refinement moved but whose sockets were refused
-				// keeps its layout exactly: `applicable` rejected the plan, so no
-				// socket rule applies to it.
 				const socketsUntouched = edit.socketItems.every(
 					(gearKey, index) => gearKey === (current[index] ?? null),
 				);
@@ -415,9 +366,6 @@ describe("randomized sockets", () => {
 						}
 						return;
 					}
-					// A lower tier survives only where the upgrade would clone a
-					// gear item into a second socket — the engine refuses that, and
-					// the save already held the same item in more than one socket.
 					const sameFamilyHeld = current.filter(
 						(held, position) =>
 							held !== null &&
@@ -430,7 +378,6 @@ describe("randomized sockets", () => {
 		}
 
 		expect(planned).toBeGreaterThan(0);
-		// The rule only bites if tiered families actually came up.
 		expect(higherTierFamilies).toBeGreaterThan(0);
 		expect(unexplained).toBe(0);
 	}, 60_000);
@@ -441,9 +388,6 @@ describe("randomized sockets", () => {
 		const original = byKey(before.records);
 		let checked = 0;
 
-		// Planning the whole save is the interesting part; the engine round-trip
-		// costs a full re-encrypt per edit, so only one storage's plan is run
-		// through it. The other storages are checked structurally.
 		const storages = equipmentStorages(before);
 		for (const inventoryKey of storages) {
 			let seed = 42;
@@ -470,8 +414,6 @@ describe("randomized sockets", () => {
 				}
 				edit.socketItems.forEach((gearKey, index) => {
 					const socketed = current[index] ?? null;
-					// Nothing is removed, and a duplicate is only ever an
-					// existing pair the save already held.
 					if (socketed !== null) expect(gearKey).not.toBeNull();
 					if (gearKey !== null && edit.socketItems.indexOf(gearKey) !== index) {
 						expect(socketed).toBe(gearKey);
@@ -482,7 +424,6 @@ describe("randomized sockets", () => {
 
 		expect(checked).toBeGreaterThan(0);
 
-		// The engine accepts a randomized plan outright.
 		const smallest = storages
 			.map((inventoryKey) => {
 				let seed = 5;
@@ -539,7 +480,6 @@ describe("randomized sockets", () => {
 		const second = JSON.stringify(staged(99).map((edit) => edit.socketItems));
 		expect(first).not.toBe(second);
 
-		// The default is still the deterministic strongest-first plan.
 		const strongest = JSON.stringify(
 			maxEquipmentEdits({ records: before.records, inventoryKey: 8, rules })
 				.edits,
@@ -577,8 +517,6 @@ describe("randomized sockets", () => {
 					"equipment",
 				);
 				const current = equipment.socketItems;
-				// Every unlocked position ends up holding something: a reroll must
-				// not leave a socket empty just because it had gear before.
 				for (let index = 0; index < edit.unlockedSockets; index++) {
 					filledSockets += 1;
 					if (edit.socketItems[index] === null) {
@@ -594,8 +532,6 @@ describe("randomized sockets", () => {
 			}
 		}
 
-		// A socket that already held gear has to be rerollable, or the button
-		// only ever fills empty slots.
 		expect(heldSockets).toBeGreaterThan(0);
 		expect(socketsRerolled).toBeGreaterThan(0);
 		expect(filledSockets).toBeGreaterThan(socketsRerolled);
@@ -621,8 +557,6 @@ describe("randomized sockets", () => {
 				const held = edit.socketItems
 					.slice(0, edit.unlockedSockets)
 					.filter((gearKey) => gearKey !== null);
-				// A five-socket item with a large candidate pool must come back
-				// full — the whole point of "randomize all sockets".
 				expect(held.length).toBe(edit.unlockedSockets);
 			}
 		}

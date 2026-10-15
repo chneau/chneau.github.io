@@ -17,7 +17,7 @@
 		"start:tails-of-iron-2-save-editor": "rsbuild dev --environment tails-of-iron-2-save-editor",
 		"start:witcher-3-save-editor": "rsbuild dev --environment witcher-3-save-editor",
 		"clean": "rm -rf dist out build",
-		"build": "bun run clean && bun run generate && rsbuild build && cp README.md dist/",
+		"build": "bun run clean && bun run generate && rsbuild build",
 		"build:cv": "bun run clean && bun run generate && rsbuild build --environment cv",
 		"build:birthday": "bun run clean && bun run generate && rsbuild build --environment birthday",
 		"build:scotland-rail": "bun run clean && bun run generate && rsbuild build --environment scotland-rail",

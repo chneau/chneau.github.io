@@ -30,18 +30,8 @@ type PanelProps = {
 	onStage: (edits: DyeEdit[]) => void;
 };
 
-/**
- * The fallback for a save that has no dyed equipment.
- *
- * Module-level because the memo below depends on this list, and an inline
- * `?? []` is a fresh array on every render — which would make the memo
- * recompute on every keystroke for exactly the case where there is nothing to
- * pick. Nothing mutates it; the panel only finds in it and reads its first
- * entry.
- */
 const NO_ITEMS: readonly DyedItem[] = [];
 
-/** The value the save holds for one channel of one part. */
 const storedChannel = (
 	slot: DyeSlot | undefined,
 	name: keyof DyeChannels,
@@ -63,19 +53,11 @@ const storedChannel = (
 const sameItem = (edit: DyeEdit, item: DyedItem): boolean =>
 	edit.itemNo === item.itemNo && edit.slotNo === item.slotNo;
 
-/**
- * The staged whole-item change for `item`, if one is queued.
- *
- * A change with `slotIndices: null` applies to every part, which is what makes
- * the "All parts" button and the warning under the table the same fact seen
- * twice.
- */
 const bulkEditFor = (edits: DyeEdit[], item: DyedItem): DyeEdit | undefined =>
 	edits.find(
 		(candidate) => sameItem(candidate, item) && candidate.slotIndices === null,
 	);
 
-/** The staged change for exactly one part of `item`. */
 const partEditFor = (
 	edits: DyeEdit[],
 	item: DyedItem,
@@ -88,7 +70,6 @@ const partEditFor = (
 			candidate.slotIndices[0] === index,
 	);
 
-/** Every staged channel for one part, as the row reads them. */
 const channelsOf = (
 	edits: DyeEdit[],
 	item: DyedItem,
@@ -108,16 +89,6 @@ const channelsOf = (
 		: EMPTY_CHANNELS;
 };
 
-/**
- * Equipment dyeing, part by part.
- *
- * Only gear that has been dyed in-game carries dye rows, and each row stores
- * only the channels that part actually uses — a part that tints without a
- * material has no material to change. Channels the save does not store show as
- * "not stored" and cannot be set: writing one means restructuring a record
- * nested inside the equipment block, which this editor will not do to a save it
- * cannot test in-game. Dye the item once in-game and it becomes editable here.
- */
 export const DyesPanel = ({
 	description,
 	edits,
@@ -127,10 +98,6 @@ export const DyesPanel = ({
 }: PanelProps) => {
 	const [picked, setPicked] = useState<string | null>(null);
 	const items = description?.items ?? NO_ITEMS;
-	/**
-	 * The chosen item falls back to the first one, so the panel opens on real
-	 * dye rows rather than an empty table that fills in after a render.
-	 */
 	const item = useMemo(
 		() =>
 			items.find((candidate) => `${candidate.itemNo}` === picked) ??
@@ -143,9 +110,6 @@ export const DyesPanel = ({
 	const stagePart = (index: number, patch: Partial<DyeChannels>) => {
 		if (!item) return;
 		const slot = item.slots[index];
-		// A channel set back to the value the save already holds is dropped: the
-		// applier refuses an edit that changes nothing, and one redundant
-		// keystroke should not fail the whole download.
 		const normalized: Partial<DyeChannels> = {};
 		for (const [key, value] of Object.entries(patch)) {
 			const name = key as keyof DyeChannels;
@@ -156,8 +120,6 @@ export const DyesPanel = ({
 			...channelsOf(edits, item, index),
 			...normalized,
 		};
-		// The whole-item change goes first, then every part change that is not
-		// this one, so a part edited afterwards wins over its own item's bulk edit.
 		const others = edits.filter(
 			(candidate) =>
 				!sameItem(candidate, item) ||

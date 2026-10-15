@@ -30,11 +30,6 @@ const definition = (menu: string, name: string): ItemDefinition => ({
 
 const image = (n: number) => `https://example.test/pub-${n}.jpg`;
 
-/**
- * Enough rows that the "show more" pager appears (the component pages at 100).
- * "Wine" sorts after "Drinks" and "Food", so the named rows under test stay on
- * the first page.
- */
 const LONG_MENU = "Wine";
 const LONG_ROWS = 120;
 const longMenu = (count: number): Record<string, number> =>
@@ -42,11 +37,6 @@ const longMenu = (count: number): Record<string, number> =>
 		Array.from({ length: count }, (_, index) => [`Wine ${index}`, 5]),
 	);
 
-/**
- * Pub A sells Food and Drinks, has four photos and a 120-item menu; pub B sells
- * only Food, has one photo and three items. Switching from A to B without
- * remounting is what the per-pub state reset has to cope with.
- */
 const cache: SpoonersCache = {
 	venueList: [],
 	items: {
@@ -109,11 +99,6 @@ const format: Formatter = {
 	convertMetric: (_kind, value) => value,
 };
 
-/**
- * App.tsx renders VenueModal unconditionally and only flips `opened`, so the
- * harness does the same: one mounted instance for the whole test. Closing and
- * re-opening the same pub is how a shared link re-enters the modal.
- */
 const Harness = () => {
 	const [venueRef, setVenueRef] = useState<number | null>(1);
 	return (
@@ -141,12 +126,9 @@ const Harness = () => {
 	);
 };
 
-/** Queries against the rendered tree, including Mantine's modal portal. */
 const view = async () => {
 	const result = render(<Harness />);
 	const root = () => within(result.baseElement);
-	// The mount is wrapped so Mantine's open transition cannot update state
-	// after the assertions have started.
 	await act(async () => {
 		await waitFor(() => {
 			expect(root().getByText("Pub A")).toBeTruthy();
@@ -163,14 +145,12 @@ const view = async () => {
 			Array.from(result.baseElement.querySelectorAll("img"))
 				.map((node) => node.getAttribute("src"))
 				.filter((src): src is string => Boolean(src)),
-		/** Menu rows currently rendered (one "Show only X" button each). */
 		rows: () => root().queryAllByRole("button", { name: /Show only/ }).length,
 	};
 };
 
 type View = Awaited<ReturnType<typeof view>>;
 
-/** A click plus a microtask, so React has flushed the state update. */
 const click = async (element: Element) => {
 	await act(async () => {
 		fireEvent.click(element);
@@ -184,23 +164,17 @@ const openPub = async (v: View, label: "open pub A" | "open pub B") => {
 describe("VenueModal starts each pub fresh", () => {
 	test("the menu filter does not leak into the next pub", async () => {
 		const v = await view();
-		// Chip.Group renders each menu as a radio.
 		await click(v.q("radio", "Food"));
-		// Pub A filtered to Food: only the curry row remains.
 		expect(v.byText(/^Curry$/)).toBeTruthy();
 		expect(v.byText(/^Lager$/)).toBeNull();
 
 		await openPub(v, "open pub B");
-		// Without the reset pub B would still be filtered - and the report is
-		// that a filter naming a menu this pub lacks renders zero rows and
-		// "Nothing matched.".
 		expect(v.byText("Nothing matched.")).toBeNull();
 		expect(v.byText(/^Curry$/)).toBeTruthy();
 	});
 
 	test("a filter naming a menu this pub does not sell does not blank it", async () => {
 		const v = await view();
-		// "Drinks" is pub A's other menu; pub B does not sell it at all.
 		await click(v.q("radio", "Drinks"));
 		expect(v.byText(/^Lager$/)).toBeTruthy();
 		expect(v.byText(/^Curry$/)).toBeNull();
@@ -220,19 +194,15 @@ describe("VenueModal starts each pub fresh", () => {
 
 	test("a hero photo index from another pub still shows a photo", async () => {
 		const v = await view();
-		// Pick the 4th of pub A's four photos.
 		await click(v.q("img", "Pub A photo 4"));
 
 		await openPub(v, "open pub B");
-		// Pub B has one photo; a stale index made `images[hero]` undefined,
-		// which VenueImage renders as an empty placeholder box.
 		expect(v.imageSources()).toContain(image(9));
 	});
 
 	test("an expanded row does not leak into the next pub", async () => {
 		const v = await view();
 		await click(v.q("button", "Curry"));
-		// The expanded row shows the "Full details" affordance.
 		expect(v.byText(/Full details & best value/)).toBeTruthy();
 
 		await openPub(v, "open pub B");
@@ -246,8 +216,6 @@ describe("VenueModal starts each pub fresh", () => {
 		expect(v.rows()).toBe(122);
 
 		await openPub(v, "open pub B");
-		// Pub B has three items; a stale limit is invisible here, so assert the
-		// pager is gone rather than the row count.
 		expect(v.byText(/^Show \d+ more/)).toBeNull();
 		expect(v.rows()).toBe(1);
 	});

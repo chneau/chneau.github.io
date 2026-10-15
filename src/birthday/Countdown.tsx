@@ -24,20 +24,6 @@ const HOUR_MS = 60 * 60 * SECOND_MS;
 
 type TFunction = ReturnType<typeof useTranslation>["t"];
 
-/**
- * A clock that neither drifts nor lies.
- *
- * `setInterval(fn, 1000)` reschedules 1000ms after the *previous callback
- * returned*, so any work inside it is added to every period and the displayed
- * value creeps later. Worse, browsers throttle timers in a background tab to
- * roughly one a minute: the digits would sit frozen showing a time up to a
- * minute out of date, and nothing would fix it until the next lucky tick.
- *
- * So the timeout is rescheduled from the wall clock — aligned to the next
- * whole boundary of `periodMs`, so a slow frame costs a fraction of a tick
- * instead of a whole one — and a `visibilitychange` resync corrects the value
- * the instant the tab comes back to the foreground.
- */
 const useNow = (periodMs: number): number => {
 	const [now, setNow] = useState(() => Date.now());
 
@@ -84,25 +70,9 @@ const unitsFor = (diff: number, t: TFunction): CountUnit[] => {
 		{ id: "m", label: t("app.countdown.mins"), value: dur.minutes() },
 		{ id: "s", label: t("app.countdown.secs"), value: dur.seconds() },
 	];
-	// A leading "00 Days" is noise; every unit below the first non-zero one is
-	// worth keeping, because that is the part actually counting down.
 	return units.filter((unit, index) => index !== 0 || unit.value > 0);
 };
 
-/**
- * What a screen reader is told, as opposed to what is shown.
- *
- * The original put `aria-live="polite"` on the digits, which asks an assistive
- * technology to interrupt the user once a second, for as long as the page is
- * open — the most hostile possible use of a live region. The digits are now
- * ordinary readable text with no live semantics, and this coarse summary is
- * the only thing announced.
- *
- * It carries the largest non-zero unit and nothing finer, so it changes at
- * most once an hour. Inside the final hour it is empty: the remaining time is
- * a number of seconds, there is no coarse way to say that, and repeating
- * "0 hours" every minute is exactly the noise this is avoiding.
- */
 const announcementFor = (diff: number, t: TFunction): string => {
 	if (diff < HOUR_MS) return "";
 	const hours = Math.floor(diff / HOUR_MS);
@@ -110,14 +80,6 @@ const announcementFor = (diff: number, t: TFunction): string => {
 	return `${Math.floor(hours / 24)} ${t("app.countdown.days")}`;
 };
 
-/**
- * The only part of the hero that re-renders on a clock.
- *
- * Isolated and memoised so that ticking the seconds does not re-run the
- * dataset-wide `tracked.find` / `tracked.filter` in the parent, nor re-diff
- * the pills, the stat lines and the magnetic button fifty times a minute.
- * `deadline` is a number, so the prop comparison is exact.
- */
 const CountdownDigits = memo(({ deadline }: { deadline: number }) => {
 	const { t } = useTranslation();
 	const now = useNow(SECOND_MS);
@@ -126,8 +88,6 @@ const CountdownDigits = memo(({ deadline }: { deadline: number }) => {
 
 	return (
 		<>
-			{/* `role="status"` is `aria-live="polite"` with `aria-atomic`, and is
-			    the only live region here. Its text changes at most hourly. */}
 			<p className="sr-only" role="status">
 				{announcementFor(diff, t)}
 			</p>
@@ -161,25 +121,9 @@ type CountdownProps = {
 export const Countdown = ({ birthdays, onManage }: CountdownProps) => {
 	const { t } = useTranslation();
 	const magneticRef = useMagnetic<HTMLDivElement>(0.14);
-	// `withRowKeys` comes from `BirthdayTable`: `Birthday` carries no id, so a
-	// record's React key is a fingerprint of what it shows plus an occurrence
-	// index, which is collision-free even for two records sharing a name and a
-	// date. Memoised before the early return below.
 	const keyed = useMemo(() => withRowKeys(birthdays), [birthdays]);
 	const primary = keyed[0]?.record;
 
-	/**
-	 * The four dataset-wide scans below used to sit in a `useMemo` with an empty
-	 * dependency array, under a comment saying they were "keyed on its identity".
-	 * They were not: `tracked` was the imported module binding, so the people
-	 * count, the this-month count, the wedding count and the next milestone's
-	 * name were computed once at mount and never again — stale until a full
-	 * remount, while the memo six lines above (which does carry `[birthdays]`)
-	 * refreshed correctly. The two sat side by side looking identical.
-	 *
-	 * `tsc` cannot see this and `exhaustive-deps` cannot either, because the
-	 * read is an imported binding rather than a prop or state.
-	 */
 	const tracked = useTrackedBirthdays();
 	const { nextMilestone, thisMonth, weddings, people } = useMemo(() => {
 		const milestone = tracked.find(
@@ -219,8 +163,6 @@ export const Countdown = ({ birthdays, onManage }: CountdownProps) => {
 	}
 
 	const isToday = primary.daysBeforeBirthday === 0;
-	// A plain number, so `CountdownDigits`' memo is exact, and derived without
-	// a hook because it cannot be: this line sits after the early return above.
 	const deadline = (
 		isToday
 			? dayjs(primary.nextBirthday).endOf("day")

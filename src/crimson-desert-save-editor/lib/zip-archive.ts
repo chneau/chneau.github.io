@@ -1,11 +1,3 @@
-/**
- * Minimal read-only ZIP reader for the in-memory picture archive.
- *
- * Handles the stored (0) and deflate (8) methods, which is everything the
- * committed picture archives in `assets/image-archive/` use. It reads only the
- * central directory plus, later, the bytes of the entries that are asked for,
- * so no third-party dependency is needed and nothing touches the disk.
- */
 export type ZipEntry = {
 	name: string;
 	method: number;
@@ -40,7 +32,6 @@ const findEndOfCentralDirectory = (view: DataView, length: number): number => {
 	throw new Error("Not a ZIP archive: end of central directory not found");
 };
 
-/** Reads the central directory into a name -> entry map without inflating anything. */
 export const readZipDirectory = (
 	bytes: Uint8Array<ArrayBuffer>,
 ): Map<string, ZipEntry> => {
@@ -83,7 +74,6 @@ export const readZipDirectory = (
 	return entries;
 };
 
-/** Returns the raw stored bytes, or inflates a deflated entry. */
 export const readZipEntry = async (
 	bytes: Uint8Array<ArrayBuffer>,
 	entry: ZipEntry,

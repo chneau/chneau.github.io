@@ -256,11 +256,6 @@ export const SettingsModal = ({
 				/>
 
 				{confirmingReset ? (
-					// An inline confirmation, not a dialog: it sits in the drawer's
-					// column and takes no backdrop, no focus trap and no Escape
-					// handling. `role="alertdialog"` would promise all three, so it is
-					// the fieldset it actually is — the destructive action's own
-					// question, labelled where it appears.
 					<fieldset
 						aria-label="Confirm reset settings"
 						style={{

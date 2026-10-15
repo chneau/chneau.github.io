@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/companion_reader.py`.
- */
-
 import { readU16, readU32 } from "./bytes";
 import { defined } from "./defined";
 import { listLayout, locator, relativizeInlinePointers } from "./parc";
@@ -25,7 +21,6 @@ export type ClanLayout = {
 	records: CompanionRecord[];
 };
 
-/** Read identity/state prefix; post-list scalar decoding is not established. */
 export const readClan = (raw: Uint8Array): ClanLayout => {
 	const parc = parseParcBlob(raw);
 	const parser = new BlockParser(parc);
@@ -71,7 +66,6 @@ export const readClan = (raw: Uint8Array): ClanLayout => {
 				kind.fields[fieldIndex],
 				"companion field definition",
 			);
-			// Empty list markers serialize even without a presence bit.
 			if (definition.metaKind === 6 || definition.metaKind === 7) break;
 			if (
 				Math.floor(fieldIndex / 8) >= mask.length ||
@@ -119,7 +113,6 @@ type CompanionLocator = {
 	type: TypeDef;
 };
 
-/** Identify every self-pointing full locator; reject any ambiguous sentinel. */
 export const recordLocators = (
 	raw: Uint8Array,
 	record: CompanionRecord,
@@ -188,12 +181,6 @@ const findSentinel = (raw: Uint8Array, from: number, end: number): number => {
 	return -1;
 };
 
-/**
- * Rewrites inline self-pointers so they are relative to `base`.
- *
- * `base` is the record's absolute position, so a clone can be compared against
- * a record parsed from the edited buffer (which sits at a different offset).
- */
 export const normalizeCompanionBytes = (
 	blob: Uint8Array,
 	base: number,

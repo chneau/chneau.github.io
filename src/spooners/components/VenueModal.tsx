@@ -75,18 +75,14 @@ type Props = {
 	onClose: () => void;
 	venueRef: number | null;
 	cache: SpoonersCache;
-	/** Replace the whole round with this item. */
 	onSelectItem: (name: string) => void;
-	/** Add one of this item to the round. */
 	onAddItem: (name: string) => void;
-	/** Open the full item detail modal. */
 	onItem: (name: string) => void;
 	format: Formatter;
 };
 
 const PAGE = 100;
 
-/** One contact line: an icon, then a link rendered by the caller. */
 const ContactLink = ({
 	icon,
 	href,
@@ -106,11 +102,6 @@ const ContactLink = ({
 	</Text>
 );
 
-/**
- * The gallery: the chosen photo plus a strip of thumbnails when there is a
- * choice. Picking a photo here must not change the modal's own state, or a
- * photo chosen in one pub would follow the visitor to the next.
- */
 const VenueGallery = ({
 	images,
 	name,
@@ -128,8 +119,6 @@ const VenueGallery = ({
 	return (
 		<Box>
 			<VenueImage
-				// A photo picked in another pub can point past this pub's gallery;
-				// never fall through to the placeholder when a photo exists.
 				src={images[hero] ?? images[0]}
 				alt={name}
 				width="100%"
@@ -165,7 +154,6 @@ const VenueGallery = ({
 	);
 };
 
-/** Opening hours, with today called out, beside the facilities list. */
 const VenueHours = ({
 	days,
 	facilities,
@@ -219,7 +207,6 @@ const VenueHours = ({
 	</>
 );
 
-/** One "best here" column: the top five rows for one value metric. */
 const ValueColumn = ({
 	title,
 	rows,
@@ -261,7 +248,6 @@ const ValueColumn = ({
 	</Stack>
 );
 
-/** The API's own capability flags, as badges. */
 const VenueCapabilityBadges = ({
 	detail,
 	currency,
@@ -319,7 +305,6 @@ const VenueCapabilityBadges = ({
 	</Group>
 );
 
-/** Published dietary-menu links for this pub. */
 const VenueDietaryLinks = ({ detail }: { detail: VenueDetail | null }) => (
 	<Group gap="md" wrap="wrap">
 		{detail?.allergensUrl ? (
@@ -352,7 +337,6 @@ const VenueDietaryLinks = ({ detail }: { detail: VenueDetail | null }) => (
 	</Group>
 );
 
-/** One menu line: its portions, the two per-item actions, and its expanded facts. */
 const MenuLine = ({
 	row,
 	header,
@@ -367,7 +351,6 @@ const MenuLine = ({
 	onItem,
 }: {
 	row: MenuRow;
-	/** Set on the first row of each menu · category group, `null` for the rest. */
 	header: string | null;
 	currency: string;
 	added: boolean;
@@ -461,18 +444,6 @@ const MenuLine = ({
 	</Box>
 );
 
-/**
- * Everything known about one pub: address, hours, facilities and full menu.
- *
- * App.tsx renders this unconditionally and only flips `opened`, so the modal
- * itself survives a switch from one pub to the next. The per-pub state (query,
- * sort, pager, hero photo, expanded row, menu filter) lives in `VenueModalBody`
- * instead, keyed on `opened`/`venueRef`: a key change remounts it, so each pub
- * starts fresh by construction. The previous shape held that state here and
- * wiped all of it from an effect on `opened`/`venueRef`, which cost an extra
- * render showing the previous pub's filter over the new pub's menu — a filter
- * naming a menu this pub does not sell rendered "Nothing matched." for a frame.
- */
 export const VenueModal = ({
 	opened,
 	onClose,
@@ -506,10 +477,8 @@ export const VenueModal = ({
 	);
 };
 
-/** `opened` is the wrapper's business: the body is keyed on it, not driven by it. */
 type BodyProps = Omit<Props, "opened">;
 
-/** The pub's menu, with its own filter box, sort, menu chips and pager. */
 const VenueMenu = ({
 	rows,
 	menus,
@@ -636,11 +605,6 @@ const VenueMenu = ({
 	);
 };
 
-/**
- * Everything above the menu: how the pub presents itself, where it is, when it
- * opens, what it can do, and the two best-value lists. Kept apart from the menu
- * because none of it changes when the menu is filtered or paged.
- */
 const VenueOverview = ({
 	entry,
 	hero,
@@ -841,7 +805,6 @@ const VenueModalBody = ({
 	);
 
 	if (!entry) {
-		// The title comes from the wrapper, which falls back to "Pub" here too.
 		return <Text c="dimmed">No data for this pub.</Text>;
 	}
 

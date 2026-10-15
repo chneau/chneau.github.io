@@ -1,7 +1,6 @@
 import type { Category } from "./data/types";
 import { clampReplayTime } from "./utils";
 
-/** Playback speeds offered by the UI (and accepted from deep links). */
 const SPEEDS = [0.5, 1, 2, 5, 15] as const;
 
 type Speed = (typeof SPEEDS)[number];
@@ -27,7 +26,6 @@ type RailUrlState = {
 	query?: string;
 };
 
-/** Parse the shareable subset of the store from the current query string. */
 export const readUrlState = (): RailUrlState => {
 	if (typeof window === "undefined") return {};
 	const params = new URLSearchParams(window.location.search);
@@ -69,10 +67,6 @@ type RailUrlValues = {
 	query: string;
 };
 
-/**
- * Persist the shareable store values, preserving any unrelated query params
- * that other features may have added.
- */
 export const writeUrlState = (values: RailUrlValues): void => {
 	if (typeof window === "undefined") return;
 	const params = new URLSearchParams(window.location.search);
@@ -82,8 +76,6 @@ export const writeUrlState = (values: RailUrlValues): void => {
 		else params.set(key, value);
 	};
 
-	// `clampReplayTime` is the same clamp the store applies, so the value
-	// written here always reads back as the clock the user was looking at.
 	const time = clampReplayTime(values.timeOffset);
 	setOrDelete("t", time === DEFAULT_TIME ? null : String(time));
 	setOrDelete(
@@ -101,12 +93,7 @@ export const writeUrlState = (values: RailUrlValues): void => {
 	const url = `${window.location.pathname}${
 		query ? `?${query}` : ""
 	}${window.location.hash}`;
-	// Safari throttles `replaceState` (≈100 calls / 30 s) and throws a
-	// `SecurityError` once the budget is exhausted. Never let URL mirroring
-	// take down the replay: a stale address bar is harmless, a crash is not.
 	try {
 		window.history.replaceState(null, "", url);
-	} catch {
-		// ignore SecurityError / DataCloneError from aggressive URL syncing
-	}
+	} catch {}
 };

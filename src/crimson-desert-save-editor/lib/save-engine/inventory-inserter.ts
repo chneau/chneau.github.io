@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/inventory_inserter.py`.
- */
-
 import { concatBytes, readU32, writeI64, writeU16, writeU32 } from "./bytes";
 import { defined } from "./defined";
 import { readInventory } from "./inventory-reader";

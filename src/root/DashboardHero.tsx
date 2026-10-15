@@ -14,11 +14,9 @@ const greetingFor = (date: Date) => {
 };
 
 type DashboardHeroProps = {
-	/** Current time, refreshed on a timer by the dashboard. */
 	now: Date;
 };
 
-/** The greeting, date and headline stats above the toolbar. */
 export const DashboardHero = ({ now }: DashboardHeroProps) => (
 	<section className="app-hero">
 		<span className="app-hero__eyebrow">

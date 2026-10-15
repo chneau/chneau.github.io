@@ -14,20 +14,6 @@ import {
 	togglePinned,
 } from "../recent";
 
-/**
- * The persistence layer promises three things the UI depends on: stored lists
- * stay bounded, a corrupt or hostile payload degrades to an empty list instead
- * of throwing, and blocked storage falls back to memory without crashing.
- */
-
-/**
- * A complete, self-contained `Storage` for the duration of each test.
- *
- * `bun test` runs every suite in one process, and other suites install their own
- * `localStorage` stubs on `globalThis` that are not interchangeable with
- * happy-dom's. Installing a real, fully-formed `Storage` here keeps these tests
- * independent of load order and of whichever suite ran before them.
- */
 const installStorage = (): Map<string, string> => {
 	const backing = new Map<string, string>();
 	const storage: Storage = {
@@ -160,7 +146,6 @@ describe("corrupt payload tolerance", () => {
 });
 
 describe("storage-unavailable tolerance", () => {
-	/** Replace `localStorage` with one that throws on every operation. */
 	const withBlockedStorage = (run: () => void) => {
 		const original = Object.getOwnPropertyDescriptor(window, "localStorage");
 		const boom = () => {
@@ -198,7 +183,6 @@ describe("storage-unavailable tolerance", () => {
 			expect(() =>
 				writePersisted<string[]>("t:pinned", ["/cv/"]),
 			).not.toThrow();
-			// The value is still readable in this session, just not persisted.
 			expect(readPersisted("t:pinned", [] as string[])).toEqual(["/cv/"]);
 		});
 	});

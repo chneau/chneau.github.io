@@ -6,10 +6,6 @@ import "../../shared/base.css";
 import { mountApp } from "../../shared/mountApp";
 import { Home } from "./page";
 
-/**
- * Burnt ember, for a game about a dying world that will not let you rest. Index
- * 5 is the dark-scheme shade, 6 the light-scheme one.
- */
 const brand: MantineColorsTuple = [
 	"#fdf0e9",
 	"#f8e0d5",

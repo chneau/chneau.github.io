@@ -19,7 +19,6 @@ type Props = {
 	onClose: () => void;
 	settings: SpoonersSettings;
 	onChange: (settings: SpoonersSettings) => void;
-	/** Currency codes offered for conversion (GBP, EUR, USD, ...). */
 	currencies: string[];
 	rateDate: string | null;
 	rateSource: string;

@@ -5,15 +5,6 @@ import type { FormatNote, SaveEdit } from "../types";
 import { HexViewer } from "./HexViewer";
 import { JsonInspector } from "./JsonInspector";
 
-/**
- * The workspace's right-hand tab chrome: the inspector, the raw bytes, and the
- * format story.
- *
- * Split out of `SaveWorkbench` so the tab list and its three panels are one
- * unit. The panels take only what they render — the working document, the
- * staged paths, the search box — so a change to the tabs cannot reach into the
- * state machine.
- */
 export const SaveTabs = ({
 	tab,
 	onTabChange,

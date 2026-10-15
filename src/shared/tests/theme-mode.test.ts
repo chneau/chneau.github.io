@@ -9,7 +9,6 @@ import {
 	resolveColorMode,
 } from "../index";
 
-/** The hooks write to `<html>`; reset both datasets and storage between tests. */
 const reset = () => {
 	delete document.documentElement.dataset.theme;
 	delete document.documentElement.dataset.mantineColorScheme;
@@ -53,8 +52,6 @@ describe("applyColorMode", () => {
 describe("initTheme", () => {
 	test("defaults to the OS preference when nothing is stored", () => {
 		initTheme();
-		// happy-dom's matchMedia reports light by default; either way the result
-		// must be a concrete scheme, never `auto`.
 		expect(["light", "dark"]).toContain(
 			document.documentElement.dataset.theme ?? "",
 		);

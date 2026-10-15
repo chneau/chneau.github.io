@@ -12,24 +12,6 @@ import {
 } from "../lib/container-write";
 import { FIXTURE_TIMEOUT_MS, largeSave, smallSave } from "./fixtures";
 
-/**
- * Rebuilding the container: the envelope, and nothing else.
- *
- * This is the half of writing that has no clever trick behind it and is still
- * where a save gets lost. The chunk table is the only structure in the format
- * holding absolute *file* offsets — `endOffset` — and the table's rows are
- * rewritten from scratch on every rebuild, because a patch that compresses to a
- * different size shifts every row after it. A row written wrong does not throw:
- * it produces a file whose later blocks are read from the wrong place, which
- * decompresses to plausible-looking bytes that are not the save.
- *
- * So the tests here are about bookkeeping, asserted against the decompressed
- * payload rather than against the compressed bytes — comparing compressed bytes
- * would only prove that two compressors agree, and `src/shared/save/lz4.ts` is explicit
- * that they are not expected to.
- */
-
-/** Both fixtures, so every claim about the envelope is made against each. */
 const FIXTURES = (): readonly (readonly [string, Uint8Array])[] => [
 	["8559a", smallSave()],
 	["52586", largeSave()],
@@ -37,14 +19,6 @@ const FIXTURES = (): readonly (readonly [string, Uint8Array])[] => [
 
 describe("the container writer", () => {
 	test("writes a 3084-byte header, which is not the 3088 the arithmetic gives", () => {
-		// Sixteen fixed bytes (two magics, a chunk count and a header size) plus
-		// 256 table slots of 12 bytes is 16 + 3072 = 3088 arithmetically. The game
-		// writes **3084**, and its reader only requires
-		// `headerSize >= 16 + chunkCount * 12`, so a 3088 file parses perfectly here
-		// and would be a file the game may refuse. The decoder's own notes carry
-		// the 3088 identity, which is exactly why it is worth a test: the constant
-		// is easy to "correct" back to the tidy number by somebody reading the
-		// arithmetic rather than a save.
 		expect(HEADER_SIZE).toBe(3084);
 		expect(16 + 256 * 12).toBe(3088);
 		expect(HEADER_SIZE).not.toBe(16 + 256 * 12);
@@ -61,9 +35,6 @@ describe("the container writer", () => {
 			],
 			new Uint8Array(0),
 		);
-		// The header is written at the size the game uses, so the first block
-		// begins there rather than four bytes later. An empty payload compresses to
-		// a single token byte, which is the shortest legal block there is.
 		expect(file.length).toBe(HEADER_SIZE + 1);
 		const view = new DataView(file.buffer, file.byteOffset, file.byteLength);
 		expect(view.getUint32(12, true)).toBe(HEADER_SIZE);
@@ -97,11 +68,6 @@ describe("the container writer", () => {
 					decompressContainer(file).data,
 				);
 
-				// `parseContainer` validates the layout, including every `endOffset`
-				// against a walk of the `compressedSize` column — so reaching the end
-				// of this call without a throw *is* the assertion that the table was
-				// written correctly. It does not decompress, which is what makes it
-				// usable as a check on a multi-megabyte file.
 				const parsed = parseContainer(rebuilt);
 				expect({ label, chunkCount: parsed.chunkCount }).toEqual({
 					label,
@@ -123,10 +89,6 @@ describe("the container writer", () => {
 	test(
 		"rebuilds each fixture so the payload comes back byte for byte",
 		() => {
-			// The claim the whole editor rests on. An *unedited* save rebuilt through
-			// this writer must decompress to precisely the bytes it was read from: the
-			// compressor is free to choose different literals and different offsets,
-			// but it may not lose or reorder one.
 			for (const [label, file] of FIXTURES()) {
 				const payload = decompressContainer(file).data;
 				const rebuilt = buildContainer(parseContainer(file).chunks, payload);
@@ -135,8 +97,6 @@ describe("the container writer", () => {
 					label,
 					payloadBytes: payload.length,
 				});
-				// Compared in slices: spreading five million bytes into an array to
-				// diff them would cost more than the decode did.
 				let identical = true;
 				for (let index = 0; index < payload.length; index += 1) {
 					if (again.data[index] !== payload[index]) {
@@ -153,28 +113,12 @@ describe("the container writer", () => {
 	test(
 		"keeps the decompressedSize column unchanged, chunk for chunk",
 		() => {
-			// The sizes are what make a width-preserving edit safe. They are copied
-			// from the original table rather than recomputed from the rebuilt blocks,
-			// and if a rebuild ever derived them afresh they would follow the
-			// compressor's output instead — and the `SC` span index, which addresses
-			// the *decompressed* stream, would then be addressing a stream of a
-			// different length from the one the table describes.
 			for (const [label, file] of FIXTURES()) {
 				const before = parseContainer(file).chunks;
 				const rebuilt = buildContainer(before, decompressContainer(file).data);
 				const after = parseContainer(rebuilt).chunks;
-				// Compression is allowed to differ from the original — this LZ4 makes no
-				// attempt to match the game's — so there is nothing to compare the
-				// compressed column *to*. What is a contract is that the rebuilt table
-				// describes the rebuilt file: the blocks tile it exactly after the
-				// header. (The assertion here used to compare
-				// `after.map(compressedSize)` with itself, which cannot fail, while its
-				// comment claimed to check the decompressed column that the *next*
-				// assertion actually checks.)
 				expect({
 					label,
-					// header + every block, which must be the whole file with no gap and
-					// no overrun.
 					tiles: after.reduce((sum, chunk) => sum + chunk.compressedSize, 0),
 					fileBytes: rebuilt.length - parseContainer(rebuilt).headerSize,
 				}).toEqual({
@@ -202,11 +146,6 @@ describe("the container writer", () => {
 	);
 
 	test("rejects a payload that does not fill the chunk table", () => {
-		// The one guard against a caller handing over a truncated payload: a
-		// chunk whose `decompressedSize` runs past the end would otherwise be
-		// compressed from a short buffer and written as a block that decompresses
-		// to fewer bytes than the table claims, which `decompressContainer` then
-		// rejects — after the file has been built and, in a page, offered.
 		const chunk = {
 			index: 0,
 			compressedSize: 0,
@@ -217,19 +156,12 @@ describe("the container writer", () => {
 		expect(() => buildContainer([chunk], new Uint8Array(40))).toThrow(
 			/runs past the payload/,
 		);
-		// A payload that does fit is accepted, so the guard is on the overrun and
-		// not on the call itself.
 		expect(() => buildContainer([chunk], new Uint8Array(100))).not.toThrow();
 	});
 
 	test(
 		"refuses an edited payload whose length changed",
 		() => {
-			// The safety argument of this whole editor is that a width-preserving edit
-			// cannot move an offset. `rebuildFrom` is where that is enforced, and it
-			// has to be enforced rather than assumed: a payload one byte longer would
-			// produce a file whose `SC` span index and variable table now address a
-			// stream they no longer describe, and nothing downstream would notice.
 			const container = decompressContainer(smallSave());
 			expect(() => rebuildFrom(container, new Uint8Array(1))).toThrow(
 				/only same-width edits can be written/,
@@ -242,11 +174,6 @@ describe("the container writer", () => {
 	);
 
 	test("round-trips a container built from one hand-written chunk", () => {
-		// A synthetic envelope, so the table arithmetic is tested without a
-		// five-megabyte fixture in the way. Two chunks of different sizes, because
-		// a writer that assumed uniform chunks would pass on a save that happens
-		// to be uniform and fail on one that is not — and this game's last chunk
-		// is 914,021 bytes where the first four are 1,048,576.
 		const first = new Uint8Array(500).fill(0xa1);
 		const second = new Uint8Array(37).fill(0xb2);
 		const payload = new Uint8Array(first.length + second.length);
@@ -277,14 +204,7 @@ describe("the container writer", () => {
 		expect(parsed.chunks.map((chunk) => chunk.decompressedSize)).toEqual([
 			500, 37,
 		]);
-		// The final record's `endOffset` is a sentinel, and the reader treats a
-		// non-zero value there as a hard error — so reaching this line at all is
-		// already the assertion that the writer honours it.
 		expect(parsed.chunks[1]?.endOffset).toBe(0);
-		// The first record's is a real offset, into the *compressed* file: 500
-		// identical bytes occupy far fewer than 500 on disk, and writing 500 here
-		// would be a table that the reader rejects only because its own cross-check
-		// happens to disagree — the blocks themselves would still look fine.
 		expect(parsed.chunks[0]?.endOffset).toBe(
 			HEADER_SIZE + (parsed.chunks[0]?.compressedSize ?? 0),
 		);
@@ -297,11 +217,6 @@ describe("the container writer", () => {
 	test(
 		"holds the decompressed ceiling the reader enforces",
 		() => {
-			// A `decompressedSize` column is attacker-adjacent data: it goes straight
-			// into `new Uint8Array`. The reader caps it, and this asserts the cap is
-			// still there after the writer was added, because a writer that could be
-			// talked into emitting a larger ceiling would make the reader's guard
-			// decorative.
 			expect(MAX_DECOMPRESSED_BYTES).toBe(1 << 30);
 			expect(
 				MAX_DECOMPRESSED_BYTES > decompressContainer(smallSave()).data.length,
@@ -311,12 +226,6 @@ describe("the container writer", () => {
 	);
 
 	test("writes the compressor's own bytes into the file, unmodified", () => {
-		// The last layer of the envelope, pinned directly: what `buildContainer`
-		// places after the header must be byte-for-byte what the compressor
-		// returned for that chunk. Everything above this test — the table, the
-		// round trip — would still pass if the writer silently sliced or padded a
-		// block, because the decoder would refuse the result only later and with a
-		// message about the wrong thing.
 		const chunk = {
 			index: 0,
 			compressedSize: 0,

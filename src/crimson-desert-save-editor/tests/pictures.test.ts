@@ -1,22 +1,3 @@
-/**
- * The picture layout.
- *
- * Every Item and Companion picture is published as a path in a generated table
- * and stored in one of two committed ZIP parts, which part going by the first
- * hexadecimal digit of the file name. The packer that split them was deleted
- * (`54e2cd3b`), so the parts cannot be rebuilt here and nothing about them is
- * self-evident: a regenerated table, or a part re-split by a different rule,
- * would leave every affected icon silently blank.
- *
- * So this checks the join the browser makes at runtime, without a DOM: for every
- * path in both tables, the part the rule picks really holds that entry, and the
- * committed parts really are the count the reader assumes. `readZipDirectory`
- * parses each part's central directory only, so nothing here inflates a picture
- * or looks at artwork bytes.
- *
- * Run with `bun test`.
- */
-
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -28,7 +9,6 @@ import { readZipDirectory } from "../lib/zip-archive";
 
 const root = join(import.meta.dir, "..");
 
-/** The archives' own entry names carry no leading slash; the tables do. */
 const entryName = (path: string) => path.replace(/^\//, "");
 
 const part = (index: number) =>
@@ -48,8 +28,6 @@ describe("the picture layout", () => {
 		for (let index = 0; index < ARCHIVE_COUNT; index++) {
 			expect(part(index).size, `part ${index}`).toBeGreaterThan(0);
 		}
-		// One more than the count is where the layout would be missing a part,
-		// which is the failure a regenerated table could hide.
 		expect(() => part(ARCHIVE_COUNT)).toThrow();
 	});
 

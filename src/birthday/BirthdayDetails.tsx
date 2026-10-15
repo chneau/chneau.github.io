@@ -27,19 +27,9 @@ type BirthdayDetailsProps = {
 export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 	const { t } = useTranslation();
 	const [downloading, setDownloading] = useState(false);
-	// Inline as well as in a toast: a rasterise that fails after a few hundred
-	// milliseconds is easy to miss as a transient notification, and the click
-	// that caused it looks like a dead click without one.
 	const [cardError, setCardError] = useState<string | null>(null);
-	// A ref beats `getElementById(\`card-${record.name}\`)`: the name is free
-	// text and would have to survive being an id, and it is not unique enough
-	// to rely on across rows.
 	const cardRef = useRef<HTMLDivElement | null>(null);
 
-	// The four sets the info cards each read: who else is born on this day,
-	// who else carries this name, and which rows are indistinguishable from
-	// this one. They are computed here because they are all passes over the
-	// whole list, and the row owns when they happen.
 	const sharedNames = birthdays
 		.filter(
 			(b) =>
@@ -48,10 +38,6 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 				b.day === record.day,
 		)
 		.map((b) => b.name);
-	// Same-named rows are scored independently on their own element, so the
-	// "compatible" badges are not a claim about those people. A row that
-	// is duplicated outright cannot be told from its twin at all, and must not
-	// be presented as matching.
 	const sameNamedCount = getSameNamedRecords(birthdays, record).length;
 	const duplicateCount = getDuplicateRecords(birthdays, record).length;
 
@@ -67,9 +53,6 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 		try {
 			const html2canvas = (await import("html2canvas")).default;
 			const canvas = await html2canvas(element, {
-				// The card paints its own opaque background (see ShareCard), so
-				// there is nothing for html2canvas to fill in behind it — and
-				// nothing that could tie the export to the current theme.
 				backgroundColor: null,
 				scale: 2,
 				logging: false,
@@ -119,31 +102,18 @@ export const BirthdayDetails = ({ record }: BirthdayDetailsProps) => {
 				sameNamedCount={sameNamedCount}
 			/>
 
-			{/* Biorhythms Visual Chart */}
 			<div style={{ marginTop: 12 }}>
 				<Suspense fallback={<div style={{ minHeight: 180 }} />}>
 					<BiorhythmsChart birthday={record.birthday} />
 				</Suspense>
 			</div>
 
-			{/*
-			 * Offscreen purely so html2canvas has a laid-out node to
-			 * rasterise. It must stay *rendered* rather than `display: none`
-			 * or `visibility: hidden`: html2canvas skips anything whose
-			 * computed display/opacity/visibility says it is not painted, so
-			 * either would hand back an empty PNG.
-			 *
-			 * `aria-hidden` because it is a duplicate of content already on the
-			 * page, and screen readers should not meet it twice.
-			 */}
 			<div
 				aria-hidden="true"
 				style={{
 					position: "absolute",
 					left: "-9999px",
 					top: 0,
-					// Belt and braces: the node is off-canvas, but a stray
-					// pointer event on it would be invisible and unreachable.
 					pointerEvents: "none",
 				}}
 			>

@@ -1,25 +1,12 @@
 import { useEffect, useState } from "react";
 
-/**
- * The gallery's token manifest.
- *
- * The names are the only thing hard-coded here; every value is read back from
- * the live stylesheet at runtime (`tokens.css` via CSSOM + `getComputedStyle`)
- * so the guide can never drift from the design system it documents. The unit
- * test in `tokens.test.ts` asserts this list stays in step with `tokens.css`.
- */
-
 export type TokenDef = {
-	/** Custom-property name, e.g. `--app-radius-md`. */
 	name: string;
-	/** Human label rendered in the gallery. */
 	label: string;
 	category: "colour" | "shadow" | "radius" | "typography" | "motion" | "accent";
-	/** True when `tokens.css` declares a distinct dark-layer value. */
 	scheme?: boolean;
 };
 export const TOKEN_DEFS: readonly TokenDef[] = [
-	// ── colour + glass (scheme-aware) ───────────────────────────────
 	{ name: "--app-bg", label: "Background", category: "colour", scheme: true },
 	{
 		name: "--app-bg-deep",
@@ -64,7 +51,6 @@ export const TOKEN_DEFS: readonly TokenDef[] = [
 	{ name: "--app-warn", label: "Warning", category: "colour", scheme: true },
 	{ name: "--app-glass", label: "Glass", category: "colour", scheme: true },
 
-	// ── shadows (scheme-aware) ──────────────────────────────────────
 	{
 		name: "--app-shadow-sm",
 		label: "Shadow sm",
@@ -79,23 +65,19 @@ export const TOKEN_DEFS: readonly TokenDef[] = [
 		scheme: true,
 	},
 
-	// ── radii ───────────────────────────────────────────────────────
 	{ name: "--app-radius-xs", label: "Radius xs", category: "radius" },
 	{ name: "--app-radius-sm", label: "Radius sm", category: "radius" },
 	{ name: "--app-radius-md", label: "Radius md", category: "radius" },
 	{ name: "--app-radius-lg", label: "Radius lg", category: "radius" },
 	{ name: "--app-radius-pill", label: "Radius pill", category: "radius" },
 
-	// ── typography ──────────────────────────────────────────────────
 	{ name: "--app-font-sans", label: "Font sans", category: "typography" },
 	{ name: "--app-font-display", label: "Font display", category: "typography" },
 	{ name: "--app-font-mono", label: "Font mono", category: "typography" },
 
-	// ── motion ──────────────────────────────────────────────────────
 	{ name: "--app-ease", label: "Ease", category: "motion" },
 	{ name: "--app-speed", label: "Speed", category: "motion" },
 
-	// ── accent (Mantine-provided, per site) ─────────────────────────
 	{
 		name: "--mantine-primary-color-filled",
 		label: "Accent filled",
@@ -118,10 +100,8 @@ export const TOKEN_DEFS: readonly TokenDef[] = [
 	},
 ];
 
-/** Every token the gallery reads, accent layer included. */
 const TOKEN_NAMES: readonly string[] = TOKEN_DEFS.map((token) => token.name);
 
-/** Live value of one custom property on `<html>` for the current scheme. */
 const readToken = (name: string): string => {
 	if (typeof window === "undefined") return "";
 	return window
@@ -135,11 +115,6 @@ export type TokenLayers = {
 	dark: Record<string, string>;
 };
 
-/**
- * Read every `--app-*` custom property declared by the loaded stylesheets,
- * split into the light `:root` layer and the dark override. Going through the
- * CSSOM (rather than hard-coding hexes) is what keeps the gallery honest.
- */
 const readLayersFromStyleSheets = (): TokenLayers => {
 	const light: Record<string, string> = {};
 	const dark: Record<string, string> = {};
@@ -149,7 +124,6 @@ const readLayersFromStyleSheets = (): TokenLayers => {
 		try {
 			rules = sheet.cssRules;
 		} catch {
-			// Cross-origin sheet: nothing we can read here.
 			continue;
 		}
 		for (const rule of Array.from(rules)) {
@@ -185,18 +159,6 @@ const readLiveTokens = (): Record<string, string> => {
 	return live;
 };
 
-/**
- * Snapshot of the design tokens for the active scheme: the declared light and
- * dark layers plus the current live computed values (used for the drift check).
- *
- * The live values are read from the document — `getComputedStyle` on `<html>`,
- * where the scheme is mirrored as `data-theme` / `data-mantine-color-scheme` —
- * and every colour token carries a distinct dark-layer value, so the sample is
- * scheme-dependent. The effect therefore depends on `scheme` and re-reads when
- * it changes; keyed to mount alone it would hold the first scheme's values and
- * the drift check would compare the wrong column after a toggle. `scheme` is
- * used only to time that re-read.
- */
 export const useTokenSnapshot = (scheme: "light" | "dark") => {
 	const [layers, setLayers] = useState<TokenLayers>({ light: {}, dark: {} });
 	const [live, setLive] = useState<Record<string, string>>({});

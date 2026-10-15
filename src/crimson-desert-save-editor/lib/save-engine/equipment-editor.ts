@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/equipment_editor.py`.
- */
-
 import { requireCompatibleGear } from "./abyss-gear-compatibility";
 import {
 	concatBytes,
@@ -37,13 +33,8 @@ import { assertOnlyChanged } from "./raw-diff";
 import { defaultSocketCaps } from "./socket-caps";
 import { commitSave } from "./transaction";
 
-/** The record an equipment edit addresses; the same shape, named for callers. */
 export type EquipmentTarget = InventoryRecordTarget;
 
-/**
- * One field's worth of an equipment record, written as raw payload in and raw
- * payload out, so several fields can share a single decode and commit.
- */
 type AppliedPayload = {
 	payload: Uint8Array;
 	before: InventoryRecord;
@@ -110,7 +101,6 @@ const applyEnchantLevel = async (
 			"Refinement edit",
 		);
 	} else {
-		// A naturally acquired level-zero item may omit the default-valued field.
 		const parc = parseParcBlob(raw);
 		const [kindIndex, mask] = locator(
 			raw,
@@ -917,19 +907,12 @@ export const fillEmptySocket = async (
 	];
 };
 
-/** One equipment record's requested state, as a caller states it. */
 type EquipmentDesiredState = {
 	refinement: number;
 	unlockedSockets: number;
 	socketItems: Array<number | null>;
 };
 
-/**
- * The one equipment write: a whole record's desired state in a single
- * transaction. Refinement, socket unlocks and socket contents are written by
- * the applier that owns each field's guards, but they share one decode, one
- * commit and one reopen, so the save is re-encoded exactly once.
- */
 export const setEquipment = async (
 	sourceBytes: Uint8Array,
 	target: EquipmentTarget,

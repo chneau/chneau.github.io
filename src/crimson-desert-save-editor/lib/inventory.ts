@@ -1,15 +1,3 @@
-/**
- * The inventory model the editor's views work with.
- *
- * The save engine deals in bytes, PARC blocks and records; the views deal in
- * names, categories and grouped rows. This is the layer in between: the record
- * shape the session emits, the catalog shape the page merges from two generated
- * tables, the grouping the table renders, and the small lookups (storage names,
- * item categories) that several views need. Keeping them here is what lets the
- * sidebar, the inventory table and the add-item drawer be separate components
- * without reaching back into the page.
- */
-
 import type { CompanionCategory, CompanionSummary } from "./companions";
 import type { EquipmentDetails } from "./equipment";
 import { catalogStackSize } from "./item-catalog";
@@ -20,7 +8,6 @@ import type { ItemCatalogEntry, ItemCatalogFile } from "./save-engine/data";
 import type { DyeDescription } from "./save-engine/dyes";
 import type { ConditionDescription } from "./save-engine/item-condition";
 
-/** One record as the engine describes it, with any staged edit folded in. */
 export type InventoryRecord = {
 	inventoryKey: number;
 	itemNo: number | string;
@@ -33,23 +20,14 @@ export type InventoryRecord = {
 	originalQuantity?: number;
 	equipment?: EquipmentDetails | null;
 	equipmentChanged?: boolean;
-	/**
-	 * The Catalog has an entry for this item and it is not equipment, so the
-	 * editor has no Refinement or Sockets to configure on it. A different
-	 * question from the drawer's `addsAsSingleRecord`, which asks whether adding
-	 * the Item makes a single Record rather than a stack.
-	 */
 	noGearToEdit?: boolean;
 };
 
-/** What `SaveSession.parse` emits once a save has been read. */
 export type ParseResult = {
 	containerVersion: number;
 	payloadBytes: number;
 	records: InventoryRecord[];
-	/** Inventory records withheld because an identity field was absent. */
 	skippedRecords: number;
-	/** One short reason per skipped record, for the UI to show. */
 	skippedDetails: string[];
 	companions?: CompanionSummary;
 	skills?: SkillDescription;
@@ -59,10 +37,6 @@ export type ParseResult = {
 	conditions?: ConditionDescription;
 };
 
-/**
- * The sections that are not the inventory and not a companion category, with
- * the copy the sidebar and the page header both show.
- */
 type EditorView =
 	| "skills"
 	| "levels"
@@ -105,16 +79,10 @@ export const editorViewInfo: Record<
 export const isEditorView = (view: SaveView): view is EditorView =>
 	Object.hasOwn(editorViewInfo, view);
 
-/** Which section of the editor is on screen. */
 export type SaveView = "inventory" | EditorView | CompanionCategory;
 
-/**
- * An item catalog entry as the page uses it: the engine's entry plus the two
- * fields `catalog` merges in from the equipment catalog.
- */
 export type CatalogItem = ItemCatalogEntry & {
 	equipmentCategory?: string;
-	/** Adding this item creates one standalone record, not a stack. */
 	addsAsSingleRecord?: boolean;
 };
 
@@ -122,7 +90,6 @@ export type Catalog = Omit<ItemCatalogFile, "items"> & {
 	items: Record<string, CatalogItem>;
 };
 
-/** Every record of one item, in one storage, added up. */
 export type GroupedItem = {
 	itemKey: number;
 	name: string;
@@ -194,14 +161,6 @@ export const itemType = (item: CatalogItem): string => {
 	return "Other";
 };
 
-/**
- * Fold the records of one storage into one row per item, in name order. A
- * staged addition has no save record yet, so its `recordList` holds the
- * placeholder record the caller synthesised.
- *
- * Only the item table is read, so callers that hold a name lookup alone — the
- * cheat-set planner, for one — do not need a whole catalog file.
- */
 export const groupRecords = (
 	records: InventoryRecord[],
 	catalog: { items: Record<string, CatalogItem> } | null,
@@ -241,15 +200,6 @@ export const groupRecords = (
 	return [...grouped.values()].sort((a, b) => a.name.localeCompare(b.name));
 };
 
-/**
- * The donor record a new stack in one storage would be cloned from: an item the
- * storage holds exactly once, in a stackable form.
- *
- * A `category` prefers a donor shaped like the item being added, then the
- * generic item (key 1), then name order — so the same storage always yields the
- * same donor for the same request, and the add-item picker and the cheat set
- * cannot disagree about which record a new item copies.
- */
 export const stackDonor = ({
 	records,
 	catalog,
@@ -258,7 +208,6 @@ export const stackDonor = ({
 }: {
 	records: InventoryRecord[];
 	catalog: { items: Record<string, CatalogItem> } | null;
-	/** `null` when no storage is chosen yet, which has no donor. */
 	inventoryKey: number | null;
 	category?: string | null;
 }): GroupedItem | null => {

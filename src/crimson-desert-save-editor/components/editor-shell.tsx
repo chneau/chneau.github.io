@@ -12,14 +12,12 @@ import { SaveFileFooter } from "./save-file-footer";
 import { SaveFileInput } from "./save-file-input";
 import { SaveOverlays } from "./save-overlays";
 
-/** The progress the download banner shows while a save is rebuilt. */
 type DownloadProgress = {
 	completed: number;
 	total: number;
 	message: string;
 };
 
-/** The keys the editor itself binds, for the shared shortcuts dialog. */
 const EDITOR_SHORTCUTS = [
 	{
 		title: "Editing",
@@ -33,12 +31,6 @@ const EDITOR_SHORTCUTS = [
 	},
 ];
 
-/**
- * The editor's chrome: the navigation rail and its mobile drawer, the header
- * and its actions, the download banner, the footer, and the drawers, palette
- * and modals every view shares. The page composes it and hands it the open
- * session's state; the view bodies arrive as `children`.
- */
 export const EditorShell = ({
 	sidebar,
 	children,
@@ -174,9 +166,6 @@ export const EditorShell = ({
 			style={{ flex: 1, minWidth: 0, minHeight: 0 }}
 		>
 			{result ? (
-				// The visible brand is a span, so give each open save a real
-				// level-one heading for the panels' h2s to sit under. It is
-				// clipped, not removed, so assistive tech still announces it.
 				<Box
 					component="h1"
 					style={{
@@ -192,8 +181,6 @@ export const EditorShell = ({
 				</Box>
 			) : null}
 			<AppNav
-				// This app binds the command palette, so the shared help dialog
-				// may advertise it.
 				hasCommandPalette
 				staticPosition
 				title={pageTitle}

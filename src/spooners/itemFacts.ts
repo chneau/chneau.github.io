@@ -1,8 +1,3 @@
-/**
- * Human-readable facts decoded out of an item's keywords and option groups, so
- * every field the API keeps can be surfaced somewhere in the UI.
- */
-
 import type { ItemDefinition, ItemOption, Keyword } from "./types";
 
 type OptionGroup = {
@@ -45,7 +40,6 @@ const ALLERGEN_LABELS: Record<string, string> = {
 const keywordValue = (keyword: Keyword): string =>
 	String(keyword.value ?? keyword.name ?? "").replace(/^[A-Z]{2}::/, "");
 
-/** Allergens, e.g. "Gluten", "Milk". */
 export const allergens = (def: ItemDefinition | null): string[] =>
 	(def?.keywords ?? [])
 		.filter((keyword) => keyword.type === "AL")
@@ -55,7 +49,6 @@ export const allergens = (def: ItemDefinition | null): string[] =>
 		})
 		.sort();
 
-/** Vegan / Vegetarian / Under 500 kcal / Under 5% fat. */
 export const dietary = (def: ItemDefinition | null): string[] =>
 	(def?.keywords ?? [])
 		.filter((keyword) =>
@@ -72,7 +65,6 @@ const ALE_COLOURS: Record<string, string> = {
 	dark: "Dark",
 };
 
-/** Real-ale colour, e.g. "Pale ale". */
 export const aleColour = (def: ItemDefinition | null): string | null => {
 	const keyword = (def?.keywords ?? []).find((candidate) =>
 		(candidate.type ?? "").startsWith("ale-"),
@@ -84,7 +76,6 @@ export const aleColour = (def: ItemDefinition | null): string | null => {
 	return `${ALE_COLOURS[tone] ?? tone} ale`;
 };
 
-/** Chilli heat level (e.g. "heat 2"), when the item declares one. */
 export const heatLevel = (def: ItemDefinition | null): number | null => {
 	const keyword = (def?.keywords ?? []).find(
 		(candidate) => candidate.type === "HL",
@@ -93,7 +84,6 @@ export const heatLevel = (def: ItemDefinition | null): number | null => {
 	return Number.isFinite(level) && level > 0 ? level : null;
 };
 
-/** Promotional tags, e.g. "new", "Airport", "Jan Sale". */
 export const promos = (def: ItemDefinition | null): string[] =>
 	(def?.keywords ?? [])
 		.filter((keyword) => keyword.type === "PI")
@@ -104,25 +94,21 @@ const CATEGORY_LABELS: Record<string, string> = {
 	"Includes a drink": "Meal deal",
 };
 
-/** Human label for an API category ("Includes a drink" -> "Meal deal"). */
 export const categoryLabel = (category: string | null): string | null =>
 	category ? (CATEGORY_LABELS[category] ?? category) : null;
 
-/** "ChipsForSalad" -> "Chips For Salad". */
 export const humanise = (value: string): string =>
 	value
 		.replace(/[_-]+/g, " ")
 		.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
 		.trim();
 
-/** Menus this item is bundled with, e.g. "Meal deal". */
 export const linkedNames = (def: ItemDefinition | null): string[] =>
 	(def?.optionGroups?.linked ?? [])
 		.map((option) => option.label ?? option.name ?? "")
 		.filter(Boolean)
 		.map((label) => categoryLabel(label) ?? label);
 
-/** "18 years", or empty when there is no age restriction. */
 export const ageLabel = (def: ItemDefinition | null): string | null => {
 	if (!def?.ageRestriction) {
 		return null;
@@ -130,7 +116,6 @@ export const ageLabel = (def: ItemDefinition | null): string | null => {
 	return `${def.ageRestriction}+`;
 };
 
-/** "was £4.00, 20% off" for a discounted option, or null. */
 export const optionDiscount = (option: ItemOption): string | null => {
 	const was = option.initialPrice;
 	const now = option.price;

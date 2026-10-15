@@ -39,18 +39,10 @@ import {
 	writeCachedWeather,
 } from "./wttr";
 
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+const CACHE_DURATION = 10 * 60 * 1000;
 
 type WeatherKey = `app.weather.codes.${keyof typeof en.app.weather.codes}`;
 
-/**
- * English text for the keys the bounded cache adds. `locales/*.json` is owned
- * elsewhere, so each new key is looked up as a candidate list with this default
- * attached (the pattern `BirthdayDetails` and `ManageBirthdaysModal` use): a
- * key that is not translated yet degrades to English instead of leaking
- * `"app.weather.persistence_failed"` into the UI. Once the keys land in
- * `en.json` the defaults are simply unused.
- */
 const NEW_MESSAGES = {
 	"app.weather.persistence_failed":
 		"Your settings could not be saved — this browser's storage is full or unavailable. Everything still works, but changes will be lost on reload.",
@@ -59,10 +51,8 @@ const NEW_MESSAGES = {
 	"app.weather.removed": "Removed {{location}}",
 } as const;
 
-/** `t` bound to the new keys and their English defaults. */
 const useNewMessage = () => {
 	const { t } = useTranslation();
-	/** See `NEW_MESSAGES`: candidate-list lookup with an English default. */
 	return (
 		key: keyof typeof NEW_MESSAGES,
 		params?: Record<string, string | number>,
@@ -70,71 +60,58 @@ const useNewMessage = () => {
 };
 
 const weatherMapping: Record<number, string> = {
-	113: "☀️", // Sunny
-	116: "⛅", // Partly cloudy
-	119: "☁️", // Cloudy
-	122: "☁️", // Overcast
-	143: "🌫️", // Mist
-	176: "🌦️", // Patchy rain possible
-	179: "🌨️", // Patchy snow possible
-	182: "🌨️", // Patchy sleet possible
-	185: "🌨️", // Patchy freezing drizzle possible
-	200: "⛈️", // Thundery outbreaks possible
-	227: "🌨️", // Blowing snow
-	230: "❄️", // Blizzard
-	248: "🌫️", // Fog
-	260: "🌫️", // Freezing fog
-	263: "🌦️", // Patchy light drizzle
-	266: "🌦️", // Light drizzle
-	281: "🌧️", // Freezing drizzle
-	284: "🌧️", // Heavy freezing drizzle
-	293: "🌦️", // Patchy light rain
-	296: "🌦️", // Light rain
-	299: "🌧️", // Moderate rain at times
-	302: "🌧️", // Moderate rain
-	305: "🌧️", // Heavy rain at times
-	308: "🌧️", // Heavy rain
-	311: "🌧️", // Light freezing rain
-	314: "🌧️", // Moderate or heavy freezing rain
-	317: "🌨️", // Light sleet
-	320: "🌨️", // Moderate or heavy sleet
-	323: "🌨️", // Patchy light snow
-	326: "🌨️", // Light snow
-	329: "❄️", // Patchy moderate snow
-	332: "❄️", // Moderate snow
-	335: "❄️", // Patchy heavy snow
-	338: "❄️", // Heavy snow
-	350: "🌨️", // Ice pellets
-	353: "🌦️", // Light rain shower
-	356: "🌧️", // Moderate or heavy rain shower
-	359: "🌧️", // Torrential rain shower
-	362: "🌨️", // Light sleet showers
-	365: "🌨️", // Moderate or heavy sleet showers
-	368: "🌨️", // Light snow showers
-	371: "❄️", // Moderate or heavy snow showers
-	374: "🌨️", // Light showers of ice pellets
-	377: "🌨️", // Moderate or heavy showers of ice pellets
-	386: "⛈️", // Patchy light rain with thunder
-	389: "⛈️", // Moderate or heavy rain with thunder
-	392: "⛈️", // Patchy light snow with thunder
-	395: "❄️", // Moderate or heavy snow with thunder
+	113: "☀️",
+	116: "⛅",
+	119: "☁️",
+	122: "☁️",
+	143: "🌫️",
+	176: "🌦️",
+	179: "🌨️",
+	182: "🌨️",
+	185: "🌨️",
+	200: "⛈️",
+	227: "🌨️",
+	230: "❄️",
+	248: "🌫️",
+	260: "🌫️",
+	263: "🌦️",
+	266: "🌦️",
+	281: "🌧️",
+	284: "🌧️",
+	293: "🌦️",
+	296: "🌦️",
+	299: "🌧️",
+	302: "🌧️",
+	305: "🌧️",
+	308: "🌧️",
+	311: "🌧️",
+	314: "🌧️",
+	317: "🌨️",
+	320: "🌨️",
+	323: "🌨️",
+	326: "🌨️",
+	329: "❄️",
+	332: "❄️",
+	335: "❄️",
+	338: "❄️",
+	350: "🌨️",
+	353: "🌦️",
+	356: "🌧️",
+	359: "🌧️",
+	362: "🌨️",
+	365: "🌨️",
+	368: "🌨️",
+	371: "❄️",
+	374: "🌨️",
+	377: "🌨️",
+	386: "⛈️",
+	389: "⛈️",
+	392: "⛈️",
+	395: "❄️",
 };
 const getWeatherEmoji = (code: number | undefined) =>
 	(code && weatherMapping[code]) || "🌡️";
 
-/**
- * Read-through fetch against the persisted store cache.
- *
- * `readCachedWeather` validates the entry with `WttrResponseSchema` and only
- * ever returns something renderable, so an entry that is absent, malformed,
- * from an older persisted shape or simply stale degrades to a plain refetch
- * instead of crashing the render. The old code cast `cached.data` straight to
- * `WttrResponse` off an unvalidated `localStorage` read.
- *
- * A miss assigns the whole cache back in one mutation, because
- * `writeCachedWeather` enforces the LRU cap and the TTL as it writes: this is
- * the only place the cache grows, so it is also the only place it has to shrink.
- */
 const fetchWeatherWithCache = async (
 	location: string,
 ): Promise<WttrResponse> => {
@@ -158,12 +135,10 @@ const fetchWeatherWithCache = async (
 
 const HourlyForecast = ({ weather }: { weather: WttrResponse }) => {
 	const { t } = useTranslation();
-	// Get next 24 hours (across today and tomorrow if needed)
 	const allHourly = weather.weather.flatMap((w) =>
 		w.hourly.map((h) => ({ ...h, date: w.date })),
 	);
 
-	// Filter to show from now onwards
 	const now = dayjs();
 	const hourly = allHourly
 		.filter((h) => {
@@ -296,10 +271,6 @@ const WeatherItem = ({ location, index, total, onMove }: WeatherItemProps) => {
 	}
 
 	const current = data.current_condition[0];
-	// The cache entry is only ever *displayed* here, never trusted for content
-	// (`data` already came back through `WttrResponseSchema`). Guarding the
-	// timestamp keeps a corrupt or hand-edited entry from rendering
-	// "Last fetched: Invalid Date" instead of being left out.
 	const cachedAt = storeSnap.weatherCache[location]?.timestamp;
 	const lastFetched =
 		cachedAt !== undefined && Number.isFinite(cachedAt) ? cachedAt : undefined;
@@ -466,18 +437,6 @@ export const WeatherTab = () => {
 	const [newLocation, setNewLocation] = useState("");
 	const queryClient = useQueryClient();
 
-	/**
-	 * A persistence failure is quiet and non-blocking by design: the app keeps
-	 * working, it just cannot remember. Warning once rather than on every store
-	 * mutation (which fires on every keystroke in the search box) is what keeps
-	 * this from becoming noise the user learns to dismiss.
-	 *
-	 * The translate function is a fresh closure each render, so an effect event
-	 * lets the subscription be registered once and still speak the current
-	 * language. Writing the closure into a ref during render instead would let a
-	 * discarded (concurrent) render leave the subscription speaking a language
-	 * the user never settled on.
-	 */
 	const warnedRef = useRef(false);
 	const translate = useEffectEvent(tn);
 	useEffect(() => {
@@ -486,7 +445,6 @@ export const WeatherTab = () => {
 			warnedRef.current = true;
 			notify.warning(translate("app.weather.persistence_failed"));
 		};
-		// A failure that happened before this tab mounted still has to be shown.
 		if (getPersistenceError() !== null) warn();
 		return onPersistenceError(warn);
 	}, []);
@@ -510,10 +468,6 @@ export const WeatherTab = () => {
 		notify.success(t("app.weather.added", { location: trimmed }));
 		setNewLocation("");
 
-		// The cache is LRU-bounded, so past the cap the least recently used
-		// location is evicted rather than the new one being rejected. Nothing
-		// breaks — it is just refetched on the next visit — so this is a quiet
-		// note rather than a warning the user has to act on.
 		if (store.weatherLocations.length > WEATHER_CACHE_MAX_ENTRIES) {
 			notify.info(
 				tn("app.weather.cache_capped", {
@@ -524,8 +478,6 @@ export const WeatherTab = () => {
 	};
 
 	const handleRefreshAll = () => {
-		// Drop every cached location, not just the listed ones, so a "refresh
-		// all" cannot leave an entry for an already-removed city behind.
 		store.weatherCache = {};
 		queryClient.invalidateQueries({ queryKey: ["weather"] });
 		notify.success(t("app.weather.refreshed"));
@@ -608,11 +560,6 @@ export const WeatherTab = () => {
 								}}
 								style={{
 									opacity: draggedIndex === index ? 0.5 : 1,
-									// Only these two change on this row: the dragged row
-									// fades, and the drop target grows an accent rule. A
-									// `transition: all` would make the browser watch every
-									// property of the row and the subtree inside it, and
-									// recompute styles on changes it never animates.
 									transition: "opacity 0.3s, border-top 0.3s",
 									cursor: "move",
 								}}

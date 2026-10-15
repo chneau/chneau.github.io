@@ -9,22 +9,14 @@ import {
 	stepSpeed,
 } from "../utils";
 
-/**
- * `formatTime` used to wrap the hour with `% 24`, so 1440 - the right-hand end
- * of the scrubber (`max={1440} // 24:00`), the right axis of the activity
- * chart, and the day/night boundary - rendered as "00:00", indistinguishable
- * from midnight at the start of the same day.
- */
 describe("formatTime", () => {
 	test("renders the end of the replay day as 24:00, not 00:00", () => {
 		expect(formatTime(1440)).toBe("24:00");
 		expect(formatTime(MAX_REPLAY_TIME)).toBe("24:00");
-		// The bug made these two indistinguishable, which was the point.
 		expect(formatTime(1440)).not.toBe(formatTime(0));
 	});
 
 	test("keeps counting past midnight for after-midnight calls", () => {
-		// 7 timetable call times run past 24:00 (up to 24:35).
 		expect(formatTime(1455)).toBe("24:15");
 		expect(formatTime(1475)).toBe("24:35");
 	});
@@ -37,8 +29,6 @@ describe("formatTime", () => {
 	});
 
 	test("clamps negative and non-finite input instead of rendering junk", () => {
-		// Unreachable today (sub-minute interpolation cannot go backwards),
-		// but `-0.5` used to produce "-1:-1".
 		expect(formatTime(-0.5)).toBe("00:00");
 		expect(formatTime(-1)).toBe("00:00");
 		expect(formatTime(-90)).toBe("00:00");
@@ -94,8 +84,6 @@ describe("resolveRailShortcut", () => {
 	});
 
 	test("Cmd/Ctrl/Alt+M is not ours - those chords belong to the OS", () => {
-		// Cmd+M minimises the window on macOS; the handler used to match it,
-		// toggling the sound and calling preventDefault on it.
 		expect(resolveRailShortcut(key({ key: "m", metaKey: true }))).toBeNull();
 		expect(resolveRailShortcut(key({ key: "M", metaKey: true }))).toBeNull();
 		expect(resolveRailShortcut(key({ key: "m", ctrlKey: true }))).toBeNull();

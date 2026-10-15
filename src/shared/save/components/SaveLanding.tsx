@@ -12,25 +12,9 @@ import {
 } from "@mantine/core";
 import { FileUp, LockKeyhole, ShieldCheck, TriangleAlert } from "lucide-react";
 import { type DragEvent, type ReactNode, useRef, useState } from "react";
-// Imported from the component's own path rather than the shared barrel: the
-// barrel re-exports the save workbench, which lands here, so going through it
-// closes a cycle the bundler has to break by hoisting.
 import { LoadingState } from "../../components/LoadingState";
 import type { SaveCodec } from "../types";
 
-/**
- * The pre-load screen, shared by every save editor here.
- *
- * The argument for the tool sits beside the drop target rather than above it,
- * and the drop target is a single panel with a hairline edge rather than a
- * dashed placeholder — the affordance should read as a destination, not as a
- * form field awaiting input.
- *
- * The format notes are the other half of the page. A save editor is mostly a
- * story about a file format, and a user deciding whether to trust a tool that
- * is about to parse their save is really asking how the format works. So the
- * reverse engineering is given the same prominence as the button.
- */
 export const SaveLanding = ({
 	codec,
 	loading,
@@ -44,11 +28,9 @@ export const SaveLanding = ({
 	status: string;
 	error: string;
 	onSelectFile: (file: File) => void;
-	/** A demo-sample loader, rendered under the drop target when supplied. */
 	children?: ReactNode;
 }) => {
 	const [dragging, setDragging] = useState(false);
-	/** The hidden `<input type="file">` the button opens. */
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const take = (file: File | undefined): void => {
@@ -90,9 +72,6 @@ export const SaveLanding = ({
 					}}
 				>
 					{loading ? (
-						// The busy flag moves off the drop target and onto the region
-						// that actually announces the work: the panel is idle while
-						// it waits, and busy during it.
 						<LoadingState label={status || "Reading save"} hideLabel>
 							<Stack w="100%" maw={320} gap="md" align="stretch">
 								<Skeleton height={14} width="45%" radius="sm" />
@@ -131,22 +110,6 @@ export const SaveLanding = ({
 								{codec.extensions.map((e) => `.${e}`).join(" · ")} · read
 								entirely in this tab
 							</Text>
-							{/*
-							 * A real button, not a `<label>` wrapping the input.
-							 *
-							 * The label's only labelable descendant was the
-							 * `display: none` file input, which is out of the tab
-							 * order, and a `<label>` is not focusable itself — so
-							 * the `onKeyDown` handler that forwarded Enter and Space
-							 * could never fire, and this page's one primary action
-							 * was pointer-only on all seven save editors that share
-							 * this component. Tabbing the page reached the skip
-							 * link, the navbar and `main`, and then wrapped.
-							 *
-							 * The input stays hidden because the button is what
-							 * asks for it; `accept` still filters the picker the
-							 * same way.
-							 */}
 							<input
 								ref={fileInputRef}
 								type="file"
@@ -154,8 +117,6 @@ export const SaveLanding = ({
 								style={{ display: "none" }}
 								onChange={(event) => {
 									take(event.target.files?.[0]);
-									// Reset so re-picking the same file fires `change` again
-									// after an edit has been reverted.
 									event.target.value = "";
 								}}
 							/>
@@ -238,7 +199,6 @@ export const SaveLanding = ({
 	);
 };
 
-/** The page heading, shown above the landing drop target. */
 export const SaveHero = ({ codec }: { codec: SaveCodec }) => (
 	<Stack gap="lg" maw={620}>
 		<Text

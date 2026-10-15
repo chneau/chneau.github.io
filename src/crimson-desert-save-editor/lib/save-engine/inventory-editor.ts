@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/inventory_editor.py`.
- */
-
 import { readU64, writeU64 } from "./bytes";
 import {
 	findInventoryRecord,
@@ -11,7 +7,6 @@ import {
 import { assertOnlyChanged } from "./raw-diff";
 import { transactSave } from "./transaction";
 
-/** The record a quantity edit addresses; the same shape, named for callers. */
 export type InventoryTarget = InventoryRecordTarget;
 
 export const editInventoryQuantities = async (
@@ -28,7 +23,6 @@ export const editInventoryQuantities = async (
 		({ original }) => {
 			const beforeRecords = readInventory(original);
 			const editedRaw = original.slice();
-			/** One range per touched stack-count field, for the final assertion. */
 			const touched: Array<{ start: number; size: number }> = [];
 			const finalQuantities = new Map<string, number>();
 			const audits: Array<Record<string, unknown>> = [];

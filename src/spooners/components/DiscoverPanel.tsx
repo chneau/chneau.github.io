@@ -20,7 +20,6 @@ type Props = {
 	onFocusSeller?: (seller: Seller) => void;
 };
 
-/** Guest ales sold at a handful of pubs, plus the newest items on the menu. */
 export const DiscoverPanel = ({
 	rare,
 	fresh,

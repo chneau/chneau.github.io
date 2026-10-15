@@ -20,9 +20,6 @@ import {
 	withRawKeys,
 } from "./raw-birthday-identity";
 
-// Re-exported for the existing importers; the identity rules are pure functions
-// over a stored list, and belong beside the reasoning about legacy duplicates
-// rather than inside the modal that applies them.
 export {
 	dedupeRecords,
 	hasDuplicate,
@@ -37,10 +34,8 @@ type ManageBirthdaysModalProps = {
 
 const PAGE_SIZE = 8;
 
-/** The date a fresh "add" form starts on: a plausible year, not today. */
 const NEW_RECORD_DATE = "1995-01-01";
 
-/** Which record the add/edit sub-modal is open on. */
 type EditingTarget =
 	| { readonly isNew: true; readonly record: RawBirthday }
 	| { readonly isNew: false; readonly row: RawBirthdayRow };
@@ -51,8 +46,6 @@ export const ManageBirthdaysModal = ({
 }: ManageBirthdaysModalProps) => {
 	const { t } = useTranslation();
 	const [list, setList] = useState<RawBirthday[]>(() => getRawBirthdays());
-	// Which row the editor is open on. `new` carries no record at all, so it is
-	// a separate case rather than a `RawBirthdayRow` with invented fields.
 	const [editing, setEditing] = useState<EditingTarget | null>(null);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [page, setPage] = useState(0);
@@ -78,8 +71,6 @@ export const ManageBirthdaysModal = ({
 
 	const handleSaveDraft = (draft: RawBirthday) => {
 		const target = editing;
-		// Resolve the edited record against the list as it stands right now, so
-		// an edit never falls through to a twin sharing the same identity.
 		const current = getRawBirthdays();
 		const selfIndex =
 			target && !target.isNew
@@ -103,9 +94,6 @@ export const ManageBirthdaysModal = ({
 				notify.error(t("manage.record_missing"));
 				return;
 			}
-			// Patch that one slot: `updateRawBirthday` in `birthdays.ts` uses
-			// `findIndex`, so on legacy duplicates it would rewrite the first
-			// match instead of the row the user actually opened.
 			const next = [...current];
 			next[selfIndex] = draft;
 			saveRawBirthdays(next);
@@ -125,9 +113,6 @@ export const ManageBirthdaysModal = ({
 			refreshList();
 			return;
 		}
-		// Drop exactly one record: `deleteRawBirthday` in `birthdays.ts` filters
-		// out every record matching the identity, which on legacy duplicates
-		// would take out the whole group at once.
 		const next = current.filter((_, at) => at !== index);
 		saveRawBirthdays(next);
 		notify.success(t("manage.deleted", { name: row.record.name }));
@@ -173,8 +158,6 @@ export const ManageBirthdaysModal = ({
 		if (!pendingImport) return;
 		const { records, duplicateCount } = pendingImport;
 		if (records.length === 0) {
-			// Only an empty file gets here (dedupe always keeps the first record
-			// of an identity). Importing it would silently wipe the list.
 			notify.error(t("manage.import_invalid"));
 			setPendingImport(null);
 			return;
@@ -237,9 +220,6 @@ export const ManageBirthdaysModal = ({
 			</Stack>
 
 			{editing && (
-				// Keyed on the row's identity so switching rows remounts the form
-				// and seeds its fields from the record being edited, rather than
-				// leaving the previous row's values on screen.
 				<BirthdayEditorModal
 					key={editing.isNew ? "new" : editing.row.key}
 					target={

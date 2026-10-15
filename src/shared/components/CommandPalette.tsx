@@ -20,20 +20,11 @@ import { ALL_APPS } from "../apps";
 import { HeaderAction } from "./HeaderAction";
 
 export type Command = {
-	/** Stable id, also used for the DOM id. */
 	id: string;
 	label: string;
-	/** Short right-aligned context, e.g. a tag or category. */
 	hint?: string;
-	/** Extra text searched in addition to the label. */
 	keywords?: string;
-	/** Single-key launch shortcut, rendered as a keycap. */
 	hotkey?: string;
-	/**
-	 * The derived prose for `hotkey` (`Press Q`). The keycap prints the key; this
-	 * names it as an instruction, so the same guarantee the dashboard card makes
-	 * holds in the palette too.
-	 */
 	shortcutKey?: string;
 	icon?: ReactNode;
 	run: () => void;
@@ -61,14 +52,8 @@ const FUSE_OPTIONS: ConstructorParameters<typeof Fuse<Command>>[1] = {
 	ignoreLocation: true,
 };
 
-/**
- * The option list's id, named once because two attributes have to agree on it:
- * the input's `aria-controls`, which omits the reference while there is no
- * list, and the listbox itself.
- */
 const LIST_ID = "command-palette-list";
 
-/** Open state for `CommandPalette`, bound to Cmd/Ctrl-K. */
 export const useCommandPalette = () => {
 	const [opened, setOpened] = useState(false);
 
@@ -95,35 +80,16 @@ export const useCommandPalette = () => {
 type CommandPaletteProps = {
 	opened: boolean;
 	onClose: () => void;
-	/** App-specific actions; navigation to every app is always included. */
 	commands?: Command[];
 };
 
-/** Shared empty default, so `allCommands` keeps a stable identity. */
 const EMPTY_COMMANDS: Command[] = [];
 
-/**
- * A Cmd/Ctrl-K palette that jumps between apps and runs app actions.
- *
- * The search state lives in `CommandPaletteBody`, not here. Mantine's `Modal`
- * does not keep its children mounted once the close transition has finished,
- * so a body inside it is unmounted on close and remounted fresh on the next
- * open. The old shape kept `query`/`active` here and wiped them from an effect
- * on `opened`, which ran a render with the previous query's results still on
- * screen and reset all of the palette's state because one prop flipped.
- */
 export const CommandPalette = ({
 	opened,
 	onClose,
-	// Hoisted for the same reason as `AppNav`'s `shortcuts`: an inline `[]` default
-	// is a new array every render, which defeated the `Fuse` index below — it is
-	// keyed on `[allCommands]`, so a fresh array rebuilt the index on every render
-	// of the parent. Never mutated, so one shared constant is safe.
 	commands = EMPTY_COMMANDS,
 }: CommandPaletteProps) => {
-	// Owned here, not by the body: the ref must survive the body's unmount so
-	// the modal's `onEntered` — which fires after the body has mounted — can
-	// still reach the input.
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	return (
@@ -155,7 +121,6 @@ export const CommandPalette = ({
 	);
 };
 
-/** The searchable half of the palette; remounts with every open. */
 const CommandPaletteBody = ({
 	commands,
 	onClose,
@@ -167,14 +132,7 @@ const CommandPaletteBody = ({
 }) => {
 	const [query, setQuery] = useState("");
 	const [active, setActive] = useState(0);
-	/** True while the user steers with the keyboard; stops hover stealing focus. */
 	const keyboardNav = useRef(false);
-	/**
-	 * True between `compositionstart` and `compositionend`. Enter is how a CJK
-	 * user accepts the candidate the IME is offering, so an unguarded Enter
-	 * handler runs a command instead — and does it while the field still holds
-	 * the uncommitted reading.
-	 */
 	const composing = useRef(false);
 
 	const allCommands = useMemo(() => [...commands, ...NAV_COMMANDS], [commands]);
@@ -190,10 +148,6 @@ const CommandPaletteBody = ({
 			: allCommands;
 	}, [allCommands, fuse, query]);
 
-	// The highlight is clamped during render rather than written back by an
-	// effect on `items`: the effect ran a render in which `aria-activedescendant`
-	// still pointed past the end of the (already narrowed) list, and it is a
-	// state adjustment driven by a prop - `commands` can change under us.
 	const activeIndex =
 		items.length === 0 ? 0 : Math.min(active, items.length - 1);
 
@@ -221,8 +175,6 @@ const CommandPaletteBody = ({
 				}}
 				onChange={(event) => setQuery(event.currentTarget.value)}
 				onKeyDown={(event) => {
-					// While the IME is composing, Enter and the arrows belong to the
-					// candidate window; acting on them launches the wrong command.
 					if (composing.current) return;
 					if (items.length === 0) return;
 					if (event.key === "ArrowDown") {
@@ -241,14 +193,6 @@ const CommandPaletteBody = ({
 				placeholder="Search apps and actions…"
 				aria-label="Search apps and actions"
 				role="combobox"
-				/**
-				 * Both of these are true only while there is a list to point at.
-				 * The listbox used to be rendered unconditionally, so a query
-				 * that matched nothing left an empty `listbox` in the DOM — an
-				 * `aria-required-children` violation — while this attribute said
-				 * `false`: a screen reader announcing "collapsed" over a popup
-				 * that was still on screen.
-				 */
 				aria-expanded={items.length > 0}
 				aria-controls={items.length > 0 ? LIST_ID : undefined}
 				aria-activedescendant={activeId}
@@ -262,13 +206,6 @@ const CommandPaletteBody = ({
 				styles={{ input: { background: "var(--app-surface-2)" } }}
 			/>
 			<ScrollArea.Autosize mah={360} mt="sm" type="auto">
-				{/*
-				 * The listbox exists only while it has options. An empty
-				 * `listbox` is an `aria-required-children` violation and it made
-				 * `aria-expanded` above a lie; the empty state is a live region
-				 * instead, so the last keystroke of a query that matches nothing
-				 * is announced rather than answered with silence.
-				 */}
 				{items.length > 0 ? (
 					<div id={LIST_ID} role="listbox" aria-label="Results">
 						{items.map((command, index) => (
@@ -277,15 +214,6 @@ const CommandPaletteBody = ({
 								id={`command-${command.id}`}
 								role="option"
 								aria-selected={index === activeIndex}
-								/**
-								 * Focus never leaves the input: this is a combobox
-								 * with `aria-activedescendant`, the arrows move the
-								 * highlight, and Enter runs the highlighted option.
-								 * Each option rendered as a native `<button>` with
-								 * no `tabIndex`, so all of them were tab stops —
-								 * inside Mantine's focus trap, Tab walked the whole
-								 * result list and then wrapped back round it.
-								 */
 								tabIndex={-1}
 								onMouseMove={() => {
 									if (keyboardNav.current) return;
@@ -366,7 +294,6 @@ const CommandPaletteBody = ({
 	);
 };
 
-/** Header trigger that opens the command palette. */
 export const CommandPaletteButton = ({ onClick }: { onClick: () => void }) => (
 	<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
 		<HeaderAction

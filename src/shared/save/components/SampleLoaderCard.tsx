@@ -1,25 +1,11 @@
 import { Box, Button, Card, Group, Text } from "@mantine/core";
 import { Sparkles } from "lucide-react";
 
-/**
- * The "no save to hand?" card on the landing screen.
- *
- * Split out of `SaveWorkbench` so the parent's landing branch is the layout and
- * nothing else: the card owns its own copy and the one button that loads the
- * bundled sample through the workbench's own `open` path, so the sample is read
- * exactly as a picked file would be.
- */
 export const SampleLoaderCard = ({
 	loading = false,
 	note,
 	onLoad,
 }: {
-	/**
-	 * True while the sample is being fetched or decoded. The card has no error
-	 * channel of its own — `open` reports failures through the workbench's
-	 * status line — so the only thing it can honestly show is that the click
-	 * landed and the work is in flight.
-	 */
 	loading?: boolean;
 	note: string;
 	onLoad: () => void;

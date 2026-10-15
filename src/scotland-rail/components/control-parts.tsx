@@ -26,17 +26,6 @@ import { railActions } from "../store";
 import { palette } from "../theme";
 import { formatTime } from "../utils";
 
-/**
- * The three groups the bottom control bar is made of — what is running, how the
- * replay is being played, and where it can jump to — split along the lines a
- * reader would draw. Each reads the store through `railActions` directly, so
- * none of them has to be handed the bar's snapshot to work.
- */
-
-/**
- * The live clock and the "N active" badge. This is the only row that reports
- * *now*; everything else in the bar reports state the visitor set.
- */
 export const ReplayClock = ({
 	timeOffset,
 	activeCount,
@@ -84,11 +73,6 @@ export const ReplayClock = ({
 	</Group>
 );
 
-/**
- * One badge per category, each a toggle. Clicking the selected category clears
- * the filter rather than re-selecting it, which is why the badge reports itself
- * pressed when the category *is* the filter while the store is handed "all".
- */
 export const CategoryFilters = ({
 	selectedCategory,
 	activeCountsByCategory,
@@ -145,7 +129,6 @@ export const CategoryFilters = ({
 	</Group>
 );
 
-/** The service/station search box, with its own clear affordance. */
 export const ServiceSearch = ({ searchQuery }: { searchQuery: string }) => (
 	<TextInput
 		placeholder="Service or station"
@@ -175,13 +158,6 @@ export const ServiceSearch = ({ searchQuery }: { searchQuery: string }) => (
 	/>
 );
 
-/**
- * The map-view preset picker.
- *
- * Mantine hands `onChange` a bare string, so the value is checked against the
- * canonical list rather than asserted into `ViewPreset` — a stale option in the
- * `data` array would otherwise write a preset no viewport bounds exist for.
- */
 export const ViewPresetPicker = ({
 	viewPreset,
 }: {
@@ -204,12 +180,11 @@ export const ViewPresetPicker = ({
 	/>
 );
 
-/** The scrubber. Its bounds are the replay window, 05:00 to 24:00. */
 export const TimelineScrubber = ({ timeOffset }: { timeOffset: number }) => (
 	<div style={{ padding: "0 4px" }}>
 		<Slider
-			min={300} // 05:00
-			max={1440} // 24:00
+			min={300}
+			max={1440}
 			value={timeOffset}
 			onChange={(val) => railActions.setTimeOffset(val)}
 			label={(val) => formatTime(val)}
@@ -223,7 +198,6 @@ export const TimelineScrubber = ({ timeOffset }: { timeOffset: number }) => (
 	</div>
 );
 
-/** Play/pause, restart and the playback-speed picker. */
 export const PlaybackControls = ({
 	isPlaying,
 	speed,
@@ -288,7 +262,6 @@ export const PlaybackControls = ({
 	</Group>
 );
 
-/** The four named moments of the day, as one-click jumps. */
 export const QuickJumps = () => (
 	<Group gap={6} wrap="wrap" align="center">
 		<Text

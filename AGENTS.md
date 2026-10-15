@@ -13,6 +13,41 @@ from a habit carried in from another repository, this file wins.
 
 ---
 
+## 0. Code Is the Source of Truth
+
+The code — names, types, structure, tests — is the only specification. There is
+no prose beside it: no comment, no README, no `docs/` tree, no page explaining
+what a module does. A second copy of the code is a copy that goes stale without
+anything failing — the preamble above said "six apps" and had drifted twice
+before anyone noticed, because prose is not typechecked — and this repository
+has decided the copy is not worth its drift. This section governs the whole file
+and is read first.
+
+- **FORBIDDEN**: adding a comment — line, block, JSDoc, a section banner
+  (`// ----`, `// ====`), an explanatory note in any language. If a comment feels
+  necessary, the code is not explicit enough; change the code.
+- **REQUIRED**: make the code explicit enough to be read without prose —
+  descriptive names, single-purpose functions, precise domain types, and a test
+  that states the claim.
+- **FORBIDDEN**: committing a `*.md` other than this handbook. There is no
+  `README.md` and no `docs/` tree: a file like either is a finding to raise in
+  your reply, never a file to add.
+- **DELETED documentation stays deleted.** Material removed because it had
+  drifted from the code is not to be recreated, in the same shape or a new one.
+  The ADRs and the README that used to sit here are in git history; the claims
+  they carried are re-derived from the code, not re-documented beside it.
+- **ALLOWED**, and a closed list: the comments a toolchain consumes and nothing
+  else can carry — `biome-ignore`, `@ts-expect-error` / `@ts-ignore` /
+  `@ts-nocheck`, a narrowly scoped `react-doctor-disable-next-line` for a
+  provable false positive (§7 bounds it), and a `#!` shebang. Keep them minimal,
+  keep the reason the directive itself requires, and delete one that no longer
+  bites.
+
+Section 3 says which violations are worth a suppression line and which are worth
+fixing. Everything else here is enforced by the gate in §1, or by reading.
+
+---
+
 ## 1. Commands
 
 | Command                | What it is                                                                          |
@@ -52,6 +87,23 @@ from a habit carried in from another repository, this file wins.
   exported a moment ago, the formatter did that, not you** — restore the
   `export` (or drop it, if the symbol is genuinely dead) and re-run, rather than
   building a workaround on top of the underscore.
+- **`check:oxlint` takes its ignore set from the repository-root `.gitignore`.**
+  `oxlint --fix-dangerously` decides what not to rewrite by reading the
+  `.gitignore` it finds at the git root, so a checkout that does not have that
+  file — a partial checkout, an unpacked tarball, a directory outside the
+  repository — has no `node_modules` in that set and rewrites dependencies in
+  place, deleting a package's side-effecting initialisers so the build then
+  fails for a reason no diff explains. Measured here: with no `.gitignore`,
+  `oxlint --fix-dangerously .` lints `node_modules`; with one naming it, or
+  with `--ignore-pattern node_modules`, it does not. `biome check --write` and
+  `tsc` exclude `node_modules` themselves; `oxlint` alone does not. It is the
+  one autofixing step here whose scope is not self-contained, so pass
+  `--ignore-pattern node_modules` when it may run without the root
+  `.gitignore`.
+- **`check:fix` runs with `--no-exit-on-error`, which means "keep going after a
+  failing step", not "hide it".** A failed step still makes the command exit
+  non-zero; read the exit code and the output, and do not treat a `check:fix`
+  run that reports a failure as a success because later steps ran.
 
 ---
 
@@ -127,48 +179,43 @@ need one written over it.
 
 ---
 
-## 3. Comments, Suppressions and Recorded Decisions
+## 3. Suppressions and Switched-Off Rules
 
-This codebase writes its comments. A load-bearing rule, a measured regression or
-a rejected alternative is prose beside the code it explains, in JSDoc or a `//`
-line that says _why_ rather than _what_. Do not strip comments on the way in; a
-change arriving from a codebase written the other way keeps its explanations.
+§0 leaves one kind of comment standing: the directive the toolchain reads. That
+makes a suppression the most expensive line in the tree, so this is where the
+weight sits.
 
-What is bounded is **suppression**:
-
-- A `// biome-ignore lint/<group>/<rule>: <reason>` needs the reason. There are
-  seven in the tree — three of them one ARIA menu pattern in `AppSwitcher` — and
-  each names what the rule cannot see: the dashboard's arrow-key roving focus,
-  the scrollable timeline's extra tab stop, the birthday canvas stub. An
-  undocumented suppression is a bug.
-- A rule switched off in `biome.jsonc` needs a paragraph in the file saying what
-  the rule protects, why it is wrong here, and **which test asserts the property
-  so it cannot be lost**. `noImportantStyles` is off because the reduced-motion
-  guard in `base.css`, the print rules in `cv.css` and the motion overrides in
-  `Section.css` are only load-bearing under `!important`; 14 elements animated
-  under `prefers-reduced-motion: reduce` without it and 0 with it, and printing
-  within the first ~1.2 s produced a page with a name and nothing else. That has
-  already bitten: a `biome check --write --unsafe` pass stripped all of it and
-  the regressions came back silently. They are now guarded by
-  `shared/tests/tokens-theme.test.ts`, `cv/cv-media.test.ts` and
-  `shared/tests/motion.test.ts`.
+- A `biome-ignore lint/<group>/<rule>: <reason>` needs the reason. Each one in
+  the tree names what the rule cannot see: the dashboard's arrow-key roving
+  focus, the scrollable timeline's extra tab stop, the birthday canvas stub. An
+  undocumented suppression is a bug, and a directive that no longer suppresses
+  anything is deleted rather than left in place.
+- A rule switched off in `biome.jsonc` has no comment left to say why, so its
+  record is here and, wherever the property is assertable, a test.
+  - `noImportantStyles` is off because the reduced-motion guard in `base.css`,
+    the print rules in `cv.css` and the motion overrides in `Section.css` are
+    only load-bearing under `!important`; 14 elements animated under
+    `prefers-reduced-motion: reduce` without it and 0 with it, and printing
+    within the first ~1.2 s produced a page with a name and nothing else. That
+    has already bitten: a `biome check --write --unsafe` pass stripped all of it
+    and the regressions came back silently. Held by
+    `shared/tests/tokens-theme.test.ts`, `cv/cv-media.test.ts` and
+    `shared/tests/motion.test.ts` — read those before touching either the rule
+    or the stylesheets it protects.
+  - `noSvgWithoutTitle` is off for `public/icons/**`. The rule is about an
+    inline `<svg>` in a page, where a screen reader cannot otherwise name the
+    graphic; these files are referenced as favicons and maskable icons and are
+    never inlined into the DOM, so a `<title>` element would never be exposed to
+    anyone, and adding one to satisfy the rule would be decorative. No test
+    holds this one — `manifests.test.ts` only asserts the icon set exists — so
+    if you inline an icon, the rule's premise arrives with it and the override
+    must go rather than the `<title>` be added.
 - **FORBIDDEN**: silencing a finding to make the gate green. `noArrayIndexKey`
   is not pedantry — a key taken from a `.map()` index is reassigned when the
   list reorders, so React hands one element's state to another. Fix the code.
   The case that generalises: a rule about duplicate properties was once
   satisfied by moving the fallback into `@supports` rather than by deleting it.
   Both make the linter green; only one keeps the old browser working.
-
-### A decision that outlives the diff gets an ADR
-
-Architecture calls are written down under `docs/adr/` beside the app they govern
-— `src/crimson-desert-save-editor/docs/adr/0001…0006`. The house form: the
-decision in the title as a claim, what the code does now and why it is not the
-obvious alternative, `_Considered:_` the options with what each costs, and the
-consequences, including what would reverse it. Read them before changing the
-save engine's threading, where editing happens, or how equipment is written; and
-add one when a change would otherwise have to be re-litigated by the next
-survey.
 
 ---
 
@@ -224,8 +271,8 @@ Mantine.
   `src/shared/apps.tsx` (which also drives the hotkeys, search, palette and
   404), its six-file `public/icons/<slug>-*` set (`.svg`, `-32`, `-192`,
   `-512`, `-maskable-512`, `-maskable.svg`, named from the `APP_META` slug —
-  `manifests.test.ts` asserts all six exist and no script generates them), its
-  tests, and a README section.
+  `manifests.test.ts` asserts all six exist and no script generates them), and
+  its tests.
 - **Two branches, deliberately different.** `src` is the source of record;
   `master` is the *publishing* branch, holding `dist/` because `deploy` writes
   it there. `git push origin HEAD:master` is always rejected — push to `src`.
@@ -248,8 +295,8 @@ Mantine.
   per-app manifest, and the branded 404 all live in shared code and are covered
   by `shared/tests/sw.test.ts`.
 - The Crimson Desert editor never uploads a save and keeps its engine on the
-  main thread, yielding through a `setTimeout` macrotask (ADR-0001, ADR-0003).
-  Do not move work into a worker or add a server round-trip.
+  main thread, yielding through a `setTimeout` macrotask. Do not move work into a
+  worker or add a server round-trip.
 
 ### React: hooks, effects and identity
 
@@ -357,6 +404,18 @@ bun x react-doctor@latest   # the React gate: correctness, a11y, performance, ma
   and 4.3:1, with every suite green. Run axe against the **built pages** in a
   browser for anything touching markup, colour or headings, and say which pages
   were opened.
+- **A change worth more than a typo gets a review round by fresh sub-agents.**
+  Spawn reviewers created for the review, with no prior context on the change
+  and nothing invested in it, rather than re-reading your own diff — the
+  author's summary is not a review, and the agent that wrote the change is the
+  worst-placed reader of it. Give each one a **distinct slice** so the round is
+  not the same eyes twice (one on build paths, environments and the service
+  worker; another on behaviour, state and the built page), point them at the
+  diff, and ask for **defects with evidence** rather than confirmation that the
+  change is correct. A review round does **not** replace the gates above: run
+  `bun run check`, `bun test`, `bun run build` and `react-doctor` as well.
+  **Record the outcome** — fix what it finds or answer it, since a silently
+  ignored finding defeats the point of spawning the reviewers.
 - **The gates do not replace reading the code.** `tsc`, `biome`, `bun test` and
   `react-doctor` are all silent about a _stale read_ — a value read outside
   render that only stays fresh because of a read render used to do. Such a bug
@@ -416,6 +475,17 @@ before running them — `bun run check` starts with a `rm -rf dist out build`, a
 `deploy` publishes the result. **FORBIDDEN**: running a destructive or
 publishing step because it is a step in a script whose earlier steps are wanted.
 
+### Git is the user's to drive
+
+**FORBIDDEN**: staging or committing on your own initiative. `git add`,
+`git commit`, `git push`, `git rebase` and a branch switch happen only when the
+user asked for them in this conversation; otherwise a finished change is a
+finished working tree, and the diff is what you report. A clean `bun run check`
+and a green `bun test` do not make a commit yours to make. When a commit *is*
+asked for, keep it granular and well-described with a conventional prefix
+(`feat:`, `fix:`, `chore:`, `refactor:`), and mind §5's two-branch rule — the
+publishing branch is not the one to push to.
+
 ### Carry the method, not the style
 
 What travels between repositories is the method — the baseline, the re-run, the
@@ -429,9 +499,8 @@ result even where they differ from the habits it arrived with.
 
 - **REQUIRED**: British spelling in every string a person reads — JSX text,
   `title`/`label`/`description`/`message`/`placeholder`/`aria-label`, validation
-  and error messages, toast and status text, log lines, the README and this
-  document — and in the names that carry them (`colour`, `centre`, `honour`,
-  `favourite`).
+  and error messages, toast and status text, log lines, and this document — and
+  in the names that carry them (`colour`, `centre`, `honour`, `favourite`).
 - **FORBIDDEN** in that same set: `color`, `behavior`, `optimize`, `analyze`,
   `center`, `favorite`, `artifact`, `traveled`, `labeled`, `modeled`,
   `organize`, `visualize`, `utilize`.
@@ -452,7 +521,7 @@ result even where they differ from the habits it arrived with.
   gitignored path out of the results. A match inside a dependency is not a match
   in this codebase — and the same applies to a linter run outside
   `bun run check`.
-- Keep `deno.json` and `biome.jsonc` exclusions intact when adding bulk data
+- Keep the `biome.jsonc` exclusions intact when adding bulk data
   (`src/spooners/data`, the generated catalogs and image archives): they are
   there so a formatter cannot rewrite a multi-megabyte payload.
 - Never edit a file another app's build depends on "just for this case". A

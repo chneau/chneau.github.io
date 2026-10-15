@@ -5,7 +5,6 @@ import type { RecentApp } from "../shared/recent";
 import { GithubIcon } from "./GithubIcon";
 
 type CreateCommandsOptions = {
-	/** The toolbar search input, focused by the "Search apps" command. */
 	searchRef: RefObject<HTMLInputElement | null>;
 	openRandom: () => void;
 	theme: { dark: boolean; toggle: () => void };
@@ -16,7 +15,6 @@ type CreateCommandsOptions = {
 	clearRecents: () => void;
 };
 
-/** The dashboard's own actions, appended to the shared navigation commands. */
 export const createCommands = ({
 	searchRef,
 	openRandom,

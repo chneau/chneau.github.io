@@ -17,23 +17,6 @@ import {
 } from "../RecordsWidget";
 import { bucketOf, groupByBucket } from "../TimelineView";
 
-/**
- * Tests for the family records (`RecordsWidget`) and the timeline buckets.
- *
- * The socialite used to call `getCompatibilityScore` once per *pair of people*
- * on every recompute - 870 calls for a 30-person family, repeated on every
- * parent re-render. The scores only depend on the two zodiac `element`s, so
- * the pair matrix collapses to at most `ELEMENTS.length * (ELEMENTS.length - 1)`
- * = 12 distinct scorings, cached for the lifetime of the module.
- *
- * `computeRecords` is driven through real `Birthday` records rather than
- * hand-faked ones: `recomputeBirthdays()` over a stubbed `localStorage` is the
- * only public door to them, and the derived fields the scoring depends on
- * (`element`, `sign`, `age`, `kind`) then stay honest. Each group of tests
- * imports `RecordsWidget` under its own `?instance=` query so the module-level
- * pair cache starts cold and the call counters measure that group alone.
- */
-
 mock.module("react-i18next", () => ({
 	useTranslation: () => ({
 		t: (key: string, options?: Record<string, unknown>) =>
@@ -49,7 +32,6 @@ type TimelineModule = typeof import("../TimelineView");
 
 let instanceCounter = 0;
 
-/** A fresh copy of the module, i.e. a cold pair cache and fresh counters. */
 const loadRecords = (): Promise<RecordsModule> =>
 	import(
 		`../RecordsWidget?instance=${instanceCounter++}`
@@ -64,11 +46,6 @@ const GIRL = "\u2640\uFE0F";
 const BOY = "\u2642\uFE0F";
 const WEDDING = "\u{1F492}";
 
-/**
- * `localStorage` stub so `getRawBirthdays()` returns only what we seed. Bun
- * defines no `localStorage`, so without this the whole bundled 33-entry
- * `birthdays.json` would come back instead of the synthetic family.
- */
 const withRecords = (records: RawBirthday[]): Birthday[] => {
 	const memory = new Map<string, string>();
 	memory.set("custom_birthdays_data", JSON.stringify(records));
@@ -109,15 +86,6 @@ type Spec = {
 	kind?: RawBirthday["kind"];
 };
 
-/**
- * Real derived records for a synthetic family.
- *
- * The birth *day* (25) is chosen so the month alone picks the sign, and with
- * it the element - which is what the compatibility collapse keys on:
- * 1 aquarius/air, 2 pisces/water, 3 aries/fire, 4 taurus/earth,
- * 5 gemini/air, 6 cancer/water, 7 leo/fire, 8 virgo/earth,
- * 9 libra/air, 10 scorpio/water, 11 sagittarius/fire, 12 capricorn/earth.
- */
 const family = (spec: readonly Spec[]): Birthday[] =>
 	withRecords(
 		spec.map((x) => ({
@@ -129,7 +97,6 @@ const family = (spec: readonly Spec[]): Birthday[] =>
 
 const MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
-/** A 30-person family cycling every element, so all four are represented. */
 const bigFamily = (prefix: string, offset = 0): Birthday[] =>
 	family(
 		Array.from({ length: 30 }, (_, i) => ({
@@ -139,7 +106,6 @@ const bigFamily = (prefix: string, offset = 0): Birthday[] =>
 		})),
 	);
 
-/** Brute-force reference for the socialite, straight from the scorer. */
 const bruteForceSocialite = (people: readonly Birthday[]) => {
 	let best: { name: string; count: number } | null = null;
 	for (const p1 of people) {
@@ -167,7 +133,6 @@ describe("records: degenerate inputs", () => {
 		expect(records?.elder.name).toBe("Ada");
 		expect(records?.rookie.name).toBe("Ada");
 		expect(records?.twins).toEqual([]);
-		// A perfect match needs somebody else to match with.
 		expect(records?.socialite).toBeNull();
 		expect(records?.sameSign).toBeNull();
 		expect(records?.sameGeneration).toBeNull();
@@ -175,7 +140,6 @@ describe("records: degenerate inputs", () => {
 
 	test("zero perfect matches elects nobody, not a socialite with a count of 0", async () => {
 		await loadRecords();
-		// Everybody is air: same-element scores are 80, never 100.
 		const people = family([
 			{ name: "A", month: 1, age: 30 },
 			{ name: "B", month: 5, age: 31 },
@@ -201,17 +165,13 @@ describe("records: socialite collapse", () => {
 	});
 
 	test("is cheap: a cold cache scores at most 12 element pairs, not 870", async () => {
-		// A fresh module instance means a cold pair cache, so the counters
-		// measure this call alone.
 		await loadRecords();
 		const people = bigFamily("Q");
 
 		computeRecords(people);
-		// The old implementation called the scorer 30 * 29 = 870 times here.
 		expect(recordsDiagnostics.scorerCalls).toBeLessThanOrEqual(12);
 		expect(recordsDiagnostics.pairScores).toBeLessThanOrEqual(12);
 
-		// A second pass over the same data costs nothing: the pairs are cached.
 		const afterFirst = recordsDiagnostics.scorerCalls;
 		computeRecords(people);
 		expect(recordsDiagnostics.scorerCalls).toBe(afterFirst);
@@ -221,14 +181,10 @@ describe("records: socialite collapse", () => {
 	test("is not poisoned by an earlier, smaller family in the same session", async () => {
 		await loadRecords();
 
-		// A lone fire sign cannot be measured against anything, so the pair
-		// cache stays empty for it.
 		const lone = family([{ name: "Ada", month: 3, age: 40 }]);
 		expect(lone[0]?.element).toBe("fire");
 		expect(computeRecords(lone)?.socialite).toBeNull();
 
-		// The next family supplies the missing air partner, and the answer must
-		// not be served from the empty cache the lone sign left behind.
 		const pair = family([
 			{ name: "Ada", month: 3, age: 40 },
 			{ name: "Bo", month: 1, age: 41 },
@@ -240,9 +196,6 @@ describe("records: socialite collapse", () => {
 	test("does not count a person as their own perfect match, even by duplicate name", async () => {
 		await loadRecords();
 
-		// Two people called Sam (one fire, one air) plus one Lee (air).
-		// Sam(fire) may only match Lee: the air bucket holds two people, but
-		// the other Sam shares a name and must be discounted.
 		const people = family([
 			{ name: "Sam", month: 3, age: 30 },
 			{ name: "Sam", month: 1, age: 31 },
@@ -253,8 +206,6 @@ describe("records: socialite collapse", () => {
 		);
 		expect(computeRecords(people)?.socialite?.count).toBe(1);
 
-		// And with nothing but the two Sams, nobody has a match at all:
-		// dropping the name rule would hand each of them the other one.
 		const alone = family([
 			{ name: "Sam", month: 3, age: 30 },
 			{ name: "Sam", month: 1, age: 31 },
@@ -292,9 +243,7 @@ describe("records: twins and cohorts", () => {
 		expect(people.map((p) => p.sign)).toEqual(["aries", "leo", "virgo"]);
 
 		const records = computeRecords(people);
-		// All three signs differ, so there is no sign cohort to fall back on.
 		expect(records?.sameSign).toBeNull();
-		// A and B are both 12 and 13, i.e. both Gen Alpha.
 		expect(records?.sameGeneration).toEqual({
 			generation: "gen_alpha",
 			names: ["A", "B"],
@@ -304,15 +253,6 @@ describe("records: twins and cohorts", () => {
 
 describe("records widget rendering", () => {
 	test("renders tiles and does not recompute on an unrelated re-render", () => {
-		// `RecordsWidget` and `recordsDiagnostics` are imported statically here,
-		// deliberately. The test compares a counter in `recordsDiagnostics`
-		// against recomputes performed by the component, so both must come from
-		// the SAME module instance. Pulling the component from the
-		// `?instance=` dynamic import while reading the counter from the static
-		// one compares two unrelated modules and always reads 0.
-		//
-		// The other tests in this file do use `loadRecords()`, because they need
-		// a cold `pairScoreCache` - but none of them read the diagnostics.
 		const people = family([
 			{ name: "A", month: 3, age: 30 },
 			{ name: "B", month: 1, age: 41 },
@@ -330,7 +270,6 @@ describe("records widget rendering", () => {
 		expect(text).toContain("app.records.no_twins");
 
 		const before = recordsDiagnostics.computations;
-		// Same `data` identity, fresh render: the memo must hold.
 		view.rerender(
 			<MantineProvider>
 				<RecordsWidget data={people} />
@@ -338,7 +277,6 @@ describe("records widget rendering", () => {
 		);
 		expect(recordsDiagnostics.computations).toBe(before);
 
-		// A genuinely new list does recompute.
 		view.rerender(
 			<MantineProvider>
 				<RecordsWidget data={[...people]} />
@@ -354,7 +292,6 @@ describe("records widget rendering", () => {
 				<RecordsWidget data={[]} />
 			</MantineProvider>,
 		);
-		// Nothing is rendered at all, not an empty shell.
 		expect(container.textContent ?? "").not.toContain("app.records");
 	});
 });
@@ -374,8 +311,6 @@ describe("records and timeline accessibility", () => {
 			</MantineProvider>,
 		);
 
-		// WCAG 2.1.1: the scrolling list has to be reachable by keyboard, so
-		// it is focusable and carries an accessible name.
 		const scroller = container.querySelector<HTMLElement>(
 			"[style*='overflow-y']",
 		);
@@ -384,8 +319,6 @@ describe("records and timeline accessibility", () => {
 		expect(scroller?.getAttribute("aria-label")).toBeTruthy();
 
 		const results = await axe.run(container, {
-			// Page-level rules do not apply to a rendered fragment; the shared
-			// list is the same one every other fragment suite uses.
 			rules: axeFragmentOptions().rules,
 		});
 		expect(results.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
@@ -439,8 +372,6 @@ describe("timeline bucketing", () => {
 			{ name: "Later", month: 2, age: 33 },
 			{ name: "Wedding", month: 7, age: 34, kind: WEDDING },
 		]);
-		// The bucket boundaries are relative to today, which these records do
-		// not control, so the offsets are pinned explicitly.
 		const staggered = [0, 3, 9, 200, 1].map((days, i) => {
 			const person = people[i];
 			if (!person) throw new Error("missing fixture");

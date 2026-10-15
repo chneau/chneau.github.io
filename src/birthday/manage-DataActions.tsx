@@ -5,14 +5,6 @@ import { useTranslation } from "react-i18next";
 import { ConfirmPopover } from "./ConfirmPopover";
 import { notify } from "./notify";
 
-/**
- * The modal's data actions: add, export, import, reset.
- *
- * Its own component because the import is a multi-step flow of its own — pick
- * a file, read it, ask what will happen, confirm — and none of that belongs to
- * the list below it. The parent sees only whole strings and whole callbacks,
- * never a `FileReader`.
- */
 export const ManageDataActions = ({
 	pendingImport,
 	onAdd,
@@ -22,11 +14,9 @@ export const ManageDataActions = ({
 	onCancelImport,
 	onReset,
 }: {
-	/** `null` when no file is waiting for confirmation. */
 	pendingImport: { readonly count: number } | null;
 	onAdd: () => void;
 	onExportJson: () => void;
-	/** Receives the raw text of the chosen file. */
 	onReadFile: (text: string) => void;
 	onConfirmImport: () => void;
 	onCancelImport: () => void;
@@ -34,8 +24,6 @@ export const ManageDataActions = ({
 }) => {
 	const { t } = useTranslation();
 	const fileInputRef = useRef<HTMLInputElement>(null);
-	// A read of a large file takes long enough to be worth blocking a second
-	// pick, and the state is what disables the button below.
 	const [reading, setReading] = useState(false);
 
 	return (
@@ -57,8 +45,6 @@ export const ManageDataActions = ({
 					accept=".json"
 					onChange={(event) => {
 						const file = event.target.files?.[0];
-						// Clear the input so selecting the same file again still
-						// fires onChange.
 						event.target.value = "";
 						if (!file) return;
 						const reader = new FileReader();
@@ -67,10 +53,6 @@ export const ManageDataActions = ({
 							setReading(false);
 							onReadFile(String(loaded.target?.result ?? ""));
 						};
-						// A read can fail on its own terms — the file vanished
-						// from the filesystem, a permission was revoked mid-read
-						// — and `onload` never fires then, so without this the
-						// button would stay disabled forever, unexplained.
 						reader.onerror = () => {
 							setReading(false);
 							notify.error(t("manage.import_read_error"));

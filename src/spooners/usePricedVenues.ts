@@ -6,30 +6,18 @@ import { canConvertTo, convert, type RateTable } from "./rates";
 import type { Formatter, PricedVenue, ValueKind } from "./types";
 
 type Input = {
-	/** Pubs that can serve the round, in their own currencies. */
 	priced: PricedVenue[];
 	selectedCurrency: string | null;
-	/** The "prices shown in" setting: "native" or an ISO code. */
 	convertCurrency: string;
 	rates: RateTable | null;
 };
 
-/**
- * The round's price in one currency.
- *
- * Two modes, and the difference matters: `native` keeps each pub in its own
- * currency and switches between them, while a chosen currency converts
- * everything so EUR pubs show up beside GBP ones. Both need to know which
- * currency is actually available, because the app's own currency list can be
- * empty before the data lands.
- */
 export const usePricedVenues = ({
 	priced,
 	selectedCurrency,
 	convertCurrency,
 	rates,
 }: Input) => {
-	// native mode: each pub keeps its own currency (switch between them)
 	const currencies = useMemo(() => availableCurrencies(priced), [priced]);
 	const effectiveCurrency =
 		selectedCurrency &&
@@ -43,11 +31,7 @@ export const usePricedVenues = ({
 		[priced, effectiveCurrency],
 	);
 
-	// converted mode: everything into one currency, so EUR pubs show up too
 	const convertTo = convertCurrency !== "native" ? convertCurrency : null;
-	// `convert` silently returns the amount unchanged when a venue's own
-	// currency is missing from the table, which would mix currencies - so only
-	// convert when every pub can be converted.
 	const allCurrenciesConvertible = priced.every((venue) =>
 		canConvertTo(venue.currency, rates),
 	);
@@ -67,7 +51,6 @@ export const usePricedVenues = ({
 					venue.previousPrice != null
 						? convert(venue.previousPrice, venue.currency, convertTo, rates)
 						: null,
-				// kcal/£ and £/unit both scale with the currency
 				metricValue:
 					venue.metricValue == null
 						? null
@@ -85,7 +68,6 @@ export const usePricedVenues = ({
 	const displayCurrency =
 		converting && convertTo ? convertTo : effectiveCurrency;
 
-	// one place that knows how to show a price/metric in the display currency
 	const targetCurrency = converting && convertTo ? convertTo : null;
 	const format = useMemo<Formatter>(() => {
 		const convertMoney = (value: number, from: string) =>

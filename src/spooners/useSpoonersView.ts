@@ -22,16 +22,10 @@ import {
 
 const DEFAULT_ITEM_HINT = "guinness";
 
-/**
- * Everything the app derives from the round and the filters. Exported because
- * `ResultsSidebar` renders it and nothing else: naming the contract keeps that
- * panel honest about what it is.
- */
 export type SpoonersView = ReturnType<typeof useSpoonersView>;
 
 type SpoonersViewInput = {
 	data: SpoonersCache | null;
-	/** The round as edited, or `null` when it has not been touched yet. */
 	basket: BasketItem[] | null;
 	selectedCurrency: string | null;
 	activeFilters: string[];
@@ -43,20 +37,10 @@ type SpoonersViewInput = {
 	areaFilter: string | null;
 	userLocation: { lat: number; lng: number } | null;
 	view: "pubs" | "area";
-	/** The "prices shown in" setting: "native" or an ISO code. */
 	convertCurrency: string;
 	rates: RateTable | null;
 };
 
-/**
- * Every derivation between the raw cache + UI state and what the pieces render.
- * App owns the state and the handlers; this hook owns the memos.
- *
- * Composed of narrower hooks — one currency mode, one filter pass, one map —
- * so each is read on its own rather than as one 400-line body. They are called
- * unconditionally and in order, and `useSpoonersView` just hands their results
- * on: this stays the single entry point the app imports.
- */
 export const useSpoonersView = (input: SpoonersViewInput) => {
 	const {
 		data,
@@ -99,7 +83,6 @@ export const useSpoonersView = (input: SpoonersViewInput) => {
 		[visibleIndex],
 	);
 
-	// resolve "untouched" to the fallback item, once the data is there
 	const resolvedBasket = useMemo(
 		() => basket ?? (fallbackName ? [{ name: fallbackName, qty: 1 }] : []),
 		[basket, fallbackName],
@@ -107,7 +90,6 @@ export const useSpoonersView = (input: SpoonersViewInput) => {
 	const singleName =
 		resolvedBasket.length === 1 ? (resolvedBasket[0]?.name ?? null) : null;
 
-	// dietary filters only make sense when a round item actually carries a tag
 	const dietaryRelevant = useMemo(() => {
 		if (!data) {
 			return false;
