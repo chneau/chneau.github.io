@@ -14,6 +14,7 @@ import type { CSSProperties } from "react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { HeaderAction, prefersReducedMotion } from "../shared";
 import { GithubMark, LinkedinMark } from "./brand-marks";
+import { copyToClipboard } from "./clipboard";
 import {
 	CONTACTS,
 	DOCX_URL,
@@ -46,32 +47,6 @@ const reveal = (index: number): CSSProperties =>
 const NewTabHint = () => <span className="sr-only">(opens in new tab)</span>;
 
 type CopyState = "idle" | "ok" | "error";
-
-/**
- * Copy with the insecure-context fallback.
- *
- * Exported because the command palette copies the page URL too, and it used
- * `navigator.clipboard` directly: over plain HTTP the hero button succeeded
- * (via `execCommand`) while the palette reported a failure, on the same page.
- */
-export const copyToClipboard = async (text: string): Promise<void> => {
-	if (navigator.clipboard) {
-		await navigator.clipboard.writeText(text);
-		return;
-	}
-	// `navigator.clipboard` is absent outside a secure context, and a CV read
-	// over plain HTTP is a supported way to arrive here.
-	const area = document.createElement("textarea");
-	area.value = text;
-	area.setAttribute("readonly", "");
-	area.style.position = "fixed";
-	area.style.opacity = "0";
-	document.body.appendChild(area);
-	area.select();
-	const ok = document.execCommand("copy");
-	document.body.removeChild(area);
-	if (!ok) throw new Error("copy-failed");
-};
 
 /**
  * Copy with a transient confirmation. The text is fetched through a callback

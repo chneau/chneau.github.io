@@ -7,6 +7,7 @@ import {
 	Text,
 	TextInput,
 	Tooltip,
+	UnstyledButton,
 } from "@mantine/core";
 import { ChevronRight, Pencil, Search, X } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
@@ -76,6 +77,9 @@ export const JsonInspector = ({
 				value={search}
 				onChange={(event) => onSearchChange(event.currentTarget.value)}
 				placeholder="Search every field, e.g. gold"
+				// The placeholder is not a name: it disappears once a query is
+				// typed, and not every browser maps it to the accessible name.
+				aria-label="Search every field"
 				leftSection={<Search size={15} strokeWidth={2} />}
 				rightSection={
 					search ? (
@@ -218,22 +222,35 @@ const Tree = ({
 
 	return (
 		<Box>
-			<Group
-				gap={4}
-				pl={depth * INDENT}
-				py={2}
-				wrap="nowrap"
-				role="treeitem"
+			{/*
+			 * A disclosure button per node, not a `role="treeitem"`.
+			 *
+			 * The rows claimed `treeitem` inside nothing: the only role above
+			 * them was a plain `Box`, so `aria-required-parent` fired (WCAG
+			 * 1.3.1) — a tree with no collection, which no assistive technology
+			 * can announce a level, position or set size for — and the pattern
+			 * that was advertised needs roving focus, one tab stop for the whole
+			 * tree, where this had `tabIndex={0}` on every node. A button keeps
+			 * the keyboard behaviour the row already had (Enter and Space, for
+			 * free rather than by hand), and `aria-expanded` says exactly what
+			 * the chevron shows.
+			 *
+			 * `Text component="span"` because a `<button>` cannot contain a
+			 * paragraph, and `Text` renders one by default.
+			 */}
+			<UnstyledButton
 				aria-expanded={open}
-				tabIndex={0}
 				onClick={() => onToggle(key)}
-				onKeyDown={(event) => {
-					if (event.key === "Enter" || event.key === " ") {
-						event.preventDefault();
-						onToggle(key);
-					}
+				style={{
+					display: "flex",
+					alignItems: "center",
+					gap: 4,
+					width: "100%",
+					paddingLeft: depth * INDENT,
+					paddingTop: 2,
+					paddingBottom: 2,
+					textAlign: "left",
 				}}
-				style={{ cursor: "pointer" }}
 			>
 				<ChevronRight
 					size={13}
@@ -244,7 +261,7 @@ const Tree = ({
 						flexShrink: 0,
 					}}
 				/>
-				<Text size="sm" ff="monospace" fw={500}>
+				<Text component="span" size="sm" ff="monospace" fw={500}>
 					{depth === 0 ? "save" : path[path.length - 1]}
 				</Text>
 				<Badge size="xs" variant="light" color="gray">
@@ -252,7 +269,7 @@ const Tree = ({
 						? `${count}`
 						: `${count} field${count === 1 ? "" : "s"}`}
 				</Badge>
-			</Group>
+			</UnstyledButton>
 			{open
 				? entries.map(([childKey, child]) => (
 						<Tree
@@ -334,6 +351,15 @@ const LeafRow = ({
 					<TextInput
 						size="xs"
 						autoFocus
+						/**
+						 * Named for the field it edits, not left to the row's
+						 * visible key: the input replaces that row's value in a
+						 * list that can hold thousands of leaves, and a
+						 * screen-reader user reaching it by keyboard heard only
+						 * "edit text". The pencil button's `aria-label` beside it
+						 * names the same path.
+						 */
+						aria-label={`Edit ${key}`}
 						value={draft ?? scalarToDraft(value)}
 						onChange={(event) => setDraft(event.currentTarget.value)}
 						onBlur={commit}
