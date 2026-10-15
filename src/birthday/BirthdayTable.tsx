@@ -389,6 +389,13 @@ export const BirthdayTable = ({ data }: { data: readonly Birthday[] }) => {
 						total={pageCount}
 						value={currentPage}
 						onChange={setPage}
+						getControlProps={(control) =>
+							control === "previous"
+								? { "aria-label": t("common.previous_page") }
+								: control === "next"
+									? { "aria-label": t("common.next_page") }
+									: {}
+						}
 					/>
 				</Group>
 			</Group>

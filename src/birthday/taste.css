@@ -229,15 +229,12 @@ body {
 	padding: clamp(16px, 2.4vw, 26px);
 }
 
-.tk-eyebrow {
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-	font-family: var(--tk-font-mono);
-	font-size: 11px;
-	letter-spacing: 0.14em;
-	text-transform: uppercase;
-	color: var(--tk-text-faint);
+.tk-upcoming__title {
+	margin: 0 0 6px;
+	font-size: 0.9375rem;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+	color: var(--tk-text);
 }
 
 .tk-section-title {

@@ -248,7 +248,6 @@
 		"events": "Événements",
 		"no_data": "N/D",
 		"hero": {
-			"eyebrow": "Prochaine célébration",
 			"today": "Aujourd'hui",
 			"turning": "Fête ses {{age}} ans",
 			"cycle": "{{percent}} % du cycle écoulés",
@@ -286,7 +285,9 @@
 	},
 	"common": {
 		"confirm": "Confirmer",
-		"cancel": "Annuler"
+		"cancel": "Annuler",
+		"previous_page": "Page précédente",
+		"next_page": "Page suivante"
 	},
 	"manage": {
 		"title": "🎂 Gérer les anniversaires",

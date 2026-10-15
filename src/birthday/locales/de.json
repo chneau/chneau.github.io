@@ -248,7 +248,6 @@
 		"events": "Ereignisse",
 		"no_data": "k.A.",
 		"hero": {
-			"eyebrow": "Nächste Feier",
 			"today": "Findet heute statt",
 			"turning": "Wird {{age}}",
 			"cycle": "{{percent}} % des Zyklus verstrichen",
@@ -286,7 +285,9 @@
 	},
 	"common": {
 		"confirm": "Bestätigen",
-		"cancel": "Abbrechen"
+		"cancel": "Abbrechen",
+		"previous_page": "Vorherige Seite",
+		"next_page": "Nächste Seite"
 	},
 	"manage": {
 		"title": "🎂 Geburtstage verwalten",

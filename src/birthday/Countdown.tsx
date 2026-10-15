@@ -192,16 +192,14 @@ export const Countdown = ({ birthdays, onManage }: CountdownProps) => {
 				<div className="tk-hero__glow" aria-hidden="true" />
 
 				<div>
-					<span className="tk-eyebrow">
-						{isToday ? (
-							<PartyPopper size={13} strokeWidth={2} />
-						) : (
-							<CalendarDays size={13} strokeWidth={2} />
-						)}
-						{isToday ? t("app.hero.today") : t("app.hero.eyebrow")}
-					</span>
 					<h1 className="tk-hero__name">{primary.name}</h1>
 					<div className="tk-hero__pills">
+						{isToday && (
+							<span className="tk-pill tk-pill--accent">
+								<PartyPopper size={13} strokeWidth={2} />
+								{t("app.hero.today")}
+							</span>
+						)}
 						<span className="tk-pill">
 							<KindIcon kind={primary.kind} size={13} />
 							{t(kindLabelKey(primary.kind))}
@@ -270,7 +268,7 @@ export const Countdown = ({ birthdays, onManage }: CountdownProps) => {
 				))}
 
 				<div className="tk-upcoming">
-					<span className="tk-eyebrow">{t("app.hero.closest")}</span>
+					<h2 className="tk-upcoming__title">{t("app.hero.closest")}</h2>
 					{rest.length > 0 ? (
 						rest.map(({ record: b, key }) => (
 							<button

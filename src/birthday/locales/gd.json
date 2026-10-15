@@ -248,7 +248,6 @@
 		"events": "Tachartasan",
 		"no_data": "Gun dàta",
 		"hero": {
-			"eyebrow": "An ath chomharrachadh",
 			"today": "Tha e a' gabhail place an-diugh",
 			"turning": "A' tionndadh {{age}}",
 			"cycle": "{{percent}}% den chuairt air a chrìochnachadh",
@@ -286,7 +285,9 @@
 	},
 	"common": {
 		"confirm": "Dearbhadh",
-		"cancel": "Cuir à naomhadh"
+		"cancel": "Cuir à naomhadh",
+		"previous_page": "Duilleag roimhe",
+		"next_page": "Duilleag a leanas"
 	},
 	"manage": {
 		"title": "🎂 Riùradh na co-làithean-breith",
