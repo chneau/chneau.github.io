@@ -8,7 +8,6 @@ import {
 	Slider,
 	Text,
 	TextInput,
-	Title,
 } from "@mantine/core";
 import {
 	Clock,
@@ -34,8 +33,7 @@ export const ReplayClock = ({
 	activeCount: number;
 }) => (
 	<Group gap="md" align="center">
-		<Title
-			order={3}
+		<Text
 			className="sr-num"
 			style={{
 				color: palette.text,
@@ -48,9 +46,9 @@ export const ReplayClock = ({
 				gap: 8,
 			}}
 		>
-			<Clock size={16} style={{ color: palette.accent }} />
+			<Clock size={16} style={{ color: palette.accentInk }} />
 			{formatTime(timeOffset)}
-		</Title>
+		</Text>
 		<Badge
 			component="button"
 			type="button"
@@ -65,7 +63,7 @@ export const ReplayClock = ({
 				padding: "2px 10px",
 				cursor: "pointer",
 				background: palette.accentSoft,
-				color: palette.accent,
+				color: palette.accentInk,
 			}}
 		>
 			<span className="sr-num">{activeCount}</span> active
@@ -120,7 +118,7 @@ export const CategoryFilters = ({
 						}}
 					/>
 					{cfg.label}:{" "}
-					<b className="sr-num" style={{ color: cfg.color }}>
+					<b className="sr-num" style={{ color: cfg.ink }}>
 						{count}
 					</b>
 				</Badge>

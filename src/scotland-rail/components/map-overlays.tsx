@@ -29,7 +29,7 @@ export const BootOverlay = ({ ready }: { ready: boolean }) => (
 			className="app-skeleton"
 			style={{ width: 140, height: 10, maxWidth: "40vw" }}
 		/>
-		<span style={{ color: palette.textFaint, fontSize: "0.75rem" }}>
+		<span style={{ color: palette.inkOnMap, fontSize: "0.75rem" }}>
 			Drawing the network
 		</span>
 	</div>
@@ -56,7 +56,7 @@ const NavButton = ({
 			background: accented ? palette.accentSoft : "var(--app-surface-2)",
 			border: "none",
 			borderRadius: 6,
-			color: accented ? palette.accent : palette.text,
+			color: accented ? palette.accentInk : palette.text,
 			width: 44,
 			height: 44,
 			cursor: "pointer",
@@ -116,6 +116,8 @@ export const HoverTooltip = ({
 }) => {
 	const accent = CATEGORIES[train.service.category].color;
 
+	const ink = CATEGORIES[train.service.category].ink;
+
 	return (
 		<div
 			style={{
@@ -124,14 +126,13 @@ export const HoverTooltip = ({
 				top: Math.max(16, position.y - 45),
 				zIndex: 25,
 				pointerEvents: "none",
-				background: "rgba(10, 20, 27, 0.95)",
-				backdropFilter: "blur(8px)",
+				background: palette.surfaceSolid,
 				border: `1px solid ${accent}`,
 				borderRadius: 8,
 				padding: "6px 10px",
 				color: palette.text,
 				fontSize: "0.8rem",
-				boxShadow: "0 14px 30px -18px rgba(0,0,0,0.95)",
+				boxShadow: "0 14px 30px -18px rgba(0,0,0,0.7)",
 			}}
 		>
 			<div
@@ -144,7 +145,7 @@ export const HoverTooltip = ({
 				<span
 					className="sr-num"
 					style={{
-						color: accent,
+						color: ink,
 						fontWeight: "bold",
 					}}
 				>
@@ -164,7 +165,7 @@ export const HoverTooltip = ({
 			>
 				{train.isDwelling ? (
 					<>
-						<MapPin size={13} style={{ color: accent }} />
+						<MapPin size={13} style={{ color: ink }} />
 						<span>At {train.currentStopName}</span>
 					</>
 				) : (

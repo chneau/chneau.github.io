@@ -18,7 +18,7 @@ import {
 import { derivedStore, railStore } from "../store";
 import { BootOverlay, HoverTooltip, MapNavControls } from "./map-overlays";
 
-const ANNOUNCE_INTERVAL_MS = 2500;
+const ANNOUNCE_INTERVAL_MS = 10000;
 
 export const ReplayCanvas = () => {
 	const snap = useSnapshot(railStore);

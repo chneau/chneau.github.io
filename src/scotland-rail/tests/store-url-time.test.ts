@@ -1,4 +1,13 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	test,
+	vi,
+} from "bun:test";
 import { MAX_REPLAY_TIME, MIN_REPLAY_TIME } from "../utils";
 
 type Captured = { url: string; search: string };
@@ -70,7 +79,21 @@ afterAll(() => {
 	restore("localStorage", previousLocalStorage);
 });
 
-const DEBOUNCE_SETTLE_MS = 400;
+beforeEach(() => {
+	vi.useFakeTimers();
+});
+
+afterEach(() => {
+	vi.useRealTimers();
+});
+
+const DEBOUNCE_SETTLE_MS = 1200;
+
+const settle = async (): Promise<void> => {
+	await Promise.resolve();
+	vi.advanceTimersByTime(DEBOUNCE_SETTLE_MS);
+	await Promise.resolve();
+};
 
 const loadStore = async (search = "") => {
 	captured = { url: "", search };
@@ -90,7 +113,7 @@ describe("store and share link agree on the clock", () => {
 		const { store, url } = await loadStore();
 
 		store.railActions.setTimeOffset(1455);
-		await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_SETTLE_MS));
+		await settle();
 
 		expect(store.railStore.timeOffset).toBe(MAX_REPLAY_TIME);
 		expect(timeParamOf(captured.search)).toBe(String(MAX_REPLAY_TIME));
@@ -116,7 +139,7 @@ describe("store and share link agree on the clock", () => {
 
 		for (const value of values) {
 			store.railActions.setTimeOffset(value);
-			await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_SETTLE_MS));
+			await settle();
 
 			const written = store.railStore.timeOffset;
 			expect(written).toBeGreaterThanOrEqual(MIN_REPLAY_TIME);
@@ -134,21 +157,33 @@ describe("store and share link agree on the clock", () => {
 		const { store, url } = await loadStore();
 
 		store.railActions.setTimeOffset(1439.6);
-		await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_SETTLE_MS));
+		await settle();
 
 		expect(store.railStore.timeOffset).toBe(MAX_REPLAY_TIME);
+		expect(timeParamOf(captured.search)).toBe(String(MAX_REPLAY_TIME));
 		expect(url.readUrlState().timeOffset).toBe(MAX_REPLAY_TIME);
 	});
 
-	test("restart returns to the start of the window", async () => {
+	test("restart lands on the first minute with a train running", async () => {
 		const { store } = await loadStore();
 
 		store.railActions.setTimeOffset(1440);
 		store.railActions.restart();
-		await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_SETTLE_MS));
+		await settle();
 
-		expect(store.railStore.timeOffset).toBe(MIN_REPLAY_TIME);
-		expect(timeParamOf(captured.search)).toBe(String(MIN_REPLAY_TIME));
+		expect(store.derivedStore.activeTrains.length).toBeGreaterThan(0);
+		expect(store.railStore.timeOffset).toBeGreaterThan(MIN_REPLAY_TIME);
+		expect(timeParamOf(captured.search)).toBe(
+			String(store.railStore.timeOffset),
+		);
+	});
+
+	test("the raw start of the window is still quiet, so restart must not use it", async () => {
+		const { store } = await loadStore();
+
+		store.railActions.setTimeOffset(MIN_REPLAY_TIME);
+
+		expect(store.derivedStore.activeTrains.length).toBe(0);
 	});
 });
 

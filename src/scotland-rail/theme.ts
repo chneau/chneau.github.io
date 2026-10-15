@@ -17,9 +17,13 @@ export const palette = {
 	textMuted: "var(--rail-text-muted)",
 	textFaint: "var(--rail-text-faint)",
 	accent: "var(--rail-accent)",
+	accentInk: "var(--rail-accent-ink)",
 	accentSoft: "var(--rail-accent-soft)",
 	accentBorder: "var(--rail-accent-border)",
+	onCategory: "var(--rail-on-category)",
+	inkOnMap: "var(--rail-ink-on-map)",
 	danger: "var(--rail-danger)",
+	dangerInk: "var(--rail-danger-ink)",
 } as const;
 
 export const categoryColors = {
@@ -28,6 +32,14 @@ export const categoryColors = {
 	Commuter: "#c9a04e",
 	CrossBorder: "#c2686f",
 	Sleeper: "#8090bf",
+} as const;
+
+export const categoryInkColors = {
+	Express: "var(--rail-cat-express-ink)",
+	Highland: "var(--rail-cat-highland-ink)",
+	Commuter: "var(--rail-cat-commuter-ink)",
+	CrossBorder: "var(--rail-cat-crossborder-ink)",
+	Sleeper: "var(--rail-cat-sleeper-ink)",
 } as const;
 
 const accent: MantineColorsTuple = [

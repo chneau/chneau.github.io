@@ -20,6 +20,7 @@ export const SourcesModal = ({
 }) => (
 	<Modal
 		title="Data Sources & Method"
+		closeButtonProps={{ "aria-label": "Close data sources" }}
 		opened={open}
 		onClose={onClose}
 		styles={{
@@ -45,7 +46,7 @@ export const SourcesModal = ({
 			}}
 		/>
 
-		<Title order={5} style={{ color: palette.accent, marginTop: 0 }}>
+		<Title order={3} style={{ color: palette.accentInk, marginTop: 0 }}>
 			Geospatial & Cartographic Data
 		</Title>
 		<ul style={{ color: palette.textMuted, paddingLeft: 20 }}>
@@ -55,14 +56,14 @@ export const SourcesModal = ({
 					href="https://www.naturalearthdata.com/downloads/50m-physical-vectors/"
 					target="_blank"
 					rel="noreferrer"
-					style={{ color: palette.accent }}
+					style={{ color: palette.accentInk }}
 				>
 					Natural Earth 50m Physical Vectors
 				</Anchor>{" "}
 				(Ingested via{" "}
 				<Code
 					style={{
-						color: palette.accent,
+						color: palette.accentInk,
 						background: "var(--app-surface-2)",
 					}}
 				>
@@ -76,7 +77,7 @@ export const SourcesModal = ({
 					href="https://www.openrailwaymap.org/"
 					target="_blank"
 					rel="noreferrer"
-					style={{ color: palette.accent }}
+					style={{ color: palette.accentInk }}
 				>
 					OpenRailwayMap
 				</Anchor>{" "}
@@ -85,7 +86,7 @@ export const SourcesModal = ({
 					href="https://www.openstreetmap.org/"
 					target="_blank"
 					rel="noreferrer"
-					style={{ color: palette.accent }}
+					style={{ color: palette.accentInk }}
 				>
 					OpenStreetMap
 				</Anchor>{" "}
@@ -93,7 +94,7 @@ export const SourcesModal = ({
 			</li>
 		</ul>
 
-		<Title order={5} style={{ color: palette.accent, marginTop: 16 }}>
+		<Title order={3} style={{ color: palette.accentInk, marginTop: 16 }}>
 			Official Timetable & Schedule Feeds
 		</Title>
 		<ul style={{ color: palette.textMuted, paddingLeft: 20 }}>
@@ -106,7 +107,7 @@ export const SourcesModal = ({
 							href="https://www.scotrail.co.uk/plan-your-journey/timetables"
 							target="_blank"
 							rel="noreferrer"
-							style={{ color: palette.accent }}
+							style={{ color: palette.accentInk }}
 						>
 							ScotRail Official Timetable Publications
 						</Anchor>{" "}
@@ -117,7 +118,7 @@ export const SourcesModal = ({
 							href="https://www.lner.co.uk/travel-information/travelling-now/travel-updates/timetables/"
 							target="_blank"
 							rel="noreferrer"
-							style={{ color: CATEGORIES.CrossBorder.color }}
+							style={{ color: CATEGORIES.CrossBorder.ink }}
 						>
 							LNER Timetable Feed
 						</Anchor>{" "}
@@ -129,7 +130,7 @@ export const SourcesModal = ({
 							href="https://www.sleeper.co.uk/timetables/"
 							target="_blank"
 							rel="noreferrer"
-							style={{ color: CATEGORIES.Sleeper.color }}
+							style={{ color: CATEGORIES.Sleeper.ink }}
 						>
 							Caledonian Sleeper Timetables
 						</Anchor>{" "}
@@ -140,7 +141,7 @@ export const SourcesModal = ({
 							href="https://www.avantiwestcoast.co.uk/travel-information/timetables"
 							target="_blank"
 							rel="noreferrer"
-							style={{ color: palette.accent }}
+							style={{ color: palette.accentInk }}
 						>
 							Avanti West Coast
 						</Anchor>{" "}
@@ -149,7 +150,7 @@ export const SourcesModal = ({
 							href="https://www.crosscountrytrains.co.uk/travel-updates-information/timetables"
 							target="_blank"
 							rel="noreferrer"
-							style={{ color: palette.accent }}
+							style={{ color: palette.accentInk }}
 						>
 							CrossCountry
 						</Anchor>
@@ -160,7 +161,7 @@ export const SourcesModal = ({
 				<strong>Data Ingestion:</strong> Ingested into static JSON dataset (
 				<Code
 					style={{
-						color: palette.accent,
+						color: palette.accentInk,
 						background: "var(--app-surface-2)",
 					}}
 				>
@@ -169,7 +170,7 @@ export const SourcesModal = ({
 				) via{" "}
 				<Code
 					style={{
-						color: palette.accent,
+						color: palette.accentInk,
 						background: "var(--app-surface-2)",
 					}}
 				>
@@ -196,7 +197,7 @@ export const SourcesModal = ({
 				href="https://white-smoke-0b215f103.7.azurestaticapps.net/"
 				target="_blank"
 				rel="noreferrer"
-				style={{ color: palette.accent }}
+				style={{ color: palette.accentInk }}
 			>
 				A Day in Irish Rail
 			</Anchor>{" "}

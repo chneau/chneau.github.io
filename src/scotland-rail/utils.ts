@@ -1,9 +1,34 @@
+import type { TrainService } from "./data/types";
+
 export const MIN_REPLAY_TIME = 300;
 
 export const MAX_REPLAY_TIME = 1440;
 
 export const clampReplayTime = (minutes: number): number =>
 	Math.min(MAX_REPLAY_TIME, Math.max(MIN_REPLAY_TIME, Math.round(minutes)));
+
+export const earliestServiceMinute = (
+	services: readonly TrainService[],
+): number => {
+	let earliest = MAX_REPLAY_TIME;
+	for (const service of services) {
+		const first = service.calls[0];
+		if (!first) continue;
+		const start = first.departureOffset ?? first.arrivalOffset;
+		if (start !== null && start < earliest) earliest = start;
+	}
+	return clampReplayTime(earliest);
+};
+
+export const cycleIndex = (
+	length: number,
+	current: number,
+	direction: 1 | -1,
+): number | null => {
+	if (length === 0) return null;
+	if (current < 0) return direction === 1 ? 0 : length - 1;
+	return (current + direction + length) % length;
+};
 
 export const formatTime = (minutes: number | null): string => {
 	if (minutes === null || !Number.isFinite(minutes)) return "—";
@@ -27,6 +52,7 @@ type RailShortcut =
 	| { kind: "scrub"; deltaMinutes: number }
 	| { kind: "speed"; direction: 1 | -1 }
 	| { kind: "toggle-sound" }
+	| { kind: "cycle-train"; direction: 1 | -1 }
 	| { kind: "escape" };
 
 const SPEEDS = [0.5, 1, 2, 5, 15] as const;
@@ -47,6 +73,12 @@ export const resolveRailShortcut = (
 	if (e.code === "ArrowDown") return { kind: "speed", direction: -1 };
 	if (e.key === "m" || e.key === "M") {
 		return isChord ? null : { kind: "toggle-sound" };
+	}
+	if (e.key === "n" || e.key === "N") {
+		return isChord ? null : { kind: "cycle-train", direction: 1 };
+	}
+	if (e.key === "p" || e.key === "P") {
+		return isChord ? null : { kind: "cycle-train", direction: -1 };
 	}
 	if (e.code === "Escape") return { kind: "escape" };
 	return null;

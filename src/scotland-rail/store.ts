@@ -1,4 +1,4 @@
-import { debounce } from "es-toolkit";
+import { debounce, throttle } from "es-toolkit";
 import { proxy, subscribe } from "valtio";
 import { STATIONS } from "./data/geography";
 import TIMETABLE_DATA from "./data/timetable.json";
@@ -15,7 +15,7 @@ import {
 	resolveServiceAtTime,
 } from "./engine/interpolator";
 import { readUrlState, writeUrlState } from "./url";
-import { clampReplayTime, MIN_REPLAY_TIME } from "./utils";
+import { clampReplayTime, cycleIndex, earliestServiceMinute } from "./utils";
 
 type RailStore = {
 	timeOffset: number;
@@ -31,7 +31,10 @@ type RailStore = {
 	settings: AppSettings;
 };
 
+const URL_WRITE_INTERVAL_MS = 1000;
+
 const allServices: TrainService[] = TrainServicesSchema.parse(TIMETABLE_DATA);
+const firstServiceMinute = earliestServiceMinute(allServices);
 const stationNamesById = new Map(STATIONS.map((s) => [s.id, s.name]));
 
 const getInitialState = (): RailStore => {
@@ -96,7 +99,7 @@ const saveSettings = debounce(() => {
 
 subscribe(railStore, saveSettings);
 
-const saveUrl = debounce(() => {
+const saveUrl = throttle(() => {
 	writeUrlState({
 		timeOffset: railStore.timeOffset,
 		speed: railStore.speed,
@@ -104,7 +107,7 @@ const saveUrl = debounce(() => {
 		category: railStore.selectedCategory,
 		query: railStore.searchQuery,
 	});
-}, 250);
+}, URL_WRITE_INTERVAL_MS);
 
 subscribe(railStore, () => {
 	saveUrl();
@@ -221,7 +224,18 @@ export const railActions = {
 		railStore.settings = { ...DEFAULT_SETTINGS };
 	},
 	restart: () => {
-		railActions.setTimeOffset(MIN_REPLAY_TIME);
+		railActions.setTimeOffset(firstServiceMinute);
+	},
+	cycleSelectedTrain: (direction: 1 | -1) => {
+		const trains = derivedStore.activeTrains;
+		const ids = trains.map((train) => train.service.id);
+		const currentIndex = railStore.selectedService
+			? ids.indexOf(railStore.selectedService.id)
+			: -1;
+		const nextIndex = cycleIndex(ids.length, currentIndex, direction);
+		if (nextIndex === null) return;
+		const next = trains[nextIndex];
+		if (next) railActions.setSelectedService(next.service);
 	},
 };
 
