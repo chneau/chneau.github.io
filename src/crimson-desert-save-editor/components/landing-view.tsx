@@ -49,28 +49,8 @@ export const LandingView = ({
 				<Grid gap="xl" align="center">
 					<Grid.Col span={{ base: 12, lg: 7 }}>
 						<Stack gap="lg" maw={560}>
-							<Group gap="xs" wrap="nowrap">
-								<Box
-									w={6}
-									h={6}
-									style={{
-										borderRadius: 999,
-										background: "var(--mantine-primary-color-filled)",
-									}}
-								/>
-								<Text
-									size="11px"
-									c="dimmed"
-									tt="uppercase"
-									fw={600}
-									style={{ letterSpacing: "0.2em" }}
-								>
-									Crimson Desert · on-device save editor
-								</Text>
-							</Group>
-
 							<Title order={1} maw={620}>
-								Change your save without sending it anywhere.
+								Crimson Desert save editor
 							</Title>
 
 							<Text size="md" c="dimmed" lh={1.7} maw="58ch">
