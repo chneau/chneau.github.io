@@ -33,6 +33,12 @@ const NewTabHint = () => <span className="sr-only">(opens in new tab)</span>;
 
 type CopyState = "idle" | "ok" | "error";
 
+const COPY_FEEDBACK: Record<CopyState, string> = {
+	idle: "",
+	ok: "Copied",
+	error: "Copy failed",
+};
+
 const useCopy = (getText: () => string, label: string) => {
 	const [state, setState] = useState<CopyState>("idle");
 	const timer = useRef<number | undefined>(undefined);
@@ -54,11 +60,10 @@ const useCopy = (getText: () => string, label: string) => {
 		state === "ok"
 			? `${label} copied`
 			: state === "error"
-				? `Could not copy ${label.toLowerCase()}`
+				? `Copy failed — copy ${label} again`
 				: `Copy ${label}`;
 
-	const feedback =
-		state === "ok" ? "Copied" : state === "error" ? "Copy failed" : "";
+	const feedback = COPY_FEEDBACK[state];
 
 	return { state, title, feedback, copy };
 };
@@ -74,7 +79,7 @@ const CopyButton = ({ text, label }: { text: string; label: string }) => {
 				aria-live="polite"
 				data-state={state}
 			>
-				{feedback || (state === "ok" ? "Copied" : "")}
+				{feedback}
 			</span>
 			<button
 				type="button"
@@ -193,7 +198,6 @@ const ContactList = () => (
 export const Hero = ({ heroRef }: { heroRef: HeroVisibility["heroRef"] }) => (
 	<section className="cv-shell cv-hero" ref={heroRef}>
 		<div data-reveal style={reveal(0)}>
-			<span className="cv-eyebrow">Curriculum Vitae</span>
 			<h1 className="cv-name">Charles Neau</h1>
 			<p className="cv-role">Senior Full-Stack & Systems Engineer</p>
 			<div className="cv-status">
@@ -213,17 +217,6 @@ export const Hero = ({ heroRef }: { heroRef: HeroVisibility["heroRef"] }) => (
 					<LocalClock />
 				</span>
 			</div>
-		</div>
-
-		<div className="cv-hero-downloads no-print">
-			<a href={PDF_URL} target="_blank" rel="noopener noreferrer">
-				Download PDF
-				<NewTabHint />
-			</a>
-			<a href={DOCX_URL} target="_blank" rel="noopener noreferrer">
-				Download DOCX
-				<NewTabHint />
-			</a>
 		</div>
 
 		<ContactList />
@@ -390,8 +383,8 @@ const AsideColumn = () => (
 
 export const Body = () => (
 	<div className="cv-shell cv-main">
-		<AsideColumn />
 		<MainColumn />
+		<AsideColumn />
 	</div>
 );
 
@@ -423,7 +416,7 @@ export const HeaderActions = () => {
 					aria-live="polite"
 					data-state={linkCopy.state}
 				>
-					{linkCopy.feedback || (linkCopy.state === "ok" ? "Copied" : "")}
+					{linkCopy.feedback}
 				</span>
 			) : null}
 			<HeaderAction

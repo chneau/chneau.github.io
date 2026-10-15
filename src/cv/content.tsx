@@ -74,7 +74,7 @@ export const SKILLS: SkillGroup[] = [
 		],
 	},
 	{
-		category: "Simulation & Optimization",
+		category: "Simulation & Optimisation",
 		items: [
 			"SimPy Simulation",
 			"Constraint Solving (CSP)",
@@ -198,7 +198,7 @@ export const JOBS: Job[] = [
 				id: "optimisation",
 				body: (
 					<>
-						<strong>Optimization & Simulation Engines:</strong> Developed
+						<strong>Optimisation & Simulation Engines:</strong> Developed
 						discrete-event simulation models and constraint-solving scheduling
 						engines for offshore decommissioning, vessel sharing, and complex
 						cargo logistics across North Sea operations.
@@ -244,7 +244,7 @@ export const JOBS: Job[] = [
 				body: (
 					<>
 						<strong>DevOps & CI/CD Infrastructure:</strong> Designed
-						containerized deployment pipelines using Docker, Kubernetes, and
+						containerised deployment pipelines using Docker, Kubernetes, and
 						GitHub Actions; established automated linting, testcontainers, and
 						fast-feedback builds reducing release deployment cycles.
 					</>
@@ -266,9 +266,9 @@ export const JOBS: Job[] = [
 		title: "Software Engineer (KTP Associate)",
 		when: "September 2014 – February 2017",
 		duration: "2.5 yrs",
-		org: "Robert Gordon University",
+		org: "Robert Gordon University & ARR Craib",
 		orgHref: "https://www.rgu.ac.uk",
-		location: "& ARR Craib — Aberdeen, UK",
+		location: "Aberdeen, UK",
 		points: [
 			{
 				id: "fleet",
@@ -296,7 +296,7 @@ export const JOBS: Job[] = [
 				body: (
 					<>
 						<strong>Leadership & Stakeholder Alignment:</strong> Led user
-						adoption, operator training, and workflow digitalization across
+						adoption, operator training, and workflow digitalisation across
 						depot networks; completed professional management and leadership
 						training under the UK Knowledge Transfer Partnership (KTP).
 					</>
