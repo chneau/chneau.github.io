@@ -8,18 +8,8 @@ import {
 	type WikiEvents,
 } from "../wikiCache";
 
-/**
- * Tests for the "on this day" cache in `wikiCache.ts`.
- *
- * The cache is a pure class with two test seams — an injected clock and an
- * injected `Storage` — so everything here runs without a DOM, without a real
- * `localStorage` and without touching the network. `store.ts` only wires it
- * up; the wiring itself is covered in `store-wiki-cache.test.ts`.
- */
-
 const DAY = 24 * 60 * 60 * 1000;
 
-/** A clock the test owns. */
 const clock = (start: number) => {
 	let now = start;
 	return {
@@ -30,10 +20,6 @@ const clock = (start: number) => {
 	};
 };
 
-/**
- * A `Storage` stub that records writes and can be made to fail, which is the
- * only way to prove the boot path survives a hostile storage.
- */
 const memoryStorage = (seed?: Record<string, string>) => {
 	const map = new Map<string, string>(Object.entries(seed ?? {}));
 	const writes: string[] = [];
@@ -63,14 +49,11 @@ const memoryStorage = (seed?: Record<string, string>) => {
 		breakReads: (v: boolean) => {
 			failOnRead = v;
 		},
-		/** The persisted envelope, parsed. */
 		read: (): unknown => JSON.parse(map.get(WIKI_CACHE_STORAGE_KEY) ?? "null"),
-		/** The persisted envelope, as raw text (may be corrupt). */
 		raw: () => map.get(WIKI_CACHE_STORAGE_KEY) ?? null,
 	};
 };
 
-/** A distinct array every call, so reference equality never accidentally holds. */
 const events = (year: number, text = `event ${year}`): WikiEvents => [
 	{ text, year },
 ];
@@ -99,8 +82,6 @@ afterEach(() => {
 	console.error = consoleError;
 });
 
-// --- bounds and LRU ------------------------------------------------------
-
 describe("wikiCache / LRU bound", () => {
 	test("never holds more than the cap, evicting the least recently used", () => {
 		const c = cache({ maxEntries: 3 });
@@ -109,8 +90,6 @@ describe("wikiCache / LRU bound", () => {
 		c.set("c", events(3));
 		expect(c.keys()).toEqual(["a", "b", "c"]);
 
-		// A re-write is the only thing that counts as a use, so re-writing
-		// "a" makes "b" the eviction victim.
 		c.set("a", events(1));
 		expect(c.keys()).toEqual(["b", "c", "a"]);
 
@@ -127,7 +106,6 @@ describe("wikiCache / LRU bound", () => {
 		await c.load("b", async () => events(2));
 		expect(c.keys()).toEqual(["a", "b"]);
 
-		// warm: no fetch, but a real read, so "a" is now the most recent
 		let calls = 0;
 		await c.load("a", async () => {
 			calls++;
@@ -141,8 +119,6 @@ describe("wikiCache / LRU bound", () => {
 	});
 
 	test("a read does not reorder the cache", () => {
-		// A mirror re-sync that reads every key must not make the LRU order
-		// depend on read order, or the eviction victim becomes arbitrary.
 		const c = cache({ maxEntries: 3 });
 		c.set("a", events(1));
 		c.set("b", events(2));
@@ -161,9 +137,6 @@ describe("wikiCache / LRU bound", () => {
 	});
 
 	test("an authoritative re-write of equal content still restarts the TTL", () => {
-		// `set` is what `load` uses after a real fetch. Even if the upstream
-		// answer is unchanged, the entry was just re-obtained, so the window
-		// restarts. The mirror-replay guard lives in `sync`, not here.
 		const time = clock(0);
 		const c = cache({ ttlMs: 100, now: time.now });
 		c.set("a", events(1));
@@ -174,8 +147,6 @@ describe("wikiCache / LRU bound", () => {
 	});
 
 	test("two objects with equal content are the same entry, not a re-fetch", () => {
-		// A Valtio proxy hands out a fresh wrapper on every read, so identity
-		// comparison would call every mirror replay a new write.
 		const c = cache();
 		c.set("a", events(1));
 		expect(c.set("a", events(1))).toEqual(events(1));
@@ -183,7 +154,6 @@ describe("wikiCache / LRU bound", () => {
 	});
 
 	test("the real key space cannot outgrow the documented cap", () => {
-		// 5 supported languages x 366 days.
 		const keySpace = 5 * 366;
 		expect(keySpace).toBeGreaterThan(WIKI_CACHE_MAX_ENTRIES);
 		const c = createWikiEventsCache({ storage: () => undefined });
@@ -192,8 +162,6 @@ describe("wikiCache / LRU bound", () => {
 		expect(c.size).toBe(64);
 	});
 });
-
-// --- TTL -----------------------------------------------------------------
 
 describe("wikiCache / TTL", () => {
 	test("an entry is served until the TTL elapses, then drops out", () => {
@@ -206,7 +174,6 @@ describe("wikiCache / TTL", () => {
 
 		time.advance(2);
 		expect(c.get("en-01-01")).toBeUndefined();
-		// `get` is a pure read; the entry is reaped by `sweep`/`sync`
 		expect(c.sweep()).toEqual(["en-01-01"]);
 		expect(c.size).toBe(0);
 	});
@@ -225,24 +192,17 @@ describe("wikiCache / TTL", () => {
 	});
 
 	test("a mirror replay does not extend the TTL window", () => {
-		// The store bridge replays its mirror on every notification. If that
-		// replay could refresh `storedAt`, one live proxy would pin every key
-		// in it past its TTL forever and the TTL would be decorative.
 		const time = clock(0);
 		const c = cache({ ttlMs: 100, now: time.now });
 		const mirror: Record<string, WikiEvents> = { k: events(1) };
 		expect(c.sync(mirror)).toEqual({});
 
-		// replay at 90ms: still fresh, admitted, window not restarted
 		time.advance(90);
 		expect(c.sync({ ...mirror })).toEqual({});
 
-		// 5ms later it is still the entry written at t=0, not a new one
 		time.advance(5);
 		expect(c.get("k")).toEqual(events(1));
 
-		// and it expires on the original schedule, not 10ms after the replay.
-		// `undefined` is the instruction to drop the key from the mirror.
 		time.advance(20);
 		expect(c.get("k")).toBeUndefined();
 		expect(c.sync(mirror)).toEqual({ k: undefined });
@@ -274,8 +234,6 @@ describe("wikiCache / TTL", () => {
 	test("a mirror write that fails validation restores the good cached value", () => {
 		const c = cache();
 		c.sync({ k: events(1) });
-		// A rejected payload is not data, but the entry already cached under
-		// this key is. The mirror is told to put it back, not to drop the key.
 		const corrections = c.sync({ k: "not an array" });
 		expect(corrections).toEqual({ k: events(1) });
 		expect(c.get("k")).toEqual(events(1));
@@ -300,8 +258,6 @@ describe("wikiCache / TTL", () => {
 	});
 
 	test("an entry stamped in the future is not trusted", () => {
-		// a clock that jumped backwards, or a hand-edited payload, must not
-		// produce an entry that looks infinitely fresh
 		const now = Date.now();
 		const store = memoryStorage({
 			[WIKI_CACHE_STORAGE_KEY]: JSON.stringify({
@@ -329,8 +285,6 @@ describe("wikiCache / TTL", () => {
 		expect(c.get("k")).toEqual(events(1969));
 	});
 });
-
-// --- in-flight de-duplication -------------------------------------------
 
 describe("wikiCache / in-flight de-duplication", () => {
 	test("N simultaneous consumers of one key cause exactly one fetch", async () => {
@@ -398,7 +352,6 @@ describe("wikiCache / in-flight de-duplication", () => {
 		expect(c.get("en-09-01")).toBeUndefined();
 		expect(c.size).toBe(0);
 
-		// the in-flight slot was released, so a retry really refetches
 		const recovered = await c.load("en-09-01", async () => events(1969));
 		expect(calls).toBe(1);
 		expect(recovered).toEqual(events(1969));
@@ -431,8 +384,6 @@ describe("wikiCache / in-flight de-duplication", () => {
 	});
 });
 
-// --- validation ----------------------------------------------------------
-
 describe("wikiCache / mirror reconciliation", () => {
 	test("a mirror larger than the cap is trimmed to the most recent keys", () => {
 		const c = cache({ maxEntries: 4 });
@@ -440,7 +391,6 @@ describe("wikiCache / mirror reconciliation", () => {
 		for (let i = 0; i < 20; i++) mirror[`k${i}`] = events(1900 + i);
 
 		const corrections = c.sync(mirror);
-		// 16 keys are gone; the 4 newest stay
 		expect(Object.keys(corrections)).toHaveLength(16);
 		expect(corrections.k19).toBeUndefined();
 		expect(corrections.k0).toBeUndefined();
@@ -450,8 +400,6 @@ describe("wikiCache / mirror reconciliation", () => {
 	});
 
 	test("evictions are reported even though they happen inside the admit loop", () => {
-		// Eviction is a side effect of a *later* insert, so a caller that only
-		// checked each write's own return value would miss it entirely.
 		const c = cache({ maxEntries: 2 });
 		const corrections = c.sync({ a: events(1), b: events(2), c: events(3) });
 		expect(Object.keys(corrections).sort()).toEqual(["a"]);
@@ -461,7 +409,6 @@ describe("wikiCache / mirror reconciliation", () => {
 	test("a key the cache holds but the mirror does not is left alone", () => {
 		const c = cache({ maxEntries: 4 });
 		c.set("kept", events(1));
-		// the mirror does not know about it; sync must not invent a removal
 		expect(c.sync({ other: events(2) })).toEqual({});
 		expect(c.get("kept")).toEqual(events(1));
 	});
@@ -523,8 +470,6 @@ describe("wikiCache / validation", () => {
 	});
 });
 
-// --- persistence ---------------------------------------------------------
-
 describe("wikiCache / persistence", () => {
 	test("entries survive a reload, and a fresh instance serves them without fetching", async () => {
 		const time = clock(0);
@@ -540,7 +485,6 @@ describe("wikiCache / persistence", () => {
 		expect(store.writes.length).toBe(2);
 		expect(store.read()).toMatchObject({ v: 1 });
 
-		// "reload"
 		const second = cache({
 			storage: store.storage,
 			now: time.now,
@@ -548,10 +492,8 @@ describe("wikiCache / persistence", () => {
 		});
 		expect(second.size).toBe(2);
 		expect(second.get("en-09-01")).toEqual(events(1969));
-		// LRU order is preserved across the round trip, oldest first
 		expect(second.keys()).toEqual(["en-09-01", "en-09-02"]);
 
-		// and no request is made for a warm key
 		let calls = 0;
 		const served = await second.load("en-09-01", async () => {
 			calls++;
@@ -575,7 +517,6 @@ describe("wikiCache / persistence", () => {
 			time.advance(10);
 		}
 
-		// a small cache re-reads the same payload
 		const small = cache({
 			maxEntries: 10,
 			ttlMs: 1_000_000,
@@ -583,10 +524,8 @@ describe("wikiCache / persistence", () => {
 			now: time.now,
 		});
 		expect(small.size).toBe(10);
-		// the ten most recently stored survive, i.e. the last ten written
 		expect(small.get("k63")).toEqual(events(1963));
 		expect(small.get("k0")).toBeUndefined();
-		// and LRU order still runs oldest-first, so the next write evicts k54
 		expect(small.keys()).toEqual([
 			"k54",
 			"k55",
@@ -612,7 +551,7 @@ describe("wikiCache / persistence", () => {
 		time.advance(150);
 		first.set("kept", events(2));
 
-		time.advance(200); // "old" is now 350ms old, "kept" is 200ms old
+		time.advance(200);
 		const second = cache({ ttlMs: 300, storage: store.storage, now: time.now });
 		expect(second.keys()).toEqual(["kept"]);
 		expect(store.raw()).not.toBe(before);
@@ -621,7 +560,6 @@ describe("wikiCache / persistence", () => {
 	});
 
 	test("hydration salvages the good entries out of a partly-bad payload", () => {
-		// One bad entry must not cost the visitor the other 63 keys.
 		const now = Date.now();
 		const entries: {
 			key: string;
@@ -639,7 +577,6 @@ describe("wikiCache / persistence", () => {
 		const c = cache({ storage: store.storage, now: () => now + 10 });
 		expect(c.size).toBe(3);
 		expect(c.get("bad")).toBeUndefined();
-		// the sanitized copy was written back
 		const written = store.read() as { entries: { key: string }[] };
 		expect(written.entries.map((e) => e.key).sort()).toEqual([
 			"k0",
@@ -711,7 +648,6 @@ describe("wikiCache / persistence", () => {
 		const store = memoryStorage({ [WIKI_CACHE_STORAGE_KEY]: raw });
 		const c = cache({ storage: store.storage });
 		expect(c.size).toBe(0);
-		// and it is usable afterwards
 		c.set("k", events(1969));
 		expect(c.get("k")).toEqual(events(1969));
 	});
@@ -721,8 +657,6 @@ describe("wikiCache / persistence", () => {
 		expect(cache({ storage: store.storage }).size).toBe(0);
 	});
 });
-
-// --- hostile storage -----------------------------------------------------
 
 describe("wikiCache / hostile storage never breaks the page", () => {
 	test("a storage whose getItem throws boots to an empty cache", () => {
@@ -743,7 +677,6 @@ describe("wikiCache / hostile storage never breaks the page", () => {
 		expect(c.get("k")).toEqual(events(1969));
 		expect(c.size).toBe(1);
 		store.breakWrites(false);
-		// and the next write lands normally
 		c.set("k2", events(1970));
 		expect(store.read()).toMatchObject({ v: 1 });
 	});

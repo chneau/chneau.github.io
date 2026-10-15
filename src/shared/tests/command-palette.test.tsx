@@ -49,7 +49,6 @@ const openPalette = () =>
 const activeIdOf = (input: HTMLElement) =>
 	input.getAttribute("aria-activedescendant");
 
-/** The DOM id of the nth option, or null so it can be compared to a query. */
 const idAt = (options: HTMLElement[], index: number): string | null =>
 	options[index]?.id ?? null;
 
@@ -58,12 +57,6 @@ const NATIVE_VALUE = Object.getOwnPropertyDescriptor(
 	"value",
 )?.set;
 
-/**
- * happy-dom lacks native `input` events, so React falls back to its
- * `propertychange` polyfill: it only notices a value change on
- * `keydown`/`keyup` and needs a preceding `focusin`. Emulate a keystroke so the
- * palette's real `onChange` runs deterministically.
- */
 const typeInto = (input: HTMLInputElement, value: string) => {
 	fireEvent.focusIn(input);
 	NATIVE_VALUE?.call(input, value);
@@ -77,7 +70,6 @@ describe("CommandPalette behaviour", () => {
 
 		typeInto(input, "contrast");
 
-		// Matched through `keywords`, which is not part of the label.
 		expect(view.getByRole("option", { name: /Toggle theme/ })).toBeDefined();
 		expect(view.queryByRole("option", { name: /Export calendar/ })).toBeNull();
 	});
@@ -88,10 +80,8 @@ describe("CommandPalette behaviour", () => {
 		const options = view.getAllByRole("option");
 		expect(options.length).toBeGreaterThan(2);
 
-		// Focusing primes React's input polyfill before any key event.
 		fireEvent.focusIn(input);
 
-		// Starts on the first row.
 		expect(activeIdOf(input)).toBe(idAt(options, 0));
 
 		fireEvent.keyDown(input, { key: "ArrowDown" });
@@ -100,11 +90,9 @@ describe("CommandPalette behaviour", () => {
 		fireEvent.keyDown(input, { key: "ArrowUp" });
 		expect(activeIdOf(input)).toBe(idAt(options, 0));
 
-		// From the first row, ArrowUp wraps to the last one…
 		fireEvent.keyDown(input, { key: "ArrowUp" });
 		expect(activeIdOf(input)).toBe(idAt(options, options.length - 1));
 
-		// …and ArrowDown from the last row wraps back to the first.
 		fireEvent.keyDown(input, { key: "ArrowDown" });
 		expect(activeIdOf(input)).toBe(idAt(options, 0));
 	});
@@ -114,7 +102,6 @@ describe("CommandPalette behaviour", () => {
 		const input = view.getByRole("combobox") as HTMLInputElement;
 		fireEvent.focusIn(input);
 
-		// Move the highlight deep into the list first.
 		for (let index = 0; index < 5; index += 1) {
 			fireEvent.keyDown(input, { key: "ArrowDown" });
 		}
@@ -124,7 +111,6 @@ describe("CommandPalette behaviour", () => {
 
 		const filtered = view.getAllByRole("option");
 		expect(filtered).toHaveLength(1);
-		// The stale index is no longer valid, so it resets to the first match.
 		expect(activeIdOf(input)).toBe(idAt(filtered, 0));
 	});
 
@@ -136,10 +122,6 @@ describe("CommandPalette behaviour", () => {
 	});
 
 	test("options are not tab stops", () => {
-		// Focus stays in the input: the arrows move `aria-activedescendant` and
-		// Enter runs the highlighted row. Every option rendered as a native
-		// `<button>` with no `tabIndex`, so Tab walked all of them and
-		// Mantine's focus trap wrapped back round the list.
 		const view = openPalette();
 		for (const option of view.getAllByRole("option")) {
 			expect(option.getAttribute("tabindex")).toBe("-1");
@@ -152,12 +134,9 @@ describe("CommandPalette behaviour", () => {
 		typeInto(input, "zzzzzz");
 
 		expect(view.queryAllByRole("option")).toHaveLength(0);
-		// Both halves of the contradiction: the popup the input claims to
-		// control, and the claim that it is expanded.
 		expect(view.queryByRole("listbox")).toBeNull();
 		expect(input.getAttribute("aria-expanded")).toBe("false");
 		expect(input.getAttribute("aria-controls")).toBeNull();
-		// And the empty state announces itself rather than being silent text.
 		expect(view.getByRole("status").textContent).toBe("No matches.");
 	});
 });

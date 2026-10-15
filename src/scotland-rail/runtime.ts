@@ -8,18 +8,6 @@ import {
 	stepSpeed,
 } from "./utils";
 
-/**
- * The global shortcuts, the replay clock and the ambient audio, extracted from
- * `App` because they are three independent concerns that happened to share one
- * component: each is bound once, reads live state from the store rather than
- * from props, and would be missed in a diff of the page layout.
- */
-
-/**
- * Elements that own a key the map also binds. Escape and the arrow keys have to
- * reach a focused control rather than the page, or a visitor who tabs to the
- * speed picker cannot use the arrow keys inside it.
- */
 const OWNS_ITS_OWN_KEYS = new Set([
 	"input",
 	"textarea",
@@ -28,14 +16,8 @@ const OWNS_ITS_OWN_KEYS = new Set([
 	"a",
 ]);
 
-/** Roles and states that intercept keys the map also uses. */
 const OWNS_SLIDER_KEYS = '[role="slider"], [contenteditable="true"]';
 
-/**
- * Whether the event came from somewhere that handles its own keys. A focused
- * native control first, then an editable region — which is not always
- * focusable through `tabIndex` and so is not covered by the tag check.
- */
 const isHandledElsewhere = (): boolean => {
 	const active = document.activeElement;
 	const tag = active?.tagName.toLowerCase();
@@ -48,27 +30,11 @@ const isHandledElsewhere = (): boolean => {
 	return false;
 };
 
-/**
- * Undoes the audio unlock gesture for a shortcut, when turning sound on.
- *
- * Browsers only allow audio to start from a gesture, and a keypress is not one,
- * so the synthesiser would otherwise stay silent until the next click.
- */
 const unlockIfEnabling = (nextSound: boolean) => {
 	if (!nextSound) return;
 	import("./engine/audio").then(({ railAudio }) => railAudio.unlockAudio());
 };
 
-/**
- * Binds the always-on keydown handler. It is registered once and reads live
- * state from the store, so a stale closure is impossible by construction.
- *
- * `shortcuts` is read through a ref rather than closed over: `shortcuts.close`
- * is a fresh closure on every render, and listing it as a dependency would
- * rebind the listener on every frame of the replay. The ref is synced after
- * commit and the listener is bound in the effect below it, so the handler can
- * only ever see a value that actually rendered.
- */
 export const useRailShortcuts = (
 	shortcuts: ReturnType<typeof useShortcutsHelp>,
 ): void => {
@@ -79,7 +45,6 @@ export const useRailShortcuts = (
 
 	useEffect(() => {
 		const handleKeyDown = (event: KeyboardEvent) => {
-			// Auto-repeat and an already-handled key mean another listener owns it.
 			if (event.repeat || event.defaultPrevented) return;
 			if (isHandledElsewhere()) return;
 
@@ -93,8 +58,6 @@ export const useRailShortcuts = (
 					break;
 				case "scrub":
 					event.preventDefault();
-					// `setTimeOffset` clamps to the replay window, so holding an
-					// arrow key stops at the ends instead of leaving it.
 					railActions.setTimeOffset(
 						railStore.timeOffset + shortcut.deltaMinutes,
 					);
@@ -113,8 +76,6 @@ export const useRailShortcuts = (
 					break;
 				}
 				case "escape": {
-					// Ordered outermost-first: a dialog beats a panel, a panel
-					// beats the selection underneath it.
 					const help = shortcutsRef.current;
 					if (help.opened) {
 						help.close();
@@ -137,13 +98,6 @@ export const useRailShortcuts = (
 	}, []);
 };
 
-/**
- * Advances the replay clock while playing.
- *
- * The offset is written straight to the store rather than through
- * `setTimeOffset` so playback keeps sub-minute resolution; the replay window is
- * still enforced here, and only here, by looping back to 05:00.
- */
 export const useReplayClock = (isPlaying: boolean, speed: number): void => {
 	useEffect(() => {
 		if (!isPlaying) return;
@@ -155,7 +109,6 @@ export const useReplayClock = (isPlaying: boolean, speed: number): void => {
 			const deltaMs = timestamp - lastTimestamp;
 			lastTimestamp = timestamp;
 
-			// Advance time: speed 1x = 1 minute per real second.
 			const minutesToAdd = (deltaMs / 1000) * speed;
 			let next = railStore.timeOffset + minutesToAdd;
 			if (next >= MAX_REPLAY_TIME) next = MIN_REPLAY_TIME;
@@ -171,11 +124,6 @@ export const useReplayClock = (isPlaying: boolean, speed: number): void => {
 	}, [isPlaying, speed]);
 };
 
-/**
- * The ambient bed follows the network: it runs only while playing with trains on
- * the map and sound enabled, and stops otherwise. Stopping is the common case —
- * a visitor who pauses the replay should not keep hearing trains.
- */
 export const useAmbientAudio = (
 	soundEffects: boolean,
 	isPlaying: boolean,

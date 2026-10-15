@@ -4,19 +4,6 @@ import TIMETABLE_DATA from "../data/timetable.json";
 import type { TrainService } from "../data/types";
 import { resolveServiceAtTime } from "../engine/interpolator";
 
-/**
- * The arrival minute belongs to the station, not to the track.
- *
- * The leg test was `timeOffset >= depTime && timeOffset <= arrTime`, so the
- * inclusive upper bound always won the race against the dwell test on the
- * next loop iteration (which needs `timeOffset >= arrivalOffset`). Measured
- * over the whole timetable: at the exact arrival minute all 325 services
- * reported "In transit to <dest>", dwell was observable for 2.5% of active
- * (service, minute) pairs, and the terminus-dwelling fallback below the loop
- * was unreachable - 0 services, and no state with `headingAngle: 0` or
- * `progress: 1` produced by it.
- */
-
 const services = TIMETABLE_DATA as unknown as TrainService[];
 const namesById = new Map(STATIONS.map((s) => [s.id, s.name]));
 
@@ -53,7 +40,6 @@ describe("dwelling at an intermediate call", () => {
 		expect(state.currentStopName).toBe(
 			namesById.get(call.stationId) ?? call.stationId,
 		);
-		// A dwelling train is oriented along the platform, not down the line.
 		expect(state.headingAngle).toBe(0);
 		expect(state.nextStopName).not.toBe(
 			namesById.get(call.stationId) ?? call.stationId,
@@ -95,8 +81,6 @@ describe("dwelling at the terminus", () => {
 			expect(state).not.toBeNull();
 			if (!state) continue;
 
-			// The regression: every one of these reported "In transit to
-			// <dest>" because the leg test swallowed the arrival minute.
 			expect(state.isDwelling).toBe(true);
 			expect(state.currentStopName).toBe(
 				namesById.get(last.stationId) ?? last.stationId,
@@ -104,7 +88,6 @@ describe("dwelling at the terminus", () => {
 			expect(state.nextStopName).toBeNull();
 			expect(state.progress).toBe(1);
 			expect(state.headingAngle).toBe(0);
-			// Parked on the platform, not at the end of the polyline.
 			const station = STATIONS_BY_ID.get(last.stationId);
 			if (!station) throw new Error(`unknown station ${last.stationId}`);
 			expect([...state.position]).toEqual([...station.coordinate]);
@@ -130,8 +113,6 @@ describe("the leg boundary dropped no minute", () => {
 			if (!first || !last) continue;
 			const start = first.departureOffset ?? first.arrivalOffset ?? 0;
 			const finish = last.arrivalOffset ?? last.departureOffset ?? 0;
-			// Quarter-minute resolution: scrubbing lands on whole minutes,
-			// playback does not.
 			for (let t = start; t <= finish; t += 0.25) {
 				if (!resolveServiceAtTime(service, t, namesById)) {
 					gaps.push(`${service.id}@${t.toFixed(2)}`);
@@ -154,8 +135,6 @@ describe("the leg boundary dropped no minute", () => {
 			}
 		}
 		expect(pairs).toBeGreaterThan(20000);
-		// Was 2.53% before the boundary fix; the 554 one-minute dwells alone
-		// make up the difference, since the arrival minute used to be "moving".
 		expect(dwelling / pairs).toBeGreaterThan(0.05);
 	});
 });

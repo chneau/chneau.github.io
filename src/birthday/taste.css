@@ -1,10 +1,3 @@
-/* ─────────────────────────────────────────────────────────────
-   Birthday Tracker — design system
-   Values: DESIGN_VARIANCE 8 · MOTION_INTENSITY 6 · VISUAL_DENSITY 4
-   Aesthetic: zinc neutrals + a single emerald accent, dark-first.
-   No neon, no purple, no pure black, no emoji in chrome.
-   ───────────────────────────────────────────────────────────── */
-
 :root {
 	--tk-bg: var(--app-bg);
 	--tk-bg-deep: var(--app-bg-deep);
@@ -34,7 +27,6 @@
 	--tk-font-mono: var(--app-font-mono);
 	--tk-ease: var(--app-ease);
 	--tk-container: 1260px;
-	/* Let shared components (focus rings, status lights) pick up the accent. */
 	--app-accent: var(--tk-accent);
 	color-scheme: light;
 }
@@ -48,8 +40,6 @@
 	--tk-accent-ink: #6ee7b7;
 	color-scheme: dark;
 }
-
-/* ── Base ──────────────────────────────────────────────────── */
 
 html,
 body {
@@ -78,7 +68,6 @@ body {
 	border-radius: 4px;
 }
 
-/* Restrained, hue-matched scrollbars */
 * {
 	scrollbar-width: thin;
 	scrollbar-color: var(--tk-border-strong) transparent;
@@ -98,7 +87,6 @@ body {
 	background-clip: content-box;
 }
 
-/* Grain: fixed, non-interactive, never repainted by scroll */
 .tk-grain {
 	position: fixed;
 	inset: 0;
@@ -111,8 +99,6 @@ body {
 :root[data-theme="dark"] .tk-grain {
 	opacity: 0.05;
 }
-
-/* ── Shell ─────────────────────────────────────────────────── */
 
 .tk-shell {
 	min-height: 100dvh;
@@ -139,8 +125,6 @@ body {
 	flex: 1;
 	padding-block: clamp(20px, 3.5vw, 44px) 72px;
 }
-
-/* ── Controls ──────────────────────────────────────────────── */
 
 .tk-iconbtn {
 	appearance: none;
@@ -222,8 +206,6 @@ body {
 	color: var(--tk-danger--, var(--tk-danger));
 }
 
-/* ── Panels & surfaces ─────────────────────────────────────── */
-
 .tk-panel {
 	position: relative;
 	border: 1px solid var(--tk-border);
@@ -271,8 +253,6 @@ body {
 	font-weight: 600;
 	letter-spacing: -0.025em;
 }
-
-/* ── Hero ──────────────────────────────────────────────────── */
 
 .tk-hero {
 	display: grid;
@@ -443,7 +423,6 @@ body {
 	letter-spacing: 0.04em;
 }
 
-/* upcoming mini list inside side panel */
 .tk-upcoming {
 	padding: 14px clamp(14px, 2vw, 20px) 18px;
 	background: var(--tk-surface-2);
@@ -476,8 +455,6 @@ body {
 	color: var(--tk-text-faint);
 	flex: none;
 }
-
-/* ── Grid helpers ──────────────────────────────────────────── */
 
 .tk-stack {
 	display: flex;
@@ -632,8 +609,6 @@ body {
 	font-variant-numeric: tabular-nums;
 }
 
-/* ── Empty / loading / error ───────────────────────────────── */
-
 .tk-empty {
 	display: flex;
 	flex-direction: column;
@@ -703,8 +678,6 @@ body {
 	flex: none;
 }
 
-/* ── Highlight (search match) ──────────────────────────────── */
-
 .tk-hl {
 	background: var(--tk-accent-soft);
 	color: var(--tk-accent-ink);
@@ -712,8 +685,6 @@ body {
 	padding: 0 2px;
 	font-weight: 600;
 }
-
-/* ── Motion ────────────────────────────────────────────────── */
 
 .reveal {
 	animation: tk-reveal 0.7s var(--tk-ease) both;
@@ -776,8 +747,6 @@ body {
 	}
 }
 
-/* ── Mantine integration ───────────────────────────────────── */
-
 .tk-surface .mantine-Tabs-list {
 	border-bottom: 1px solid var(--tk-border);
 	margin-bottom: 20px;
@@ -792,7 +761,6 @@ body {
 	color: var(--tk-text);
 }
 
-/* Tables: hairline rules, no boxes */
 .tk-table {
 	background: transparent;
 	--table-border-color: var(--tk-border);
@@ -815,8 +783,6 @@ body {
 .tk-table tbody tr:hover td {
 	background: var(--tk-surface-2);
 }
-
-/* ── Responsive: hard single-column fallback below md ──────── */
 
 @media (max-width: 900px) {
 	.tk-hero {

@@ -9,13 +9,11 @@ type AppToolbarProps = {
 	onQueryChange: (value: string) => void;
 	category: string;
 	onCategoryChange: (category: string) => void;
-	/** The current result list, so Enter can open the first match. */
 	filtered: AppEntry[];
 	onOpen: (href: string) => void;
 	onRandom: () => void;
 };
 
-/** Search box, category chips and the "Surprise me" action. */
 export const AppToolbar = ({
 	searchRef,
 	query,

@@ -1,29 +1,9 @@
-/**
- * WCAG contrast for the text tokens, in both colour schemes.
- *
- * This exists because `--app-text-faint` shipped at 4.40:1 on `--app-bg` and
- * 3.99:1 on `--app-surface-3` - a WCAG AA failure for normal text, which needs
- * 4.5:1. It was used as `color:` in nine places, so it was real text rather
- * than decoration, and two independent audits had to find it before anyone
- * fixed it. A number in a token file is exactly the kind of value that rots
- * silently, so it gets checked rather than trusted.
- *
- * Ratios are computed here rather than hardcoded, so changing a token without
- * fixing the contrast fails this test instead of quietly shipping. The maths
- * itself lives in `shared/colour.ts`, shared with the gallery's live audit, so
- * the two can never drift into disagreeing.
- */
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { contrastRatio } from "../colour";
 
 const css = readFileSync(new URL("../tokens.css", import.meta.url), "utf8");
 
-/**
- * Every `--app-*: <hex>;` declaration, in source order. The file declares the
- * light scheme first and then re-declares the same names inside a dark-scheme
- * block, so grouping by scheme means splitting on the second occurrence.
- */
 const declarations = (): { name: string; value: string }[] => {
 	const out: { name: string; value: string }[] = [];
 	for (const line of css.split("\n")) {
@@ -36,7 +16,6 @@ const declarations = (): { name: string; value: string }[] => {
 };
 
 const all = declarations();
-/** A token declared once is light-only; twice means light then dark. */
 const byName = new Map<string, string[]>();
 for (const { name, value } of all) {
 	const list = byName.get(name) ?? [];
@@ -48,13 +27,6 @@ const scheme = (name: string, index: number): string | undefined =>
 	byName.get(name)?.[index];
 
 describe("text token contrast", () => {
-	// Text on the two surfaces it is actually used on. `--app-surface-3` is the
-	// harsher of the two in light mode, so it is the one that decides.
-	// Index 0 is the light declaration, index 1 the dark one, for BOTH the
-	// foreground and the background - so a dark-scheme case is `[x, 1, 1]`.
-	// Getting this wrong is easy and silently tests the wrong pairing: the
-	// first version of this table "found" two failures that were really light
-	// text measured against a dark background.
 	const CASES: readonly (readonly [string, number, number])[] = [
 		["--app-text", 0, 0],
 		["--app-text-muted", 0, 0],
@@ -93,8 +65,6 @@ describe("text token contrast", () => {
 	});
 
 	test("the text hierarchy stays ordered: text > muted > faint", () => {
-		// A fix for the contrast failure must not flatten the three-step ramp
-		// into one indistinguishable shade.
 		for (const index of [0, 1]) {
 			const which = index === 0 ? "light" : "dark";
 			const text = scheme("--app-text", index);

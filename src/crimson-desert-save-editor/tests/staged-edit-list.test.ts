@@ -1,14 +1,3 @@
-/**
- * The staged-list rules.
- *
- * What one download will apply is decided here, and every rule is a pure
- * function of the list, so none of this needs a save: a section replaces its
- * own entries, one progression change is in effect per download, and a
- * companion is staged only when the roster can take it.
- *
- * Run with `bun test`.
- */
-
 import { describe, expect, test } from "bun:test";
 import type {
 	CompanionCatalog,
@@ -192,7 +181,6 @@ describe("the staged list", () => {
 		const edit = companionEdit(7);
 		const current = [quantityEdit(1)];
 		const take = { catalog: catalogOf([7]) };
-		// Owned already.
 		expect(
 			stageCompanion(current, edit, {
 				...take,
@@ -202,21 +190,18 @@ describe("the staged list", () => {
 				}),
 			}),
 		).toEqual(current);
-		// Queued already.
 		expect(
 			stageCompanion([...current, companionEdit(7)], edit, {
 				...take,
 				summary: roster({ availableKeys: [7] }),
 			}),
 		).toEqual([...current, companionEdit(7)]);
-		// Not one this save can add.
 		expect(
 			stageCompanion(current, edit, {
 				...take,
 				summary: roster({ availableKeys: [8] }),
 			}),
 		).toEqual(current);
-		// No catalog to read it against.
 		expect(
 			stageCompanion(current, edit, {
 				catalog: null,
@@ -228,21 +213,18 @@ describe("the staged list", () => {
 	test("a worker batch is counted against the cap and what is queued", () => {
 		const edit = workerEdit(2);
 		const current = [quantityEdit(1)];
-		// One worker short of the cap, so two do not fit.
 		expect(
 			stageCompanion(current, edit, {
 				summary: roster({ roboWorkers: 499 }),
 				catalog: null,
 			}),
 		).toEqual(current);
-		// The queued batch already took the last place.
 		expect(
 			stageCompanion([...current, workerEdit(1)], edit, {
 				summary: roster({ roboWorkers: 498 }),
 				catalog: null,
 			}),
 		).toEqual([...current, workerEdit(1)]);
-		// Two places left, so it lands.
 		expect(
 			stageCompanion(current, edit, {
 				summary: roster({ roboWorkers: 498 }),

@@ -3,15 +3,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { TOKEN_DEFS } from "./tokens";
 
-/**
- * Drift guard for the Design System gallery.
- *
- * The page itself reads every value at runtime; this test pins the *inventory*
- * (and a couple of representative values) against `tokens.css` so adding,
- * renaming or re-valuing a token fails loudly instead of leaving the guide
- * quietly out of date.
- */
-
 const tokensCss = readFileSync(
 	join(import.meta.dir, "..", "shared", "tokens.css"),
 	"utf8",
@@ -35,7 +26,6 @@ const allTokens = definitionsIn(tokensCss);
 const lightTokens = definitionsIn(rootBlock);
 const darkTokens = definitionsIn(darkBlock);
 
-/** The guide's own tokens; accent is provided by Mantine, not tokens.css. */
 const guideTokens = TOKEN_DEFS.filter((token) => token.category !== "accent")
 	.map((token) => token.name)
 	.sort();

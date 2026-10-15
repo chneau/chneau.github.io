@@ -1,18 +1,8 @@
-/**
- * Regression tests for the zodiac cusp table and the birthday date schema.
- *
- * Both bugs shipped: the cusp table reported 1-19 January as Capricorn, and
- * the schema accepted dates that do not exist. Each assertion below fails
- * against the pre-fix code.
- */
 import { describe, expect, test } from "bun:test";
 import { birthdaySchema, getSign } from "../birthdays";
 
-/** Month is 0-based here, matching `Date.getMonth()`, which is what the
- *  implementation uses to build its lookup point. */
 const DIM = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-/** Ground truth sign ranges, inclusive of both ends. */
 const RANGES: readonly (readonly [
 	readonly [number, number],
 	readonly [number, number],
@@ -33,7 +23,6 @@ const RANGES: readonly (readonly [
 	[[11, 22], [11, 31], "capricorn"],
 ];
 
-/** Every (month, day) in a leap year mapped to its true sign. */
 const buildTruth = (): Map<string, string> => {
 	const map = new Map<string, string>();
 	for (const [from, to, name] of RANGES) {
@@ -77,9 +66,6 @@ describe("zodiac cusps", () => {
 	});
 
 	test("1-19 January is Sagittarius, not Capricorn", () => {
-		// The specific regression: the wrap-around entry named Capricorn, so
-		// the first 19 days of January were reported as the wrong sign - and
-		// therefore the wrong element, which feeds getCompatibilityScore.
 		for (let d = 1; d <= 19; d += 1) {
 			expect(getSign(new Date(2024, 0, d)).name).toBe("sagittarius");
 		}
@@ -113,8 +99,6 @@ describe("birthdaySchema date validation", () => {
 	});
 
 	test("rejects a date that does not exist", () => {
-		// dayjs rolls this forward to 2 March and calls it valid, so a plain
-		// isValid() check accepted it.
 		expect(
 			birthdaySchema.safeParse({ name: "A", date: "1990-02-30", kind }).success,
 		).toBe(false);
@@ -157,9 +141,6 @@ describe("birthdaySchema date validation", () => {
 	});
 
 	test("accepts today - that is a newborn's actual birth date", () => {
-		// Boundary, not a corner case. An `isBefore(today)` check rather than
-		// `!isAfter(today)` rejects every newborn, because a birth date of today
-		// is not strictly before today.
 		const today = new Date();
 		const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(
 			2,

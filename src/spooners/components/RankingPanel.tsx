@@ -36,7 +36,6 @@ type Props = {
 	focused: Pick<PricedVenue, "ref"> | null;
 	onFocus: (venue: PricedVenue) => void;
 	onDetails: (venue: PricedVenue) => void;
-	/** Nearest venues, only when the user shared their location. */
 	nearby?: PricedVenue[];
 	count?: number;
 };
@@ -56,12 +55,6 @@ const changeText = (venue: PricedVenue): string | null => {
 	)} (${delta > 0 ? "+" : "−"}${Math.abs(Math.round(percent))}%)`;
 };
 
-/**
- * The one-line summary under a venue's name: where it is, what it cannot do,
- * what it is missing, and how its price moved. Assembled as a string rather
- * than as elements because every clause is optional and they all read as one
- * sentence joined by "·".
- */
 const RowMeta = ({
 	venue,
 	currency,
@@ -69,7 +62,6 @@ const RowMeta = ({
 }: {
 	venue: PricedVenue;
 	currency: string;
-	/** The Value tab prints the metric as the row's headline price instead. */
 	value: boolean;
 }) => {
 	const change = changeText(venue);
@@ -95,11 +87,6 @@ const RowMeta = ({
 	);
 };
 
-/**
- * The bold line: whether the pub is open, its name, and the badges that qualify
- * it. The name sits between the state and the badges on purpose — it is the
- * row's label, so it must come before the qualifiers in the reading order.
- */
 const RowHeading = ({ venue }: { venue: PricedVenue }) => (
 	<>
 		<StatusDot
@@ -135,7 +122,6 @@ const RowHeading = ({ venue }: { venue: PricedVenue }) => (
 	</>
 );
 
-/** The row's price, plus the value metric when that tab is ranking. */
 const RowPrice = ({
 	venue,
 	scale,
@@ -249,7 +235,6 @@ const Row = ({
 	</Box>
 );
 
-/** Cheapest / dearest / nearest / best-value pubs for the selected item. */
 export const RankingPanel = ({
 	venues,
 	scale,
@@ -266,7 +251,6 @@ export const RankingPanel = ({
 	const byValue = [...venues]
 		.filter((venue) => venue.metricValue != null)
 		.sort((a, b) => {
-			// each row's own metric decides whether lower or higher is better
 			const aDir = valueDirection(a.metricKind ?? "unit");
 			const bDir = valueDirection(b.metricKind ?? "unit");
 			return aDir * (a.metricValue ?? 0) - bDir * (b.metricValue ?? 0);
@@ -286,8 +270,6 @@ export const RankingPanel = ({
 		...(byValue.length ? [{ label: "Value", value: "value" }] : []),
 	];
 
-	// the "Value" list can mix £/unit, £/100 ml and kcal/£, which rank in
-	// opposite directions, so describe the direction from the kinds present
 	const valueKinds = [
 		...new Set(
 			byValue

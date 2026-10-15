@@ -1,11 +1,3 @@
-/**
- * In-page save engine session.
- *
- * The engine runs directly on the main thread — no worker, no separate bundle.
- * Callers get the same event stream the worker used to post (`status`,
- * `progress`, `result`, `edited`, `error`).
- */
-
 import { yieldToBrowser } from "../../../shared";
 import {
 	describeInventory,
@@ -52,12 +44,10 @@ type EmitSaveEngineEvent = (event: SaveEngineEvent) => void;
 
 export class SaveSession {
 	private sourceBytes: Uint8Array | null = null;
-	/** The decode the parse paid for, shared with every later description. */
 	private decoded: DecodedSave | null = null;
 	private generation = 0;
 	private queue: Promise<void> = Promise.resolve();
 
-	/** Drops the open save and invalidates in-flight results. */
 	reset(): void {
 		this.generation += 1;
 		this.sourceBytes = null;
@@ -65,7 +55,6 @@ export class SaveSession {
 		this.queue = Promise.resolve();
 	}
 
-	/** Reads a save and emits the parsed inventory plus companion roster. */
 	parse(buffer: ArrayBuffer, emit: EmitSaveEngineEvent): Promise<void> {
 		const generation = this.generation;
 		const run = this.queue.then(async () => {
@@ -73,12 +62,7 @@ export class SaveSession {
 			try {
 				emit({ type: "status", message: "Verifying and reading save…" });
 				const source = new Uint8Array(buffer);
-				// One decode for the whole parse: every describer takes the payload
-				// instead of decoding the same bytes again.
 				const decoded = await decodeSave(source);
-				// The describers together block the main thread for a quarter of a
-				// second on an endgame save. Emitting progress and yielding between
-				// them lets the tab paint the bar instead of appearing frozen.
 				const total = 7;
 				let completed = 0;
 				const step = async <T>(
@@ -140,14 +124,6 @@ export class SaveSession {
 		return run;
 	}
 
-	/**
-	 * Reads the quest tables of the open save.
-	 *
-	 * Quest rows outnumber everything else in the save — around 57,000 stage rows
-	 * against a few thousand inventory records — so this is the one description
-	 * the parse does not collect up front. The quest panel asks for it when it
-	 * opens, and the result is left to the panel rather than cached here.
-	 */
 	describeQuests(): Promise<QuestDescription> {
 		if (!this.decoded) {
 			throw new Error("Open a save before reading quests.");
@@ -155,7 +131,6 @@ export class SaveSession {
 		return describeQuests(this.decoded);
 	}
 
-	/** Applies staged edits to the open save and emits the edited bytes. */
 	apply(operations: SaveEdit[], emit: EmitSaveEngineEvent): Promise<void> {
 		const generation = this.generation;
 		const run = this.queue.then(async () => {

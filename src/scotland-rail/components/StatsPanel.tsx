@@ -22,7 +22,6 @@ import { railActions, railUiStores } from "../store";
 import { palette } from "../theme";
 import { formatTime } from "../utils";
 
-/** 05:00 and 24:00, the ends of the histogram the activity curve spans. */
 const CURVE_START = 300;
 const CURVE_END = 1440;
 
@@ -59,7 +58,6 @@ const HighlightRow = ({
 				background: "var(--app-surface-2)",
 				border: "1px solid rgba(206,222,230,0.12)",
 				borderLeft: `2px solid ${accent}`,
-				// Staggered waterfall reveal driven purely by CSS.
 				"--sr-index": index,
 			} as React.CSSProperties
 		}
@@ -117,7 +115,6 @@ const HighlightRow = ({
 	</button>
 );
 
-/** The panel's title row: collapse toggle, and the km/mi switch beside it. */
 const StatsHeader = ({
 	collapsed,
 	hasStats,
@@ -186,12 +183,6 @@ const StatsHeader = ({
 	</div>
 );
 
-/**
- * What the panel says when the network is quiet. The two sentences it can end
- * with are the useful half: with a filter standing, the way to get trains back
- * is to change or clear the filter, and saying so beats leaving the visitor to
- * scrub the clock looking for one.
- */
 const QuietNetwork = ({
 	timeOffset,
 	filterLabel,
@@ -231,12 +222,6 @@ const QuietNetwork = ({
 	</div>
 );
 
-/**
- * The whole-day activity curve, with a needle at the replay clock. The bars are
- * one `role="img"` with an accessible name rather than 19 announced columns,
- * and the needle is decorative on top of it — the clock itself is already on
- * screen in the controls.
- */
 const ActivityCurve = ({
 	activity,
 	timeOffset,
@@ -290,7 +275,6 @@ const ActivityCurve = ({
 					/>
 				))}
 			</div>
-			{/* Current time needle */}
 			<div
 				aria-hidden
 				style={{
@@ -311,7 +295,6 @@ const ActivityCurve = ({
 	</div>
 );
 
-/** The moving/dwelling tally above the curve. */
 const ActivePulse = ({
 	movingTrains,
 	dwellingTrains,
@@ -355,10 +338,6 @@ const ActivePulse = ({
 	</div>
 );
 
-/**
- * The three clickable highlights. Each selects its service in the inspector, so
- * the whole row is the button and the index staggers the CSS reveal.
- */
 const Highlights = ({
 	highlights,
 	isImperial,
@@ -421,7 +400,6 @@ const Highlights = ({
 };
 
 export const StatsPanel = () => {
-	// Throttled: the derived stats are heavy and do not need 60 fps fidelity.
 	const [snap, derivedSnap] = useThrottledSnapshots(railUiStores);
 	const { timeOffset, selectedCategory, searchQuery, selectedService } = snap;
 	const { activeTrains, filteredServices } = derivedSnap;
@@ -429,9 +407,6 @@ export const StatsPanel = () => {
 	const [unit, setUnit] = useState<Unit>("metric");
 	const [collapsed, setCollapsed] = useState(false);
 
-	// The Valtio snapshot is deeply readonly where the engine's own types are
-	// not; the shapes are identical and the store actions take the mutable type,
-	// so the assertion happens once here rather than at every read below.
 	const trains = activeTrains as ActiveTrainState[];
 	const services = filteredServices as readonly TrainService[];
 
@@ -443,17 +418,9 @@ export const StatsPanel = () => {
 	return (
 		<div
 			className="sr-panel sr-stats"
-			// At phone widths both panels are full-bleed and cannot share the
-			// screen; the inspector is the one the visitor opened by tapping a
-			// train, so it takes the slot and the HUD yields. Exposed as an
-			// attribute rather than conditional JSX so the phone rule lives in the
-			// one stylesheet that owns the breakpoint.
 			data-details-open={selectedService ? "true" : undefined}
 			style={{
 				position: "absolute",
-				// Read through a variable so the phone breakpoint can lift the
-				// width and drop the panel below the recovery banner without an
-				// `!important` over an inline style.
 				top: "var(--sr-panel-top, 72px)",
 				left: 16,
 				zIndex: 10,

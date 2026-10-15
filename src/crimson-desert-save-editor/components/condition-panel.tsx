@@ -24,7 +24,6 @@ import { PanelSearchField } from "./panel-search";
 
 type PanelProps = {
 	description?: ConditionDescription;
-	/** Resolves an item key to the catalog's name for that item. */
 	nameOf: (itemKey: number) => string;
 	edits: ItemConditionEdit[];
 	busy: boolean;
@@ -34,15 +33,6 @@ type PanelProps = {
 
 const PAGE_SIZE = 25;
 
-/**
- * The table's columns, as data.
- *
- * The header and the empty row's `colSpan` were the same five labels written
- * out twice, and the span was a bare `5` that nothing held to the header — add
- * a wear field and the placeholder row silently stopped spanning the table.
- * Deriving both from one list makes that impossible, and it keeps the header
- * row identical in shape to the other panels' without repeating the markup.
- */
 const COLUMNS = [
 	"Item",
 	"Where",
@@ -51,15 +41,6 @@ const COLUMNS = [
 	"Charges left",
 ] as const;
 
-/**
- * The fallback for a save that carries no wear records.
- *
- * It is a module-level constant rather than a `?? []` written inline because
- * that literal is a *fresh* array on every render: the memos below depend on
- * `entries`, so a new identity each render meant neither of them ever hit and
- * the filtering re-ran on every keystroke. Nothing here mutates it — the panel
- * only maps, filters and slices — so sharing one empty array is safe.
- */
 const NO_ENTRIES: readonly ConditionEntry[] = [];
 
 const isSameItem = (edit: ItemConditionEdit, other: ConditionEntry): boolean =>
@@ -67,18 +48,10 @@ const isSameItem = (edit: ItemConditionEdit, other: ConditionEntry): boolean =>
 	edit.slotNo === other.slotNo &&
 	edit.itemKey === other.itemKey;
 
-/** The three channels a wear record can carry, in the order the table shows them. */
 const WEAR_FIELDS = ["endurance", "sharpness", "chargedUses"] as const;
 
 type WearField = (typeof WEAR_FIELDS)[number];
 
-/**
- * One worn item: what it is, where it sits, and a box per channel.
- *
- * A row is the natural unit here — the three channels are the same input three
- * times over, and the only thing that differs between rows is the entry and the
- * limits — so it is its own component and the panel keeps the staged-edit rule.
- */
 const WearRow = ({
 	entry,
 	name,
@@ -89,7 +62,6 @@ const WearRow = ({
 }: {
 	entry: ConditionEntry;
 	name: string;
-	/** This row's staged edit, when the user has touched one of its channels. */
 	staged: ItemConditionEdit | undefined;
 	limits: NonNullable<ConditionDescription["limits"]> | undefined;
 	busy: boolean;
@@ -155,15 +127,6 @@ const WearRow = ({
 	);
 };
 
-/**
- * Item wear: endurance, sharpness and the charges left on a useable item.
- *
- * Every field is optional in a record's mask — an item the game gave you often
- * stores no charge count because it still holds its default — and a field the
- * save does not carry is shown as an em dash and left alone. Writing one would
- * mean creating a field inside the inventory record, which this editor refuses
- * rather than guess at.
- */
 export const ConditionPanel = ({
 	description,
 	nameOf,
@@ -208,10 +171,6 @@ export const ConditionPanel = ({
 		value: number | null,
 	) => {
 		const currentEdit = editFor(entry);
-		// A channel that would be set to the value the save already holds is
-		// dropped: the applier refuses an edit that changes nothing, and failing
-		// the whole download over a redundant keystroke would be worse than
-		// ignoring it.
 		const next =
 			value !== null && entry.condition[field] === value ? null : value;
 		const merged: ItemConditionEdit = {

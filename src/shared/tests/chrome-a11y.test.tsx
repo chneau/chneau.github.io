@@ -111,7 +111,6 @@ describe("SchemeToggle a11y", () => {
 			provider(<SchemeToggle dark onToggle={() => calls.push(1)} />),
 		);
 
-		// In dark mode the control offers light mode.
 		fireEvent.click(view.getByRole("button", { name: "Light mode" }));
 		expect(calls).toEqual([1]);
 

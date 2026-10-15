@@ -9,11 +9,6 @@ import { shortDate } from "./dates";
 import { KindIcon } from "./KindIcon";
 import { dataStore } from "./store";
 
-/**
- * Urgency scale for the "days left" figure. Deliberately quiet: this widget
- * sits under the hero, which already owns the loud countdown, so the only
- * thing that earns emphasis here is "it is today".
- */
 type MilestoneUrgency = "today" | "soon" | "upcoming" | "distant";
 
 const urgencyOf = (days: number): MilestoneUrgency => {
@@ -33,10 +28,6 @@ const URGENCY_STYLE: Record<MilestoneUrgency, CSSProperties> = {
 export const MilestonesWidget = () => {
 	const { t, i18n } = useTranslation();
 
-	// The milestone list is relative to today (a milestone whose day has
-	// passed drops out), so it is derived on every render instead of being
-	// memoised against a stale "today": subscribing to the calendar day
-	// re-renders at midnight, which is exactly when the answer must change.
 	useCalendarDay();
 
 	const upcomingMilestones = birthdays
@@ -102,8 +93,6 @@ export const MilestonesWidget = () => {
 									</Text>
 
 									<Text
-										// Days remaining are the lead figure; the milestone
-										// status below is metadata supporting it.
 										component="span"
 										style={{
 											display: "flex",

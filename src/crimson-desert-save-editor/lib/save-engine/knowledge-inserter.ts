@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/knowledge_inserter.py`.
- */
-
 import { concatBytes, writeI64, writeU8, writeU32 } from "./bytes";
 import { defined } from "./defined";
 import { readKnowledge } from "./knowledge-reader";

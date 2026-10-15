@@ -10,7 +10,6 @@ type Props = {
 	radius?: number;
 };
 
-/** A pub photo that degrades to a small placeholder if it fails to load. */
 export const VenueImage = ({ src, alt, width, height, radius = 6 }: Props) => {
 	const [failed, setFailed] = useState(false);
 

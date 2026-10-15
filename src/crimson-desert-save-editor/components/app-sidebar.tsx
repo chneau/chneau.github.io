@@ -44,20 +44,10 @@ const storageIcon = (key: number): LucideIcon => {
 	return Boxes;
 };
 
-/**
- * The sections of the rail other than the storages.
- *
- * Every one of these links is the same thing — a view, an icon, a label, and
- * optionally how many changes are queued in it and how much it holds — written
- * out nine times. They are a list here for one reason: the badge, the count and
- * the "select then close the drawer" click are the same in all of them, and
- * one of the nine had drifted from the other eight.
- */
 type RailSection = {
 	view: SaveView;
 	icon: LucideIcon;
 	label: string;
-	/** What the section holds, shown beside the staged count. */
 	count: number | undefined;
 };
 
@@ -81,12 +71,6 @@ const SECTION_LABEL = {
 	style: { letterSpacing: "0.16em" },
 } as const;
 
-/**
- * A headed group of links: a rule, then a small caps label.
- *
- * Four sections repeat this pair, and one of them had drifted — a label written
- * by hand rather than spread — so the pair is written once.
- */
 const Section = ({
 	title,
 	children,
@@ -103,11 +87,6 @@ const Section = ({
 	</>
 );
 
-/**
- * The navigation rail: the open save, its storage locations, and the sections
- * that are not the inventory. It holds no state of its own — the page owns
- * which view is active, so the two stay in step even from the mobile drawer.
- */
 export const AppSidebar = ({
 	result,
 	fileName,
@@ -131,10 +110,8 @@ export const AppSidebar = ({
 	stagedViewCounts?: Record<SaveView, number>;
 	onSelectStorage: (key: number) => void;
 	onSelectView: (view: SaveView) => void;
-	/** Called after a choice, so the mobile drawer can close itself. */
 	onNavigate?: () => void;
 }) => {
-	/** One link in the rail: its icon, label, staged badge and held count. */
 	const sectionLink = (section: RailSection) => {
 		const stagedCount = stagedViewCounts[section.view] ?? 0;
 		return (
@@ -309,8 +286,6 @@ export const AppSidebar = ({
 								view: "quests",
 								icon: CheckCheck,
 								label: editorViewInfo.quests.label,
-								// A quest's count is its rows, which runs to tens of
-								// thousands; the staged badge alone is the useful part.
 								count: undefined,
 							})}
 						</Section>

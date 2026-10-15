@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/donor_equipment_inserter.py`.
- */
-
 import {
 	concatBytes,
 	indexOfBytes,
@@ -113,9 +109,6 @@ export const insertDonorEquipmentIntoInventory = async (
 	const allowExperimental = options.allowExperimental ?? false;
 	const allowRuntimeRestricted = options.allowRuntimeRestricted ?? false;
 
-	// Donor and target are two separate saves: neither decode reads or mutates the
-	// other, so they run together. The single write point is still the
-	// `commitSave` further down, which commits one resulting payload.
 	const [donorDecoded, targetDecoded] = await Promise.all([
 		decodeSave(donorBytes),
 		decodeSave(targetBytes),

@@ -7,11 +7,6 @@ import "../crimson-desert-save-editor.css";
 import { mountApp } from "../../shared/mountApp";
 import { Home } from "./page";
 
-/**
- * The single accent: a weathered crimson, desaturated well below the neon
- * range so it reads as dyed leather rather than an AI glow. Index 5 is the
- * dark-scheme shade, 6 the light-scheme shade.
- */
 const brand: MantineColorsTuple = [
 	"#f8eef0",
 	"#efdde1",

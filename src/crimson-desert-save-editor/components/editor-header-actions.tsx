@@ -21,14 +21,6 @@ import type { SaveEdit } from "../lib/staged-edits";
 import { EquipmentCatalogPanel } from "./equipment-catalog-panel";
 import type { EquipmentCatalog } from "./equipment-details";
 
-/**
- * What sits to the right of the title once a save is open.
- *
- * Three groups that appear together and mean together: which file is open, what
- * is staged in it, and the ways out of here (add an item, download the rebuild).
- * Before a save is open only the file picker is offered, so this reads `result`
- * rather than the shell rendering two variants of the header.
- */
 export const EditorHeaderActions = ({
 	result,
 	fileName,
@@ -70,9 +62,6 @@ export const EditorHeaderActions = ({
 	onDiscardOpen: () => void;
 	onDownload: () => void;
 }) => (
-	// A fragment, not a `Group`: the header lays its own actions out, and a
-	// wrapper here would add a second set of spacing rules to a bar that already
-	// has them.
 	<>
 		{result && (
 			<>

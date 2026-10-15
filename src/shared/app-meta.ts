@@ -1,78 +1,10 @@
-/**
- * The single source of truth for every per-app fact on the site.
- *
- * Before this file, the same metadata was restated in three places and had
- * already drifted:
- *
- *   - `rsbuild.config.ts` held one near-identical environment block per app,
- *     and it is the only one that reaches the shipped HTML.
- *   - `src/shared/apps.tsx` held the dashboard's copy (title, tag, category,
- *     hotkey, description and a lucide component).
- *   - `manifests/*.json` held 13 hand-maintained web manifests.
- *
- * All three are now derived from `APP_META`: `rsbuild.config.ts` builds its
- * environments from it, `apps.tsx` maps it to dashboard entries, and
- * `_genManifests.ts` writes the manifest JSON from it.
- *
- * `public/sitemap.xml` is a fourth restatement, and it had drifted the
- * same way: thirteen `<url>` entries for fourteen apps, with
- * `witcher-3-save-editor` in `APP_META` and shipping, but absent from the
- * file. Each row now carries its crawl hints, so the sitemap is written
- * from the table too and an app cannot go missing from it again.
- *
- * PLAIN DATA ONLY — this module is imported by `rsbuild.config.ts`, which runs
- * in a Node/bundler context. It must not import React, `lucide-react` or any
- * CSS, and it must stay free of side effects.
- *
- * Reconciliation (where two sources disagreed, the shipped build won):
- *
- *   - `cv`: `rsbuild.config.ts` (the document + og:description that actually
- *     ships) and `manifests/cv.json` carried different descriptions. The
- *     generated manifest now uses the rsbuild one, so `manifests/cv.json`
- *     changes from "… — experience, expertise and contact." to the
- *     "10+ years experience…" sentence. Nothing invented; the shipped value
- *     wins.
- *   - `spooners`: the manifest said "… — a searchable price map." while the
- *     shipped HTML said "… — searchable map, cheapest-to-dearest rankings and
- *     price distribution charts."; the rsbuild value is kept.
- *   - `design`: the manifest said "The shared design tokens and components
- *     behind chneau.github.io." while the shipped HTML said "The shared
- *     tokens, components and patterns behind every app on this site."; the
- *     rsbuild value is kept.
- *   - `birthday`: the manifest dropped the serial (Oxford) comma in
- *     "zodiac signs(,) and export calendar events"; the shipped HTML has it,
- *     so it is kept.
- *   - `root`: the dashboard card describes the hub as "Personal hub and web
- *     apps by chneau." while the document/meta description is the longer
- *     sentence. Both are real and both are kept: `description` is the meta /
- *     manifest value, `dashboard.description` is the card value.
- *
- * Every other value is byte-for-byte what one of the three sources already
- * carried. (The regenerated `manifests/*.json` also normalise seven files that
- * had escaped em-dashes, `\u2014`, to the literal `—`; the text is unchanged.)
- */
-
-/** A file copied verbatim into an environment's published output. */
 type AppCopy = {
-	/** Source path, relative to the repository root. */
 	from: string;
-	/** Destination, relative to the environment's `distPath.root`. */
 	to: string;
 };
 
-/** A structured-data block trimmed to the two documents the site declares. */
 type AppJsonLd = "website" | "person";
 
-/**
- * The Mantine ramps a dashboard tag may be tinted with.
- *
- * A union rather than `string`, because `"purple"` shipped here and is not one
- * of Mantine's colours: `Badge` treats an unknown name as a raw CSS colour, so
- * that card's pill rendered as flat `purple` text on a translucent grey while
- * the other twelve were tints of their hue — and at 2.01:1 in the dark scheme,
- * the only one of the fourteen the dashboard failed on for contrast. It
- * typechecked, because the field said `string`.
- */
 type TagColor =
 	| "gray"
 	| "red"
@@ -89,81 +21,36 @@ type TagColor =
 	| "orange";
 
 export type AppMeta = {
-	/** Environment key, manifest filename and icon asset slug, all in one. */
 	slug: string;
-	/** Document path: the canonical URL, the manifest start_url/scope and the dashboard href. */
 	path: string;
-	/** Rsbuild source entry. */
 	entry: string;
-	/** Document title, og:title and twitter:title. */
 	title: string;
-	/** Meta description, og:description and the manifest description. */
 	description: string;
 	themeColor: string;
 	backgroundColor: string;
-	/** Manifest `name`; it may differ from the document title. */
 	manifestName: string;
-	/** Manifest `short_name`. */
 	manifestShortName: string;
-	/** The favicon glyph painted into the tab as a data-URL SVG. */
 	emoji: string | null;
-	/** Lucide component NAME; `apps.tsx` maps it to the component explicitly. */
 	lucideIcon: string;
-	/** Whether this environment's UI reads the injected `BUILD_DATE`. */
 	defineBuildDate: boolean;
-	/** Open Graph `og:type` for the document. */
 	metaType: "website" | "profile";
-	/** Extra `og:locale:alternate` values; empty everywhere but birthday. */
 	alternateLocales: string[];
-	/** JSON-LD documents to inline, in order. */
 	jsonLd: AppJsonLd[];
-	/** Extra copies on top of the app's own `manifest.json`. */
 	copies: AppCopy[];
-	/**
-	 * The app's `public/sitemap.xml` entry: the crawl hints for its
-	 * canonical URL.
-	 *
-	 * These used to live in the sitemap alone, which is exactly how the file
-	 * lost an app — which is why they belong on the row the generator reads.
-	 * `changefreq` is the sitemaps.org verbatim; `priority` is serialised
-	 * to the one decimal the format writes (`1` becomes `1.0`).
-	 */
 	sitemap: {
-		/** How often the page is expected to change. */
 		changefreq: string;
-		/** The page's importance relative to the site's other pages. */
 		priority: number;
 	};
-	/** Dashboard-facing fields, mirrored by the app cards and the hotkeys. */
 	dashboard: {
 		title: string;
 		tag: string;
 		tagColor: TagColor;
-		/** Broad grouping used by the dashboard's category filter. */
 		category: string;
-		/**
-		 * The `KeyboardEvent.key` value that launches this app, and the ONLY
-		 * hand-maintained half of the pair: `apps.tsx` derives the prose label
-		 * from it. Both used to be written out per app, and nothing forced them
-		 * to agree — a row could advertise "Press Q" while the keydown handler
-		 * compared against a different character, and the mismatch would only
-		 * show up as a shortcut that silently does nothing.
-		 */
 		hotkey: string;
 		description: string;
 	};
 };
 
-/**
- * Every environment, root first, then the sub-apps in dashboard order.
- *
- * `as const satisfies readonly AppMeta[]` rather than a plain annotation: the
- * annotation widens every `slug` to `string`, and a downstream module that
- * wants the union of slugs as a type (`analytics.ts`) would get `string` and
- * lose every check it derives from this table. The `satisfies` keeps each row
- * validated against `AppMeta` — a missing field or a bad colour still fails
- * here — while the const assertion keeps the literals.
- */
 export const APP_META = [
 	{
 		slug: "root",
@@ -291,7 +178,6 @@ export const APP_META = [
 		backgroundColor: "#0e0e11",
 		manifestName: "Crimson Desert Save Editor",
 		manifestShortName: "Save Editor",
-		// No emoji: the config draws a bespoke crimson shield for this app.
 		emoji: null,
 		lucideIcon: "Swords",
 		defineBuildDate: false,
@@ -530,14 +416,10 @@ export const APP_META = [
 		title: "Witcher 3 Save Editor",
 		description:
 			"Edit Witcher 3 PC saves in your browser — money, level, difficulty, skill points, experience and item quantities, written in place and rebuilt entirely on your device.",
-		// Cold, tarnished steel — the app's northern-fantasy palette, and far from
-		// Crimson Desert's red and Cyberpunk's yellow.
 		themeColor: "#8c9bab",
 		backgroundColor: "#0e0e11",
 		manifestName: "Witcher 3 Save Editor",
 		manifestShortName: "Witcher 3",
-		// Not null: a null emoji falls back to the config's bespoke crimson
-		// shield, which belongs to Crimson Desert.
 		emoji: "🐺",
 		lucideIcon: "Sword",
 		defineBuildDate: false,

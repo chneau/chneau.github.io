@@ -1,18 +1,3 @@
-/**
- * The CERIMAL codec, held to the only thing that matters about a save format:
- * that an untouched save comes back byte for byte.
- *
- * The byte-exactness tests read real `.dat` files — Moon Studios' own, from the
- * save tool this codec was ported from — and they are the reason the writer
- * exists in the shape it does. They live outside this repository, at the path
- * below, so the suites that need one run where they are and are skipped, loudly,
- * where they are not; everything that does not need a real save always runs.
- *
- * Every one of them is asserted, on every run, rather than a sample: the format
- * has a dozen corners that only some files reach — a struct with padding, a
- * runtime type override, a value referred to sixteen thousand times — and a
- * subset would pass while a corner stayed broken.
- */
 import { describe, expect, test } from "bun:test";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -31,11 +16,6 @@ import {
 } from "../lib/format";
 import { hex64, xxHash64 } from "../lib/xxhash";
 
-/**
- * Real saves, relative to this file: `src/<app>/tests/` is three directories
- * below the repository root, and the original tool's backup DataStore sits
- * beside it rather than inside the site.
- */
 const FIXTURES = join(
 	import.meta.dir,
 	"..",
@@ -48,7 +28,6 @@ const FIXTURES = join(
 	"DataStore",
 );
 
-/** Every `.dat` in that tree, in a stable order, or none of them if it is not here. */
 const fixtureFiles = (): readonly string[] => {
 	if (!existsSync(FIXTURES)) return [];
 	const found: string[] = [];
@@ -64,20 +43,11 @@ const fixtureFiles = (): readonly string[] => {
 	return found.sort();
 };
 
-/**
- * A fixture's bytes, as the codec's own `Bytes`.
- *
- * `readFileSync` hands back a Node buffer, which the type system treats as
- * possibly shared memory; the codec takes a plain `ArrayBuffer` because that is
- * what WebCrypto and `CompressionStream` accept. Copying once here says so in
- * one place instead of at every call site.
- */
 const readFixture = (path: string): Bytes => new Uint8Array(readFileSync(path));
 
 const readText = (path: string): string =>
 	new TextDecoder().decode(readFixture(path));
 
-/** The character save: the one with a player in it, and the smallest with one. */
 const CHARACTER = join(
 	FIXTURES,
 	"22950",
@@ -101,13 +71,6 @@ const fromBase64 = (text: string): Uint8Array => {
 	return out;
 };
 
-/**
- * The region a document's checksum covers, and the checksum it claims.
- *
- * That region is the schema and the payload as one run, which is how they sit
- * in the file: the header names their two lengths, and everything from the end
- * of the checksum field to the end of the payload is what was hashed.
- */
 const hashedRegion = (
 	text: string,
 ): { readonly body: Uint8Array; readonly stored: bigint } | null => {
@@ -128,12 +91,6 @@ const hashedRegion = (
 };
 
 describe("xxHash64", () => {
-	// Published XXH64 values: the empty string, one byte and three bytes are
-	// the vectors the xxHash documentation quotes, and the seeded one is the
-	// worked example in a published Go implementation's package docs. Together
-	// they exercise the whole algorithm — the fourteen-byte seeded case is long
-	// enough to need the 32-byte accumulator loop *and* the overlapping tail —
-	// and the real saves below pin the same code over megabytes.
 	test("matches the published vectors", () => {
 		const bytes = (text: string): Uint8Array => new TextEncoder().encode(text);
 		expect(hex64(xxHash64(bytes("")))).toBe("ef46db3751d8e999");
@@ -150,7 +107,6 @@ describe("xxHash64", () => {
 		expect(xxHash64(one)).toBe(xxHash64(two));
 		expect(xxHash64(new Uint8Array([1, 2, 4]))).not.toBe(xxHash64(one));
 		expect(xxHash64(one, 1n)).not.toBe(xxHash64(one));
-		// A seed changes the result but not the length of the digest.
 		expect(hex64(xxHash64(one, 1n))).toHaveLength(16);
 	});
 });
@@ -193,23 +149,13 @@ describe.skipIf(fixtures.length === 0)("real saves", () => {
 		test(`round-trips ${name} byte for byte`, async () => {
 			const original = readFixture(file);
 			const document = await decodeSave(original);
-			// The round trip the page promises: the same bytes, not merely an
-			// equivalent file. Anything less and the verdict it shows the user is
-			// decoration.
 			const rebuilt = await encodeSave(document);
 			expect(rebuilt.length).toBe(original.length);
 			expect([...rebuilt]).toEqual([...original]);
 		});
 
 		test(`verifies the checksum in ${name}`, async () => {
-			// Reading the file at all proves the header's xxHash64 was checked:
-			// `decode` refuses a document whose schema and content do not hash to
-			// what it claims, and the tests below show it refusing. Where there
-			// is a payload the claim is checked a second time, from the outside,
-			// so this is not the codec agreeing with itself.
 			await expect(decodeSave(readFixture(file))).resolves.toBeDefined();
-			// An account or settings save has no payload and no checksum to
-			// check, which is the only reason this is allowed to return early.
 			const region = hashedRegion(readText(file));
 			if (region === null) return;
 			expect(hex64(xxHash64(region.body))).toBe(hex64(region.stored));
@@ -220,9 +166,6 @@ describe.skipIf(fixtures.length === 0)("real saves", () => {
 		const region = hashedRegion(readText(CHARACTER));
 		if (region === null) throw new Error("This save has no CERIMAL payload.");
 		expect(hex64(xxHash64(region.body))).toBe(hex64(region.stored));
-		// And not the payload alone, which is the mistake a checksum range
-		// invites: a range that reads back correctly for the last hundred bytes
-		// and nothing else would still pass a weaker test than this one.
 		expect(
 			hex64(xxHash64(region.body.subarray(region.body.length - 100))),
 		).not.toBe(hex64(region.stored));
@@ -232,8 +175,6 @@ describe.skipIf(fixtures.length === 0)("real saves", () => {
 		const text = readText(CHARACTER);
 		const envelope = JSON.parse(text) as { binaryInfo: string };
 		const stream = fromBase64(envelope.binaryInfo);
-		// The last byte of the payload, so the header still parses and only the
-		// content is wrong.
 		stream[stream.length - 1] = (stream[stream.length - 1] ?? 0) ^ 0xff;
 		const damaged = text.replace(envelope.binaryInfo, toBase64(stream));
 		await expect(decodeSave(new TextEncoder().encode(damaged))).rejects.toThrow(
@@ -245,7 +186,6 @@ describe.skipIf(fixtures.length === 0)("real saves", () => {
 		const text = readText(CHARACTER);
 		const envelope = JSON.parse(text) as { binaryInfo: string };
 		const stream = fromBase64(envelope.binaryInfo);
-		// Inside the schema, which begins at byte 24.
 		stream[40] = (stream[40] ?? 0) ^ 0x01;
 		const damaged = text.replace(envelope.binaryInfo, toBase64(stream));
 		await expect(decodeSave(new TextEncoder().encode(damaged))).rejects.toThrow(
@@ -270,7 +210,6 @@ describe.skipIf(fixtures.length === 0)("real saves", () => {
 	test("the decoded document names the game's own fields", async () => {
 		const document = await decodeSave(readFixture(CHARACTER));
 		const envelope = document.$cerimal.envelope;
-		// The envelope is the game's JSON, read out under its own key names.
 		expect(envelope.name).toBe("Charles");
 		expect(envelope.revision).toBe(2447);
 		expect(typeof envelope.updatedAt).toBe("string");
@@ -280,8 +219,6 @@ describe.skipIf(fixtures.length === 0)("real saves", () => {
 		const view = document.$cerimal.documents[0];
 		expect(view?.rootType).toBe("Quantum.PlayerSerializedData");
 		expect(view?.version).toBe(2);
-		// Every one of these is a field the game's schema declares, and the
-		// quick actions below address them by these names.
 		const data = view?.data;
 		expect(typeof data).toBe("object");
 		const player = data as { readonly [key: string]: JsonValue };
@@ -290,7 +227,6 @@ describe.skipIf(fixtures.length === 0)("real saves", () => {
 		expect(typeof player.CrucibleCurrency).toBe("number");
 		expect(typeof player.IsHardcore).toBe("boolean");
 		expect(typeof player.TimePlayed).toBe("number");
-		// A dictionary is stored under the position it was declared at.
 		const attributes = player.Attributes;
 		expect(typeof attributes).toBe("object");
 		const dictionary = Object.values(
@@ -310,18 +246,12 @@ describe.skipIf(fixtures.length === 0)("real saves", () => {
 		const document = await decodeSave(original);
 		expect(document.$cerimal.documents).toHaveLength(0);
 		expect(document.$cerimal.wrapperAfter).toBe("");
-		// It has a binaryInfo, and it is null: that is what tells a plain save
-		// apart from one that carries a CERIMAL stream.
 		expect(document.$cerimal.envelope.binaryInfo).toBeNull();
 		expect([...(await encodeSave(document))]).toEqual([...original]);
 	});
 
 	test("an edited envelope is written back, not spliced", async () => {
 		const document = await decodeSave(readFixture(CHARACTER));
-		// A copy of the envelope, with the character's name changed. The
-		// documents themselves are shared rather than cloned, because the
-		// back-reference table in them is keyed by object identity and a deep
-		// copy would quietly break the sharing the rebuild depends on.
 		const edited: CerimalFile = {
 			$cerimal: {
 				...document.$cerimal,
@@ -330,19 +260,12 @@ describe.skipIf(fixtures.length === 0)("real saves", () => {
 		};
 		const text = new TextDecoder().decode(await encodeSave(edited));
 		expect(text).toContain('"name":"Wilhelmina"');
-		// An edited envelope can no longer be spliced into the original text, so
-		// the file is re-serialised — which is what costs the game its own
-		// number formatting, and is the trade this branch exists to make.
 		expect(text).not.toContain("1748808466.0");
-		// The payload is still there, and still readable: an envelope edit must
-		// not cost the user their character.
 		const reread = await decodeSave(new TextEncoder().encode(text));
 		expect(reread.$cerimal.envelope.name).toBe("Wilhelmina");
 		expect(reread.$cerimal.documents[0]?.rootType).toBe(
 			"Quantum.PlayerSerializedData",
 		);
-		// And the untouched save still keeps that formatting, because it is still
-		// spliced rather than re-serialised.
 		expect(readText(CHARACTER)).toContain("1748808466.0");
 	});
 
@@ -371,14 +294,11 @@ describe.skipIf(fixtures.length === 0)("real saves", () => {
 			edited,
 			true,
 		);
-		// Different bytes on purpose — the gold changed — but the same save.
 		expect(verdict.kind).toBe("semantic");
 		const rebuilt = await encodeSave(edited);
 		const reread = await decodeSave(rebuilt);
 		const data = reread.$cerimal.documents[0]?.data as { Gold?: number };
 		const gold = data?.Gold;
-		// The target is pinned rather than read back off the plan, so a change
-		// to what "fill the purse" means has to be a deliberate one.
 		expect(planned[0]?.after).toBe(9_999_999);
 		expect(gold).toBe(9_999_999);
 	});
@@ -392,8 +312,6 @@ describe.skipIf(fixtures.length === 0)("quick changes", () => {
 			const first = action.plan(document);
 			const second = action.plan(document);
 			expect(second).toEqual(first);
-			// A plan is a proposal, not an edit: it must not touch the document
-			// it was handed, or the staged-edit list would be a fiction.
 			expect(JSON.stringify(document)).toBe(before);
 		}
 	});
@@ -404,24 +322,14 @@ describe.skipIf(fixtures.length === 0)("quick changes", () => {
 		for (const action of noRestForTheWicked.actions) {
 			for (const edit of action.plan(document)) {
 				planned += 1;
-				// The path resolves, and it resolves to the value the action says
-				// is already there — which is what makes the staged edit a
-				// change rather than a guess, and what the workbench shows the
-				// user as "before".
 				expect(getAtPath(document, edit.path)).toEqual(edit.before);
 				expect(edit.before).not.toEqual(edit.after);
 			}
 		}
-		// Three of the four actions apply to this character, and one of those
-		// stages two edits — Health and Stamina — so four edits in all. The
-		// fourth is disabled: this character is on softcore, so there is no
-		// hardcore mode to leave.
 		expect(planned).toBe(4);
 	});
 
 	test("an action that has nothing to do greys itself out", async () => {
-		// A realm save has no player in it, so none of the four applies, and the
-		// workbench disables a button whose plan is empty.
 		const realm = join(
 			FIXTURES,
 			"22950",
@@ -438,7 +346,6 @@ describe.skipIf(fixtures.length === 0)("quick changes", () => {
 		const action = noRestForTheWicked.actions.find(
 			(candidate) => candidate.id === "leave-hardcore",
 		);
-		// This character is on softcore, so there is nothing to leave.
 		expect(action?.plan(document)).toHaveLength(0);
 	});
 });

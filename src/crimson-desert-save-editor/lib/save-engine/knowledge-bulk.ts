@@ -1,22 +1,3 @@
-/**
- * Bulk knowledge edits: the engine side of the skill / knowledge pipeline.
- *
- * Ported from `src/inserter.ts` + `src/maximize.ts` of the
- * `testing-decrypt-crimson-desert-savegame` project, whose `skills` command
- * unlocks the skill tree by injecting the knowledge entries the tree is derived
- * from. The entries *are* the skills — the game rebuilds
- * `_skillLearnSaveDataList` from them — so nothing else is touched here.
- *
- * Two things make a several-thousand-key unlock practical:
- *
- *   - every missing entry is inserted in a single block edit (one clone of the
- *     last list element per key), then the block's pointers are shifted once,
- *     instead of one insert-and-reparse per key;
- *   - levels are then written straight into the payload at the `_level` offsets
- *     the reader already reports, the same in-place scalar edit the inventory
- *     quantity path uses.
- */
-
 import { concatBytes, writeI64, writeU8, writeU32 } from "./bytes";
 import { defined } from "./defined";
 import { readKnowledge } from "./knowledge-reader";
@@ -28,17 +9,11 @@ import {
 import { BlockParser, parseParcBlob, serializeParc } from "./parc-serializer";
 import { commitSave, openSave } from "./transaction";
 
-/** A knowledge key that must end up learned, at `level`. */
 export type KnowledgeTarget = {
 	key: number;
 	level: number;
 };
 
-/**
- * Re-level entries that are already learned but are not named in `targets`.
- * `knowledge` mode uses this to mirror the reference for every learned entry,
- * including keys the reference knows nothing about.
- */
 export type LearnedRelevel = {
 	reference: Map<number, number>;
 	fallback: number;
@@ -46,7 +21,6 @@ export type LearnedRelevel = {
 
 type KnowledgeChangeOptions = {
 	targets: KnowledgeTarget[];
-	/** When set, learned entries outside `targets` are re-levelled too. */
 	relevel?: LearnedRelevel;
 };
 
@@ -54,7 +28,6 @@ type KnowledgeRecord = ReturnType<typeof readKnowledge>[number];
 
 const KNOWLEDGE_BLOCK = "KnowledgeSaveData";
 
-/** Highest level the game treats as meaningful; see the CLI's `--level` note. */
 export const MAX_KNOWLEDGE_LEVEL = 99;
 
 const checkLevel = (key: number, level: number): void => {
@@ -65,10 +38,6 @@ const checkLevel = (key: number, level: number): void => {
 	}
 };
 
-/**
- * Resolve the level every touched key should end up at. Level 0 means
- * "present but not learned" — the game treats such an entry as unlearned.
- */
 const desiredLevels = (
 	records: KnowledgeRecord[],
 	targets: KnowledgeTarget[],
@@ -116,10 +85,6 @@ const knowledgeEntry = (raw: Uint8Array) => {
 	return { parc, entry, listField };
 };
 
-/**
- * Clone the last knowledge entry once per key and splice the whole run into the
- * list in a single edit, mirroring `injectKnowledgeKeys`.
- */
 const insertMissing = (
 	raw: Uint8Array,
 	keys: number[],
@@ -150,8 +115,6 @@ const insertMissing = (
 		};
 		patch("_key", key);
 		patch("_level", levelOf(key));
-		// A freshly injected entry is not a "new" marker in the UI, and carries
-		// no learned timestamp — the reference save has neither either.
 		const learnedOffset = template.fieldOffsets._learnedFieldTime;
 		if (learnedOffset !== undefined) {
 			writeI64(clone, learnedOffset - template.recordStart, 0n);
@@ -196,7 +159,6 @@ const insertMissing = (
 	return { raw: serializeParc(parc), inserted: clones.length };
 };
 
-/** Write `_level` in place for every entry whose level does not match. */
 const patchLevels = (
 	raw: Uint8Array,
 	records: KnowledgeRecord[],
@@ -216,7 +178,6 @@ const patchLevels = (
 		}
 		writeU32(edited, offset, target);
 		patched += 1;
-		// Level 0 means unlearned; bringing it back is the CLI's "relearn".
 		if (record.level === 0 && target >= 1) relearned += 1;
 	}
 	return { raw: edited, patched, relearned };
@@ -225,12 +186,6 @@ const patchLevels = (
 const levelMap = (records: KnowledgeRecord[]): Map<number, number> =>
 	new Map(records.map((record) => [record.key, record.level]));
 
-/**
- * Make every target key learned at its target level: missing entries are
- * injected, existing ones are re-levelled in place. Returns the re-encrypted
- * save and an audit record; when nothing needs to change the source bytes come
- * back untouched so a no-op never rewrites the container.
- */
 export const applyKnowledgeChange = async (
 	sourceBytes: Uint8Array,
 	options: KnowledgeChangeOptions,
@@ -248,8 +203,6 @@ export const applyKnowledgeChange = async (
 		missing,
 		(key) => desired.get(key) ?? 1,
 	);
-	// Insertion moves everything after the list, so the level offsets have to be
-	// read again before they can be patched.
 	const shifted = readKnowledge(insertion.raw);
 	const patching = patchLevels(insertion.raw, shifted, desired);
 	const editedRaw = patching.raw;

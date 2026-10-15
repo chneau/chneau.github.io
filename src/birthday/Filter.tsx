@@ -51,20 +51,12 @@ export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 	const dataSnap = useSnapshot(dataStore);
 	const inputRef = useRef<HTMLInputElement>(null);
 
-	// Re-renders at midnight, so the month chips follow the calendar instead of
-	// pinning whatever month the page happened to load in.
 	const today = useCalendarDay();
 	const thisMonth = dayjs(today).month() + 1;
 	const nextMonth = (thisMonth % 12) + 1;
 
-	// A month facet picked before midnight is already dead: it filters nothing
-	// and must not count as "filtered" either.
 	const monthFacetOn = isMonthFacetActive();
 
-	// Note the `!` on all three kind toggles: the list is filtered when a kind
-	// is HIDDEN, not when it is shown. Weddings default to hidden, so without
-	// `!showWeddings` the "N of 33 shown" notice never appeared at all, leaving
-	// "27 Birthdays" unexplained against a "People tracked 33" hero.
 	const isFiltered =
 		Boolean(snap.search) ||
 		!snap.showBoys ||
@@ -91,7 +83,6 @@ export const FilterSearch = ({ style }: { style?: CSSProperties }) => {
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, []);
 
-	// Each chip writes a facet field; none of them touch the free-text query.
 	const shortcuts = [
 		{
 			key: "this_month",

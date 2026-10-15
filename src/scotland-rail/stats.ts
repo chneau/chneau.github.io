@@ -4,24 +4,9 @@ import {
 	getPolylineDistances,
 } from "./engine/interpolator";
 
-/**
- * The two computations behind the stats panel: the hourly "services in progress"
- * histogram and the rolling highlights over the trains currently running.
- *
- * They live here, as plain functions of their inputs, rather than inside the
- * component because that is what they are. Both are the expensive part of the
- * left-hand HUD — one polyline measurement per active train, every repaint —
- * and neither of them reads a single piece of component state, so putting them
- * behind a `useMemo` in the panel made the panel look harder to read than the
- * panel actually was.
- */
-
-/** 05:00, the first minute of the replay window: the histogram starts here. */
 const FIRST_BUCKET_OFFSET = 300;
-/** 05:00 through to 24:00, one column per hour. */
 const BUCKET_COUNT = 19;
 
-/** One column of the activity curve: the hour it covers and its 0..1 intensity. */
 type ActivityColumn = {
 	hour: number;
 	intensity: number;
@@ -41,14 +26,6 @@ export type ActiveHighlights = {
 	dwellingTrains: number;
 };
 
-/**
- * Counts, per hour, how many services from `services` are in progress then.
- *
- * A service counts towards every hour its first departure through its last
- * arrival spans, so a 06:40–09:10 working is visible across three columns
- * rather than only the hour it started in. Intensity is normalised against the
- * busiest column so the curve reads as a shape, not as a count.
- */
 export const hourlyActivity = (
 	services: readonly TrainService[],
 ): ActivityColumn[] => {
@@ -78,11 +55,6 @@ export const hourlyActivity = (
 	}));
 };
 
-/**
- * The three rolling highlights, plus the two totals the panel prints above the
- * curve. `null` when nothing is running: the panel then shows its empty state,
- * which is a different thing from "running, but nothing beat zero".
- */
 export const summariseActiveTrains = (
 	activeTrains: readonly ActiveTrainState[],
 ): ActiveHighlights | null => {
@@ -98,8 +70,6 @@ export const summariseActiveTrains = (
 		const totalDist = getPolylineDistances(service.pathCoordinates).total;
 		totalActiveDistanceKm += totalDist;
 
-		// Duration in hours. The floor keeps a train whose timetable rounds to
-		// zero minutes from producing an infinite average speed.
 		const firstDep = service.calls[0]?.departureOffset ?? 0;
 		const lastArr =
 			service.calls[service.calls.length - 1]?.arrivalOffset ?? firstDep + 1;
@@ -130,12 +100,6 @@ export const summariseActiveTrains = (
 	};
 };
 
-/**
- * Names the filters standing between the visitor and the trains, for the empty
- * state: "no service matches the "sleeper" search *or* the Highland filter".
- * `null` when nothing is filtered, because then the empty state is about the
- * clock rather than about a filter.
- */
 export const describeActiveFilter = (
 	searchQuery: string,
 	selectedCategory: Category | "all",

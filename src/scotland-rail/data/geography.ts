@@ -1,7 +1,6 @@
 import type { Coordinate, Landmark, Loch, RailPath, Station } from "./types";
 
 export const STATIONS: Station[] = [
-	// Central Belt Hubs & Key Commuter Stops
 	{
 		id: "EDB",
 		name: "Edinburgh Waverley",
@@ -38,7 +37,6 @@ export const STATIONS: Station[] = [
 	{ id: "KCK", name: "Kirkcaldy", coordinate: [-3.161, 56.112] },
 	{ id: "MTH", name: "Motherwell", coordinate: [-3.991, 55.791] },
 
-	// East Coast & North East
 	{ id: "DEE", name: "Dundee", coordinate: [-2.973, 56.457], isMajor: true },
 	{ id: "LEU", name: "Leuchars (St Andrews)", coordinate: [-2.883, 56.38] },
 	{ id: "ABZ", name: "Aberdeen", coordinate: [-2.098, 57.143], isMajor: true },
@@ -48,7 +46,6 @@ export const STATIONS: Station[] = [
 	{ id: "DYC", name: "Dyce (Aberdeen Airport)", coordinate: [-2.203, 57.204] },
 	{ id: "INR", name: "Inverurie", coordinate: [-2.373, 57.283] },
 
-	// Highlands & Perthshire
 	{ id: "PTH", name: "Perth", coordinate: [-3.437, 56.391], isMajor: true },
 	{ id: "DKD", name: "Dunkeld & Birnam", coordinate: [-3.582, 56.559] },
 	{ id: "PIT", name: "Pitlochry", coordinate: [-3.737, 56.702] },
@@ -64,7 +61,6 @@ export const STATIONS: Station[] = [
 	{ id: "ELG", name: "Elgin", coordinate: [-3.313, 57.643] },
 	{ id: "KEI", name: "Keith", coordinate: [-2.946, 57.538] },
 
-	// West Highland Line (Glenfinnan Viaduct & Scenic Route)
 	{ id: "ARO", name: "Arrochar & Tarbet", coordinate: [-4.717, 56.2] },
 	{
 		id: "CRI",
@@ -100,7 +96,6 @@ export const STATIONS: Station[] = [
 	{ id: "MOR", name: "Morar", coordinate: [-5.821, 56.971] },
 	{ id: "MLG", name: "Mallaig", coordinate: [-5.828, 57.006], isMajor: true },
 
-	// Far North & Kyle of Lochalsh
 	{ id: "MUI", name: "Muir of Ord", coordinate: [-4.457, 57.518] },
 	{ id: "DING", name: "Dingwall", coordinate: [-4.426, 57.597], isMajor: true },
 	{ id: "GAR", name: "Garve", coordinate: [-4.693, 57.61] },
@@ -120,7 +115,6 @@ export const STATIONS: Station[] = [
 	{ id: "WCK", name: "Wick", coordinate: [-3.094, 58.442], isMajor: true },
 	{ id: "THS", name: "Thurso", coordinate: [-3.527, 58.592], isMajor: true },
 
-	// South & Cross Border Entry Points
 	{ id: "DUNB", name: "Dunbar", coordinate: [-2.514, 55.998] },
 	{
 		id: "BWK",
@@ -138,7 +132,6 @@ export const STATIONS: Station[] = [
 
 export const STATIONS_BY_ID = new Map(STATIONS.map((s) => [s.id, s]));
 
-// Major Scottish Lochs (Polygons for vector map rendering)
 export const LOCHS: Loch[] = [
 	{
 		id: "loch-ness",
@@ -197,7 +190,6 @@ export const LOCHS: Loch[] = [
 	},
 ];
 
-// Iconic Scottish Rail Landmarks & Viaducts
 export const LANDMARKS: Landmark[] = [
 	{
 		id: "glenfinnan-viaduct",
@@ -239,291 +231,275 @@ export const LANDMARKS: Landmark[] = [
 	},
 ];
 
-// High-fidelity rail polylines tracing actual Scottish track geometry
 export const RAIL_PATHS: RailPath[] = [
-	// 1. Central Belt Line: Edinburgh Waverley <-> Glasgow Queen Street (via Falkirk High)
 	{
 		id: "edb-glq-falkirk",
 		name: "Central Belt Mainline",
 		coordinates: [
-			[-3.189, 55.952], // EDB
-			[-3.218, 55.945], // HYM
+			[-3.189, 55.952],
+			[-3.218, 55.945],
 			[-3.344, 55.937],
 			[-3.486, 55.949],
-			[-3.601, 55.977], // LIN
-			[-3.712, 55.992], // PLY
-			[-3.784, 55.992], // FKK
+			[-3.601, 55.977],
+			[-3.712, 55.992],
+			[-3.784, 55.992],
 			[-3.91, 55.968],
-			[-4.032, 55.945], // Croy
-			[-4.154, 55.908], // Lenzie
+			[-4.032, 55.945],
+			[-4.154, 55.908],
 			[-4.221, 55.875],
-			[-4.251, 55.862], // GLQ
+			[-4.251, 55.862],
 		],
 	},
 
-	// 2. Edinburgh/Glasgow to Stirling, Dunblane, Gleneagles & Perth
 	{
 		id: "falkirk-stirling-perth",
 		name: "Stirling & Perth Branch",
 		coordinates: [
-			[-3.784, 55.992], // FKK
-			[-3.805, 56.02], // Larbert
+			[-3.784, 55.992],
+			[-3.805, 56.02],
 			[-3.872, 56.075],
-			[-3.935, 56.12], // STG
-			[-3.955, 56.155], // Bridge of Allan
-			[-3.963, 56.189], // DUN
+			[-3.935, 56.12],
+			[-3.955, 56.155],
+			[-3.963, 56.189],
 			[-3.882, 56.241],
-			[-3.748, 56.286], // Gleneagles
+			[-3.748, 56.286],
 			[-3.61, 56.33],
 			[-3.48, 56.365],
-			[-3.437, 56.391], // PTH
+			[-3.437, 56.391],
 		],
 	},
 
-	// 3. Highland Main Line: Perth -> Pitlochry -> Blair Atholl -> Aviemore -> Inverness
 	{
 		id: "perth-inverness",
 		name: "Highland Main Line",
 		coordinates: [
-			[-3.437, 56.391], // PTH
-			[-3.475, 56.468], // Luncarty
+			[-3.437, 56.391],
+			[-3.475, 56.468],
 			[-3.535, 56.53],
-			[-3.582, 56.559], // Dunkeld
-			[-3.665, 56.635], // Ballinluig
-			[-3.737, 56.702], // PIT
-			[-3.78, 56.735], // Pass of Killiecrankie
-			[-3.847, 56.766], // BLA
-			[-4.02, 56.845], // Struan
-			[-4.162, 56.885], // Drumochter Pass (Highest summit)
-			[-4.241, 56.938], // Dalwhinnie
-			[-4.12, 57.065], // Newtonmore
-			[-4.053, 57.079], // Kingussie
-			[-3.92, 57.135], // Kincraig
-			[-3.83, 57.189], // AVM
-			[-3.818, 57.282], // Carrbridge
-			[-3.93, 57.355], // Slochd Summit
-			[-4.05, 57.41], // Moy
-			[-4.155, 57.452], // Culloden Viaduct
-			[-4.223, 57.479], // INV
+			[-3.582, 56.559],
+			[-3.665, 56.635],
+			[-3.737, 56.702],
+			[-3.78, 56.735],
+			[-3.847, 56.766],
+			[-4.02, 56.845],
+			[-4.162, 56.885],
+			[-4.241, 56.938],
+			[-4.12, 57.065],
+			[-4.053, 57.079],
+			[-3.92, 57.135],
+			[-3.83, 57.189],
+			[-3.818, 57.282],
+			[-3.93, 57.355],
+			[-4.05, 57.41],
+			[-4.155, 57.452],
+			[-4.223, 57.479],
 		],
 	},
 
-	// 4. East Coast Main Line: Edinburgh -> Forth Bridge -> Dundee -> Tay Bridge -> Aberdeen
 	{
 		id: "edb-dundee-aberdeen",
 		name: "East Coast Line",
 		coordinates: [
-			[-3.189, 55.952], // EDB
-			[-3.218, 55.945], // HYM
-			[-3.342, 55.968], // Edinburgh Gateway
-			[-3.388, 55.986], // Forth Bridge (South)
-			[-3.402, 56.002], // Forth Bridge (North)
-			[-3.398, 56.035], // Inverkeithing
-			[-3.285, 56.065], // Aberdour
-			[-3.228, 56.07], // Burntisland
-			[-3.161, 56.112], // Kirkcaldy
-			[-3.03, 56.195], // Markinch
-			[-2.955, 56.31], // Cupar
-			[-2.883, 56.38], // LEU (Leuchars)
-			[-2.925, 56.438], // Tay Rail Bridge (South)
-			[-2.952, 56.452], // Tay Rail Bridge (North)
-			[-2.973, 56.457], // DEE
-			[-2.83, 56.475], // Broughty Ferry
-			[-2.715, 56.505], // Carnoustie
-			[-2.585, 56.559], // ARB (Arbroath)
-			[-2.472, 56.711], // MTS (Montrose)
-			[-2.32, 56.84], // Laurencekirk
-			[-2.221, 56.963], // STN (Stonehaven)
-			[-2.14, 57.065], // Portlethen
-			[-2.098, 57.143], // ABZ
+			[-3.189, 55.952],
+			[-3.218, 55.945],
+			[-3.342, 55.968],
+			[-3.388, 55.986],
+			[-3.402, 56.002],
+			[-3.398, 56.035],
+			[-3.285, 56.065],
+			[-3.228, 56.07],
+			[-3.161, 56.112],
+			[-3.03, 56.195],
+			[-2.955, 56.31],
+			[-2.883, 56.38],
+			[-2.925, 56.438],
+			[-2.952, 56.452],
+			[-2.973, 56.457],
+			[-2.83, 56.475],
+			[-2.715, 56.505],
+			[-2.585, 56.559],
+			[-2.472, 56.711],
+			[-2.32, 56.84],
+			[-2.221, 56.963],
+			[-2.14, 57.065],
+			[-2.098, 57.143],
 		],
 	},
 
-	// 5. Aberdeen to Inverness Line (via Elgin, Keith, Forres, Nairn)
 	{
 		id: "aberdeen-inverness",
 		name: "Aberdeen - Inverness Line",
 		coordinates: [
-			[-2.098, 57.143], // ABZ
-			[-2.203, 57.204], // Dyce
-			[-2.373, 57.283], // Inverurie
-			[-2.55, 57.35], // Insch
-			[-2.78, 57.44], // Huntly
-			[-2.946, 57.538], // Keith
-			[-3.313, 57.643], // ELG (Elgin)
-			[-3.626, 57.609], // Forres
-			[-3.874, 57.581], // Nairn
-			[-4.06, 57.53], // Inverness Airport
-			[-4.223, 57.479], // INV
+			[-2.098, 57.143],
+			[-2.203, 57.204],
+			[-2.373, 57.283],
+			[-2.55, 57.35],
+			[-2.78, 57.44],
+			[-2.946, 57.538],
+			[-3.313, 57.643],
+			[-3.626, 57.609],
+			[-3.874, 57.581],
+			[-4.06, 57.53],
+			[-4.223, 57.479],
 		],
 	},
 
-	// 6. West Highland Line: Glasgow -> Helensburgh -> Crianlarich -> Rannoch Moor -> Fort William -> Glenfinnan -> Mallaig
 	{
 		id: "glasgow-westhighland-mallaig",
 		name: "West Highland Line",
 		coordinates: [
-			[-4.251, 55.862], // GLQ
-			[-4.34, 55.895], // Westerton
-			[-4.455, 55.918], // Bowling
-			[-4.568, 55.946], // DBR (Dumbarton)
-			[-4.737, 56.004], // HEL (Helensburgh)
-			[-4.76, 56.08], // Garelochhead
-			[-4.717, 56.2], // Arrochar & Tarbet (Loch Lomond)
-			[-4.695, 56.315], // Ardlui
-			[-4.618, 56.393], // CRI (Crianlarich Junction)
-			[-4.707, 56.438], // Upper Tyndrum
-			[-4.673, 56.516], // Bridge of Orchy
-			[-4.62, 56.61], // Rannoch Station (Loch Laidon)
-			[-4.577, 56.685], // RRM
-			[-4.69, 56.76], // Corrour (Loch Ossian)
-			[-4.84, 56.84], // Tulloch (Glen Spean)
-			[-4.919, 56.892], // Spean Bridge
-			[-5.105, 56.822], // FTW (Fort William)
-			[-5.127, 56.844], // Corpach
-			[-5.28, 56.86], // Locheilside
-			[-5.437, 56.87], // Glenfinnan Viaduct
-			[-5.669, 56.876], // Lochailort
-			[-5.77, 56.89], // Beasdale
-			[-5.845, 56.908], // Arisaig
-			[-5.821, 56.971], // Morar
-			[-5.828, 57.006], // MLG (Mallaig)
+			[-4.251, 55.862],
+			[-4.34, 55.895],
+			[-4.455, 55.918],
+			[-4.568, 55.946],
+			[-4.737, 56.004],
+			[-4.76, 56.08],
+			[-4.717, 56.2],
+			[-4.695, 56.315],
+			[-4.618, 56.393],
+			[-4.707, 56.438],
+			[-4.673, 56.516],
+			[-4.62, 56.61],
+			[-4.577, 56.685],
+			[-4.69, 56.76],
+			[-4.84, 56.84],
+			[-4.919, 56.892],
+			[-5.105, 56.822],
+			[-5.127, 56.844],
+			[-5.28, 56.86],
+			[-5.437, 56.87],
+			[-5.669, 56.876],
+			[-5.77, 56.89],
+			[-5.845, 56.908],
+			[-5.821, 56.971],
+			[-5.828, 57.006],
 		],
 	},
 
-	// 7. Oban Branch (diverging at Crianlarich)
 	{
 		id: "crianlarich-oban",
 		name: "Oban Branch",
 		coordinates: [
-			[-4.618, 56.393], // CRI
-			[-4.71, 56.435], // Tyndrum Lower
-			[-5.006, 56.4], // Dalmally
-			[-5.15, 56.415], // Falls of Cruachan
-			[-5.241, 56.434], // Taynuilt
-			[-5.394, 56.452], // Connel Ferry
-			[-5.474, 56.412], // OBA (Oban)
+			[-4.618, 56.393],
+			[-4.71, 56.435],
+			[-5.006, 56.4],
+			[-5.15, 56.415],
+			[-5.241, 56.434],
+			[-5.394, 56.452],
+			[-5.474, 56.412],
 		],
 	},
 
-	// 8. Kyle of Lochalsh Line (Inverness -> Dingwall -> Achnasheen -> Kyle)
 	{
 		id: "inverness-farnorth-kyle",
 		name: "Kyle Line",
 		coordinates: [
-			[-4.223, 57.479], // INV
-			[-4.457, 57.518], // Muir of Ord
-			[-4.426, 57.597], // DING (Dingwall)
-			[-4.693, 57.61], // Garve
-			[-5.074, 57.579], // Achnasheen
-			[-5.34, 57.49], // Achnashellach
-			[-5.45, 57.44], // Strathcarron
-			[-5.55, 57.37], // Attadale
-			[-5.62, 57.34], // Stromeferry
-			[-5.65, 57.336], // Plockton
-			[-5.714, 57.279], // KYL (Kyle of Lochalsh)
+			[-4.223, 57.479],
+			[-4.457, 57.518],
+			[-4.426, 57.597],
+			[-4.693, 57.61],
+			[-5.074, 57.579],
+			[-5.34, 57.49],
+			[-5.45, 57.44],
+			[-5.55, 57.37],
+			[-5.62, 57.34],
+			[-5.65, 57.336],
+			[-5.714, 57.279],
 		],
 	},
 
-	// 9. Far North Line (Dingwall -> Tain -> Lairg -> Helmsdale -> Thurso -> Wick)
 	{
 		id: "dingwall-wick-thurso",
 		name: "Far North Line",
 		coordinates: [
-			[-4.426, 57.597], // DING
-			[-4.32, 57.64], // Alness
-			[-4.172, 57.69], // Invergordon
-			[-4.053, 57.813], // Tain
-			[-4.18, 57.9], // Culrain
-			[-4.398, 58.026], // Lairg
-			[-4.2, 58.05], // Rogart
-			[-3.978, 57.973], // Golspie
-			[-3.88, 58.02], // Brora
-			[-3.649, 58.12], // Helmsdale
-			[-3.72, 58.26], // Kinbrace
-			[-3.66, 58.4], // Forsinard
-			[-3.527, 58.592], // THS (Thurso)
-			[-3.38, 58.54], // Georgemas Junction
-			[-3.094, 58.442], // WCK (Wick)
+			[-4.426, 57.597],
+			[-4.32, 57.64],
+			[-4.172, 57.69],
+			[-4.053, 57.813],
+			[-4.18, 57.9],
+			[-4.398, 58.026],
+			[-4.2, 58.05],
+			[-3.978, 57.973],
+			[-3.88, 58.02],
+			[-3.649, 58.12],
+			[-3.72, 58.26],
+			[-3.66, 58.4],
+			[-3.527, 58.592],
+			[-3.38, 58.54],
+			[-3.094, 58.442],
 		],
 	},
 
-	// 10. Glasgow to Paisley & Ayr (Ayrshire Coast Line)
 	{
 		id: "glasgow-ayr-stranraer",
 		name: "Ayrshire Coast Line",
 		coordinates: [
-			[-4.258, 55.859], // GLC
-			[-4.33, 55.85], // Cardonald
-			[-4.427, 55.847], // PYG (Paisley)
-			[-4.53, 55.81], // Johnstone
-			[-4.66, 55.73], // Lochwinnoch
-			[-4.73, 55.65], // Glengarnock
-			[-4.69, 55.61], // Kilwinning
-			[-4.67, 55.57], // Irvine
-			[-4.654, 55.545], // Troon
-			[-4.63, 55.5], // Prestwick Airport
-			[-4.624, 55.459], // AYR
-			[-4.78, 55.22], // Girvan
-			[-5.027, 54.906], // STR (Stranraer)
+			[-4.258, 55.859],
+			[-4.33, 55.85],
+			[-4.427, 55.847],
+			[-4.53, 55.81],
+			[-4.66, 55.73],
+			[-4.73, 55.65],
+			[-4.69, 55.61],
+			[-4.67, 55.57],
+			[-4.654, 55.545],
+			[-4.63, 55.5],
+			[-4.624, 55.459],
+			[-4.78, 55.22],
+			[-5.027, 54.906],
 		],
 	},
 
-	// 11. Glasgow Central to Carlisle (West Coast Main Line North)
 	{
 		id: "glasgow-carlisle-wcml",
 		name: "West Coast Main Line (Scotland)",
 		coordinates: [
-			[-4.258, 55.859], // GLC
-			[-4.18, 55.82], // Rutherglen
-			[-4.07, 55.8], // Cambuslang
-			[-3.991, 55.791], // MTH (Motherwell)
-			[-3.88, 55.72], // Carluke
-			[-3.77, 55.66], // Carstairs
+			[-4.258, 55.859],
+			[-4.18, 55.82],
+			[-4.07, 55.8],
+			[-3.991, 55.791],
+			[-3.88, 55.72],
+			[-3.77, 55.66],
 			[-3.66, 55.54],
-			[-3.48, 55.32], // Beattock Summit
-			[-3.355, 55.123], // Lockerbie
-			[-3.18, 54.99], // Gretna Green
-			[-2.933, 54.89], // CAR (Carlisle)
+			[-3.48, 55.32],
+			[-3.355, 55.123],
+			[-3.18, 54.99],
+			[-2.933, 54.89],
 		],
 	},
 
-	// 12. East Coast Main Line South: Edinburgh Waverley to Berwick
 	{
 		id: "edinburgh-berwick-ecml",
 		name: "East Coast Main Line (South)",
 		coordinates: [
-			[-3.189, 55.952], // EDB
-			[-3.05, 55.945], // Musselburgh
-			[-2.95, 55.94], // Prestonpans
-			[-2.74, 55.96], // Drem
-			[-2.514, 55.998], // Dunbar
-			[-2.32, 55.92], // Cockburnspath
-			[-2.14, 55.86], // Reston
-			[-2.012, 55.774], // BWK (Berwick)
+			[-3.189, 55.952],
+			[-3.05, 55.945],
+			[-2.95, 55.94],
+			[-2.74, 55.96],
+			[-2.514, 55.998],
+			[-2.32, 55.92],
+			[-2.14, 55.86],
+			[-2.012, 55.774],
 		],
 	},
 
-	// 13. Borders Railway: Edinburgh Waverley to Tweedbank
 	{
 		id: "edinburgh-tweedbank",
 		name: "Borders Railway",
 		coordinates: [
-			[-3.189, 55.952], // EDB
-			[-3.09, 55.91], // Shawfair
-			[-3.06, 55.87], // Eskbank
-			[-3.03, 55.84], // Newtongrange
-			[-3.01, 55.79], // Gorebridge
-			[-2.92, 55.69], // Stow
-			[-2.772, 55.617], // Galashiels
-			[-2.756, 55.602], // TWD (Tweedbank)
+			[-3.189, 55.952],
+			[-3.09, 55.91],
+			[-3.06, 55.87],
+			[-3.03, 55.84],
+			[-3.01, 55.79],
+			[-2.92, 55.69],
+			[-2.772, 55.617],
+			[-2.756, 55.602],
 		],
 	},
 ];
 
-// High-detail coastline polygons extracted from Natural Earth 50m dataset
 export const COASTLINES: Coordinate[][] = [
-	// 1. Mainland Scotland & Border Outline (High Resolution)
 	[
 		[-3.9885, 57.5812],
 		[-3.8682, 57.6003],
@@ -767,7 +743,6 @@ export const COASTLINES: Coordinate[][] = [
 		[-4.1345, 57.5777],
 		[-3.9885, 57.5812],
 	],
-	// 2. Isle of Skye
 	[
 		[-6.3624, 57.2375],
 		[-6.3227, 57.2025],
@@ -810,7 +785,6 @@ export const COASTLINES: Coordinate[][] = [
 		[-6.4424, 57.3275],
 		[-6.3624, 57.2375],
 	],
-	// 3. Isle of Mull
 	[
 		[-5.836, 56.5226],
 		[-5.9467, 56.5345],
@@ -832,7 +806,6 @@ export const COASTLINES: Coordinate[][] = [
 		[-5.7608, 56.4907],
 		[-5.836, 56.5226],
 	],
-	// 4. Isle of Arran
 	[
 		[-5.105, 55.574],
 		[-5.1604, 55.6668],
@@ -849,7 +822,6 @@ export const COASTLINES: Coordinate[][] = [
 		[-5.0947, 55.4943],
 		[-5.105, 55.574],
 	],
-	// 5. Isle of Islay
 	[
 		[-6.1289, 55.9306],
 		[-6.2157, 55.9046],
@@ -877,7 +849,6 @@ export const COASTLINES: Coordinate[][] = [
 		[-6.0928, 55.8021],
 		[-6.1289, 55.9306],
 	],
-	// 6. Lewis and Harris
 	[
 		[-6.8538, 57.8265],
 		[-6.7966, 57.8275],

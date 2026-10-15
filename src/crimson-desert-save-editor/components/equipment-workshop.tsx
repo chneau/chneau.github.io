@@ -27,37 +27,13 @@ import { Picture } from "./picture";
 
 type Catalog = { items: Record<string, AbyssGearCatalogItem> } | null;
 
-/** One entry of `abyssGearOptions`: a gear key and the gear it names. */
 type GearEntry = ReturnType<typeof abyssGearOptions>[number];
 
-/** Gear options carry the effect text so the dropdown can render a rich row. */
 type GearOption = ComboboxItem & { effect: string; compatibility: string };
 
-/**
- * The sockets this item has open, named by their position in the record's
- * socket array.
- *
- * The editor addresses a socket by that position throughout — `sockets[n]` is
- * what sits in it, `setSockets` writes back to the same `n`, and the capped
- * rows are `n >= cap` — so the position *is* the socket's identity, not an
- * accident of the order the rows happen to render in. Naming it before the
- * rows are built is what lets a row be keyed on which socket it edits; the
- * alternative, taking the `.map()` index, reads as incidental and is wrong for
- * the row below: a socket only ever opens from the front, and a row keyed on
- * render order would hand the open row the `Select` state of the closed one.
- */
 const openSocketSlots = (unlocked: number): number[] =>
 	Array.from({ length: Math.min(unlocked, 5) }, (_, slot) => slot);
 
-/**
- * One socket's dropdown: the gear it holds, and what that gear does.
- *
- * A socket is the unit the editor repeats itself over — up to five, each the
- * same select-plus-description differing only in which socket it edits — and
- * naming it is also what lets its option list live beside it: what one socket
- * may offer depends on what the other four hold, so it cannot be one list the
- * parent computes once and hands down.
- */
 const SocketSelect = ({
 	slot,
 	name,
@@ -73,18 +49,13 @@ const SocketSelect = ({
 }: {
 	slot: number;
 	name: string;
-	/** The gear key that sits in this socket, or `null` for an empty one. */
 	selected: number | null;
-	/** The gear this socket may choose from, minus what the other sockets hold. */
 	options: GearEntry[];
-	/** The catalog entry for the held gear, even once the search hid it. */
 	heldGear: GearEntry[1] | undefined;
-	/** The save's own socket was empty, so "Empty" is offered first. */
 	emptyFirst: boolean;
 	cap: number | null;
 	busy: boolean;
 	fits: (key: number | string) => boolean;
-	/** The id of this socket's effect text, so the Select can describe itself. */
 	descriptionId: string;
 	onChange: (value: string | null) => void;
 }) => {
@@ -169,16 +140,6 @@ const SocketSelect = ({
 	);
 };
 
-/**
- * The Abyss Gear section: the search, the compatibility filter, and one
- * dropdown per open socket.
- *
- * Its own component because it owns the only two inputs the editor has that
- * nothing outside it reads — the search text and the "show incompatible" toggle
- * — so holding them here is what lets a keystroke in the gear search re-render
- * the gear list rather than the refinement field and the action buttons beside
- * it.
- */
 const AbyssGearSection = ({
 	name,
 	sockets,
@@ -193,7 +154,6 @@ const AbyssGearSection = ({
 }: {
 	name: string;
 	sockets: (number | null)[];
-	/** The save's own sockets: an originally-empty one offers "Empty" first. */
 	originalSockets: (number | null)[];
 	allGear: GearEntry[];
 	catalog: Catalog;
@@ -269,10 +229,6 @@ const AbyssGearSection = ({
 					selected !== null &&
 					!options.some(([key]) => Number(key) === selected)
 				) {
-					// The search filtered out what is actually in this socket, but the
-					// dropdown still has to offer it — otherwise a narrowed list makes
-					// the socket read as empty when it is not, and emptying it from here
-					// becomes impossible.
 					options.unshift([
 						String(selected),
 						heldGear ?? {
@@ -308,15 +264,6 @@ const AbyssGearSection = ({
 	);
 };
 
-/**
- * The refinement level and the socket count: the two ceilings an equipment edit
- * is held to, and the two fields the editor opens with.
- *
- * They are one seam because the socket count's handler also rewrites the socket
- * array — closing a socket puts the save's own gear back into it rather than
- * discarding it, so re-opening one is not a loss — and that rule belongs with
- * the field that triggers it.
- */
 const RefinementAndSockets = ({
 	original,
 	refinement,
@@ -327,7 +274,6 @@ const RefinementAndSockets = ({
 	onRefinement,
 	onUnlocked,
 }: {
-	/** The record's own equipment: the ceilings this item is held to. */
 	original: EquipmentDetails;
 	refinement: number;
 	unlocked: number;
@@ -409,14 +355,6 @@ const RefinementAndSockets = ({
 	);
 };
 
-/**
- * What the editor ends with: stage the change, stage the maxed plan instead, or
- * undo a stage — and the line saying what a download will do.
- *
- * Its own component because each button carries a condition about what the save
- * already holds (is there a maxed plan? is anything staged that can be removed?)
- * and those three conditions are the editor's whole tail otherwise.
- */
 const EditorFooter = ({
 	changed,
 	adding,
@@ -431,11 +369,9 @@ const EditorFooter = ({
 }: {
 	changed: boolean;
 	adding: boolean;
-	/** A socket holds gear this item cannot wear, so staging it would be wrong. */
 	invalidSockets: boolean;
 	busy: boolean;
 	removable: boolean;
-	/** What "max" would make of this item, when maxing is possible at all. */
 	maxed: EquipmentEdit | null;
 	submitLabel: string | undefined;
 	onStage: () => void;
@@ -499,9 +435,7 @@ export const EquipmentEditor = ({
 	busy: boolean;
 	onStage: (edit: EquipmentEdit) => void;
 	onRemove?: () => void;
-	/** Abyss Gear rules, so the item can be maxed from here. */
 	rules?: AbyssGearRulesFile;
-	/** The save's own record, for the maxable preview. Defaults to `record`. */
 	savedRecord?: InventoryRecord;
 	adding?: boolean;
 	submitLabel?: string;
@@ -513,23 +447,12 @@ export const EquipmentEditor = ({
 	const [unlocked, setUnlocked] = useState(
 		staged?.unlockedSockets ?? original.unlockedSockets,
 	);
-	// Lazy: `socketList` walks the whole socket array, and the value is only
-	// ever read on the first render — recomputing it on every later one is work
-	// thrown away.
 	const [sockets, setSockets] = useState(() =>
 		socketList(staged?.socketItems ?? original.socketItems),
 	);
 	const originalSockets = socketList(original.socketItems);
-	/**
-	 * What "max" would make of this one item, computed from the save's record so
-	 * it matches what the storage-wide button stages — not from the drafts in
-	 * the form, which the user may be halfway through changing.
-	 */
 	const maxed = useMemo(() => {
 		if (!rules) return null;
-		// `maxEquipmentEdits` reads whole records; the editor only holds the
-		// fields this item needs, so the rest of the envelope is filled in with
-		// values the planner never looks at.
 		const source: InventoryRecord = savedRecord ?? {
 			...record,
 			itemNo: 0,
@@ -587,8 +510,6 @@ export const EquipmentEditor = ({
 				onRefinement={setRefinement}
 				onUnlocked={(count) => {
 					setUnlocked(count);
-					// Closing a socket hands the save's own gear back to it rather
-					// than dropping it, so re-opening the socket is not a loss.
 					setSockets((current) =>
 						current.map((key, i) =>
 							i < count ? key : (originalSockets[i] ?? null),
@@ -641,8 +562,6 @@ export const EquipmentEditor = ({
 				}}
 				onRemove={() => {
 					if (!onRemove) return;
-					// Undoing a stage also puts the form back where the save is, so
-					// the editor is not left holding values nothing will write.
 					setRefinement(original.refinement);
 					setUnlocked(original.unlockedSockets);
 					setSockets(originalSockets);

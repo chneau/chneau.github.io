@@ -1,10 +1,3 @@
-/**
- * The CERIMAL schema parser: reads back the type graph a document carries and
- * writes it out from the same numbers, so a rebuilt save's schema is
- * byte-identical to the one that was read.
- *
- * Split out of `format.ts` unchanged.
- */
 import { CerimalReader, type CerimalWriter, formatGuid } from "./byte-reader";
 import {
 	type BaseBlock,
@@ -19,7 +12,6 @@ import {
 	type TypeRef,
 } from "./types";
 
-/** Resolves a forward reference to one of a named type's generic arguments. */
 export const resolveTypeArgument = (
 	ref: TypeRef,
 	typeArgs: readonly TypeRef[] | undefined,
@@ -28,7 +20,6 @@ export const resolveTypeArgument = (
 	return typeArgs?.[ref.index] ?? ref;
 };
 
-/** Renders a type reference the way a schema prints it, for display. */
 export const formatTypeRef = (ref: TypeRef, schema: Schema): string => {
 	switch (ref.kind) {
 		case "primitive":
@@ -55,7 +46,6 @@ export const formatTypeRef = (ref: TypeRef, schema: Schema): string => {
 const definitionName = (schema: Schema, index: number): string =>
 	schema.definitions[index]?.name ?? `type#${index}`;
 
-/** Splits a printed type's generic arguments on the commas between them. */
 const splitArguments = (text: string): readonly string[] => {
 	const parts: string[] = [];
 	let depth = 0;
@@ -73,14 +63,6 @@ const splitArguments = (text: string): readonly string[] => {
 	return parts;
 };
 
-/**
- * The named type a printed name refers to, GUID and all.
- *
- * A *runtime type override* — a node whose tag says "this value is really that
- * type" rather than the one its field declared — survives into the document as
- * a name, and one real realm save holds twelve thousand of them. The schema is
- * carried whole, so the name is enough to find the GUID behind it.
- */
 const namedFromName = (name: string, schema: Schema): TypeRef => {
 	const index = schema.byName.get(name);
 	const definition =
@@ -96,14 +78,6 @@ const namedFromName = (name: string, schema: Schema): TypeRef => {
 	};
 };
 
-/**
- * Reads back the text `formatTypeRef` writes.
- *
- * The inverse of that function by construction, which is the point: the two are
- * what let a realm save's overrides survive a decode and an encode unchanged.
- * `Name` is a named type, `INT` a primitive, `T0` a generic argument and `[]`
- * an array extent, so `Dictionary<Quantum.Key, INT>[]` reads back as itself.
- */
 export const parseTypeRefText = (
 	text: string,
 	schema: Schema,
@@ -147,8 +121,6 @@ export const parseTypeRefText = (
 			base = { ...base, typeArgs };
 		}
 	}
-	// An array wraps whatever it was written around, so the extent is applied
-	// last: `Foo<INT>[]` is an array of a named type, not a named array type.
 	return rank > 1 ? { kind: "array", rank, element: base } : base;
 };
 
@@ -261,7 +233,6 @@ export const writeEnumValue = (
 	}
 };
 
-/** The width of an enum's underlying type, which its size and alignment follow. */
 export const enumSize = (underlying: string): number => {
 	if (underlying === "u8" || underlying === "i8") return 1;
 	if (underlying === "u16" || underlying === "i16") return 2;
@@ -272,8 +243,6 @@ export const enumSize = (underlying: string): number => {
 const readTypeDefinition = (reader: CerimalReader): TypeDefinition => {
 	const start = reader.position;
 	const bodySize = reader.u32("a type definition's size");
-	// The size field itself, the flags, the local version and the GUID: 28
-	// bytes of header in all, which the recorded body size is measured from.
 	const end = start + 28 + bodySize;
 	const rawFlags = reader.u32("a type definition's flags");
 	const kind = DEFINITION_KINDS[rawFlags & 0x3];
@@ -351,9 +320,6 @@ const readTypeDefinition = (reader: CerimalReader): TypeDefinition => {
 		}
 	}
 
-	// The recorded size is authoritative. Seeking to it rather than trusting the
-	// members that were read means an unmodelled trailing field is carried
-	// through the document instead of shifting every byte after it.
 	reader.seek(end);
 	return {
 		kind,
@@ -372,8 +338,6 @@ const readTypeDefinition = (reader: CerimalReader): TypeDefinition => {
 export const readSchema = (bytes: Uint8Array): Schema => {
 	const reader = new CerimalReader(bytes);
 	const globalVersion = reader.u32("the schema's version");
-	// Both block sizes are recorded but not used to navigate: the definitions
-	// and the names follow one another, and the writer recomputes both.
 	reader.u32("the schema's definition block size");
 	const definitionCount = reader.u32("the schema's type count");
 	reader.u32("the schema's name block size");
@@ -387,9 +351,6 @@ export const readSchema = (bytes: Uint8Array): Schema => {
 	for (let index = 0; index < definitionCount; index += 1) {
 		definitions.push(readTypeDefinition(reader));
 	}
-	// The names follow the definitions in the same order, and are applied by
-	// rebuilding each definition rather than by mutating one: a decoded schema
-	// is a value, and a render may already have read it.
 	const named = definitions.map((definition) => ({
 		...definition,
 		name: reader.sevenBitName("a type name"),
@@ -397,15 +358,11 @@ export const readSchema = (bytes: Uint8Array): Schema => {
 	const rootTypeRef = readTypeRef(reader);
 
 	const byGuid = new Map<string, number>();
-	// The first definition wins, so a GUID a schema declares twice resolves the
-	// way the writer that produced it would have resolved it.
 	named.forEach((definition, index) => {
 		if (!byGuid.has(definition.guidText)) {
 			byGuid.set(definition.guidText, index);
 		}
 	});
-	// A name index as well, because a runtime type override in the content names
-	// its type in text and the re-encoder has to find the GUID behind it.
 	const byName = new Map<string, number>();
 	named.forEach((definition, index) => {
 		if (!byName.has(definition.name)) byName.set(definition.name, index);
@@ -416,7 +373,6 @@ export const readSchema = (bytes: Uint8Array): Schema => {
 export const writeSchema = (writer: CerimalWriter, schema: Schema): void => {
 	writer.u32(schema.globalVersion);
 	const sizesAt = writer.length;
-	// The definition block's size, the type count, and the name block's size.
 	writer.u32(0).u32(schema.definitions.length).u32(0);
 
 	for (const definition of schema.definitions) {
@@ -438,9 +394,6 @@ export const writeSchema = (writer: CerimalWriter, schema: Schema): void => {
 			}
 		}
 		if (definition.kind === "enum") {
-			// The byte the file used, not the table index this parser reads it
-			// through: the two differ in the game's files, and only the byte is
-			// what the game will read back.
 			writer.u8(definition.underlyingRaw);
 			for (const variant of definition.members) {
 				if (!("value" in variant)) {
@@ -487,9 +440,6 @@ export const writeSchema = (writer: CerimalWriter, schema: Schema): void => {
 	for (const definition of schema.definitions) {
 		writer.sevenBitName(definition.name);
 	}
-	// Both sizes are measured from the end of the four-word header, which is
-	// twelve bytes past the first of them: the definition block starts at
-	// `sizesAt + 12`, not at `sizesAt + 8`.
 	writer.patchU32(sizesAt, definitionsEnd - (sizesAt + 12));
 	writer.patchU32(sizesAt + 8, writer.length - namesStart);
 

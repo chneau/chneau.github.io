@@ -1,25 +1,3 @@
-/**
- * Renaming a companion, mount or robo worker.
- *
- * The game stores a custom name on `MercenarySaveData._mercenaryName`, a
- * length-prefixed `staticstringA` at field index 4 — before the record's first
- * list, which is why it can be read and written without the list-trailer
- * handling the equipment records need.
- *
- * The field is *absent* on every companion in both fixtures, because the game
- * only stores a name once the player has given one. So renaming is usually a
- * field creation, and renaming something already named is a replacement: a
- * longer name does not fit where the old one was, so the old bytes are removed
- * and the new ones spliced in, taking the record's size word and any inline
- * pointers with them. Both cases go through `insertRecordFields`, which is the
- * one place in this engine that edits a block's structure rather than a scalar
- * inside it.
- *
- * The record's identity is `_mercenaryNo`, not its species: several companions
- * share a `_characterKey`, so the same horse appears many times and only the
- * number tells them apart.
- */
-
 import { readClan } from "./companion-reader";
 import { type DecodedSave, decodeSave } from "./container";
 import { companionCatalogTable } from "./data";
@@ -27,17 +5,12 @@ import { defined } from "./defined";
 import { insertRecordFields, stringFieldBytes } from "./record-field-insert";
 import { commitSave } from "./transaction";
 
-/** Longest name the editor will write, in UTF-8 bytes. */
 const companionNameLimit = 32;
 
-/** One companion, with whatever name the save currently holds for it. */
 export type CompanionNameRow = {
-	/** `_mercenaryNo`, the record's identity within the roster. */
 	mercenaryNo: number;
 	characterKey: number;
-	/** The custom name when there is one, else the species name. */
 	displayName: string;
-	/** `null` when the record stores no `_mercenaryName` at all. */
 	customName: string | null;
 	species: string;
 	category: string;
@@ -68,7 +41,6 @@ const numberValue = (value: unknown): number => {
 	return typeof value === "number" ? value : 0;
 };
 
-/** Every roster entry the save can name, in roster order. */
 export const describeCompanionNames = async (
 	save: DecodedSave,
 ): Promise<CompanionNameDescription> => {
@@ -103,17 +75,14 @@ export const describeCompanionNames = async (
 	}
 };
 
-/** One rename, addressed by roster identity rather than by offset. */
 export type CompanionRenameEdit = {
 	type: "renameCompanion";
 	mercenaryNo: number;
-	/** Checked as well, so a stale selection cannot rename the wrong record. */
 	characterKey: number;
 	name: string;
 	label: string;
 };
 
-/** Identity and name of every roster entry, for the before/after proof. */
 const rosterSignature = (raw: Uint8Array): string => {
 	const clan = readClan(raw);
 	return JSON.stringify(
@@ -125,11 +94,6 @@ const rosterSignature = (raw: Uint8Array): string => {
 	);
 };
 
-/**
- * Why `value` cannot be used as a name, or `null` when it can. The UI shows
- * this before staging so a name it cannot write is never queued, and the
- * applier throws it so a hand-built edit cannot slip past.
- */
 export const nameRejection = (value: string): string | null => {
 	const name = value.trim();
 	if (name.length === 0) {
@@ -172,10 +136,6 @@ const findRecord = (
 	return defined(matches[0], "roster entry");
 };
 
-/**
- * Writes a custom name onto one roster entry, creating the field when the save
- * does not store one yet.
- */
 export const applyCompanionRename = async (
 	sourceBytes: Uint8Array,
 	edit: CompanionRenameEdit,

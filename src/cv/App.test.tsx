@@ -2,7 +2,6 @@ import "../shared/tests/happy-dom";
 import { afterEach, describe, expect, test } from "bun:test";
 import { cleanup, render } from "@testing-library/react";
 
-// `BUILD_DATE` is injected by Rsbuild at build time; provide it for the test.
 (globalThis as Record<string, unknown>).BUILD_DATE = "";
 
 const { App } = await import("./App");

@@ -1,21 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { MAX_REPLAY_TIME, MIN_REPLAY_TIME } from "../utils";
 
-/**
- * Regression guard for a disagreement between the store and the share link.
- *
- * The scrubber exposes 05:00-24:00 and `url.ts` clamped what it wrote, but
- * `setTimeOffset` did not clamp. Seven timetable call times run past 24:00
- * (up to 24:35), so clicking one of them in the inspector - or any other jump
- * - left the store at e.g. 1455 while the link recorded `?t=1440`. The user
- * saw a 24:35 clock with the thumb pinned at 100%, and reloading their own
- * link silently moved the replay 15 minutes back.
- *
- * `store.ts` has module-scope side effects (it builds the store, reads the
- * URL, subscribes and recomputes), so each case re-imports it with a
- * cache-busting query against a stubbed `window`.
- */
-
 type Captured = { url: string; search: string };
 
 let captured: Captured = { url: "", search: "" };
@@ -30,8 +15,6 @@ const locationStub = {
 
 const windowStub = {
 	location: locationStub,
-	// `store.ts` pulls in the shared theme, whose persistence helper attaches
-	// a cross-tab listener at module scope once `window` exists.
 	addEventListener: () => {},
 	removeEventListener: () => {},
 	history: {
@@ -44,18 +27,12 @@ const windowStub = {
 	},
 };
 
-// Saved so the previous descriptors can be restored verbatim.
 const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
 const previousLocalStorage = Object.getOwnPropertyDescriptor(
 	globalThis,
 	"localStorage",
 );
 
-/**
- * Installed writable on purpose: sibling suites install `globalThis.localStorage`
- * themselves, and leaving a read-only property behind breaks their plain
- * assignments once the whole suite runs in one process.
- */
 const define = (name: "window" | "localStorage", value: unknown): void => {
 	Object.defineProperty(globalThis, name, {
 		value,
@@ -65,7 +42,6 @@ const define = (name: "window" | "localStorage", value: unknown): void => {
 	});
 };
 
-/** Flatten any inherited descriptor back to a writable data property. */
 const restore = (
 	name: "window" | "localStorage",
 	saved: PropertyDescriptor | undefined,
@@ -81,8 +57,6 @@ const restore = (
 
 beforeAll(() => {
 	define("window", windowStub);
-	// An inert storage: the settings suite owns persistence coverage, this
-	// file only needs the global to exist so the store's SSR guard passes.
 	define("localStorage", {
 		getItem: () => null,
 		setItem: () => {},
@@ -98,7 +72,6 @@ afterAll(() => {
 
 const DEBOUNCE_SETTLE_MS = 400;
 
-/** A fresh module graph, started from `?t=...` (or no time at all). */
 const loadStore = async (search = "") => {
 	captured = { url: "", search };
 	const stamp = `${Math.random()}`;
@@ -109,7 +82,6 @@ const loadStore = async (search = "") => {
 	return { store, url, stamp };
 };
 
-/** The `t` parameter the mirrored link carries, or null when omitted. */
 const timeParamOf = (search: string): string | null =>
 	new URLSearchParams(search).get("t");
 
@@ -117,14 +89,12 @@ describe("store and share link agree on the clock", () => {
 	test("a jump past the end of the day lands in the store AND the link", async () => {
 		const { store, url } = await loadStore();
 
-		// 24:15, one of the seven timetable call times beyond the scrubber end.
 		store.railActions.setTimeOffset(1455);
 		await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_SETTLE_MS));
 
 		expect(store.railStore.timeOffset).toBe(MAX_REPLAY_TIME);
 		expect(timeParamOf(captured.search)).toBe(String(MAX_REPLAY_TIME));
 
-		// And the link must restore exactly the clock the user was looking at.
 		captured = { ...captured, search: captured.search };
 		expect(url.readUrlState().timeOffset).toBe(store.railStore.timeOffset);
 	});
@@ -149,16 +119,12 @@ describe("store and share link agree on the clock", () => {
 			await new Promise((resolve) => setTimeout(resolve, DEBOUNCE_SETTLE_MS));
 
 			const written = store.railStore.timeOffset;
-			// The store never leaves the window the scrubber exposes...
 			expect(written).toBeGreaterThanOrEqual(MIN_REPLAY_TIME);
 			expect(written).toBeLessThanOrEqual(MAX_REPLAY_TIME);
 
-			// ...and the link carries that same integer, unless it is the
-			// default the link omits (08:00).
 			const expectedParam = written === 480 ? null : String(written);
 			expect(timeParamOf(captured.search)).toBe(expectedParam);
 
-			// Re-parsing the mirrored link yields the identical clock.
 			const readBack = url.readUrlState();
 			expect(readBack.timeOffset ?? 480).toBe(written);
 		}

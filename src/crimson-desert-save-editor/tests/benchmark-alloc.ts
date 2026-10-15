@@ -1,16 +1,3 @@
-/**
- * Allocation benchmark: objects retained by one walk of the biggest table.
- *
- * Wall-clock cannot resolve an allocation regression — on a shared machine the
- * walk's timing moves by more than the change costs — so this counts live
- * objects around a single walk instead. That count is deterministic, but only
- * in a fresh, small-heap process: once a process's heap is large,
- * `heapStats()` can return a stale snapshot and silently report a zero delta.
- * Hence one fixture per process, and `bun run bench` invokes it per fixture.
- *
- * Run with `bun run bench:alloc` (or `bun tests/benchmark-alloc.ts endgame.save`).
- */
-
 import { heapStats } from "bun:jsc";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -37,14 +24,11 @@ if (!field || field.start === undefined || field.end === undefined) {
 	process.exit(0);
 }
 
-/** Live objects after a forced GC. */
 const liveObjects = (): number => {
 	Bun.gc(true);
 	return heapStats().objectCount;
 };
 
-// Warm both walks and drop the results, so the measured walk is the only
-// thing allocating.
 walkObjectList(root.parser, field);
 walkObjectListColumns(root.parser, field);
 

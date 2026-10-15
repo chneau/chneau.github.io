@@ -3,15 +3,6 @@ import { useMemo } from "react";
 import { type HexRow, toHexRows } from "../bytes";
 import { formatBytes } from "../file";
 
-/**
- * The bytes as they arrived, or as they will be handed back.
- *
- * Included because a save editor should not ask to be believed: when a rebuilt
- * file will not load, the first question is always "what actually changed",
- * and the answer is in the bytes. The view is a window rather than the whole
- * file — a save is frequently megabytes, and rendering all of it would stall
- * the tab for a view nobody scrolls to the end of.
- */
 export const HexViewer = ({
 	bytes,
 	limit = 4096,

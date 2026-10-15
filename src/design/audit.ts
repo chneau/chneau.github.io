@@ -1,45 +1,17 @@
 import { composite, parseColor, type Rgba, ratio } from "../shared/colour";
 import { TOKEN_DEFS } from "./tokens";
 
-/* ══════════════════════════════════════════════════════════════════════
-   Audit
-   ══════════════════════════════════════════════════════════════════════ */
-
-/**
- * The gallery audits itself.
- *
- * Everything below reads the *live document* — computed custom properties and
- * real rendered elements — rather than a copy of the token values. That is the
- * whole point: a gallery that re-declares the system in TypeScript can only
- * ever prove that TypeScript is internally consistent, while the failure this
- * panel exists to catch (an undefined `--app-accent` quietly falling back to
- * the body text colour) is invisible to every type and every unit test.
- *
- * The sweep runs once per scheme change, from a single animation frame so the
- * first paint has settled, and never during render.
- */
-
-/** Root background used to terminate a compositing walk on an opaque layer. */
 const CANVAS: Record<"light" | "dark", Rgba> = {
 	light: [255, 255, 255, 1],
 	dark: [9, 9, 11, 1],
 };
 
-/*
- * The colour maths — `parseColor`, `composite`, `luminance` and `ratio` — now
- * lives in `shared/colour.ts` so the audit and the contrast suite cannot drift
- * apart. `CANVAS` stays here: it is the document's root backdrop, not part of
- * the pure colour algebra.
- */
-
 const rootStyle = (): CSSStyleDeclaration =>
 	getComputedStyle(document.documentElement);
 
-/** Resolved value of one custom property on `<html>`, or `""` when undefined. */
 const readToken = (name: string): string =>
 	rootStyle().getPropertyValue(name).trim();
 
-/** Resolved value of a custom property as a colour, or `undefined`. */
 const readColourToken = (name: string): Rgba | undefined => {
 	const raw = readToken(name);
 	return raw === "" ? undefined : parseColor(raw);
@@ -49,27 +21,14 @@ type Level = "fail" | "pass";
 type AuditGroup = "tokens" | "contrast" | "focus" | "motion" | "document";
 
 export type Finding = {
-	/** Stable React key and dedupe key. */
 	id: string;
 	group: AuditGroup;
 	level: Level;
 	subject: string;
 	detail: string;
-	/**
-	 * True when the thing that is wrong comes from the shared layer rather than
-	 * from this page. The gallery does not paper over a shared defect, and it
-	 * does not want to be blamed for one either.
-	 */
 	shared: boolean;
 };
 
-/**
- * The site-provided half of the accent family. `--app-accent` is required:
- * `base.css` reads it with a body-text fallback in the `:focus-visible` ring
- * and in `StatusDot --on`, so an undefined value is silent, not loud. The rest
- * are read only behind a `--mantine-primary-color-*` value Mantine always
- * emits, so they are reported for completeness but are not failures.
- */
 export const SITE_ACCENT: readonly { name: string; required: boolean }[] = [
 	{ name: "--app-accent", required: true },
 	{ name: "--app-accent-hover", required: false },
@@ -78,7 +37,6 @@ export const SITE_ACCENT: readonly { name: string; required: boolean }[] = [
 	{ name: "--app-accent-soft", required: false },
 ];
 
-/** Mantine variables the shared layer reads with an app fallback. */
 export const MANTINE_ACCENT: readonly string[] = [
 	"--mantine-primary-color-filled",
 	"--mantine-primary-color-filled-hover",
@@ -88,12 +46,6 @@ export const MANTINE_ACCENT: readonly string[] = [
 	"--mantine-primary-color-contrast",
 ];
 
-/**
- * Foreground/background pairs the shared layer actually composes, with the
- * threshold that applies to each. `3` is the non-text threshold (WCAG 1.4.11):
- * it governs the focus ring, the status lights and the icon-only affordances.
- * `4.5` governs body copy.
- */
 const CONTRAST_PAIRS: readonly {
 	label: string;
 	foreground: string;
@@ -148,8 +100,6 @@ const CONTRAST_PAIRS: readonly {
 		background: "--app-bg",
 		need: 4.5,
 	},
-	// `--app-warn` only ever paints the pinned-card icon, which is a non-text
-	// affordance, so 1.4.11's 3:1 is the threshold that applies to it.
 	{
 		label: "Warning pin on card",
 		foreground: "--app-warn",
@@ -182,15 +132,11 @@ const CONTRAST_PAIRS: readonly {
 	},
 ];
 
-/** Every text token that must be defined for the page to be readable. */
 const REQUIRED_TOKENS: readonly string[] = [
 	...TOKEN_DEFS.map((token) => token.name),
 	"--app-accent",
 ];
 
-/* ── Document sweep ──────────────────────────────────────────────────── */
-
-/** True when the element, or an ancestor, is styled by the shared layer. */
 const isSharedLayer = (element: Element): boolean => {
 	const own = element.getAttribute("class") ?? "";
 	if (/(^|\s)app-/.test(own) || /(^|\s)mantine-/.test(own)) return true;
@@ -198,7 +144,6 @@ const isSharedLayer = (element: Element): boolean => {
 	return parent ? isSharedLayer(parent) : false;
 };
 
-/** Backdrop actually visible behind `element`, compositing translucent layers. */
 const backdropOf = (element: Element, canvas: Rgba): Rgba => {
 	const stack: Rgba[] = [];
 	let node: Element | null = element;
@@ -217,7 +162,6 @@ const backdropOf = (element: Element, canvas: Rgba): Rgba => {
 	return acc;
 };
 
-/** Text this element renders itself, ignoring nested elements' text. */
 const ownText = (element: Element): string => {
 	let text = "";
 	for (const node of Array.from(element.childNodes)) {
@@ -233,19 +177,11 @@ const isRendered = (element: Element): boolean => {
 	return element.getClientRects().length > 0;
 };
 
-/**
- * Walk every rendered text node and check it against its composited backdrop.
- *
- * Deliberately does not skip failures: an `AppCard` badge that cannot be read
- * is the gallery doing its job, and the finding is attributed to the shared
- * layer so the report below can say where to fix it.
- */
 const sweepDocument = (canvas: Rgba): Finding[] => {
 	const findings: Finding[] = [];
 	const seen = new Set<string>();
 
 	for (const element of Array.from(document.body.querySelectorAll("*"))) {
-		// The audit never reports on its own output.
 		if (element.closest("[data-design-audit]")) continue;
 		if (!isRendered(element)) continue;
 		const text = ownText(element);
@@ -295,19 +231,8 @@ const sweepDocument = (canvas: Rgba): Finding[] => {
 	return findings;
 };
 
-/* ── Focus ring probe ────────────────────────────────────────────────── */
-
 const FOCUS_PROBE_CLASS = "design-probe";
 
-/**
- * Read the ring the browser actually paints for `:focus-visible`.
- *
- * The failure this guards against is specific: when `--app-accent` is missing,
- * `outline: 2px solid var(--app-accent, var(--app-text))` is still a *valid*
- * 2px outline — it is just the colour of the body text, so the ring is present
- * in every automated check and invisible in use. The only way to see that is to
- * focus a real element and read the resolved outline colour back.
- */
 const probeFocusRing = (scheme: "light" | "dark"): Finding[] => {
 	const findings: Finding[] = [];
 	const probe = document.createElement("a");
@@ -349,7 +274,6 @@ const probeFocusRing = (scheme: "light" | "dark"): Finding[] => {
 		shared: true,
 	});
 
-	// The exact regression: accent silently resolving to the body text colour.
 	const collapsed =
 		outline !== undefined &&
 		bodyText !== undefined &&
@@ -374,8 +298,6 @@ const probeFocusRing = (scheme: "light" | "dark"): Finding[] => {
 
 	return findings;
 };
-
-/* ── Token checks ────────────────────────────────────────────────────── */
 
 const auditTokens = (): Finding[] => {
 	const findings: Finding[] = [];
@@ -420,7 +342,6 @@ const auditTokens = (): Finding[] => {
 		});
 	}
 
-	// `--app-index` is set per element by `AppCard`, not on the root.
 	const card = document.querySelector<HTMLElement>(".app-card");
 	const index = card?.style.getPropertyValue("--app-index") ?? "";
 	findings.push({
@@ -437,8 +358,6 @@ const auditTokens = (): Finding[] => {
 
 	return findings;
 };
-
-/* ── Contrast pairs ──────────────────────────────────────────────────── */
 
 const auditContrast = (): Finding[] =>
 	CONTRAST_PAIRS.map((pair) => {
@@ -471,28 +390,7 @@ const auditContrast = (): Finding[] =>
 		};
 	});
 
-/**
- * Mantine resolves a filled button's ink in JavaScript, at style time, from the
- * *light* primary shade — `defaultVariantColorsResolver` calls
- * `parseThemeColor({ color, theme })` with no `colorScheme`, and
- * `parseThemeColor` falls back to `getPrimaryShade(theme, 'light')`.
- *
- * The consequence is that `--mantine-primary-color-contrast` (which *is*
- * scheme-aware, and correctly returns `#000` in dark here) and the ink Mantine
- * actually paints on `<Button variant="filled">` disagree whenever the dark
- * primary shade is light enough to want dark text. The background comes from a
- * live CSS variable, so it tracks the scheme; the text colour does not.
- *
- * This check compares the two so the failure is reported with its cause rather
- * than as an anonymous "1.99:1 on the Filled button".
- */
 const auditButtonInk = (): Finding[] => {
-	/*
-	 * Identify the filled button by what it actually paints, not by a variant
-	 * prop: its background is the resolved `--mantine-primary-color-filled`.
-	 * A `variant="default"` or `variant="light"` button in the same section has
-	 * a different background and would silently be measured instead.
-	 */
 	const filled = readColourToken("--mantine-primary-color-filled");
 	const variable = readColourToken("--mantine-primary-color-contrast");
 
@@ -575,28 +473,10 @@ const auditButtonInk = (): Finding[] => {
 	];
 };
 
-/* ── Reduced motion ──────────────────────────────────────────────────── */
-
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
-/**
- * How long to wait for the scheme transition before measuring. Comfortably
- * longer than `--app-speed` (0.28s) so the backstop only fires when nothing
- * emitted a `transitionend` — for instance when the visitor has
- * `prefers-reduced-motion` set and every duration collapses to ~0.
- */
 export const AUDIT_SETTLE_MS = 600;
 
-/**
- * Check that the shared `prefers-reduced-motion` reset actually reaches the
- * motion this page declares.
- *
- * `shared/motion.ts` warns that an inline `transition` style outranks every
- * author rule, including that reset — so a gallery that demonstrated motion
- * with `style={{ transition }}` would be shipping the very bug the reset
- * exists to prevent, while looking correct in every other respect. The probe
- * element here is driven by a class, so the measurement is meaningful.
- */
 const auditMotion = (): Finding[] => {
 	const findings: Finding[] = [];
 	const reduced = window.matchMedia(REDUCED_MOTION_QUERY).matches;
@@ -612,32 +492,6 @@ const auditMotion = (): Finding[] => {
 		shared: false,
 	});
 
-	/*
-	 * Sweep the whole document rather than probing one element.
-	 *
-	 * A single probe answers the wrong question. The interesting failure is not
-	 * "does this one element animate" but "does the *global* reset actually
-	 * neutralise anything", and that can only be answered across every element
-	 * that declares a duration.
-	 *
-	 * This is where the sweep earns its keep. `base.css` ends with
-	 *
-	 *   @media (prefers-reduced-motion: reduce) { *, *::before, *::after {
-	 *     transition-duration: .001ms !important; … } }
-	 *
-	 * and the `!important` is what makes it work. A `*` selector has specificity
-	 * (0,0,0) and a media query contributes none, so without it every class rule
-	 * that declares its own duration — `.app-header-action`, `.app-card`,
-	 * `.app-skip-link`, `.app-statusdot` — wins outright and the guard protects
-	 * nothing. Measured before `!important` was added here: 14 elements still
-	 * animated under `reduce`. The comment in `base.css` records that, and
-	 * `shared/tests/motion.test.ts` plus `tokens-theme.test.ts` hold the
-	 * declarations in place.
-	 *
-	 * This note used to say the reset was inert and described the pre-fix state.
-	 * The sweep below was always right — it measures what actually animates — but
-	 * the prose sent the next reader to look for a non-problem.
-	 */
 	const offenders = new Map<string, { count: number; sample: string }>();
 
 	for (const element of Array.from(document.body.querySelectorAll("*"))) {
@@ -699,18 +553,8 @@ const auditMotion = (): Finding[] => {
 		shared: true,
 	});
 
-	/*
-	 * An inline transition outranks every author rule, including the reset, so
-	 * it is only a defect when the visitor asked for less motion. Under
-	 * `no-preference` it is simply how Mantine does things, and flagging it
-	 * would train people to ignore this panel.
-	 */
 	const inline = Array.from(document.querySelectorAll<HTMLElement>("*")).filter(
 		(element) =>
-			// `style.length` is zero for the overwhelming majority of elements on
-			// the page, and a declaration-less element cannot declare a transition;
-			// testing it first keeps the scan of the serialised declarations off
-			// every node in the document.
 			element.style.length > 0 && element.style.cssText.includes("transition"),
 	);
 	findings.push({
@@ -731,8 +575,6 @@ const auditMotion = (): Finding[] => {
 
 	return findings;
 };
-
-/* ── The run ─────────────────────────────────────────────────────────── */
 
 export const runAudit = (scheme: "light" | "dark"): Finding[] => [
 	...auditTokens(),

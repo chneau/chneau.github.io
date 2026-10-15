@@ -7,7 +7,7 @@ export type ActiveTrainState = {
 	service: TrainService;
 	position: Coordinate;
 	previousPosition: Coordinate | null;
-	progress: number; // 0..1 overall
+	progress: number;
 	currentSegmentIndex: number;
 	currentStopName: string;
 	nextStopName: string | null;
@@ -15,7 +15,6 @@ export type ActiveTrainState = {
 	headingAngle: number;
 };
 
-// Distance in km between two coords
 const distanceKm = (c1: ReadonlyCoordinate, c2: ReadonlyCoordinate): number => {
 	const R = 6371;
 	const dLat = ((c2[1] - c1[1]) * Math.PI) / 180;
@@ -30,7 +29,6 @@ const distanceKm = (c1: ReadonlyCoordinate, c2: ReadonlyCoordinate): number => {
 	return R * c;
 };
 
-// Cumulative distance lookup cache for polyline coordinates to prevent reallocations on every frame
 const polylineDistanceCache = new WeakMap<
 	readonly ReadonlyCoordinate[],
 	{ cumulative: number[]; total: number }
@@ -55,16 +53,12 @@ export const getPolylineDistances = (
 	return result;
 };
 
-// Physics S-curve easing for realistic station departure acceleration & arrival braking
-// Smoothstep cubic polynomial: 3t^2 - 2t^3 with linear cruise section in between
 const smoothLegProgress = (t: number): number => {
 	if (t <= 0) return 0;
 	if (t >= 1) return 1;
-	// Smooth cubic ease-in-out
 	return t * t * (3 - 2 * t);
 };
 
-// Interpolate smoothly along a polyline using Catmull-Rom splines
 const interpolatePolyline = (
 	coords: Coordinate[],
 	fraction: number,
@@ -96,7 +90,6 @@ const interpolatePolyline = (
 			const t =
 				segmentDist === 0 ? 0 : (targetDist - previousDist) / segmentDist;
 
-			// Control points for Catmull-Rom spline
 			const p0 = (coords[Math.max(0, i - 2)] ?? coords[0]) as Coordinate;
 			const p1 = (coords[i - 1] ?? coords[0]) as Coordinate;
 			const p2 = (coords[i] ?? coords[coords.length - 1]) as Coordinate;
@@ -106,8 +99,6 @@ const interpolatePolyline = (
 			let lon = catmullRom(p0[0], p1[0], p2[0], p3[0], t);
 			let lat = catmullRom(p0[1], p1[1], p2[1], p3[1], t);
 
-			// Calculate tangent heading vector for orientation in projected screen coordinates:
-			// screen x = dLon * cos(lat), screen y = -dLat (since screen Y goes downwards)
 			const tEpsilon = 0.02;
 			const tNext = Math.min(1, t + tEpsilon);
 			const lonNext = catmullRom(p0[0], p1[0], p2[0], p3[0], tNext);
@@ -120,11 +111,9 @@ const interpolatePolyline = (
 			const dyScreen = -dLat;
 			const heading = Math.atan2(dyScreen, dxScreen);
 
-			// Apply dual-track perpendicular offset (creates left/right passing lanes)
 			if (trackOffsetMeters !== 0) {
 				const geoAngle = Math.atan2(dLat, dLon * Math.cos(radLat));
 				const normalAngle = geoAngle + Math.PI / 2;
-				// Approx degree offset: 1 degree latitude ~ 111,000 meters
 				const latOffset = (Math.sin(normalAngle) * trackOffsetMeters) / 111000;
 				const lonOffset =
 					(Math.cos(normalAngle) * trackOffsetMeters) /
@@ -145,7 +134,6 @@ const interpolatePolyline = (
 	};
 };
 
-// Find the nearest point along a polyline to a given coordinate and calculate its fractional distance along the path
 const findClosestPolylineFraction = (
 	coords: Coordinate[],
 	target: Coordinate,
@@ -171,7 +159,6 @@ const findClosestPolylineFraction = (
 			continue;
 		}
 
-		// Project target onto segment p1-p2 in Euclidean approx (good for small segments)
 		const dx = p2[0] - p1[0];
 		const dy = p2[1] - p1[1];
 		const t = Math.max(
@@ -197,7 +184,6 @@ const findClosestPolylineFraction = (
 
 import { STATIONS_BY_ID } from "../data/geography";
 
-// Cache for mapped call fractions along a service's route
 const serviceCallFractionsCache = new WeakMap<TrainService, number[]>();
 
 const getServiceCallFractions = (service: TrainService): number[] => {
@@ -227,7 +213,6 @@ const getServiceCallFractions = (service: TrainService): number[] => {
 		}
 	}
 
-	// Ensure monotonic strictly non-decreasing fractions
 	for (let i = 1; i < fractions.length; i++) {
 		const prev = fractions[i - 1] ?? 0;
 		const curr = fractions[i] ?? 0;
@@ -242,7 +227,7 @@ const getServiceCallFractions = (service: TrainService): number[] => {
 
 export const resolveServiceAtTime = (
 	service: TrainService,
-	timeOffset: number, // minutes
+	timeOffset: number,
 	stationNamesById: Map<string, string>,
 ): ActiveTrainState | null => {
 	const calls = service.calls;
@@ -263,7 +248,6 @@ export const resolveServiceAtTime = (
 		(timeOffset - startTime) / Math.max(1, finishTime - startTime);
 	const callFractions = getServiceCallFractions(service);
 
-	// Find active leg between calls
 	for (let i = 0; i < calls.length - 1; i++) {
 		const fromCall = calls[i];
 		const toCall = calls[i + 1];
@@ -275,7 +259,6 @@ export const resolveServiceAtTime = (
 		const fromFrac = callFractions[i] ?? i / (calls.length - 1);
 		const toFrac = callFractions[i + 1] ?? (i + 1) / (calls.length - 1);
 
-		// Check if dwelling at fromCall station
 		if (fromCall.arrivalOffset !== null && fromCall.departureOffset !== null) {
 			if (
 				timeOffset >= fromCall.arrivalOffset &&
@@ -302,24 +285,12 @@ export const resolveServiceAtTime = (
 			}
 		}
 
-		// Check if moving between fromCall and toCall.
-		//
-		// The upper bound is EXCLUSIVE. The arrival minute belongs to the
-		// station, not to the track: with `timeOffset <= arrTime` this test
-		// always won the race against the dwell test on the next iteration
-		// (which needs `timeOffset >= arrivalOffset`), so every train reported
-		// "In transit to <dest>" at the very minute it arrived, the arrival
-		// chime and the dwelling pulse were suppressed, and the terminus
-		// fallback below was dead code (0 of 325 services could reach it).
-		// A zero-length dwell (departure === arrival) still falls through to
-		// the next leg at fraction 0, so no minute is dropped.
 		if (timeOffset >= depTime && timeOffset < arrTime) {
 			const rawLegFrac =
 				(timeOffset - depTime) / Math.max(1, arrTime - depTime);
 			const legFrac = smoothLegProgress(rawLegFrac);
 			const polyFrac = fromFrac + legFrac * (toFrac - fromFrac);
 
-			// Dual track passing offset: northbound/eastbound trains offset +12m, southbound/westbound offset -12m
 			const trackOffset =
 				service.id.endsWith("-2") ||
 				service.id.endsWith("-4") ||
@@ -349,10 +320,6 @@ export const resolveServiceAtTime = (
 		}
 	}
 
-	// Terminus arrival: the train has arrived at its final call and its recorded
-	// dwell there has run out (terminus calls carry no `departureOffset`, so
-	// the dwell test above cannot match them). Reachable precisely because the
-	// moving test no longer swallows the arrival minute.
 	if (lastCall.arrivalOffset !== null && timeOffset >= lastCall.arrivalOffset) {
 		const lastStation = STATIONS_BY_ID.get(lastCall.stationId);
 		const destPos: Coordinate = lastStation

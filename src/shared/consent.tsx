@@ -10,22 +10,12 @@ import {
 	setAnalyticsConsent,
 } from "./analytics";
 
-/** The i18n keys the consent UI owns; see NEW KEYS in the change report. */
 type ConsentKey =
 	| "consent.title"
 	| "consent.body"
 	| "consent.accept"
 	| "consent.decline";
 
-/**
- * `t` with a required `defaultValue`.
- *
- * `react-i18next` types `t` against the `en.json` resource tree (declared in
- * `src/birthday/i18next.d.ts`), so a key that has not landed in the locale files
- * yet is a compile error and renders as `unknown`. Widening just this component
- * to "key plus mandatory English default" keeps the call sites fully typed and
- * renders correct English text until the locale files gain `consent.*`.
- */
 type Translate = (key: ConsentKey, options: { defaultValue: string }) => string;
 
 const useConsentText = (): Translate => {
@@ -34,27 +24,12 @@ const useConsentText = (): Translate => {
 };
 
 type ConsentState = {
-	/** `true` only once the visitor has explicitly opted in. */
 	granted: boolean;
-	/** `true` until the visitor has answered the prompt either way. */
 	undecided: boolean;
-	/**
-	 * `true` when the browser exports Do Not Track or Global Privacy Control.
-	 * Those signals are an opt-out under ePrivacy art. 5(3) and CCPA/CPRA
-	 * §702(g), so we never prompt and never initialise.
-	 */
 	forcedOff: boolean;
-	/** Record a choice and apply it immediately. */
 	decide: (granted: boolean) => void;
 };
 
-/**
- * Read the persisted decision and keep it in sync.
- *
- * The store is the source of truth, so this stays correct across the seven apps
- * that share `localStorage` on the same origin: accepting the banner on the root
- * app switches analytics on for `/cv/` and `/birthday/` too.
- */
 export const useAnalyticsConsent = (): ConsentState => {
 	const [granted, setGranted] = useState(hasAnalyticsConsent);
 	const [undecided, setUndecided] = useState(
@@ -72,7 +47,6 @@ export const useAnalyticsConsent = (): ConsentState => {
 	);
 
 	useEffect(() => {
-		// GPC can be flipped by an extension after first paint.
 		const onChange = () => setForcedOff(hasDoNotTrack());
 		window.addEventListener("change", onChange);
 		return () => window.removeEventListener("change", onChange);
@@ -87,13 +61,6 @@ export const useAnalyticsConsent = (): ConsentState => {
 	return { granted, undecided, forcedOff, decide };
 };
 
-/**
- * A one-line, dismissible privacy prompt.
- *
- * Deliberately a corner card rather than a modal: it must never block the page
- * it is asking about. It states exactly what would be collected and gives a real
- * "no" that is as easy to click as "yes".
- */
 export const ConsentBanner = () => {
 	const t = useConsentText();
 	const { undecided, forcedOff, decide } = useAnalyticsConsent();

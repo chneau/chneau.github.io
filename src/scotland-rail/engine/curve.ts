@@ -1,6 +1,5 @@
 type Point2D = { x: number; y: number };
 
-// Catmull-Rom 1D evaluation
 export const catmullRom = (
 	p0: number,
 	p1: number,
@@ -19,7 +18,6 @@ export const catmullRom = (
 	);
 };
 
-// Draw smooth Catmull-Rom spline path directly onto Canvas 2D context
 export const drawSmoothPath = (
 	ctx: CanvasRenderingContext2D,
 	projectedPoints: readonly Point2D[],
@@ -44,7 +42,6 @@ export const drawSmoothPath = (
 
 	ctx.moveTo(first.x, first.y);
 
-	// 6 subdivisions per segment for fluid 60fps high-res curve
 	const steps = 6;
 	for (let i = 0; i < len - 1; i++) {
 		const p0 = projectedPoints[Math.max(0, i - 1)] ?? first;

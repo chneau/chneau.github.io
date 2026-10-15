@@ -9,14 +9,6 @@ import {
 } from "../portions";
 import type { ItemDefinition } from "../types";
 
-/**
- * `portionLabel`, `portionRank`, `itemNature`, `valueDirection` and `metricText`
- * are tested directly. The two pieces that actually decide a venue's price and
- * metric — `normalizePortions` and `choosePrice` — are module-local, so they are
- * exercised through `pickItemValue`, which is the only way the round calculator
- * reaches them. Each test builds its own definition so the `WeakMap` cache in
- * `describe()` never lets one test's parsed facts answer another's question.
- */
 const definition = (overrides: Partial<ItemDefinition>): ItemDefinition => ({
 	id: 1,
 	name: "Test item",
@@ -49,8 +41,6 @@ describe("portionLabel canonicalises the labels the API spells inconsistently", 
 	});
 
 	test("'half' is an alias of 'half pint', not a third format", () => {
-		// The API uses both spellings for the same 284ml serving; collapsing them
-		// is what stops a venue's two rows turning into two prices to compare.
 		expect(portionLabel("half")).toBe(portionLabel("Half pint"));
 	});
 
@@ -75,8 +65,6 @@ describe("the canonical portion is chosen by what the venue actually sells", () 
 	});
 
 	test("a wine venue selling a glass prefers the glass over the bottle", () => {
-		// The formats are not comparable as prices: a £5.50 glass and a £14 bottle
-		// are the same wine, so the smaller, per-serving one is the honest pick.
 		const picked = pickItemValue(
 			{ "175ml Glass": 5.5, "750ml bottle": 14 },
 			definition({ name: "Merlot", menu: "Wine" }),
@@ -104,8 +92,6 @@ describe("the canonical portion is chosen by what the venue actually sells", () 
 	});
 
 	test("a venue selling only formats outside its nature's list still resolves", () => {
-		// NATURE_KINDS is a preference, not a filter: a "can of stout" must still
-		// price for a venue whose only row is a can.
 		const picked = pickItemValue(
 			{ "330ml can": 3.2 },
 			definition({ name: "Guinness", menu: "Beer" }),
@@ -141,8 +127,6 @@ describe("normalisation keeps the cheaper of two case variants", () => {
 	});
 
 	test("the de-duplicated price is the one the value metric is computed from", () => {
-		// Same metric as picking the £4 row directly: the dearer row must not leak
-		// into the value, or two venues would be ranked on different portions.
 		const deduplicated = pickItemValue(
 			{ Pint: 5, pint: 4 },
 			definition({ name: "Lager", menu: "Beer" }),
@@ -157,7 +141,6 @@ describe("normalisation keeps the cheaper of two case variants", () => {
 
 describe("pickItemValue derives a comparable metric", () => {
 	test("a 5% 330ml can is priced per alcohol unit", () => {
-		// 5% of 330ml is 1.65 units (abv * ml / 1000), so £3.30 is £2.00/unit.
 		const picked = pickItemValue(
 			{ "330ml can": 3.3 },
 			definition({
@@ -179,9 +162,6 @@ describe("pickItemValue derives a comparable metric", () => {
 	});
 
 	test("a spirit with no ABV has no value, rather than a volume metric", () => {
-		// £/100ml would be meaningless for spirits, so the nature branch returns
-		// null and the item drops out of the value leaderboard instead of ranking
-		// on a metric no other venue is being ranked on.
 		const picked = pickItemValue(
 			{ Single: 3 },
 			definition({ name: "Gin", menu: "Spirits", description: "Gin" }),
@@ -193,14 +173,12 @@ describe("pickItemValue derives a comparable metric", () => {
 	});
 
 	test("the same portion on a soft drink does fall back to a volume metric", () => {
-		// The guard is the spirit *nature*, not the "Single" label: without it the
-		// generic path below would have produced £/100ml for the gin above.
 		const picked = pickItemValue(
 			{ Single: 3 },
 			definition({ name: "Cola", menu: "Soft drinks" }),
 		);
 		expect(picked?.value?.kind).toBe("volume");
-		expect(picked?.value?.value).toBeCloseTo(12, 10); // £3 / 25ml
+		expect(picked?.value?.value).toBeCloseTo(12, 10);
 	});
 
 	test("a spirit with a stated ABV does get a unit metric", () => {
@@ -209,7 +187,6 @@ describe("pickItemValue derives a comparable metric", () => {
 			definition({ name: "Gin", menu: "Spirits", description: "40% ABV" }),
 		);
 		expect(picked?.value?.kind).toBe("unit");
-		// 25ml implied by "Single" at 40% is 1 unit.
 		expect(picked?.value?.value).toBeCloseTo(3, 10);
 	});
 
@@ -241,8 +218,6 @@ describe("pickItemValue derives a comparable metric", () => {
 				description: "1.7 units",
 			}),
 		);
-		// "275ml" is a measured portion, so the volume metric is used in
-		// preference to the description's unit count.
 		expect(picked?.value?.kind).toBe("volume");
 	});
 
@@ -308,8 +283,6 @@ describe("itemNature reads the whole definition", () => {
 	});
 
 	test("nature precedence is fixed: a spirit sold as 'ale' is still a spirit", () => {
-		// NATURE_PATTERNS is ordered wine, spirit, beer, soft, food and the first
-		// match wins, so a rename cannot silently move an item between leaderboards.
 		expect(
 			itemNature(definition({ name: "Vodka Martini", category: "ale" })),
 		).toBe("spirit");

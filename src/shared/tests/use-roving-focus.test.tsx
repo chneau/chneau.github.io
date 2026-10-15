@@ -4,25 +4,7 @@ import { act, cleanup, render } from "@testing-library/react";
 import { useEffect, useRef } from "react";
 import { FOCUSABLE_SELECTOR, useRovingFocus } from "../hooks/useRovingFocus";
 
-/**
- * The keyboard contract shared by `AppSwitcher` and `HeaderOverflow`.
- *
- * Both menus used to carry their own copy of a ~25-line arrow-key handler, and
- * they had already drifted: the switcher queried `a[href], button:not([disabled])`
- * while the overflow menu queried `a, button`. So the same key press moved focus
- * differently depending on which menu was open, an anchor with no `href` and a
- * disabled button counted as focusable in one and not the other, and `ArrowUp`
- * from a position outside the menu landed on the second-to-last item rather than
- * the last — in both, because the arithmetic was copied along with the bug.
- *
- * The component tests in `app-switcher-recents.test.tsx` and
- * `header-overflow.test.tsx` cover each menu through its own DOM. This covers the
- * shared behaviour directly, including the cases only one of the two used to get
- * right.
- */
-
 type HarnessProps = {
-	/** Rendered inside the menu, so a test can choose the exact control mix. */
 	children?: React.ReactNode;
 };
 
@@ -40,13 +22,6 @@ const Harness = ({ children }: HarnessProps) => {
 			if (restoreFocus) trigger.current?.focus();
 		},
 	});
-	// Published in an effect, not during render. Assigning a module-level variable
-	// in the render body is a side effect React is free to run twice or discard,
-	// which is exactly what a concurrent render would do with it — and
-	// react-doctor flags it as a prop callback invoked during render.
-	//
-	// Keyed on the two stable callbacks rather than `hook`, whose object identity
-	// is new on every render, so this cannot loop.
 	useEffect(() => {
 		api = hook;
 	}, [hook.focusFirst, hook.onKeyDown]);
@@ -68,7 +43,6 @@ const Harness = ({ children }: HarnessProps) => {
 	);
 };
 
-/** Fire a key on the element that currently has focus, as a real key press would. */
 const press = (key: string) => {
 	const target = document.activeElement ?? document.body;
 	act(() => {
@@ -105,10 +79,8 @@ describe("useRovingFocus", () => {
 		expect(document.activeElement?.textContent).toBe("Two");
 		press("ArrowDown");
 		expect(document.activeElement?.textContent).toBe("Three");
-		// Down from the last wraps to the first.
 		press("ArrowDown");
 		expect(document.activeElement?.textContent).toBe("One");
-		// And up from the first wraps to the last.
 		press("ArrowUp");
 		expect(document.activeElement?.textContent).toBe("Three");
 	});
@@ -129,14 +101,6 @@ describe("useRovingFocus", () => {
 		expect(document.activeElement?.textContent).toBe("One");
 	});
 
-	/**
-	 * PROVE IT FAILS WITHOUT THE `at < 0` GUARD.
-	 *
-	 * `indexOf` answers −1 when focus is outside the menu, which is what happens on
-	 * the first key press after a menu reopens. The old arithmetic used that −1
-	 * directly, so `ArrowUp` computed `items[-2 + length]` and focused the
-	 * *second-to-last* item — skipping the last one entirely.
-	 */
 	test("ArrowUp from outside the menu lands on the last control", () => {
 		const view = render(
 			<Harness>
@@ -146,9 +110,6 @@ describe("useRovingFocus", () => {
 			</Harness>,
 		);
 
-		// Focus is on the menu container rather than on any of its controls, so
-		// `indexOf` answers −1. This is the reachable case: the handler is on the
-		// menu, so a key press from outside it would never arrive here at all.
 		const menu = view.getByTestId("menu");
 		act(() => menu.focus());
 		expect(document.activeElement).toBe(menu);
@@ -179,8 +140,6 @@ describe("useRovingFocus", () => {
 	});
 
 	test("Tab closes without stealing focus", () => {
-		// Tab must be allowed to do what Tab does. The handler closes the menu and
-		// does not preventDefault, so the browser moves focus on its own.
 		render(<Harness>{labelled("One")}</Harness>);
 		act(() => api?.focusFirst());
 
@@ -215,7 +174,6 @@ describe("useRovingFocus", () => {
 			});
 			expect(event.defaultPrevented, key).toBe(false);
 		}
-		// Focus did not move for any of them.
 		expect(document.activeElement?.textContent).toBe("One");
 	});
 
@@ -225,13 +183,6 @@ describe("useRovingFocus", () => {
 		expect(() => press("Escape")).not.toThrow();
 	});
 
-	/**
-	 * The selector is the divergence this hook exists to end.
-	 *
-	 * `HeaderOverflow` used `a, button`, which counts an anchor with no `href` (not
-	 * focusable, not a link) and a disabled button (not focusable) as places focus
-	 * can go. Asserted directly so the query cannot drift back to tag names.
-	 */
 	test("FOCUSABLE_SELECTOR skips anchors without href and disabled buttons", () => {
 		const view = render(
 			<Harness>
@@ -272,7 +223,6 @@ describe("useRovingFocus", () => {
 		act(() => api?.focusFirst());
 		expect(document.activeElement?.textContent).toBe("One");
 		press("ArrowDown");
-		// Skips the hrefless anchor and the disabled button entirely.
 		expect(document.activeElement?.textContent).toBe("Enabled");
 	});
 });

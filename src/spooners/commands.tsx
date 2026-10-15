@@ -1,14 +1,6 @@
 import { FilterX, Keyboard, Moon, Sun } from "lucide-react";
 import type { Command } from "../shared";
 
-/**
- * The palette's entries: the theme, the shortcut dialog, and a way back from a
- * filter the visitor no longer wants.
- *
- * Its own module because an entry carries an icon, and a hook returning JSX has
- * to be a `.tsx` — which would then be a component file that exports no
- * component at all.
- */
 export const createSpoonerCommands = ({
 	dark,
 	toggleTheme,

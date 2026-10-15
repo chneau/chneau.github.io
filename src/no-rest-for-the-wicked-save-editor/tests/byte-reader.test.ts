@@ -1,19 +1,3 @@
-/**
- * The CERIMAL byte layer, on its own terms: the reader and writer paired
- * against each other, and the format's own three accessors — the 7-bit integer,
- * the one-byte-length member name and the 7-bit-length type name.
- *
- * `tests/format.test.ts` reaches all of this only through a real `.dat` file,
- * which lives outside this repository — so on a machine without it every one of
- * those tests skips and the write path has no coverage at all. These tests pin
- * the bytes themselves: which of them a value is written in, what happens at
- * the boundaries of the variable-length integer, and that a member name is
- * measured in bytes rather than characters. The last group builds a document
- * through `document-fixture.ts` and puts it back through the same writer, so the
- * tag layer (`nodes.ts`) is exercised over a graph whose shape is known exactly:
- * a null, a value referred to twice through the back-reference table, and a
- * two-dimensional array.
- */
 import { describe, expect, test } from "bun:test";
 import { base64Encode, isJsonObject } from "../../shared";
 import {
@@ -25,18 +9,11 @@ import {
 import { MAGIC, readDocument, writeDocument } from "../lib/nodes";
 import { documentData, encodeTestDocument } from "./document-fixture";
 
-/** The bytes a writer produced, as plain numbers so a failure reads as hex. */
 const written = (writer: CerimalWriter): readonly number[] => [
 	...writer.finish(),
 ];
 
 describe("the 7-bit integer", () => {
-	/**
-	 * The boundaries, not a sample: 127 is where the encoding grows a second
-	 * byte, 2 147 483 647 is where it stops growing, and each power of two
-	 * between them is a length, a count or an array extent that a real save
-	 * reaches.
-	 */
 	const BOUNDARIES = [
 		0, 1, 2, 126, 127, 128, 129, 255, 256, 16383, 16384, 2_097_151, 2_097_152,
 		268_435_455, 268_435_456,
@@ -49,8 +26,6 @@ describe("the 7-bit integer", () => {
 		for (const value of BOUNDARIES) {
 			expect(reader.sevenBit()).toBe(value);
 		}
-		// And the buffer was consumed exactly, which is what "framed" means: a
-		// reader that read one byte too few would still pass the values above.
 		expect(reader.remaining).toBe(0);
 	});
 
@@ -61,9 +36,6 @@ describe("the 7-bit integer", () => {
 	});
 
 	test("a length longer than the format allows is refused", () => {
-		// Six continuation bytes: the fifth payload byte would sit at bit 28 and
-		// the sixth past the end of a 32-bit word, so the value cannot be read
-		// back as written.
 		const reader = new CerimalReader(
 			new Uint8Array([0x80, 0x80, 0x80, 0x80, 0x80, 0x01]),
 		);
@@ -79,11 +51,6 @@ describe("the 7-bit integer", () => {
 	});
 
 	test("a count above 2^31 comes back signed, which is the bit pattern's fault", () => {
-		// Neither half has a range check, so a count larger than the format can
-		// hold is written and read rather than refused — and the fifth payload
-		// byte lands on bit 28, so what comes back is a negative number. Pinned
-		// because a caller that loops `while (count-- > 0)` on the result would
-		// not loop at all, and nothing throws to say why.
 		const writer = new CerimalWriter(8);
 		writer.sevenBit(-1);
 		const read = new CerimalReader(writer.finish()).sevenBit();
@@ -108,15 +75,11 @@ describe("member names and type names", () => {
 	});
 
 	test("a name is measured in bytes, not in characters", () => {
-		// Each of these is 128 characters and 256 bytes, which one length byte
-		// cannot describe. A writer that counted characters would write a name
-		// that reads back as half of itself.
 		const wide = "é".repeat(128);
 		expect(new TextEncoder().encode(wide).length).toBe(256);
 		expect(() => new CerimalWriter(8).name(wide)).toThrow(
 			/A CERIMAL member name is one length byte long/,
 		);
-		// The longest name the format can hold is 255 bytes, and it survives.
 		const longest = "a".repeat(255);
 		expect(
 			new CerimalReader(new CerimalWriter(300).name(longest).finish()).name(),
@@ -124,7 +87,6 @@ describe("member names and type names", () => {
 	});
 
 	test("a type name's length rides in the 7-bit integer", () => {
-		// 300 bytes: two length bytes, where a member name would have thrown.
 		const name = "Quantum.SomeVeryLongTypeName".repeat(11).slice(0, 300);
 		const writer = new CerimalWriter(512);
 		writer.sevenBitName(name);
@@ -135,22 +97,18 @@ describe("member names and type names", () => {
 	});
 
 	test("a name that runs off the end of the buffer is refused", () => {
-		// A length byte promising eight bytes with only three there: the failure
-		// a truncated save must name rather than decode to a partial name.
 		expect(() =>
 			new CerimalReader(new Uint8Array([8, 1, 2, 3])).name(),
 		).toThrow(/Truncated save/);
 	});
 });
 
-/** One member of the little graph the reader and writer are paired over. */
 type Member = {
 	readonly index: number;
 	readonly name: string;
 	readonly typeName: string;
 };
 
-/** The graph: a fixed width count, then names of both lengths and a raw run. */
 const MEMBERS: readonly Member[] = [
 	{ index: 0, name: "", typeName: "Quantum.GameSaveData" },
 	{ index: 1, name: "Ünïcodé", typeName: "Quantum.PlayerSerializedData" },
@@ -166,8 +124,6 @@ describe("a small object graph through the writer and back", () => {
 			writer.name(member.name);
 			writer.sevenBitName(member.typeName);
 		}
-		// A trailing run of raw bytes, so the framing is checked against
-		// something the accessors did not write.
 		writer.raw(new Uint8Array([0x00, 0xff, 0x10]));
 		return writer.finish();
 	};
@@ -184,15 +140,11 @@ describe("a small object graph through the writer and back", () => {
 			});
 		}
 		expect(members).toEqual([...MEMBERS]);
-		// Exactly the three raw bytes are left: no accessor over-read, and the
-		// writer's growth from a 16-byte buffer to 512 wrote nothing but values.
 		expect([...reader.raw(3, "a trailing run")]).toEqual([0x00, 0xff, 0x10]);
 		expect(reader.done).toBe(true);
 	});
 
 	test("the writer grew from sixteen bytes without losing a byte", () => {
-		// Every `sevenBit`/`name`/`sevenBitName` returned the writer, so the calls
-		// chain; a chain that stopped early would leave the graph short.
 		const length = write().length;
 		const writer = new CerimalWriter(16);
 		for (const member of MEMBERS) {
@@ -238,9 +190,6 @@ describe("GUIDs", () => {
 	});
 
 	test("a borrowed view is formatted from its own offset", () => {
-		// The reader hands GUIDs out with `borrow`, so the sixteen bytes live
-		// inside the document's buffer rather than in a fresh array. A `DataView`
-		// over the whole buffer would print the two bytes before it.
 		const buffer = new Uint8Array(24);
 		buffer.set(parseGuid("deadbeef-1111-2222-3333-444444444444"), 4);
 		expect(formatGuid(buffer.subarray(4, 20))).toBe(
@@ -268,12 +217,9 @@ describe("GUIDs", () => {
 });
 
 describe("a document built from the fixture, read back", () => {
-	/** Past the magic, which `decodeSave` consumes and `readDocument` does not. */
 	const afterMagic = (bytes: Uint8Array): CerimalReader =>
 		new CerimalReader(bytes, MAGIC.length);
 
-	// Versions 2 and 3 differ only in the compression word, and the writer only
-	// emits that word for the version that has it.
 	for (const version of [2, 3]) {
 		test(`version ${version} comes back as it went out`, () => {
 			const bytes = encodeTestDocument(version);
@@ -286,8 +232,6 @@ describe("a document built from the fixture, read back", () => {
 				"TestItem",
 			]);
 			expect(decoded.data).toEqual(documentData());
-			// The header's two lengths describe the two runs it declares, which is
-			// the only thing that makes the checksum's range the right one.
 			expect(decoded.header.schemaSize).toBeGreaterThan(0);
 			expect(decoded.header.contentSize).toBeGreaterThan(0);
 		});
@@ -298,10 +242,6 @@ describe("a document built from the fixture, read back", () => {
 		const decoded = readDocument(afterMagic(bytes), bytes);
 		if (!isJsonObject(decoded.data))
 			throw new Error("the root is not a record.");
-		// The back-reference table is what makes this the same instance, and the
-		// re-encoder recognises a back-reference by exactly that identity — so a
-		// reader that cloned would turn a 1.7 MB realm save into a deep tree and
-		// rebuild it larger than the file it came from.
 		expect(decoded.data.Alias).toBe(decoded.data.Item);
 		expect(decoded.data.Item).toEqual({ Label: "a shared label" });
 		expect(decoded.registered).toEqual([["Item"]]);
@@ -313,8 +253,6 @@ describe("a document built from the fixture, read back", () => {
 		if (!isJsonObject(decoded.data))
 			throw new Error("the root is not a record.");
 		expect(decoded.data.Nothing).toBeNull();
-		// Absent is not the same as null: a field the schema declares is read
-		// either way, and only one of them is written back as the null tag.
 		expect("Nothing" in decoded.data).toBe(true);
 	});
 
@@ -323,9 +261,6 @@ describe("a document built from the fixture, read back", () => {
 		const decoded = readDocument(afterMagic(bytes), bytes);
 		if (!isJsonObject(decoded.data))
 			throw new Error("the root is not a record.");
-		// Flattened on the way in — six elements, no shape — and the shape is
-		// carried beside the document, because `[2,3]` and `[6,1,1]` hold the same
-		// six elements and only the file knows which it meant.
 		expect(decoded.data.Grid).toEqual([1, 2, 3, 4, 5, 6]);
 		expect(decoded.dimensions).toEqual([[["Grid"], [2, 3]]]);
 	});
@@ -348,7 +283,6 @@ describe("a document built from the fixture, read back", () => {
 
 	test("a document whose content does not hash to its claim is refused", () => {
 		const bytes = encodeTestDocument();
-		// The last byte of the payload, so the header still parses.
 		bytes[bytes.length - 1] = (bytes[bytes.length - 1] ?? 0) ^ 0xff;
 		expect(() => readDocument(afterMagic(bytes), bytes)).toThrow(/is damaged/);
 	});

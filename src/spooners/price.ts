@@ -10,7 +10,6 @@ export const makeScale = (prices: number[]): PriceScale => {
 	return { min: Math.min(...prices), max: Math.max(...prices) };
 };
 
-/** 0 = cheapest (green), 1 = dearest (red). */
 export const normalize = (price: number, scale: PriceScale): number => {
 	if (scale.max === scale.min) {
 		return 0.5;
@@ -18,7 +17,6 @@ export const normalize = (price: number, scale: PriceScale): number => {
 	return (price - scale.min) / (scale.max - scale.min);
 };
 
-/** Green -> amber -> red, matching the map markers. */
 export const priceColor = (price: number, scale: PriceScale): string => {
 	const t = normalize(price, scale);
 	const hue = 135 - 135 * t;
@@ -26,7 +24,6 @@ export const priceColor = (price: number, scale: PriceScale): string => {
 	return `hsl(${hue.toFixed(0)} 68% ${light.toFixed(0)}%)`;
 };
 
-/** Intl formatters are expensive to build, so they are cached per currency. */
 const moneyFormatters = new Map<string, Intl.NumberFormat>();
 
 const moneyFormat = (currency: string): Intl.NumberFormat => {
@@ -45,7 +42,6 @@ export const money = (value: number, currency = "GBP"): string => {
 	try {
 		return moneyFormat(currency).format(value);
 	} catch {
-		// An unrecognised code must not be mislabelled as pounds.
 		return `${currency} ${value.toFixed(2)}`;
 	}
 };
@@ -63,7 +59,6 @@ export const median = (values: number[]): number => {
 
 const symbolCache = new Map<string, string>();
 
-/** The currency's symbol ("£", "€", "US$"), falling back to the code. */
 export const currencySymbol = (currency: string): string => {
 	const cached = symbolCache.get(currency);
 	if (cached != null) {
@@ -83,7 +78,6 @@ export const currencySymbol = (currency: string): string => {
 
 const digitsCache = new Map<string, number>();
 
-/** The currency's own number of decimals (JPY has none, GBP/EUR have 2). */
 const digitsFor = (currency?: string): number => {
 	if (!currency) {
 		return 2;
@@ -104,7 +98,6 @@ const digitsFor = (currency?: string): number => {
 
 const amountFormatters = new Map<number, Intl.NumberFormat>();
 
-/** "3.10" — the amount alone, for when the symbol is displayed separately. */
 export const amount = (value: number, currency?: string): string => {
 	const digits = digitsFor(currency);
 	let formatter = amountFormatters.get(digits);
@@ -118,6 +111,5 @@ export const amount = (value: number, currency?: string): string => {
 	return formatter.format(value);
 };
 
-/** "0.4 mi" / "12 mi" */
 export const miles = (value: number): string =>
 	value < 10 ? `${value.toFixed(1)} mi` : `${Math.round(value)} mi`;

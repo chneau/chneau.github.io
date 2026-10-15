@@ -1,11 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/socket_caps.py`.
- *
- * Gameplay socket limits, kept separate from save-record capacity. The base
- * table comes from the upstream iteminfo extraction; current-build observations
- * override it, and verified in-game overrides win last.
- */
-
 import {
 	socketCapsCurrentGameTable,
 	socketCapsGameDataTable,
@@ -56,7 +48,6 @@ class SocketCapRegistry {
 
 let defaultCapsPromise: Promise<SocketCapRegistry> | undefined;
 
-/** Shared cached registry used by the runtime worker. */
 export const defaultSocketCaps = (): Promise<SocketCapRegistry> => {
 	defaultCapsPromise ??= loadSocketCaps();
 	return defaultCapsPromise;

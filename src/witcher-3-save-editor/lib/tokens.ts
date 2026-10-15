@@ -1,80 +1,5 @@
-/**
- * The token grammar — the layer under the string scan and the property
- * assignment walk.
- *
- * ## Why this is the whole grammar
- *
- * An earlier pass of this decoder knew only two record shapes, `AVAL` and
- * `BLCK`, and covered about a third of the decompressed stream. The stream
- * actually uses nine tags, and the one that dominates is `VL` (`AVAL` is rare
- * outside the quest region):
- *
- * ```
- *   BS   | i16 nameIdx                                       (4 bytes)
- *   VL   | i16 nameIdx | i16 typeIdx | value[type]
- *   AVAL | i16 nameIdx | i16 typeIdx | u32 valueLen | value[valueLen]
- *   PORP | i16 nameIdx | i16 typeIdx | u32 valueLen | value[valueLen]
- *   OP   | i16 nameIdx | i16 typeIdx | value[type]
- *   BLCK | i16 nameIdx | u16 a | u16 b                       (10 bytes)
- *   SS   | u32 sizeInner | sizeInner bytes
- *   SXAP | u32 a | u32 b | u32 c                              (16 bytes)
- *   MANU | i32 count | i32 unknown | count×(u8 len, bytes) | u32 pad | "ENOD"
- * ```
- *
- * `nameIdx` and `typeIdx` are **1-based indices into the save's own MANU
- * table** (`name = MANU[nameIdx - 1]`), and the type name — `"Uint32"`,
- * `"Bool"`, `"String"`, `"CGUID"`, … — gives the value width. The stream is
- * therefore self-describing: no external schema is needed to find the value of
- * a named property.
- *
- * The 1-based indexing is measured, not assumed: a record at 1,834,633 with
- * index 710 reads as `GUID` of type `CGUID` only under 1-based indexing
- * (`inputNamesCount` under 0-based). The source decoder once used
- * `names[nameIndex]`, so every name it reported was off by one — a defect that
- * typechecks and lints and produces a plausible wrong answer.
- *
- * On every tracked save each `BLCK` record is immediately followed by an `AVAL`
- * — measured, 0 exceptions, over 5,224 to 121,584 records per save — so the pair
- * reads as one property assignment: `BLCK` names the property and `AVAL` supplies
- * its value. That adjacency is what makes the two shapes legible as a pair, and
- * it is why `BLCK` is a fixed 10 bytes.
- *
- * ## Validation
- *
- * The grammar was confirmed against `Atvaark/W3SavegameEditor` and against the
- * tags in `witcher3.exe` (4.0.4), which compares the same literal 4-byte
- * constants. Measured coverage across the seven tracked saves is **71–77%** of
- * the decompressed stream, up from ~34% for the two-shape `AVAL`/`BLCK` grammar
- * this file replaced. (This said 79–90%; every save measured is between 71.33%
- * and 77.22%, and ADR-0007's "about 72–77%" is the correct figure.) The source
- * repository's `docs/tokens.md` records the measurements and the parts still
- * unsolved (the `(size, offset)` index tables at the end of the stream, and a
- * handful of variable-width values).
- *
- * ## What is measured, and what is not
- *
- * The walk starts at the **first `AVAL` in the stream** — 1,677,468 to 1,834,633
- * across the tracked saves, not a single offset; the bytes before that are a
- * different structure carrying
- * pointers, which is most of why a "two record shapes" grammar only ever reached
- * a third of the stream. Three fields remain **undecoded**, and no code here
- * claims otherwise: the second name index of an `AVAL`/`PORP`/`VL`/`OP` record
- * resolves to a valid `MANU` entry in 100% of cases but its meaning is unknown;
- * the trailing two `u16` of a `BLCK` take many values with no established
- * interpretation (`tokens.ts` keeps them as `detail`, not as a reading); and the
- * `(size, offset)` index tables at the end of the stream are recorded above as
- * unsolved.
- *
- * The `coveredBytes`/`skippedBytes` split is the honest accounting for this, and
- * it is deliberate: the walk always runs to the end of the buffer, stepping over
- * anything it does not recognise, so `end` is the buffer length for every real
- * save and reporting it as coverage would claim a complete decode every time.
- * Coverage is bytes *decoded*, not bytes *reached*.
- */
-
 import { readU32 } from "./inner";
 
-/** The nine tags the grammar recognises. */
 type TokenTag =
 	| "AVAL"
 	| "BLCK"
@@ -86,45 +11,27 @@ type TokenTag =
 	| "SXAP"
 	| "MANU";
 
-/** A decoded value: its MANU type name, a rendering, and the exact bytes. */
 type TokenValue = {
-	/** The MANU type name the value was read as. */
 	readonly type: string;
-	/** Human-readable rendering, already grouped for numbers. */
 	readonly text: string;
-	/** Raw value bytes, exactly the span the type covers. */
 	readonly bytes: Uint8Array;
 };
 
 export type Token = {
-	/** absolute offset in the decompressed stream */
 	readonly offset: number;
-	/** bytes this token occupies, including its tag */
 	readonly size: number;
 	readonly tag: TokenTag;
-	/** resolved MANU name, or `<idx>` when the index is out of range */
 	readonly name: string;
-	/** `BLCK`/`SS` frame indices that are not names are kept as raw text here */
 	readonly detail?: string;
-	/**
-	 * For `BLCK`/`SS`, the byte size of the nested variables that follow the
-	 * header. `BLCK` stores it as a `u16`, `SS` as a `u32`. A container's own
-	 * `size` is only its header (`BLCK` 10, `SS` 6); the children follow and
-	 * together occupy exactly `childSize` bytes.
-	 */
 	readonly childSize?: number;
 	readonly value?: TokenValue;
 };
 
 type TokenScan = {
 	readonly tokens: readonly Token[];
-	/** bytes consumed by a decoded token */
 	readonly coveredBytes: number;
-	/** bytes stepped over because no token shape matched */
 	readonly skippedBytes: number;
-	/** number of tokens by tag */
 	readonly tagCounts: ReadonlyMap<string, number>;
-	/** type names the walk could not size, with hit counts */
 	readonly unhandledTypes: ReadonlyMap<string, number>;
 };
 
@@ -148,7 +55,6 @@ const hasMagic = (data: Uint8Array, o: number, magic: string): boolean => {
 	return true;
 };
 
-/** Enum types the reference reads as two bytes. */
 const ENUM_TYPES = new Set([
 	"eGwintFaction",
 	"EJournalStatus",
@@ -161,15 +67,6 @@ const ENUM_TYPES = new Set([
 	"EVehicleSlot",
 ]);
 
-/**
- * Fixed widths for primitive type names, in bytes.
- *
- * A type absent from this table is not an error: `valueWidth` measures the ones
- * that are variable (`String`, `EntityHandle`, an array, a class-reflection
- * struct) from the bytes in front of it. `GameTime` used to sit here at 11, which
- * is the width of one of its three shapes and none of the other two — see
- * {@link readGameTime}.
- */
 const FIXED_WIDTHS: ReadonlyMap<string, number> = new Map([
 	["Bool", 1],
 	["Uint8", 1],
@@ -193,109 +90,28 @@ const FIXED_WIDTHS: ReadonlyMap<string, number> = new Map([
 	["SQuestThreadSuspensionData", 29],
 ]);
 
-/** The prefix that marks a WitcherScript array type and its element type. */
 const ARRAY_PREFIX = "array:2,0,";
 
-/** A decoded `GameTime`: the second count, and the bytes it was read from. */
 type GameTimeRead = {
 	readonly width: number;
 	readonly seconds: number;
 };
 
-/**
- * Bytes a framed `Int32` member occupies inside a struct: the four bytes of the
- * `nameIdx`/`typeIdx` pair the writer counts with the value, plus the value.
- *
- * `GameTime` is declared `{ m_seconds : Int32 }`, so this is the *only* size its
- * single member can carry — which is what makes the frame's shape decidable
- * rather than a guess: a `u32` of exactly this in the size field is a size, and
- * anything else is the member's value with no size field at all.
- */
 const FRAMED_INT32_MEMBER = 8;
 
-/** Bytes a `GameTime` frame is in each of its three shapes. See {@link readGameTime}. */
 const GAME_TIME_EMPTY = 3;
 const GAME_TIME_SIZED = 15;
 const GAME_TIME_INLINE = 11;
 
-/**
- * Does a frame of `width` bytes starting at `o` close on the `u16 0` terminator
- * the struct grammar ends with?
- *
- * A struct's members are written until a zero-length member marks the end, so a
- * candidate reading that does not land on one is not a reading. This is a
- * *necessary* condition and deliberately not a sufficient one — the stream is
- * full of zero bytes — which is why the caller also checks the known member
- * type.
- */
 const runsTo = (data: Uint8Array, o: number, width: number): boolean =>
 	u16(data, o + width - 2) === 0;
 
-/**
- * Read the `GameTime` struct value at `o`: its width, and its `m_seconds`.
- *
- * `GameTime` is a class-reflection struct, not a primitive, so its width depends
- * on what the writer put in it. Measured on both fixtures — 380 populated frames
- * over the two saves — the writer emits **three** shapes, and no two of them
- * agree:
- *
- * ```
- *   empty   | 00 | 00 00                                     3 bytes
- *   sized   | 00 | u16 name | u16 type | u32 8 | i32 secs | 00 00    15 bytes
- *   inline  | 00 | u16 name | u16 type | i32 secs     | 00 00           11 bytes
- * ```
- *
- * The member header is the same in both populated shapes and both resolve to
- * `m_seconds`/`Int32` in each save's own `MANU` table (286/69 on `52586`,
- * 114/64 on `8559a`). What differs is whether the member's `u32 size` field is
- * present, and that tracks the record shape without a single exception: of the
- * 372 sized frames every one is in an `AVAL` or a `PORP`, and of the 8 inline
- * frames every one is in a `VL` or an `OP`. An `AVAL`/`PORP` declares its
- * value's length and the struct inside it is written sized; a `VL`/`OP` carries
- * no length and gets the member's value written where the size would be. The
- * inline frames are the clock values — `timeRemaining`, `time` and
- * `recentDialogOrCutsceneEndGameTime`.
- *
- * The tag **is** the discriminator, and `framed` is how it arrives. No rule over
- * the bytes alone can be: an *inline* frame holding exactly `m_seconds === 8`
- * satisfies the sized test too, because that 8 lands where the size field would
- * be and the two bytes after the member are zero. Measured — choosing sized there
- * reports the frame as 15 bytes wide and reads four bytes past it, so the
- * following token disappears and every token after it shifts. That is the silent
- * desynchronisation this walker must never do, and it is not hypothetical: it was
- * reproduced by constructing the frame.
- *
- * `framed` is `true` for an `AVAL`/`PORP` value, `false` for a `VL`/`OP` value,
- * and `undefined` when neither is known (a value nested inside an array or a
- * handle, which is unobserved for `GameTime`). The tag is known at every direct
- * call site, so the ambiguous case is decided by the frame rather than guessed:
- *
- *   - `true`  → the empty form, else the sized form
- *   - `false` → the empty form, else the inline form
- *   - `undefined` → the byte-level rule, as a last resort
- *
- * The byte-level rule requires the size field to be exactly
- * {@link FRAMED_INT32_MEMBER}, since the member's type is known to be `Int32`;
- * a terminator test alone is not exclusive because the stream is full of zero
- * bytes, and an inline frame whose seconds read as a size finds a `00 00` at 354
- * bytes out twice on the large fixture.
- *
- * The 11-byte inline shape is what the reference decoder's own dump of
- * `timeManger.time` shows (`docs/re-engineering/12-player-world.md`), and the
- * `m_seconds` it reads there — 2,635,781 — is the one this reads on the same
- * build, which is the cross-check that the inline shape is a clock rather than a
- * mis-parse.
- */
 const readGameTime = (
 	data: Uint8Array,
 	o: number,
 	framed?: boolean,
 ): GameTimeRead | undefined => {
-	// A presence byte, not the value: a struct records whether it is there.
 	if (u8(data, o) !== 0) return undefined;
-	// Terminator straight after the presence byte: every member is at its
-	// default, and an `Int32` default is zero. True of every shape, so it needs
-	// no framing.
 	if (u16(data, o + 1) === 0) return { width: GAME_TIME_EMPTY, seconds: 0 };
 
 	if (framed === true) {
@@ -310,9 +126,6 @@ const readGameTime = (
 			: undefined;
 	}
 
-	// No frame to go on — only reachable for a value nested inside an array or a
-	// handle. Fall back to the byte rule, sized first, and accept that an inline
-	// `m_seconds === 8` is indistinguishable here.
 	if (
 		u32(data, o + 5) === FRAMED_INT32_MEMBER &&
 		runsTo(data, o, GAME_TIME_SIZED)
@@ -325,11 +138,6 @@ const readGameTime = (
 	return undefined;
 };
 
-/**
- * Width in bytes of a value of `type` starting at `o`, or `undefined` when the
- * type cannot be sized without the enclosing frame. Recurses through arrays and
- * handles with a depth cap so a hostile type string cannot loop.
- */
 const valueWidth = (
 	data: Uint8Array,
 	type: string,
@@ -341,16 +149,12 @@ const valueWidth = (
 	if (ENUM_TYPES.has(type)) return 2;
 	const fixed = FIXED_WIDTHS.get(type);
 	if (fixed !== undefined) return fixed;
-	// Measured, not tabulated: a struct's width is a function of its members.
-	// `framed` is the enclosing record's tag, which is what decides between the
-	// sized and inline `GameTime` shapes; see `readGameTime`.
 	if (type === "GameTime") return readGameTime(data, o, framed)?.width;
 	if (type === "StringAnsi") return 1 + u8(data, o);
 	if (type === "String" || type === "CEntityTemplate") {
 		const header = u8(data, o);
 		if ((header & 0x80) === 0) return undefined;
 		let at = o + 1;
-		// The reference's documented HACK: a stray 0x01 is sometimes present.
 		if (u8(data, at) === 0x01) at += 1;
 		return at - o + (header & 0x7f);
 	}
@@ -381,7 +185,6 @@ const valueWidth = (
 	return undefined;
 };
 
-/** Render a value of `type` at `o` for display. Assumes `valueWidth` succeeded. */
 const renderValue = (
 	data: Uint8Array,
 	type: string,
@@ -409,11 +212,6 @@ const renderValue = (
 			);
 			break;
 		case "GameTime": {
-			// A struct holding one `Int32`, so the number it is worth is a
-			// second count and not the bytes of the frame. `valueWidth` measured
-			// those bytes to reach here, so the same reader reads the member —
-			// with the same `framed`, or the two could disagree about which shape
-			// they were looking at.
 			const read = readGameTime(data, o, framed);
 			text = read === undefined ? hex(0) : String(read.seconds);
 			break;
@@ -461,9 +259,6 @@ const renderValue = (
 			text = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
 			break;
 		default:
-			// A byte-array value (Vector, EngineTransform, …) must render its
-			// own bytes. Rendering a placeholder made every such value compare
-			// equal, which silently hid it from any change/diff analysis.
 			text =
 				type.startsWith(ARRAY_PREFIX) || ENUM_TYPES.has(type)
 					? `${width} byte(s)`
@@ -488,8 +283,6 @@ const readToken = (
 		const len = u32(data, o + 8);
 		if (len > data.length - o) return undefined;
 		const type = name(typeIdx);
-		// `AVAL`/`PORP` declares its value's length, so a struct inside it is
-		// written sized — `framed: true` is that fact, not a guess.
 		const typeWidth = valueWidth(data, type, o + 12, 0, true);
 		const w = typeWidth !== undefined && typeWidth <= len ? typeWidth : len;
 		return {
@@ -522,10 +315,6 @@ const readToken = (
 	}
 	if (hasMagic(data, o, "SS")) {
 		const inner = u32(data, o + 2);
-		// `SS` is a frame whose payload is further variables; the reference
-		// recurses into it and the flat walk reaches them by continuing at
-		// `o + 6`. Treating it as one opaque block hides the `AVAL`/`BLCK`/`PORP`
-		// records inside, which is most of the stream.
 		return {
 			offset: o,
 			tag: "SS",
@@ -540,9 +329,6 @@ const readToken = (
 		const nameIdx = i16(data, o + 2);
 		const typeIdx = i16(data, o + 4);
 		const type = name(typeIdx);
-		// `VL`/`OP` carries no length, so a struct inside it is written inline —
-		// `framed: false`. This is the case a byte-level rule got wrong whenever
-		// the clock happened to read 8, which desynchronised the walk.
 		const w = valueWidth(data, type, o + 6, 0, false);
 		if (w === undefined) {
 			unhandled.set(type, (unhandled.get(type) ?? 0) + 1);
@@ -581,38 +367,17 @@ const readToken = (
 	return undefined;
 };
 
-/**
- * Read the single token at `offset`, or `undefined`. A thin exported wrapper
- * over the internal reader, for `objects.ts`'s span resolver: it looks each span
- * index entry up at a computed offset rather than walking, so it needs to decode
- * one token at an arbitrary position instead of scanning from the stream start.
- *
- * That resolver is why `childSize` is trusted rather than re-derived. The claim
- * it rests on was verified on the data — a `BLCK` with `a=74` is followed by
- * exactly four `AVAL`s totalling 74 bytes — by counting, over a whole save, how
- * often a frame's children summed to exactly its declared size against how often
- * they did not. The declared size is authoritative inside a container, and the
- * count of non-matches is what established that; a flat token walk cannot see
- * the question at all, which is why it was asked separately.
- */
 export const readTokenAt = (
 	data: Uint8Array,
 	names: readonly string[],
 	offset: number,
 ): Token | undefined => readToken(data, names, offset, new Map());
 
-/** Where a walk may start, and how many tokens it may yield. */
 type TokenScanOptions = {
 	readonly from?: number;
 	readonly limit?: number;
 };
 
-/**
- * Walk the token stream greedily from `from` (default 16, the end of the SAV3
- * header). Non-overlapping and left to right: a decoded token advances past its
- * own bytes, and a byte that starts no known token is skipped one at a time and
- * counted in `skippedBytes`.
- */
 export const parseTokens = (
 	data: Uint8Array,
 	names: readonly string[],

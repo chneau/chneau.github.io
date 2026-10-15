@@ -53,7 +53,6 @@ const Statistics = lazy(() =>
 	import("./Statistics").then((m) => ({ default: m.Statistics })),
 );
 
-/** Emerald accent matching the existing zinc/emerald taste theme. */
 const emerald: MantineColorsTuple = [
 	"#e6fbf3",
 	"#c3f3e1",
@@ -85,7 +84,6 @@ type TabKey = (typeof TAB_KEYS)[number];
 const isTabKey = (value: string | null): value is TabKey =>
 	value !== null && (TAB_KEYS as readonly string[]).includes(value);
 
-/** Read the active tab from `?tab=<id>`, falling back to the default tab. */
 const readInitialTab = (): TabKey => {
 	if (typeof window === "undefined") return "table";
 	const tab = new URLSearchParams(window.location.search).get("tab");
@@ -95,13 +93,7 @@ const readInitialTab = (): TabKey => {
 const StatisticsSkeleton = () => {
 	const { t } = useTranslation();
 	return (
-		<LoadingState
-			label={t("app.loading")}
-			// The design has no caption here, so the label is announced and not
-			// drawn; a visible one would be a visual change, not a fix.
-			hideLabel
-			className="tk-surface"
-		>
+		<LoadingState label={t("app.loading")} hideLabel className="tk-surface">
 			<Skeleton height={18} width={160} style={{ marginBottom: 20 }} />
 			<div
 				style={{
@@ -140,23 +132,9 @@ export const App = () => {
 		if (birthdays.some((b) => b.daysBeforeBirthday === 0)) {
 			triggerConfetti();
 		}
-		// The date-roll watcher recomputes `birthdays` when the calendar day
-		// advances, so subscribing here is what makes a birthday arriving while
-		// the tab sits open announce itself. `checkAndNotify`'s once-per-day
-		// latch keeps the re-check quiet on every other recompute (and on remount).
 		return subscribeDayRollNotification(() => birthdays);
 	}, []);
 
-	/**
-	 * The header strip's three soonest upcoming birthdays.
-	 *
-	 * This had an empty dependency array over the imported `birthdays` binding,
-	 * so it was frozen at first render: the component re-rendered on the store
-	 * signal, but this memo never recomputed, and adding someone sooner than the
-	 * current third left the strip showing the previous three. `useTrackedBirthdays`
-	 * is the same fix `Countdown` needed — subscribe to the recompute signal and
-	 * derive during render.
-	 */
 	const trackedBirthdays = useTrackedBirthdays();
 	const nextBirthdays = useMemo(
 		() => trackedBirthdays.filter((b) => b.daysBeforeBirthday >= 0).slice(0, 3),
@@ -167,12 +145,6 @@ export const App = () => {
 		{
 			key: "table",
 			label: t("app.table.title"),
-			// Each panel is wrapped rather than only the three widgets below. The
-			// panels carry most of the app and all of its data rendering, and they
-			// were the ones left bare: a throw in `TimelineView` or `WeatherTab` took
-			// down the whole app, where the same throw in `RecordsWidget` showed a
-			// retry button and lost one card. The boundary is per tab, so the label
-			// names which one failed.
 			children: (
 				<ErrorBoundary label={t("app.table.title")}>
 					<BirthdayTable data={data} />
@@ -246,10 +218,6 @@ export const App = () => {
 			<Notifications position="top-right" />
 			<div className="tk-shell">
 				<AppHeader
-					// Unfiltered on purpose: `data` only feeds `checkAndNotify`, and
-					// the filtered list hides weddings (off by default) plus
-					// anything the search box excluded, which would silence the
-					// very birthdays the alert exists to announce.
 					data={birthdays}
 					onOpenManage={() => setManageOpen(true)}
 					shortcuts={[

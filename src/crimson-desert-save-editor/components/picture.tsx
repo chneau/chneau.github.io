@@ -4,30 +4,13 @@ import { useState } from "react";
 import { useImage } from "../lib/image-archive";
 import { type PictureKind, picturePath, pictureTable } from "./picture-path";
 
-/**
- * One picture out of the shipped archives, or its kind's fallback glyph.
- *
- * The two kinds — an Item and a Companion — are the same picture with different
- * data, so the chrome, the failure state and the lookup live here once and the
- * kinds differ only by the table below. Pictures are decorative: the name beside
- * one is the accessible label, so the frame is `aria-hidden` and the image has
- * an empty `alt`.
- */
-
 type PictureKindInfo = {
-	/** The published path table, keyed by the Item Key or Character Key. */
 	pictures: Record<string, string>;
-	/** Drawn in place of a picture the archive does not hold. */
 	fallback: typeof Package;
-	/** Frame size when the caller does not ask for one. */
 	size: number;
-	/** The `width`/`height` hint the artwork is published at. */
 	intrinsic: number;
-	/** Tooltip on a missing or broken picture; `undefined` says nothing. */
 	missing: string | undefined;
-	/** Inset, for artwork that should not touch the frame's edge. */
 	padding: number;
-	/** Opacity of the fallback glyph. */
 	opacity: number;
 	fallbackSize: (size: number) => number;
 };
@@ -55,7 +38,6 @@ const KINDS: Record<PictureKind, PictureKindInfo> = {
 	},
 };
 
-/** Shared by both kinds: a square frame that centres whatever it holds. */
 const FRAME = {
 	display: "inline-flex",
 	alignItems: "center",
@@ -66,7 +48,6 @@ const FRAME = {
 	borderRadius: "var(--mantine-radius-sm)",
 	background: "var(--app-surface-2)",
 	color: "var(--mantine-color-dimmed)",
-	// Keep automatic browser darkening from treating dark artwork as monochrome UI icons.
 	colorScheme: "only light",
 } as const;
 
@@ -85,7 +66,6 @@ export const Picture = ({
 	const source = useImage(picture);
 	const [failedSource, setFailedSource] = useState<string>();
 	const available = source !== undefined && source !== failedSource;
-	/** Nothing will arrive: the table has no path, or the picture failed. */
 	const broken = picture === undefined || failedSource !== undefined;
 	const Fallback = info.fallback;
 	return (

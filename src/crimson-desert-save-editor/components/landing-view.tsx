@@ -22,13 +22,6 @@ import {
 } from "lucide-react";
 import { type DragEvent, useState } from "react";
 
-/**
- * The pre-load screen. It is deliberately asymmetric: the argument for the tool
- * sits left of the drop target rather than centred over it, and the drop target
- * is a single panel with a hairline edge instead of a dashed placeholder box.
- *
- * The drag state is local because nothing outside this screen observes it.
- */
 export const LandingView = ({
 	loading,
 	status,

@@ -13,78 +13,28 @@ import {
 	useShortcutsHelp,
 } from "./ShortcutsHelp";
 
-/** The light/dark pair a navbar control needs, supplied by whoever owns it. */
 type NavTheme = {
 	dark: boolean;
 	onToggle: () => void;
 };
 
 type AppNavProps = {
-	/** Identity block. `icon` is the accent mark beside the title. */
 	icon?: ReactNode;
 	title: ReactNode;
 	subtitle?: ReactNode;
-	/**
-	 * Rendered inside the brand slot ahead of `Brand`. Only crimson-desert uses
-	 * it, for a navigation toggle that belongs with the brand rather than in the
-	 * action row.
-	 */
 	brandExtra?: ReactNode;
-	/** The brand links home by default; pass `null` for an app that cannot. */
 	brandHref?: string | null;
-	/**
-	 * The app's own controls. On a wide bar they sit inline; on a narrow one they
-	 * collapse behind "More" (see `HeaderOverflow`).
-	 */
 	actions?: ReactNode;
-	/** Optional centre slot, for a search box or status badges. */
 	center?: ReactNode;
-	/** Shortcut groups for the shared help dialog this navbar owns. */
 	shortcuts?: readonly ShortcutGroup[];
-	/** Extra site-wide keys, e.g. `APP_SWITCH_SHORTCUTS`. */
 	globalShortcuts?: ShortcutItem[];
-	/**
-	 * Whether this app binds the command palette, so the help dialog only
-	 * advertises ⌘/Ctrl+K where it works. Six save editors do not.
-	 */
 	hasCommandPalette?: boolean;
-	/**
-	 * The dashboard is the hub and has nowhere to go back to, so it opts out.
-	 * Every other app gets `BackHome` first, which is the order the whole site
-	 * agreed on — `design` used to disagree and nothing caught it.
-	 */
 	showBackHome?: boolean;
-	/**
-	 * Where the theme control reads from. Omitted, it follows Mantine's colour
-	 * scheme, which every app's `MantineProvider` already drives. Pass it only
-	 * where an app keeps its own source — birthday's Valtio store.
-	 *
-	 * This is deliberately not inferred from the app: the refactor moves where
-	 * the control is rendered, never where its state comes from, so an app's
-	 * theme behaviour cannot change as a side effect of adopting `AppNav`.
-	 */
 	theme?: NavTheme;
-	/** Drop sticky positioning when the header sits inside a fixed layout. */
 	staticPosition?: boolean;
 	className?: string;
 };
 
-/**
- * The one navbar, for every app on the site.
- *
- * Seven apps were each assembling the same five things by hand — the brand,
- * `BackHome`, the app switcher, the shortcuts button, the theme toggle, and the
- * shortcuts dialog mounted at the root of the tree — and the save editors had a
- * second, different arrangement. Being hand-assembled, the invariant parts had
- * already drifted: `design` put the switcher before the back button, and the
- * theme toggle was in the bar in some apps and behind "More" in others, with no
- * rule that said which. Ordering is now stated once, here.
- *
- * What this component deliberately does *not* own is where an app's state comes
- * from. It renders the controls and wires the dialog; the theme source, the
- * shortcut data and the app's own actions stay with the app that has them.
- */
-/** Shared empty default, so the prop keeps a stable identity across renders. */
 const EMPTY_SHORTCUTS: readonly ShortcutGroup[] = [];
 
 export const AppNav = ({
@@ -95,11 +45,6 @@ export const AppNav = ({
 	brandHref = "/",
 	actions,
 	center,
-	// A module-level constant, not an inline `[]`. A default of `[]` allocates a
-	// fresh array on every render, so the prop's identity changed each time and
-	// anything downstream that compares it — a memo, an effect dependency — saw a
-	// change on every render of the parent. Defaults are never mutated, so one
-	// shared empty array is safe.
 	shortcuts = EMPTY_SHORTCUTS,
 	globalShortcuts,
 	hasCommandPalette = false,
@@ -109,30 +54,12 @@ export const AppNav = ({
 	className,
 }: AppNavProps) => {
 	const shortcutsHelp = useShortcutsHelp();
-	// A hook cannot be conditional, so this always runs; an explicit `theme` prop
-	// still wins below. The fallback used to read Mantine's own scheme, which
-	// meant an app that forgot to pass `theme` got a toggle writing Mantine's key
-	// rather than the site-wide one — invisible, because the token layer follows
-	// `data-theme` while Mantine writes `data-mantine-color-scheme`, so the two
-	// halves of the scheme could disagree with no symptom.
 	const shared = useThemeMode();
 	const resolvedTheme: NavTheme = theme ?? {
 		dark: shared.dark,
 		onToggle: shared.toggle,
 	};
 
-	/**
-	 * Only advertise a help button when there is something to read.
-	 *
-	 * The six save editors had no help dialog before this refactor and declare no
-	 * shortcut groups, so giving them the shared button would have shipped a
-	 * button that opens an empty dialog — a worse answer than no button.
-	 *
-	 * The alternative, defaulting them to `APP_SWITCH_SHORTCUTS`, would be a
-	 * lie: those keys are bound by the dashboard, not by an app the visitor is
-	 * already inside, so listing "1-6: open an app" there would document
-	 * something that does nothing.
-	 */
 	const hasShortcuts =
 		shortcuts.length > 0 ||
 		(globalShortcuts?.length ?? 0) > 0 ||
@@ -175,12 +102,6 @@ export const AppNav = ({
 					</>
 				}
 			/>
-			{/*
-			 * The dialog lives here rather than at the root of each app's tree.
-			 * `Modal` portals, so where it is mounted does not change where it
-			 * appears — but owning it here is what stops an app shipping a
-			 * navbar whose help button opens nothing.
-			 */}
 			<ShortcutsHelp
 				opened={shortcutsHelp.opened}
 				onClose={shortcutsHelp.close}

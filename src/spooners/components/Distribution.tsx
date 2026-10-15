@@ -9,15 +9,12 @@ import { Sparkline } from "./Sparkline";
 
 type HistogramProps = {
 	bins: Bin[];
-	/** Tallest bar; every bar's height is a share of it. */
 	peak: number;
 	scale: PriceScale;
 	currency: string;
-	/** Left offset of the median rule, as a percentage, or `null` for none. */
 	medianAt: number | null;
 };
 
-/** The bars themselves, with the median drawn over them. */
 const Histogram = ({
 	bins,
 	peak,
@@ -77,11 +74,6 @@ const Histogram = ({
 	</Box>
 );
 
-/**
- * The national median's own history, which answers a different question from
- * the histogram above: not "what do today's pubs charge" but "which way has the
- * typical price moved". Needs two snapshots before it can show a direction.
- */
 const MedianHistory = ({
 	history,
 	points,
@@ -105,7 +97,6 @@ const MedianHistory = ({
 	);
 };
 
-/** How many pubs charge each price band - a plain histogram, no chart library. */
 export const Distribution = ({
 	prices,
 	scale,
@@ -116,9 +107,7 @@ export const Distribution = ({
 	prices: number[];
 	scale: PriceScale;
 	currency: string;
-	/** Marks the median on the histogram. */
 	median?: number;
-	/** National median snapshots, oldest first. */
 	history?: HistoryPoint[];
 }) => {
 	const bins = useMemo(() => buildHistogram(prices), [prices]);

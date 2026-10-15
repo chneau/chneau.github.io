@@ -12,14 +12,12 @@ type ConfirmPopoverProps = {
 	confirmLabel?: string;
 	cancelLabel?: string;
 	danger?: boolean;
-	/** Controlled open state. When omitted the popover manages its own state. */
 	opened?: boolean;
 	onOpenChange?: (opened: boolean) => void;
 	onConfirm: () => void;
 	children: ReactElement<{ onClick?: (event: MouseEvent) => void }>;
 };
 
-/** A small confirm-on-click popover for destructive actions. */
 export const ConfirmPopover = ({
 	title,
 	confirmLabel,
@@ -40,8 +38,6 @@ export const ConfirmPopover = ({
 		onOpenChange?.(value);
 	};
 
-	// The popover is controlled, so Mantine does not open it from the target
-	// itself. Clone the trigger to open/close it while keeping its own handler.
 	const trigger = cloneElement(children, {
 		onClick: (event: MouseEvent) => {
 			children.props.onClick?.(event);

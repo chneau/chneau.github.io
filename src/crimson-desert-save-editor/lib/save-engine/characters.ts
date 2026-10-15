@@ -1,33 +1,3 @@
-/**
- * The levels the save tracks: the player, the people you have met, the
- * progression sub-levels, and the companions you own.
- *
- * Four tables hold those numbers, and this module reads all four into one shape
- * so the editor can list them together and the applier can address a row by a
- * single id:
- *
- *   - `CharacterStatusSaveData` is the player — one row, its level and
- *     experience at the root of the block;
- *   - `FriendlySaveData._friendlyDataList` is the bond log. Each element nests
- *     its numbers in an inline `_levelData` object and carries the reward flags
- *     `_threatRewarded` and `_readMemoryRewarded`;
- *   - `SubLevelSaveData._list` is progression: skill points, region
- *     contribution and the abyss stat tracks;
- *   - `MercenaryClanSaveData._mercenaryDataList` is horses, pets and the camp
- *     crew, identified by their own `_mercenaryNo` — several companions share a
- *     `_characterKey`, so the species is not an identity.
- *
- * A field a record does not carry is reported as `null`. Some of those are
- * genuinely not tracked, but others are only absent because the game omits a
- * field while it holds its default: the bond reward flags are missing on nearly
- * every bond in both fixtures, and the player's `_experience` is missing in both
- * entirely. Those are created on demand — `insertRecordFields` for a bond's flag,
- * `insertRootFields` for a root scalar — and `creatable` tells the editor which
- * ones a row can gain. That is also why the applier plans twice: creating a field
- * moves every later offset in the block, so the scalar writes are planned against
- * the payload the creation produced.
- */
-
 import { type DecodedSave, decodeSave } from "./container";
 import { type GameNamesFile, gameNamesTable } from "./data";
 import { defined } from "./defined";
@@ -47,7 +17,6 @@ import {
 import { patchScalars, type ScalarWrite } from "./scalar-patch";
 import { commitSave } from "./transaction";
 
-/** Which table a row came from. */
 export type CharacterKind = "player" | "bond" | "region" | "companion";
 
 export const characterKindLabels: Record<CharacterKind, string> = {
@@ -57,28 +26,18 @@ export const characterKindLabels: Record<CharacterKind, string> = {
 	companion: "Companions",
 };
 
-/** Level ceiling the editor offers; the game's own data reaches 100. */
 export const levelLimit = 100;
 export const experienceLimit = 999_999_999;
 
-/** The numeric fields the level tables expose. */
 type CreatableField = "level" | "maxLevel" | "experience";
 
-/**
- * One editable field: where it is and how much it can hold. An `offset` of
- * `null` means the record does not store the field yet and it has to be created
- * before it can hold anything — which is how the player's experience works, as
- * the game only writes it once it is non-zero.
- */
 type Slot = {
 	offset: number | null;
-	/** The schema field name, which a creation needs. */
 	field: string;
 	size: number;
 	limit: number;
 };
 
-/** The numbers and flags of one row. */
 type CharacterValues = {
 	level: number | null;
 	maxLevel: number | null;
@@ -87,14 +46,11 @@ type CharacterValues = {
 	memoryRewarded: boolean | null;
 };
 
-/** One row as the editor shows it. */
 export type CharacterEntry = CharacterValues & {
-	/** `kind:key`, stable across re-reads. */
 	id: string;
 	kind: CharacterKind;
 	key: number;
 	name: string | null;
-	/** Fields this row stores no value for but the editor can create. */
 	creatable: CreatableField[];
 };
 
@@ -106,7 +62,6 @@ export type CharacterDescription = {
 	error: string | null;
 };
 
-/** A row plus the offsets behind its values. */
 type Row = {
 	id: string;
 	kind: CharacterKind;
@@ -120,11 +75,6 @@ type Row = {
 		threatRewarded: Slot | null;
 		memoryRewarded: Slot | null;
 	};
-	/**
-	 * Where a field this row does not store would be created. A reward flag is
-	 * created on the bond's own list element; the player's experience is created
-	 * on the root block, which is why the two are told apart.
-	 */
 	creation:
 		| { kind: "list"; rootType: string; listField: string; recordStart: number }
 		| { kind: "root"; rootType: string }
@@ -139,11 +89,6 @@ const numeric = (
 	return typeof value === "number" ? value : null;
 };
 
-/**
- * A field's slot, or `null` when the save neither stores it nor can store it.
- * `creatable` is set for the scalars the game only writes once they hold
- * something: an absent one is a default, not a missing capability.
- */
 const slotOf = (
 	source: RootObject | WalkedObject,
 	name: string,
@@ -324,7 +269,6 @@ const allRows = (raw: Uint8Array, names: GameNamesFile): Row[] => [
 	...readCompanions(raw, names),
 ];
 
-/** The fields this row stores nothing for but could gain. */
 const creatableOf = (row: Row): CreatableField[] => {
 	const fields: CreatableField[] = [];
 	for (const name of ["level", "maxLevel", "experience"] as const) {
@@ -342,7 +286,6 @@ const toEntry = (row: Row): CharacterEntry => ({
 	creatable: creatableOf(row),
 });
 
-/** Reads every level the save tracks, labelled with the game's own names. */
 export const describeCharacters = async (
 	save: DecodedSave,
 ): Promise<CharacterDescription> => {
@@ -376,7 +319,6 @@ export const describeCharacters = async (
 	}
 };
 
-/** A change to one row; a `null` field is left alone. */
 export type CharacterChange = {
 	level: number | null;
 	maxLevel: number | null;
@@ -385,19 +327,16 @@ export type CharacterChange = {
 	memoryRewarded: boolean | null;
 };
 
-/** One row's staged change. */
 export type CharacterEdit = CharacterChange & {
 	type: "character";
 	id: string;
 	label: string;
 };
 
-/** A staged change applied to every row of a kind. */
 export type CharacterPresetEdit = {
 	type: "characterPreset";
 	preset: "bondRewards" | "regionLevels";
 	label: string;
-	/** Target level, for `regionLevels`. */
 	level?: number;
 };
 
@@ -408,12 +347,10 @@ const whole = (value: number, limit: number, label: string): number => {
 	return value;
 };
 
-/** What one row's change resolves to. */
 type Plan = {
 	row: Row;
 	writes: ScalarWrite[];
 	creates: Array<{ fieldName: string; bytes: Uint8Array }>;
-	/** Values that must read back once the edit is committed. */
 	expected: Partial<CharacterValues>;
 };
 
@@ -422,7 +359,6 @@ const FLAG_FIELDS: Record<"threatRewarded" | "memoryRewarded", string> = {
 	memoryRewarded: "_readMemoryRewarded",
 };
 
-/** Where a field this row does not store would be created. */
 const requireCreation = (row: Row): NonNullable<Row["creation"]> => {
 	if (!row.creation) {
 		throw new Error(`${row.id} cannot gain a field it does not store`);
@@ -451,8 +387,6 @@ const planFor = (row: Row, change: CharacterChange): Plan => {
 		const value = whole(wanted, limit, name);
 		if (row.values[name] === value) return;
 		if (slot.offset === null) {
-			// The game never wrote the field because it still holds its default;
-			// asking for that default back is already what the save says.
 			if (value === 0) return;
 			requireCreation(row);
 			creates.push({
@@ -519,15 +453,6 @@ const planAll = async (
 		0,
 	);
 
-	/*
-	 * Creating a field moves every later offset in its block, and the two kinds of
-	 * creation move different blocks: a reward flag goes into a bond's own record,
-	 * a root scalar into the block the row lives in. So each round applies one
-	 * batch and then plans again from the payload that batch produced — every list
-	 * creation at once, since they were all measured against the payload the one
-	 * call re-reads, or one root block on its own, since its offsets move as soon
-	 * as the block grows.
-	 */
 	let payload = raw;
 	let createdFields = 0;
 	let second = first;
@@ -582,7 +507,6 @@ const planAll = async (
 			payload = inserted.payload;
 			createdFields += inserted.fieldsCreated;
 		}
-		// The batch moved every later offset, so plan the writes again.
 		const moved = allRows(payload, names);
 		second = chosen.map((entry) =>
 			planFor(
@@ -606,9 +530,6 @@ const planAll = async (
 		patched.payload,
 	);
 
-	// Both sides of the verification are indexed: a level edit touches one row
-	// but compares every row of the reopened save, and the stage table runs to
-	// tens of thousands of rows.
 	const final = allRows(reopenedPayload, names);
 	const reopenedById = new Map(final.map((row) => [row.id, row]));
 	const beforeById = new Map(rows.map((row) => [row.id, row]));
@@ -649,7 +570,6 @@ const planAll = async (
 	];
 };
 
-/** Applies one row's change. */
 export const applyCharacterEdit = async (
 	sourceBytes: Uint8Array,
 	edit: CharacterEdit,
@@ -662,10 +582,6 @@ export const applyCharacterEdit = async (
 	});
 };
 
-/**
- * Applies a change to every row of a kind: mark every bond's threat and memory
- * rewards, or set every progression row's level.
- */
 export const applyCharacterPreset = async (
 	sourceBytes: Uint8Array,
 	edit: CharacterPresetEdit,

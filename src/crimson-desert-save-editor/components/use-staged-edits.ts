@@ -14,27 +14,12 @@ import type {
 } from "../lib/staged-edits";
 import type { InventoryFocus } from "./inventory-view";
 
-/** Which row a freshly staged change belongs to, so the inventory can reveal it. */
 export type StagedTarget = {
 	inventoryKey: number;
 	itemKey: number;
 	slotNo: number | null;
 };
 
-/**
- * Every way a panel can write to the staged list, and the rules behind them.
- *
- * The page owns the list; this owns the *policy* for writing to it, and there
- * are three rules the page had to remember in the right order:
- *
- *  - a change made while a save is being rebuilt is refused, because the run is
- *    reading the list it would then be written against;
- *  - a change clears the page's error, so a red banner from a previous attempt
- *    does not sit under the change meant to fix it;
- *  - a panel's change replaces that panel's section of the list rather than
- *    appending to it, which is what stops a second keystroke on the same row
- *    leaving the earlier value queued behind it.
- */
 export const useStagedEdits = ({
 	setEdits,
 	setError,
@@ -46,14 +31,12 @@ export const useStagedEdits = ({
 }: {
 	setEdits: Dispatch<SetStateAction<SaveEdit[]>>;
 	setError: Dispatch<SetStateAction<string>>;
-	/** True while the save is being rebuilt; every staging call then refuses. */
 	busy: boolean;
 	result: ParseResult | null;
 	companionCatalog: CompanionCatalog;
 	setActiveStorage: Dispatch<SetStateAction<number | null>>;
 	setFocus: Dispatch<SetStateAction<InventoryFocus | null>>;
 }) => {
-	/** Point the inventory at the row a staged change just touched. */
 	const revealStaged = useCallback(
 		(target: StagedTarget) => {
 			setActiveStorage(target.inventoryKey);
@@ -72,11 +55,6 @@ export const useStagedEdits = ({
 				slotNo: edit.type === "equipment" ? edit.slotNo : null,
 			});
 		},
-		// `setEdits` and `setError` are declared rather than assumed away. Both
-		// are `useState` setters, whose identity React guarantees is fixed for
-		// the life of the component, so listing them cannot re-create this
-		// callback — while omitting them left the callbacks below reading them
-		// without saying so.
 		[revealStaged, setEdits, setError],
 	);
 
@@ -91,19 +69,12 @@ export const useStagedEdits = ({
 		);
 	};
 
-	/**
-	 * Replaces a section's staged edits with that section's own view of what it
-	 * has queued. The rule is `stagedList.replaceSection`; what stays here is the
-	 * guard that ignores a panel's change while a save is being rebuilt.
-	 */
 	const replaceEdits = useCallback(
 		(matches: (edit: SaveEdit) => boolean, next: SaveEdit[]) => {
 			if (busy) return;
 			setError("");
 			setEdits((current) => stagedList.replaceSection(current, matches, next));
 		},
-		// The two setters are `useState` dispatches, so they never change
-		// identity and this callback is still created only when `busy` flips.
 		[busy, setEdits, setError],
 	);
 

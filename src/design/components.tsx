@@ -59,21 +59,12 @@ export const CopyableCode = ({
 	);
 };
 
-/** Visually hidden heading so each card still contributes to the outline. */
 export const SectionHeading = ({ children }: { children: string }) => (
 	<Title order={2} className="sr-only">
 		{children}
 	</Title>
 );
 
-/**
- * Token sync state, drawn with the shared tokens rather than a Mantine `Badge`.
- *
- * `variant="light"` paints its label in the colour's `-light-color` step on a
- * 10%-tinted background, which lands around 3.8:1 at badge size — under the
- * 4.5:1 that small text needs. A dot plus body-text colour says the same thing
- * and passes, which is the point of a gallery.
- */
 const DriftBadge = ({
 	declared,
 	live,

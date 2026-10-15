@@ -16,17 +16,14 @@ type Props = {
 	onSelectVenue: (ref: number) => void;
 	converting: boolean;
 	displayCurrency: string;
-	/** Set when a conversion was asked for but rates are unavailable. */
 	rateIssue?: boolean;
 	copied: boolean;
 	onShare: () => void;
 	onValueOpen: () => void;
 	onSettingsOpen: () => void;
-	/** Shortcut groups for the help dialog `AppNav` owns. */
 	shortcuts: ShortcutGroup[];
 };
 
-/** The top bar: branding, live counts, pub search, value charts and app actions. */
 export const AppHeader = ({
 	stats,
 	itemCount,
@@ -56,8 +53,6 @@ export const AppHeader = ({
 
 	return (
 		<AppNav
-			// This app binds the command palette, so the shared help dialog
-			// may advertise it.
 			hasCommandPalette
 			icon={<Beer size={22} />}
 			title="Spooners"
@@ -105,9 +100,6 @@ export const AppHeader = ({
 			}
 			actions={
 				<>
-					{/* `AppNav` wraps these in its own `HeaderOverflow` beside the
-					    shared help and theme controls, so the narrow-bar budget is
-					    the whole set rather than these three alone. */}
 					<HeaderAction
 						iconOnly
 						label="Settings"

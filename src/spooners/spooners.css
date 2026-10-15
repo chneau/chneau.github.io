@@ -1,9 +1,3 @@
-/*
- * Leaflet chrome, made to follow the Mantine colour scheme so the map, popups
- * and controls look at home in both light and dark mode.
- */
-
-/* Expose the amber accent to the shared utilities (status dot, focus rings). */
 :root {
 	--app-accent: var(--mantine-primary-color-filled);
 }
@@ -12,7 +6,6 @@
 	font-family: inherit;
 }
 
-/* OpenStreetMap tiles are light: darken them to match the dark UI. */
 [data-mantine-color-scheme="dark"] .spooners-map .leaflet-tile {
 	filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.92)
 		saturate(0.55);
@@ -65,7 +58,6 @@
 	border-top-color: var(--mantine-color-default-border);
 }
 
-/* thin scrollbars for the sidebar lists */
 .spooners-scroll {
 	scrollbar-width: thin;
 }

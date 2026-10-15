@@ -1,32 +1,8 @@
-/**
- * Tests for public/sw.js.
- *
- * The worker is a classic (module-less) script that runs against real browser
- * globals, so it is loaded here by evaluating its source inside a stubbed
- * ServiceWorkerGlobalScope: `self`, `caches`, `fetch`, `clients`, `Response`,
- * `Request`, `Headers` and `URL` are all injected explicitly.
- *
- * Those last four are OUR classes (see "Platform doubles" below), never the
- * ambient globals. `bun test` runs every suite in a single process, and any file
- * importing src/shared/tests/happy-dom.ts installs GlobalRegistrator, which
- * replaces globalThis.Response/Request/Headers/URL. Evaluating the worker
- * against those would make the result depend on which other test files ran
- * first — happy-dom's Request even throws a SecurityError for
- * `{mode: "navigate"}`, which is the worker's navigation signal.
- *
- * No DOM is involved — the pure decision function is driven with plain
- * request/URL doubles, and the handler tests use plain objects.
- */
 import { beforeAll, describe, expect, test } from "bun:test";
 
 const ORIGIN = "https://chneau.github.io";
 type Strategy = string;
 
-/**
- * The worker's strategy enum, typed as a closed set of literal keys: an
- * `IndexSignature`-shaped record would widen every lookup to `string |
- * undefined` under `noUncheckedIndexedAccess`, which hides genuine typos.
- */
 type StrategyName = {
 	BYPASS: Strategy;
 	NETWORK_FIRST: Strategy;
@@ -49,24 +25,6 @@ type Internals = {
 	resolveBuildId: (scriptHref: string) => string;
 	sanitizeCacheKey: (value: unknown) => string;
 };
-
-// ---------------------------------------------------------------------------
-// Harness
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Platform doubles
-//
-// These are deliberately OUR classes, not `globalThis.Response` & friends.
-// `bun test` runs every suite in one process, and any file importing
-// src/shared/tests/happy-dom.ts installs GlobalRegistrator, which overwrites
-// globalThis.Response/Request/Headers/URL with happy-dom's implementations
-// (whose `new Request(url, {mode:"navigate"})` throws a SecurityError, for
-// one). Evaluating the worker against those would mean the result depends on
-// which other test files ran first. Only the surface public/sw.js actually
-// uses is implemented here — see the assertions in `platform doubles match the
-// worker's real usage`.
-// ---------------------------------------------------------------------------
 
 type HeadersInitLike = Iterable<[string, string]> | Record<string, string>;
 
@@ -98,15 +56,9 @@ class TestHeaders {
 	entries(): IterableIterator<[string, string]> {
 		return this.map.entries();
 	}
-	/**
-	 * Make `Headers` iterable, as the real one is. The worker does
-	 * `new Headers(response.headers)`; without this the constructor cannot read a
-	 * `TestHeaders` and the copy silently comes out empty.
-	 */
 	*[Symbol.iterator](): IterableIterator<[string, string]> {
 		yield* this.map.entries();
 	}
-	/** Deep copy, so a cloned response does not share header state. */
 	clone(): TestHeaders {
 		const copy = new TestHeaders();
 		for (const [key, value] of this.map) copy.set(key, value);
@@ -148,7 +100,6 @@ class TestResponse {
 		return new Uint8Array(body);
 	}
 
-	/** Build a response from already-computed fields (used by `clone`). */
 	private static from(parts: {
 		bytes: Uint8Array;
 		status: number;
@@ -166,11 +117,6 @@ class TestResponse {
 		}) as TestResponse;
 	}
 
-	/**
-	 * A genuine deep copy: the body bytes are duplicated, so consuming the clone
-	 * cannot consume this response. The worker clones before `cache.put` for
-	 * exactly this reason, and returning `this` here would hide a defect.
-	 */
 	clone(): TestResponse {
 		return TestResponse.from({
 			bytes: this.bytes.slice(),
@@ -210,13 +156,8 @@ class TestURL {
 	readonly searchParams: { get: (key: string) => string | null };
 
 	constructor(input: string, base?: string | TestURL) {
-		// The worker nests `new URL(path, new URL(base, self.location.href))`, so
-		// a base URL *object* must be accepted as well as a string.
 		const baseHref = typeof base === "string" ? base : base?.href;
 		const absolute = baseHref ? TestURL.resolve(input, baseHref) : input;
-		// scheme, then an OPTIONAL authority (only when "//" follows the
-		// scheme), then path, then query. Anchoring the authority to `//` keeps
-		// the path from swallowing the host.
 		const match =
 			/^([a-zA-Z][a-zA-Z0-9+.-]*:)(?:\/\/([^/?#]*))?([^?#]*)(\?[^#]*)?/.exec(
 				absolute,
@@ -242,23 +183,16 @@ class TestURL {
 			: `${absolute}`;
 	}
 
-	/** Resolve `ref` against `base` the way the worker resolves app bases. */
 	private static resolve(ref: string, base: string): string {
-		// Absolute (has a scheme) or protocol-relative (//host/...) refs are
-		// already fully qualified.
 		if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(ref) || ref.startsWith("//")) {
 			return ref;
 		}
-		// The authority group deliberately excludes the leading "//" so the root
-		// is rebuilt as scheme + "//" + authority exactly once.
 		const match = /^([a-zA-Z][a-zA-Z0-9+.-]*:)\/\/([^/?#]*)([^?#]*)?/.exec(
 			base,
 		);
 		if (!match) return `${base}${ref}`;
 		const root = `${match[1]}//${match[2]}`;
 		if (ref.startsWith("/")) return `${root}${ref}`;
-		// Relative: resolve against the base's *directory*, taken from the path
-		// only — slicing `base` directly would keep the origin and duplicate it.
 		const basePath = match[3] ?? "/";
 		const dir = basePath.slice(0, basePath.lastIndexOf("/") + 1) || "/";
 		return `${root}${dir}${ref}`;
@@ -281,8 +215,6 @@ class TestRequest {
 	) {
 		this.url = typeof input === "string" ? input : input.url;
 		this.method = (init.method ?? "GET").toUpperCase();
-		// Unlike happy-dom, a navigate-mode Request is constructible here: the
-		// worker relies on `mode === "navigate"` as its navigation signal.
 		this.mode = init.mode ?? "cors";
 		this.headers = new TestHeaders(init.headers);
 	}
@@ -298,7 +230,6 @@ class TestRequest {
 
 type FetchImpl = (request: TestRequest) => Promise<TestResponse>;
 
-/** Minimal Cache stand-in: keyed by absolute URL. */
 class FakeCache {
 	entries = new Map<string, TestResponse>();
 
@@ -339,17 +270,11 @@ type WindowClient = {
 
 type Harness = {
 	internals: Internals;
-	/** cache name -> fake cache. */
 	caches: Map<string, FakeCache>;
-	/** URLs the worker actually fetched. */
 	netLog: string[];
-	/** Open windows the worker may focus. */
 	clients: WindowClient[];
-	/** Effects the worker asked the browser to perform ("skipWaiting", …). */
 	calls: string[];
-	/** Replace to script the network; `netLog` records every hit. */
 	net: FetchImpl;
-	/** Drain the worker's fire-and-forget promises. */
 	settle: () => Promise<void>;
 	dispatchFetch: (request: TestRequest) => Promise<TestResponse | null>;
 	dispatchInstall: () => Promise<void>;
@@ -357,15 +282,7 @@ type Harness = {
 	dispatchNotificationClick: (notification: unknown) => Promise<void>;
 };
 
-/**
- * Evaluate public/sw.js inside a stubbed worker scope.
- * `scriptHref` varies the `?v=` cache-busting token the worker derives its
- * cache namespace from.
- */
 const loadWorker = async (scriptHref = `${ORIGIN}/sw.js`): Promise<Harness> => {
-	// This test lives under src/, NOT in public/ — rsbuild copies everything in
-	// public/ verbatim into every app's published output, so a test file there
-	// ships to production. Hence the explicit path back out to the worker.
 	const source = await Bun.file(
 		new URL("../../../public/sw.js", import.meta.url),
 	).text();
@@ -416,9 +333,6 @@ const loadWorker = async (scriptHref = `${ORIGIN}/sw.js`): Promise<Harness> => {
 		},
 	};
 
-	// Evaluating the worker source *is* the harness - there is no other way to
-	// run a classic service worker in-process. No suppression is needed; biome
-	// does not flag `new Function` here.
 	const factory = new Function(
 		"self",
 		"caches",
@@ -430,9 +344,6 @@ const loadWorker = async (scriptHref = `${ORIGIN}/sw.js`): Promise<Harness> => {
 		"URL",
 		source,
 	);
-	// Inject OUR doubles, never the ambient globals: any suite that has loaded
-	// happy-dom has replaced globalThis.Response/Request/Headers/URL, and the
-	// worker must not be evaluated against those.
 	factory(
 		scope,
 		caches,
@@ -448,7 +359,6 @@ const loadWorker = async (scriptHref = `${ORIGIN}/sw.js`): Promise<Harness> => {
 		(listeners.get(type) as ((e: unknown) => void) | undefined)?.(event);
 	};
 
-	/** Repeatedly drain pending promises so background writes land. */
 	const settle = async () => {
 		for (let i = 0; i < 4; i += 1) {
 			await Promise.all(pending.splice(0, pending.length));
@@ -525,14 +435,9 @@ const req = (
 	origin = ORIGIN,
 ) => new TestRequest(url(path, origin).href, init);
 
-/**
- * A navigation request. The mode matters: a browser sets `navigate` on top-level
- * document requests, and that is the only signal `decideStrategy` uses.
- */
 const nav = (path: string, origin = ORIGIN) =>
 	new TestRequest(url(path, origin).href, { mode: "navigate" });
 
-/** Seed a cache entry directly, bypassing the worker's write path. */
 const seed = (
 	h: Harness,
 	cacheName: string,
@@ -552,18 +457,9 @@ const seed = (
 const withBody = (body: string, size = body.length) =>
 	new TestResponse(body, { headers: { "content-length": String(size) } });
 
-/**
- * A failed network fetch. This must *reject*: a browser rejects with a
- * TypeError, whereas `Response.error()` resolves with an error-typed response
- * and would never reach the worker's offline fallback.
- */
 const networkDown = async (): Promise<TestResponse> => {
 	throw new TypeError("Failed to fetch");
 };
-
-// ---------------------------------------------------------------------------
-// decideStrategy — the pure routing decision
-// ---------------------------------------------------------------------------
 
 describe("decideStrategy", () => {
 	test("navigations are network-first", () => {
@@ -589,7 +485,6 @@ describe("decideStrategy", () => {
 				sw.decideStrategy({ method: "GET", mode: "cors" }, url(path), true),
 			).toBe(sw.STRATEGY.STALE_WHILE_REVALIDATE);
 		}
-		// Even with no explicit mode: only `navigate` is special-cased.
 		expect(sw.decideStrategy({ method: "GET" }, url("/cv/x.js"), true)).toBe(
 			sw.STRATEGY.STALE_WHILE_REVALIDATE,
 		);
@@ -650,7 +545,6 @@ describe("decideStrategy", () => {
 			headers: { range: "bytes=0-1023" },
 		});
 		expect(sw.decideStrategy(ranged, url(path), true)).toBe(sw.STRATEGY.BYPASS);
-		// A plain-object header bag (no Headers.prototype.has) behaves the same.
 		expect(
 			sw.decideStrategy(
 				{ method: "GET", mode: "cors", headers: { Range: "bytes=10-" } },
@@ -705,10 +599,6 @@ describe("decideStrategy", () => {
 	});
 });
 
-// ---------------------------------------------------------------------------
-// normalizeBase / appBaseFor — per-app targeting
-// ---------------------------------------------------------------------------
-
 describe("normalizeBase", () => {
 	test("normalises app bases to trailing-slash paths", () => {
 		expect(sw.normalizeBase("/cv")).toBe("/cv/");
@@ -760,19 +650,8 @@ describe("appBaseFor", () => {
 	});
 });
 
-// ---------------------------------------------------------------------------
-// resolveBuildId — the cache-invalidation token
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Harness isolation
-// ---------------------------------------------------------------------------
-
 describe("harness isolation", () => {
 	test("the worker never sees globalThis Response/Request/Headers/URL", () => {
-		// These globals are NOT what the worker is evaluated against. Any suite
-		// that loads happy-dom replaces them, and the worker's behaviour must not
-		// change depending on which test files ran first.
 		const ambient = ["Response", "Request", "Headers", "URL"] as const;
 		for (const name of ambient) {
 			expect((globalThis as unknown as Record<string, unknown>)[name]).not.toBe(
@@ -787,35 +666,27 @@ describe("harness isolation", () => {
 	});
 
 	test("the doubles cover exactly what public/sw.js uses, and clone deeply", async () => {
-		// clone() must be a deep copy: the worker clones before cache.put because
-		// a body is single-consumption. Returning `this` would hide that.
 		const original = withBody("payload");
 		const clone = original.clone();
 		expect(await clone.text()).toBe("payload");
-		expect(await original.text()).toBe("payload"); // original still readable
+		expect(await original.text()).toBe("payload");
 		expect(clone).not.toBe(original);
 
-		// Headers must survive a clone and stay independent.
 		clone.headers.set("x-sw-size", "7");
 		expect(clone.headers.get("x-sw-size")).toBe("7");
 		expect(original.headers.has("x-sw-size")).toBe(false);
 
-		// Navigations must be constructible with mode:"navigate" — happy-dom
-		// throws a SecurityError here, which is the contamination being avoided.
 		const navigation = nav("/cv/");
 		expect(navigation.mode).toBe("navigate");
 		expect(navigation.method).toBe("GET");
 
-		// URL surface used by the worker: href/protocol/origin/pathname/searchParams.
 		const parsed = new TestURL("/sw.js?v=abc", ORIGIN);
 		expect(parsed.pathname).toBe("/sw.js");
 		expect(parsed.protocol).toBe("https:");
 		expect(parsed.origin).toBe(ORIGIN);
 		expect(parsed.searchParams.get("v")).toBe("abc");
-		// A base may be a URL object: the worker nests new URL(path, new URL(...)).
 		expect(new TestURL("index.html", parsed).pathname).toBe("/index.html");
 
-		// Response.error() resolves with an error type; a failed *fetch* rejects.
 		expect(TestResponse.error().type).toBe("error");
 		await expect(networkDown()).rejects.toBeInstanceOf(TypeError);
 	});
@@ -823,8 +694,6 @@ describe("harness isolation", () => {
 
 describe("resolveBuildId", () => {
 	test("the ?v= token on the script URL wins, sanitised for a cache name", () => {
-		// Percent-decoded by URLSearchParams, then stripped of anything that is
-		// not safe in a Cache Storage name.
 		expect(sw.resolveBuildId(`${ORIGIN}/sw.js?v=2026-09-30%2012%3A00`)).toBe(
 			"2026-09-301200",
 		);
@@ -833,13 +702,8 @@ describe("resolveBuildId", () => {
 	});
 
 	test("without ?v= the hand-written constant protects the cache", () => {
-		// The placeholder is still literal in this tree, so a registration with no `?v=`
-		// on the script URL falls through to MANUAL_VERSION. Asserted against the
-		// running worker rather than a hard-coded literal, because bumping
-		// MANUAL_VERSION is an expected, documented edit.
 		const fallback = sw.resolveBuildId(`${ORIGIN}/sw.js`);
 		expect(fallback).toBe(sw.BUILD_ID);
-		// Not the placeholder, and a token that is safe inside a cache name.
 		expect(fallback).not.toBe("__BUILD_ID__");
 		expect(fallback).toMatch(/^[a-zA-Z0-9._-]+$/);
 	});
@@ -850,7 +714,6 @@ describe("resolveBuildId", () => {
 		expect(first.internals.BUILD_ID).toBe("deploy-1");
 		expect(second.internals.BUILD_ID).toBe("deploy-2");
 
-		// Same token -> same namespace, so repeat visits reuse the cache.
 		first.net = async () => withBody("<html>cv</html>");
 		await first.dispatchFetch(nav("/cv/"));
 		await first.settle();
@@ -864,16 +727,11 @@ describe("resolveBuildId", () => {
 	});
 });
 
-// ---------------------------------------------------------------------------
-// Cache bounds
-// ---------------------------------------------------------------------------
-
 describe("cache bounds", () => {
 	test("the documented caps are the ones enforced", () => {
 		expect(sw.MAX_ENTRY_BYTES).toBe(2 * 1024 * 1024);
 		expect(sw.MAX_CACHE_BYTES).toBe(32 * 1024 * 1024);
 		expect(sw.MAX_CACHE_ENTRIES).toBe(200);
-		// /spooners/data.json is ~24 MB and must therefore never be cached.
 		expect(24 * 1024 * 1024).toBeGreaterThan(sw.MAX_ENTRY_BYTES);
 	});
 
@@ -891,8 +749,6 @@ describe("cache bounds", () => {
 
 	test("an unknown Content-Length is refused rather than uncounted", async () => {
 		const h = await loadWorker();
-		// `vary: *` marks a response the worker must not store, standing in for
-		// a chunked/opaque reply whose size it cannot account for.
 		h.net = async () => new TestResponse("body", { headers: { vary: "*" } });
 		await h.dispatchFetch(req("/static/js/index.js"));
 		await h.settle();
@@ -905,7 +761,6 @@ describe("cache bounds", () => {
 		const h = await loadWorker();
 		h.net = async (request) =>
 			withBody(`body:${new TestURL(request.url).pathname}`);
-		// Push well past MAX_CACHE_ENTRIES with small, cacheable responses.
 		for (let i = 0; i < 230; i += 1) {
 			await h.dispatchFetch(req(`/static/js/chunk-${i}.js`));
 			await Bun.sleep(0.4);
@@ -919,10 +774,6 @@ describe("cache bounds", () => {
 		expect(cache?.entries.size).toBeGreaterThan(0);
 	});
 });
-
-// ---------------------------------------------------------------------------
-// Navigation behaviour
-// ---------------------------------------------------------------------------
 
 describe("navigations", () => {
 	test("are served from the network and cached for offline", async () => {
@@ -953,7 +804,6 @@ describe("navigations", () => {
 		const deep = await h.dispatchFetch(nav("/cv/experience/2026"));
 		expect(await deep?.text()).toBe("<html>cached cv</html>");
 
-		// An app with nothing cached degrades to the site-wide offline page.
 		const unknown = await h.dispatchFetch(nav("/spooners/"));
 		expect(await unknown?.text()).toBe("<html>offline</html>");
 	});
@@ -979,10 +829,6 @@ describe("navigations", () => {
 	});
 });
 
-// ---------------------------------------------------------------------------
-// Sub-resource behaviour
-// ---------------------------------------------------------------------------
-
 describe("sub-resources", () => {
 	test("stale-while-revalidate serves cache and refreshes in the background", async () => {
 		const h = await loadWorker();
@@ -997,8 +843,6 @@ describe("sub-resources", () => {
 		expect(await cold?.text()).toBe("body-1");
 		await h.settle();
 
-		// Warm read: answered from cache even though the network would say
-		// "body-2", and the entry is refreshed for the next read.
 		const warm = await h.dispatchFetch(request.clone());
 		expect(await warm?.text()).toBe("body-1");
 		await h.settle();
@@ -1071,10 +915,6 @@ describe("sub-resources", () => {
 	});
 });
 
-// ---------------------------------------------------------------------------
-// Messages and notifications
-// ---------------------------------------------------------------------------
-
 describe("messages and notifications", () => {
 	test("SKIP_WAITING still triggers skipWaiting()", async () => {
 		const h = await loadWorker();
@@ -1098,7 +938,6 @@ describe("messages and notifications", () => {
 		}
 		await h.settle();
 		expect(h.calls).toEqual([]);
-		// No state was recorded, so a notification still falls back to the hub.
 		await h.dispatchNotificationClick({ data: undefined });
 		expect(h.calls).toContain("openWindow:/");
 	});
@@ -1191,8 +1030,6 @@ describe("messages and notifications", () => {
 		h.net = async () => withBody("<html>spooners</html>");
 		await h.dispatchFetch(nav("/spooners/"));
 		await h.settle();
-		// With no SCOPE message and a terminated worker, the persisted state
-		// (written by the navigation) is what survives.
 		expect(h.calls).toEqual([]);
 		await h.dispatchNotificationClick({ data: undefined });
 		expect(h.calls).toContain("openWindow:/");

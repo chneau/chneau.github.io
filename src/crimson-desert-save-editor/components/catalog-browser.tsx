@@ -13,27 +13,14 @@ import { useMemo, useState } from "react";
 import { Picture } from "./picture";
 import { VirtualList } from "./virtual-list";
 
-/**
- * One browsable row. The caller precomputes what the row shows and what the
- * search box matches, so this component never needs to know where the entries
- * came from.
- */
 export type CatalogEntry = {
-	/** Stable id: the list key, and what `onSelect` receives. */
 	key: string;
 	name: string;
-	/** The heading a row groups under in the category filter. */
 	category: string;
-	/** Second line of the row. */
 	description: string;
-	/** Extra text the search box matches, beyond the name, category and key. */
 	searchText?: string;
 };
 
-/**
- * Item names run long, so both lines are ellipsized rather than wrapped: a row
- * must stay exactly `rowHeight` tall or the window arithmetic drifts.
- */
 const ROW_STYLES = {
 	label: { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
 	description: {
@@ -43,18 +30,6 @@ const ROW_STYLES = {
 	},
 } as const;
 
-/**
- * Search + category filter over a windowed catalog list.
- *
- * The add-item drawer and the equipment panel browse different catalogs and
- * their rows carry different status text, so the entries and the two per-row
- * callbacks come from the caller. Everything else — the filter boxes, the
- * category counts, the windowing, the empty state — lives here, so a filter or
- * windowing fix lands in one place instead of once per browser.
- *
- * The filters are owned here, which means they reset when the caller unmounts
- * this component (a drawer closing, or a destination storage changing).
- */
 export const CatalogBrowser = ({
 	entries,
 	labels,
@@ -67,33 +42,22 @@ export const CatalogBrowser = ({
 }: {
 	entries: CatalogEntry[];
 	labels: {
-		/** Label of the unfiltered option in the category select. */
 		all: string;
-		/** aria-label of the category select. */
 		category: string;
-		/** aria-label and placeholder of the search box. */
 		search: string;
-		/** aria-label of the list itself. */
 		list: string;
-		/** Shown in place of the list when nothing matches. */
 		empty: string;
 	};
-	/** Every row renders at exactly this height. */
 	rowHeight: number;
-	/** The list scrolls instead of growing past this height. */
 	maxHeight: number;
-	/** Right-hand status text for a row, or `""` for none. */
 	getStatus: (entry: CatalogEntry) => string;
 	getActive: (entry: CatalogEntry) => boolean;
 	onSelect: (entry: CatalogEntry) => void;
-	/** Called when the search or the category changes, so a pick can be cleared. */
 	onFilterChange?: () => void;
 }) => {
 	const [query, setQuery] = useState("");
 	const [category, setCategory] = useState("");
 
-	// Counts sit in the option labels: the point of the filter is to find a
-	// category with something in it, so an empty answer is worth announcing.
 	const categories = useMemo(() => {
 		const counts = new Map<string, number>();
 		for (const entry of entries) {

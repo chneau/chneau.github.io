@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/item_discovery.py`.
- */
-
 import { type ItemKnowledgeMapFile, itemKnowledgeTable } from "./data";
 import { insertKnowledge } from "./knowledge-inserter";
 import { sha256Hex } from "./transaction";

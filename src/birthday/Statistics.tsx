@@ -17,7 +17,6 @@ type Datum = {
 	names: string[];
 };
 
-/** A restrained, non-purple categorical palette that sits with the emerald UI. */
 const CHART_PALETTE = [
 	"#34d399",
 	"#7dd3fc",
@@ -49,7 +48,6 @@ const getDistribution = (
 		.sort((a, b) => b.value - a.value);
 };
 
-/** Recharts tooltip content that also lists the names behind a value. */
 const nameTooltip =
 	(countLabel: string) =>
 	({ active, payload }: TooltipContentProps) => {

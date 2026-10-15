@@ -1,11 +1,3 @@
-/*
- * Curriculum Vitae — a self-contained design system.
- *
- * One desaturated emerald accent, cool neutral surfaces, Geist + Geist Mono.
- * The layout is intentionally asymmetric on screen and flattens to a single
- * column for print, so the browser and the paper PDF both stay readable.
- */
-
 :root {
 	--font-sans: var(--app-font-sans);
 	--font-mono: var(--app-font-mono);
@@ -34,7 +26,6 @@
 	--ease: var(--app-ease);
 	--speed: var(--app-speed);
 
-	/* Expose the CV accent to the shared utilities. */
 	--app-accent: var(--accent);
 	--app-accent-soft: var(--accent-soft);
 	--app-accent-line: var(--accent-ring);
@@ -112,7 +103,6 @@ svg {
 	border-radius: 7px;
 }
 
-/* Lucide ships a 2px default; standardise the whole page on 1.5. */
 .cv-root svg.lucide {
 	stroke-width: 1.5;
 }
@@ -124,15 +114,11 @@ svg {
 	isolation: isolate;
 }
 
-/* ------------------------------------------------------------------ shell -- */
-
 .cv-shell {
 	max-width: var(--shell);
 	margin: 0 auto;
 	padding-inline: 24px;
 }
-
-/* ------------------------------------------------------------------- hero -- */
 
 .cv-hero {
 	position: relative;
@@ -305,8 +291,6 @@ a.cv-status-item:hover {
 	color: var(--accent);
 }
 
-/* ------------------------------------------------------------------- main -- */
-
 .cv-main {
 	padding-block: 8px 96px;
 	display: grid;
@@ -382,8 +366,6 @@ a.cv-status-item:hover {
 	color: var(--text-strong);
 }
 
-/* ----------------------------------------------------------------- skills -- */
-
 .cv-skill-group {
 	padding: 14px 0;
 	border-bottom: 1px solid var(--border);
@@ -455,8 +437,6 @@ a.cv-status-item:hover {
 .cv-tag:active {
 	transform: scale(0.96);
 }
-
-/* ------------------------------------------------------------- experience -- */
 
 .cv-timeline {
 	position: relative;
@@ -590,8 +570,6 @@ a.cv-status-item:hover {
 	color: var(--text-strong);
 }
 
-/* ------------------------------------------------------------ publication -- */
-
 .cv-paper {
 	position: relative;
 	padding: 20px 22px 20px 24px;
@@ -639,8 +617,6 @@ a.cv-status-item:hover {
 	font-size: 12px;
 	color: var(--accent);
 }
-
-/* -------------------------------------------------------------- education -- */
 
 .cv-edu-item {
 	padding: 14px 0;
@@ -697,8 +673,6 @@ a.cv-status-item:hover {
 	color: var(--accent);
 	border-color: var(--accent);
 }
-
-/* ------------------------------------------------------------ micro parts -- */
 
 .cv-ext {
 	display: inline-block;
@@ -784,11 +758,6 @@ a:hover .cv-ext {
 	font-variant-numeric: tabular-nums;
 }
 
-/* --------------------------------------------------------------- back top -- */
-
-/* The hero's primary actions. Above the fold there was no labelled way to
-   reach the downloads: the only affordances were icon buttons in the header
-   and a link list at the bottom of the page. */
 .cv-hero-downloads {
 	display: flex;
 	flex-wrap: wrap;
@@ -828,9 +797,6 @@ a:hover .cv-ext {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	/* Auto width, not a fixed circle: the button carries a visible "Top" label,
-	   and a 42x42 round would clip it on every screen. The label is dropped
-	   below the width the pill stops being worth the space. */
 	min-width: 42px;
 	height: 42px;
 	gap: 6px;
@@ -866,8 +832,6 @@ a:hover .cv-ext {
 	letter-spacing: 0.01em;
 }
 
-/* Narrow viewports keep the icon-only circle; the label never wraps or
-   collides with the fixed right edge. */
 @media (max-width: 640px) {
 	.cv-top {
 		width: 42px;
@@ -889,8 +853,6 @@ a:hover .cv-ext {
 	border-color: var(--accent);
 }
 
-/* -------------------------------------------------------------- reveal-in -- */
-
 @keyframes cv-rise {
 	from {
 		opacity: 0;
@@ -906,8 +868,6 @@ a:hover .cv-ext {
 	animation: cv-rise 0.7s var(--ease) both;
 	animation-delay: calc(var(--reveal-i, 0) * 80ms);
 }
-
-/* ------------------------------------------------------------- responsive -- */
 
 @media (max-width: 960px) {
 	.cv-hero {
@@ -949,10 +909,6 @@ a:hover .cv-ext {
 		transition-duration: 0.001ms !important;
 	}
 
-	/* A `*` reset has specificity (0,0,0), so it loses to any author rule with
-	   a selector - here `[data-reveal]` (0,1,0) and `.cv-status-dot::after`
-	   (0,1,1). Without this, the 0.7s entrance and the INFINITE 2.6s status
-	   ping both keep running for users who asked for reduced motion. */
 	[data-reveal],
 	[data-reveal]::before,
 	[data-reveal]::after,
@@ -964,8 +920,6 @@ a:hover .cv-ext {
 		transition-duration: 0.001ms !important;
 	}
 }
-
-/* ------------------------------------------------------------------ print -- */
 
 @media print {
 	@page {
@@ -1008,7 +962,6 @@ a:hover .cv-ext {
 		display: none;
 	}
 
-	/* The skip link is fixed and would otherwise print on every page. */
 	.app-skip-link {
 		display: none;
 	}
@@ -1098,7 +1051,6 @@ a:hover .cv-ext {
 		box-shadow: none;
 	}
 
-	/* Keep the paper CV self-contained: show where external links point. */
 	a[href^="http"]:not(.cv-tag)::after {
 		content: " (" attr(href) ")";
 		font-size: 0.78em;
@@ -1115,11 +1067,6 @@ a:hover .cv-ext {
 		print-color-adjust: exact;
 	}
 
-	/* Same specificity trap as the reduced-motion block above. `[data-reveal]`
-	   is `animation: cv-rise ... both`, and `both` means the element holds
-	   opacity:0 until the animation runs. Because `*` (0,0,0) cannot beat
-	   `[data-reveal]` (0,1,0), printing within the first ~1.2s produced a page
-	   with a name and nothing else - the whole body still at opacity 0. */
 	[data-reveal],
 	[data-reveal]::before,
 	[data-reveal]::after,

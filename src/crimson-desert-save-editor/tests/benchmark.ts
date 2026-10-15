@@ -1,14 +1,3 @@
-/**
- * Micro-benchmarks for the save-engine hot path.
- *
- * Every fixture-based test pays the same toll: `decodeSave` (ChaCha20 +
- * HMAC + LZ4), `encodeSave` (LZ4 + ChaCha20 + HMAC), and `commitSave`'s
- * reopen proof. This script times each stage in isolation so an optimization
- * can be checked against real numbers instead of whole-suite wall time.
- *
- * Run with `bun run bench` (or `bun tests/benchmark.ts`).
- */
-
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { lz4CompressBlock, lz4DecompressBlock } from "../../shared/save/lz4";
@@ -26,10 +15,6 @@ import {
 import { parseParcBlob } from "../lib/save-engine/parc-serializer";
 import { describeQuests } from "../lib/save-engine/quests";
 
-/**
- * The same key derivation `container.ts` does privately; duplicated here so
- * the bench can time ChaCha20 in isolation without widening the API.
- */
 const saveKeyFor = (version: number): Uint8Array => {
 	const prefixes: Record<number, string> = {
 		1: "5e516762726d2f2e2340607a73725d5c40727666616c2322",
@@ -68,7 +53,6 @@ const time = (
 	iterations: number,
 	run: () => unknown | Promise<unknown>,
 ): void => {
-	// One warmup pass so JIT tier-up does not skew the first measurement.
 	run();
 	const started = performance.now();
 	for (let index = 0; index < iterations; index++) run();
@@ -134,8 +118,6 @@ for (const [name, bytes] of [
 		await decodeSave(output);
 	});
 
-	// Read paths: each describe* parses the payload it is handed, so this
-	// section isolates its parse cost from `decodeSave` above.
 	console.log(`\n=== read path: ${name} (${raw.length} bytes) ===`);
 	time(`parseParcBlob (${name})`, 10, () => parseParcBlob(raw));
 	time(`readInventory (${name})`, 10, () => readInventory(raw));
@@ -150,8 +132,6 @@ for (const [name, bytes] of [
 	);
 	await timeAsync(`describeQuests (${name})`, 5, () => describeQuests(decoded));
 
-	// Quest-table breakdown: readRoot parses each list once to find its end
-	// (parseObjectList); walkObjectList parses every element again for fields.
 	const questRoot = readRoot(raw, "QuestSaveData");
 	time(`quest readRoot (incl. list-end parse) (${name})`, 5, () =>
 		readRoot(raw, "QuestSaveData"),

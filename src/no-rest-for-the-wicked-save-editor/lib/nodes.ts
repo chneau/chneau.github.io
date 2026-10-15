@@ -1,10 +1,3 @@
-/**
- * The CERIMAL value model: reads a document's content graph into the JSON the
- * editor works on, and writes it back in the same order with the same tag
- * decisions, so an untouched save comes back byte for byte.
- *
- * Split out of `format.ts` unchanged.
- */
 import {
 	base64Decode,
 	isJsonObject,
@@ -62,20 +55,8 @@ import {
 } from "./types";
 import { hex64, xxHash64 } from "./xxhash";
 
-/** The seven ASCII bytes that start every CERIMAL document. */
 export const MAGIC = "CERIMAL";
-// ---------------------------------------------------------------------------
-// Value layout
-// ---------------------------------------------------------------------------
 
-/**
- * Whether a reference is introduced by a tag byte.
- *
- * Only strings and arrays are, along with class instances (whose members make
- * them variable width) and forward references to a generic argument (which
- * might resolve to either). Structs, enums and fixed-width primitives are
- * written bare, which is what lets a struct of them be copied as one block.
- */
 const needsTag = (ref: TypeRef, schema: Schema): boolean => {
 	switch (ref.kind) {
 		case "primitive":
@@ -94,17 +75,6 @@ const needsTag = (ref: TypeRef, schema: Schema): boolean => {
 const alignUp = (offset: number, align: number): number =>
 	align <= 1 ? offset : Math.ceil(offset / align) * align;
 
-/**
- * The size of a value written as a bare block, or `null` when the type is not
- * fixed width.
- *
- * The reader and the writer both ask this question and must get the same
- * answer: a struct containing a string is stored member by member, each with a
- * tag, while a struct of numbers and enums is stored as one packed block with
- * padding between the members. Asking it in one place is what keeps the two
- * directions describing the same format — and asking it *before* reading any
- * bytes is what keeps a failed layout from leaving the stream half-consumed.
- */
 const blittableSize = (
 	ref: TypeRef,
 	schema: Schema,
@@ -134,9 +104,6 @@ const blittableSize = (
 		const resolved = resolveTypeArgument(member.typeRef, effective);
 		const memberSize = blittableSize(resolved, schema, effective, depth + 1);
 		if (memberSize === null) return null;
-		// Alignment comes from the member's own type, which is a whole type
-		// reference rather than a width: an eight-byte member is aligned
-		// differently from a string, and only a struct can nest.
 		const memberAlign = alignmentOf(resolved, schema, effective);
 		size = alignUp(size, memberAlign) + memberSize;
 		align = Math.max(align, memberAlign);
@@ -144,7 +111,6 @@ const blittableSize = (
 	return alignUp(size, align);
 };
 
-/** The alignment of a fixed-width value, or 1 when it is not fixed width. */
 const alignmentOf = (
 	ref: TypeRef,
 	schema: Schema,
@@ -175,24 +141,11 @@ const alignmentOf = (
 	return align;
 };
 
-// ---------------------------------------------------------------------------
-// Reading the content graph
-// ---------------------------------------------------------------------------
-
-/**
- * State for one pass over a content section.
- *
- * `path` is mutated in place rather than copied per node: a realm save holds
- * millions of them, and a fresh array at every step is a fresh array per step
- * in the collector's queue. `backrefs` is the table the tags index into.
- */
 type ReadContext = {
 	readonly reader: CerimalReader;
 	readonly schema: Schema;
 	readonly backrefs: JsonValue[];
-	/** Paths of the values the file registered, in the order it registered them. */
 	readonly registered: SavePath[];
-	/** Extents of the multi-dimensional arrays, which the document cannot imply. */
 	readonly dimensions: (readonly [SavePath, readonly number[]])[];
 	readonly path: PathSegment[];
 };
@@ -223,8 +176,6 @@ const readPrimitive = (
 		case TYPE_DOUBLE:
 			return reader.f64("a 64-bit float");
 		case TYPE_FP:
-			// Fixed point, with sixteen fractional bits: stored as an integer
-			// and only turned into a number on the way out.
 			return Number(reader.i64("a fixed-point value")) / 65536;
 		case TYPE_LFP:
 			return reader.i32("a fixed-point value") / 65536;
@@ -238,8 +189,6 @@ const readPrimitive = (
 				.join("");
 		case TYPE_LONG:
 		case TYPE_NINT:
-			// A 64-bit integer does not survive a JavaScript number, so it is
-			// carried as its decimal text, which round-trips exactly.
 			return reader.i64("a 64-bit integer").toString();
 		case TYPE_ULONG:
 		case TYPE_NUINT:
@@ -252,13 +201,6 @@ const readPrimitive = (
 	}
 };
 
-/**
- * The base type a class inherits from, resolved against its generic arguments.
- *
- * Split out because the reader and the writer both walk the inheritance chain
- * and must agree on the order they visit it: base fields first, so a derived
- * field of the same name overwrites the one it hides.
- */
 const baseOf = (
 	definition: TypeDefinition,
 	schema: Schema,
@@ -286,7 +228,6 @@ const baseOf = (
 	};
 };
 
-/** Reads a record's members into `into`, base class first. */
 const readRecordFields = (
 	context: ReadContext,
 	definition: TypeDefinition,
@@ -310,8 +251,6 @@ const readRecordFields = (
 				into[member.name] = readNode(context, member.typeRef, typeArgs);
 				context.path.pop();
 			} else if (member.kind === "list") {
-				// A list and a dictionary have no name in the schema, only a
-				// position, so the position is the key in the decoded document.
 				const key = `$list${index}`;
 				context.path.push(key);
 				const count = reader.sevenBit("a list's length");
@@ -375,8 +314,6 @@ const readValue = (
 		return readValue(context, target, tagPayload, typeArgs);
 	}
 	if (ref.kind === "array") {
-		// Only the first extent rides in the tag; the rest follow as 7-bit
-		// integers, and the elements are stored flattened.
 		const dimensions: number[] = [tagPayload];
 		for (let rank = 1; rank < ref.rank; rank += 1) {
 			dimensions.push(reader.sevenBit("an array's extent"));
@@ -405,10 +342,6 @@ const readValue = (
 	}
 	const into: { [key: string]: JsonValue } = {};
 	if (definition.kind !== "class") {
-		// A struct of fixed-width members is one packed block, padding and all,
-		// with each member read from its own place inside it. The size is asked
-		// for before a byte is taken, so a struct that is not fixed width costs
-		// nothing and leaves the stream where it was.
 		const size = blittableSize(ref, schema, effective);
 		if (size !== null) {
 			const block: ReadContext = {
@@ -468,9 +401,6 @@ const readNode = (
 	}
 	if (kind === 2) {
 		const value = readValue(context, resolved, tag >> 3, typeArgs);
-		// Bit 2 of the tag says the value joins the back-reference table, and it
-		// joins *after* being read — so a value nested inside it is registered
-		// first and takes the lower slot.
 		if (((tag >> 2) & 1) !== 0) {
 			context.registered.push([...context.path]);
 			context.backrefs.push(value);
@@ -484,21 +414,13 @@ const readNode = (
 	};
 };
 
-// ---------------------------------------------------------------------------
-// Writing the content graph
-// ---------------------------------------------------------------------------
-
-/** State for one pass over a content section being rebuilt. */
 type WriteContext = {
 	readonly writer: CerimalWriter;
 	readonly schema: Schema;
-	/** Values already in the back-reference table, keyed by object identity. */
 	readonly backrefs: Map<JsonValue, number>;
-	/** The paths whose values the file registered, as a set of path keys. */
 	readonly registered: ReadonlySet<string>;
 	readonly dimensions: ReadonlyMap<string, readonly number[]>;
 	readonly path: PathSegment[];
-	/** The next slot to hand out; the file's table is filled in write order. */
 	nextSlot: number;
 };
 
@@ -576,10 +498,6 @@ const writePrimitive = (
 			writer.f64(asNumber(value, "DOUBLE"));
 			return;
 		case TYPE_FP:
-			// `Math.round` because the stored value is an integer number of
-			// 1/65536ths, and the document holds a float that may have lost the
-			// last bit of it on the way through JSON. Rounding is what makes a
-			// value that was read and written back unchanged come out identical.
 			writer.i64(BigInt(Math.round(asNumber(value, "FP") * 65536)));
 			return;
 		case TYPE_LFP:
@@ -688,14 +606,6 @@ const writeRecordFields = (
 	}
 };
 
-/**
- * The extents to write an array with.
- *
- * Only the first is recoverable from a flattened document. A rank of one needs
- * nothing; anything higher was recorded when the save was read, because
- * `[2,3,4]` and `[24,1,1]` hold the same twenty-four elements and only the
- * file knows which it meant.
- */
 const arrayExtents = (
 	context: WriteContext,
 	rank: number,
@@ -711,14 +621,6 @@ const arrayExtents = (
 	return recorded;
 };
 
-/**
- * Writes a value that is already known not to be introduced by a tag.
- *
- * There is no payload parameter, unlike the reader's: the payload a tag carries
- * is a length or an extent, and both are implied by what gets written — a
- * string writes its own bytes and an array its own elements — so it is computed
- * once, in `tagPayloadFor`, and never needed again.
- */
 const writeValue = (
 	context: WriteContext,
 	ref: TypeRef,
@@ -775,11 +677,6 @@ const writeValue = (
 		return;
 	}
 	if (definition.kind !== "class") {
-		// The same question the reader asked, so the two agree on which of the
-		// two forms a struct is stored in. Padding goes out as zeroes: the real
-		// saves do contain structs that need it — `System.Nullable<T>` fills
-		// nine of its sixteen bytes — and all eleven of them come back
-		// byte-identical, so the game's own writer leaves that padding zero.
 		const size = blittableSize(ref, schema, effective);
 		if (size !== null) {
 			const object = isJsonObject(value) ? value : {};
@@ -821,7 +718,6 @@ const writeValue = (
 	);
 };
 
-/** The tag payload for a tagged value: a string's length, an array's first extent. */
 const tagPayloadFor = (
 	context: WriteContext,
 	ref: TypeRef,
@@ -833,8 +729,6 @@ const tagPayloadFor = (
 	if (ref.kind === "array" && Array.isArray(value)) {
 		return arrayExtents(context, ref.rank, value.length)[0] ?? 0;
 	}
-	// A class instance, or a forward reference that resolved to one of the two
-	// above, carries no length: the payload is unused and written as zero.
 	return 0;
 };
 
@@ -854,25 +748,11 @@ const writeNode = (
 		writer.sevenBit(0);
 		return;
 	}
-	// A value the file already wrote is written again as a reference to it.
-	//
-	// The lookup is the game's own rule, not a heuristic: its writer keeps a
-	// table of everything it has written and consults it before every value, so
-	// walking the document in the same order reaches the same decisions. For an
-	// object the table is keyed by reference, and the reader hands back the very
-	// same instance for a back-reference, so identity in the document is the
-	// record. For a primitive it is keyed by value, and the biggest real save
-	// leans on that: 16 371 of its back-references are strings, every one of them
-	// a Steam ID or a name written once and referred to everywhere after. A table
-	// of paths would be a megabyte of side data to say what the map already says.
 	const slot = context.backrefs.get(value);
 	if (slot !== undefined) {
 		writer.sevenBit(1 | (slot << 2));
 		return;
 	}
-	// A runtime type override: the tag says which type the value really is,
-	// rather than the one its field declared, and the type follows the tag. The
-	// reader turns it into a `$type`/`$value` pair, and this puts it back.
 	if (
 		isJsonObject(value) &&
 		typeof value.$type === "string" &&
@@ -889,25 +769,11 @@ const writeNode = (
 	writer.sevenBit(2 | (register ? 4 : 0) | (payload << 3));
 	writeValue(context, resolved, value, typeArgs);
 	if (register) {
-		// Registered after the value is written, so anything nested inside it
-		// already holds the lower slot — the order the reader sees.
 		context.backrefs.set(value, context.nextSlot);
 		context.nextSlot += 1;
 	}
 };
 
-// ---------------------------------------------------------------------------
-// One document
-// ---------------------------------------------------------------------------
-
-/**
- * Reads one document, checksum and all.
- *
- * The checksum covers the schema and the content as one contiguous run, which
- * is how they sit in the file, so it is hashed in place rather than over a
- * copy. It is checked *before* the content is walked: a damaged file should be
- * refused in a millisecond rather than turned into a plausible tree first.
- */
 export const readDocument = (
 	reader: CerimalReader,
 	stream: Uint8Array,
@@ -952,10 +818,6 @@ export const readDocument = (
 		dimensions: [],
 		path: [],
 	};
-	// The content opens with the size of its back-reference table and the slot
-	// each registration will occupy. The slots are counted, not listed, by the
-	// writer this format ships with: they run 0, 1, 2 … in the order the
-	// registrations are written.
 	const slotCount = content.sevenBit("the back-reference table's size");
 	for (let slot = 0; slot < slotCount; slot += 1) {
 		const declared = content.sevenBit("a back-reference slot");
@@ -987,7 +849,6 @@ export const readDocument = (
 	};
 };
 
-/** Writes one document, checksum included, into `out` at its current position. */
 export const writeDocument = (
 	out: CerimalWriter,
 	view: CerimalDocumentView,

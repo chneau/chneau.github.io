@@ -139,8 +139,6 @@ export const StagedEditsDrawer = ({
 	onDownload,
 	busy,
 }: StagedEditsDrawerProps) => {
-	// Stable across a removal, so React does not hand one row's DOM to a
-	// different edit when an earlier row is deleted. See `stagedEditKeys`.
 	const keys = useMemo(() => stagedEditKeys(edits), [edits]);
 
 	return (

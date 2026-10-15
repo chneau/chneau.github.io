@@ -2,22 +2,10 @@ import { Globe, Mail, Phone } from "lucide-react";
 import type { ReactNode } from "react";
 import { GithubMark, LinkedinMark } from "./brand-marks";
 
-/**
- * The CV's content, kept separate from its presentation so edits are a data
- * change rather than a React change. Keeping it typed also makes it easy to
- * diff against the printable `cv.md` generated in the `chneau/cv` repo.
- *
- * This module is content and nothing else: no component is defined or exported
- * here. The two brand marks are presentation and live in `brand-marks.tsx`,
- * imported below for the contact rows. Mixing the two would make "the CV" read
- * as a React tree rather than as a document, which is what this file is for.
- */
-
 const EMAIL = "charles63500@gmail.com";
 const PHONE_DISPLAY = "+44 7397 174345";
 const PHONE_HREF = "+447397174345";
 
-/** Remote exports; see the repo README for the upstream `chneau/cv` source. */
 export const PDF_URL =
 	"https://raw.githubusercontent.com/chneau/cv/master/cv.pdf";
 export const DOCX_URL =
@@ -324,7 +312,6 @@ const repoLanguage = (language: string): string =>
 const repoQuery = (query: string): string =>
 	`https://github.com/chneau?tab=repositories&q=${query}`;
 
-/** Exact skill names that map to a GitHub language filter. */
 const EXACT_SKILL_URLS = new Map<string, string>([
 	["go", repoLanguage("go")],
 	["go backend", repoLanguage("go")],
@@ -338,7 +325,6 @@ const EXACT_SKILL_URLS = new Map<string, string>([
 	["sql", repoLanguage("sql")],
 ]);
 
-/** Ordered keyword fallbacks; the first match wins. */
 const KEYWORD_SKILL_URLS: { match: RegExp; url: string }[] = [
 	{ match: /simpy/, url: repoLanguage("python") },
 	{ match: /osrm|gis|postgis/, url: repoQuery("osrm") },
@@ -352,7 +338,6 @@ const KEYWORD_SKILL_URLS: { match: RegExp; url: string }[] = [
 	{ match: /zero-allocation/, url: repoQuery("openhours") },
 ];
 
-/** Best-effort GitHub search URL for a skill tag. */
 export const skillSearchUrl = (skill: string): string => {
 	const lower = skill.toLowerCase();
 	const exact = EXACT_SKILL_URLS.get(lower);

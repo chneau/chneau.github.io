@@ -6,10 +6,6 @@ import "../../shared/base.css";
 import { mountApp } from "../../shared/mountApp";
 import { Home } from "./page";
 
-/**
- * Cold steel, for a game about a cat in a post-apocalyptic winter. Index 5 is
- * the dark-scheme shade, 6 the light-scheme shade.
- */
 const brand: MantineColorsTuple = [
 	"#eaf2fa",
 	"#d3e2f0",

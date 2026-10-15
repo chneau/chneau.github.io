@@ -3,8 +3,6 @@ import { orderBy } from "es-toolkit";
 import { z } from "zod";
 import type en from "./locales/en.json";
 
-// --- Constants ---
-
 const ASTRONOMICAL_CONSTANTS = {
 	MOON_CYCLE_DAYS: 29.5305882,
 	JULIAN_DAY_OFFSET: 694039.09,
@@ -60,8 +58,6 @@ const WEDDING_MILESTONES: Record<number, string> = {
 	60: "diamond",
 };
 
-// --- Astronomy ---
-
 type MoonPhase = keyof typeof en.data.moon_phases;
 
 const getMoonPhase = (date: Date): { phase: MoonPhase; icon: string } => {
@@ -96,8 +92,6 @@ const MOON_PHASES = [
 	{ phase: "last_quarter", icon: "🌗" },
 	{ phase: "waning_crescent", icon: "🌘" },
 ];
-
-// --- Zodiac & Birthgems ---
 
 type BirthGem = keyof typeof en.data.birthgems;
 
@@ -145,9 +139,6 @@ const signs: {
 	{ point: 221, name: "aries", symbol: "♈", element: "fire" },
 	{ point: 119, name: "pisces", symbol: "♓", element: "water" },
 	{ point: 20, name: "aquarius", symbol: "♒", element: "air" },
-	// Wrap-around for 1-19 January, which belongs to Sagittarius. Capricorn
-	// begins on 22 December (point 1122 above), so a point-0 entry naming
-	// Capricorn would misreport the whole first third of January.
 	{ point: 0, name: "sagittarius", symbol: "♐", element: "fire" },
 ];
 
@@ -164,18 +155,6 @@ export const getSign = (
 	return sign;
 };
 
-// --- Birthday Logic ---
-
-/**
- * A date that is real, not merely parseable.
- *
- * `dayjs("1990-02-30").isValid()` is `true` — dayjs rolls the overflow forward
- * to 2 March — so a validity check alone silently accepts dates that do not
- * exist. `2001-13-01` is rejected by dayjs but `"1990-1-1"` is accepted and
- * breaks any code that assumes the zero-padded ISO shape. The round-trip below
- * is the real test: reformatting the parsed value must reproduce the input
- * exactly, which only holds for a genuine `YYYY-MM-DD` calendar date.
- */
 const isCalendarDate = (value: string): boolean => {
 	if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
 	const parsed = dayjs(value);
@@ -187,9 +166,6 @@ export const birthdaySchema = z.object({
 	date: z
 		.string()
 		.refine(isCalendarDate, { message: "Invalid date format" })
-		// Nobody is born in the future. Without this, a mistyped year produces a
-		// record whose age, countdown and zodiac are all silently nonsense.
-		// Today itself is allowed - that is a newborn's actual birth date.
 		.refine((value) => !dayjs(value).isAfter(dayjs(), "day"), {
 			message: "Date cannot be in the future",
 		}),
@@ -459,23 +435,6 @@ export type RawBirthday = z.infer<typeof birthdaySchema>;
 
 const STORAGE_KEY = "custom_birthdays_data";
 
-/**
- * The bundled dataset, parsed once at module load.
- *
- * The committed `birthdays.json` crosses the same trust boundary as
- * `localStorage`: it is a file that can be hand-edited or regenerated wrongly,
- * and every row in it feeds an age, a countdown, a zodiac sign and an iCal VEVENT.
- * It used to be cast on all three return paths below, so the schema's rules — no
- * future dates, real calendar dates, a known `kind` — guarded only rows a visitor
- * added by hand, and a malformed committed row went straight into
- * `computeBirthdays` as a silently wrong age.
- *
- * Parsed eagerly rather than per call so the cost is one 33-row parse at startup
- * and every reader gets the declared type without a cast. A parse failure here is
- * a broken build artefact, not a runtime condition, so it throws rather than
- * degrading: there is no sensible fallback dataset to invent, and an empty list
- * would look like a working app with no data.
- */
 const bundledBirthdays = birthdaysArraySchema.parse(rawBirthdaysJson);
 
 export const getRawBirthdays = (): RawBirthday[] => {
@@ -512,18 +471,6 @@ export const addRawBirthday = (item: RawBirthday) => {
 	const current = getRawBirthdays();
 	saveRawBirthdays([...current, item]);
 };
-
-/*
- * `updateRawBirthday` and `deleteRawBirthday` were removed here.
- *
- * Both keyed on value equality — `findIndex` for the first match, `filter` for
- * every match — so with two records sharing a name and date they were actively
- * wrong: editing the second row rewrote the first, and deleting one row removed
- * both. `ManageBirthdaysModal` now resolves the record by occurrence index and
- * writes the list directly, which is correct for duplicates. These two are
- * genuinely dangerous to keep around precisely because they look like the right
- * abstraction; leaving them exported invited the bug back in.
- */
 
 const listeners = new Set<() => void>();
 export const subscribeBirthdays = (fn: () => void) => {

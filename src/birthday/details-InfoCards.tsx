@@ -5,21 +5,10 @@ import { getCompatibleElements } from "./compatibility";
 import { useCompatibilityMessages } from "./details-compatibility-messages";
 import { store } from "./store";
 
-/**
- * The four grouped information cards in the expanded row.
- *
- * Each card is its own component because each is a self-contained reading of
- * one facet of the record with its own data dependencies: grouping them here
- * rather than in `BirthdayDetails` is what lets the card that talks about
- * compatibility own the compatibility qualifiers, and the card that lists
- * planetary ages own the list, without either dragging the other along.
- */
-
 type RecordCardProps = {
 	record: Birthday;
 };
 
-/** The `<ul>` every stat card shares; the line height is the only tuning. */
 const statListStyle = {
 	paddingLeft: 16,
 	margin: 0,
@@ -31,7 +20,6 @@ const LifeProgressCard = ({
 	record,
 	sharedNames,
 }: RecordCardProps & {
-	/** Names of the *other* people whose birthday falls on this same day. */
 	sharedNames: readonly string[];
 }) => {
 	const { t } = useTranslation();
@@ -85,9 +73,7 @@ const TraitsMatchCard = ({
 	duplicateCount,
 	sameNamedCount,
 }: RecordCardProps & {
-	/** How many stored rows share this record's exact name and date. */
 	duplicateCount: number;
-	/** How many *other* people are listed under the same name. */
 	sameNamedCount: number;
 }) => {
 	const { t } = useTranslation();
@@ -136,12 +122,6 @@ const TraitsMatchCard = ({
 					</Badge>
 				))}
 			</div>
-			{/* Qualifiers. The badges above come from *this* record's
-			    element alone, so say so when the list holds another
-			    entry with the same name — otherwise "compatible" reads as
-			    "these people match". A duplicated row is weaker still:
-			    it is indistinguishable from its twin, so no match may be
-			    claimed at all. */}
 			{duplicateCount > 0 && (
 				<div style={{ marginTop: 6, fontSize: "11px" }}>
 					<Text c="yellow" component="span">
@@ -220,9 +200,6 @@ const PlanetaryAgesCard = ({ record }: RecordCardProps) => {
 	);
 };
 
-/**
- * The four cards in one grid, in the order the row has always shown them.
- */
 export const DetailsInfoCards = ({
 	record,
 	sharedNames,

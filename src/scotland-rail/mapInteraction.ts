@@ -7,21 +7,7 @@ import { nearestTrainAt } from "./engine/mapLayers";
 import { createProjection } from "./engine/projection";
 import { railActions } from "./store";
 
-/**
- * Every gesture that drives the map, as one function of the map's current state.
- *
- * Wheel, drag, pinch, hover, click and the N/P keys are one question — "what
- * does pointing at this map mean?" — and they answer it with the same three
- * pieces: a hit test, the drag bookkeeping, and the projection from a pointer
- * event into the space the layers draw in. Written as a plain function called
- * during render rather than as a hook, because none of it needs to survive a
- * render: the handlers it returns close over this frame's camera exactly as
- * inline handlers did, and there is nothing here to keep between renders.
- */
-
-/** How close, in pixels, the pointer has to be for a hover to register. */
 const HOVER_RADIUS_PX = 18;
-/** The click target is deliberately a little wider than the hover target. */
 const CLICK_RADIUS_PX = 20;
 
 type DragState = {
@@ -31,7 +17,6 @@ type DragState = {
 	initialTouchZoom: number;
 };
 
-/** The mutable drag bookkeeping, owned by the canvas element's ref. */
 type MapInteractionState = DragState;
 
 export const createInteractionState = (): MapInteractionState => ({
@@ -42,11 +27,6 @@ export const createInteractionState = (): MapInteractionState => ({
 });
 
 type MapInteraction = {
-	/**
-	 * Read through the ref at event time rather than captured during render:
-	 * on the first render the element does not exist yet, and a handler holding
-	 * `null` would silently drop the visitor's first click.
-	 */
 	canvasRef: RefObject<HTMLCanvasElement | null>;
 	state: MapInteractionState;
 	viewPreset: ViewPreset;
@@ -86,7 +66,6 @@ export const createMapHandlers = ({
 	setPan,
 	onHoverPos,
 }: MapInteraction): MapHandlers => {
-	/** Where the pointer is on the map, in the space the layers draw in. */
 	const projectPointer = (clientX: number, clientY: number) => {
 		const canvas = canvasRef.current;
 		if (!canvas) return null;
@@ -191,8 +170,6 @@ export const createMapHandlers = ({
 		const hit = projectPointer(e.clientX, e.clientY);
 		if (!hit) return;
 
-		// Clicking empty map clears the selection, which is why the miss is
-		// passed through to the store rather than short-circuited.
 		const closest = nearestTrainAt(
 			hit.proj,
 			hit.pointer,
@@ -204,18 +181,12 @@ export const createMapHandlers = ({
 		);
 	};
 
-	// Keyboard equivalent of clicking a train: cycle the selection through the
-	// currently running services (N = next, P = previous).
 	const cycleSelectedService = (direction: 1 | -1) => {
 		if (activeTrains.length === 0) return;
 		const ids = activeTrains.map((train) => train.service.id);
 		const currentIndex = selectedServiceId
 			? ids.indexOf(selectedServiceId)
 			: -1;
-		// From no selection, "previous" means the last train and "next" the
-		// first. Running the arithmetic from `-1` instead put `P` on the
-		// second-to-last: `(-1 + -1)` modular-wrapped to `length - 2`, so the
-		// key that means "back" skipped the one train a user would expect.
 		const nextIndex =
 			currentIndex === -1
 				? direction === 1
@@ -250,10 +221,6 @@ export const createMapHandlers = ({
 	};
 };
 
-/**
- * The wheel zoom factor, and the clamp around it. A plain function so the
- * native listener and the on-screen buttons cannot drift apart on either.
- */
 export const wheelZoom = (previous: number, deltaY: number): number =>
 	Math.min(8, Math.max(0.6, previous * (deltaY < 0 ? 1.15 : 0.87)));
 

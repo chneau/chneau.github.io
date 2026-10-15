@@ -47,16 +47,6 @@ type PanelProps = {
 	onDiscard: (edit: CompanionEdit) => void;
 };
 
-/**
- * One row of the browser: the companion, how many the save holds, and the one
- * action its mode allows.
- *
- * A row is the unit both modes share — the picture, the name and the count are
- * the same in either — and it is what differs per mode that makes it worth
- * naming: "Add" stages a new companion, "Selected" only reports. Extracting it
- * is also what takes the modes out of the browser's own body, which otherwise
- * has to ask which mode it is at three separate points.
- */
 const CompanionCard = ({
 	row,
 	mode,
@@ -125,20 +115,12 @@ const CompanionCard = ({
 	</Paper>
 );
 
-/**
- * What the browser says when its filters match nothing.
- *
- * Its own component because the message has three cases — filters too narrow,
- * nothing owned, nothing addable — and only the last two turn on the mode, so
- * the mode is what decides which of the three a reader is looking at.
- */
 const BrowserEmptyState = ({
 	mode,
 	totalRows,
 	onClearFilters,
 }: {
 	mode: "owned" | "add";
-	/** How many rows the mode holds before any filter is applied. */
 	totalRows: number;
 	onClearFilters: () => void;
 }) => (
@@ -158,16 +140,6 @@ const BrowserEmptyState = ({
 	</Stack>
 );
 
-/**
- * One row per *type* of companion the save holds, not per save record.
- *
- * A save can hold four of the same dog, and the browser's job is to show that
- * as one row with a count — the reader is choosing what to act on, not counting
- * records, and a list repeating one name four times reads as four different
- * things to act on. Grouping is therefore by character key, summing the count
- * and the assignments, and folding `selected` with `||=`: whether *any* copy of
- * that type is selected is the only question a row asks.
- */
 const ownedBrowseRows = (
 	summary: CompanionSummary | undefined,
 	catalog: CompanionCatalog | null,
@@ -193,7 +165,6 @@ const ownedBrowseRows = (
 	return [...owned.values()];
 };
 
-/** The browser's four inputs, as one value so they change together. */
 type BrowserFilters = {
 	query: string;
 	group: string;
@@ -201,15 +172,6 @@ type BrowserFilters = {
 	availableOnly: boolean;
 };
 
-/**
- * The search box and the two dropdowns that narrow the browser's rows.
- *
- * One component because all three are the same gesture — choose a value, and
- * the list below is a different list — and because each of them has to send the
- * browser back to its first page. That rule is stated once here, in the parent,
- * rather than repeated at every control: `onFilterChange` takes the whole new
- * filter value, so no control can change one field and forget the page reset.
- */
 const BrowserFilters = ({
 	category,
 	mode,
@@ -222,7 +184,6 @@ const BrowserFilters = ({
 	mode: "owned" | "add";
 	filters: BrowserFilters;
 	totalRows: number;
-	/** How many rows each group holds, for the group dropdown's labels. */
 	groupCounts: Map<string, number>;
 	onFilterChange: (next: Partial<BrowserFilters>) => void;
 }) => (
@@ -300,10 +261,6 @@ const CompanionBrowser = ({
 		availableOnly: false,
 	});
 	const [page, setPage] = useState(0);
-	// Two sources, one list. The "add" mode lists what the catalog offers this
-	// save; the "owned" mode lists what the save holds. Until the catalog has
-	// loaded there is nothing to offer, so the add list is empty and the tab
-	// says so rather than showing a browser with no rows in it.
 	const rows: CompanionBrowseRow[] =
 		mode === "add"
 			? catalog
@@ -322,18 +279,6 @@ const CompanionBrowser = ({
 		filters.availableOnly,
 	);
 	const current = companionPage(matches, page);
-	/**
-	 * Return to the first page after a filter change.
-	 *
-	 * This used to take the change as a callback — `applyFilter(() => setQuery(v))`
-	 * — which reads exactly like a `useState` updater, so
-	 * `no-impure-state-updater` flagged every call that closed over `setQuery`
-	 * and friends. Nothing was ever handed to React: the closure ran once,
-	 * synchronously, from a real event handler. But the shape was a genuine
-	 * ambiguity, so the callback is gone and each control now sends the fields
-	 * it changes, and the page reset is shared here because "a filter changed, so
-	 * page 0" is the invariant rather than a detail worth repeating per control.
-	 */
 	const onFilterChange = (next: Partial<BrowserFilters>) => {
 		setFilters((current) => ({ ...current, ...next }));
 		setPage(0);
@@ -421,24 +366,8 @@ const CompanionBrowser = ({
 	);
 };
 
-/** One staged edit paired with the React key that identifies it. */
 type StagedCompanionRow = { edit: CompanionEdit; key: string };
 
-/**
- * Key each staged companion edit on what it *is*, so removing one row does not
- * slide every row below it up a position and hand one row's element — and the
- * DOM inside it — to a different edit.
- *
- * An added companion carries the save's own `characterKey`, and it is unique
- * within the list: `stageCompanion` refuses a second edit for a character
- * already queued, so this half needs no tie-break.
- *
- * A queued worker batch is the awkward one: it names a quantity and a label and
- * nothing else, and two batches may well name the same quantity. Counting the
- * occurrences of each batch within its own identity is the only tie-break the
- * domain offers, and it is enough — two batches that agree on quantity are
- * interchangeable rows, so which of the pair React re-uses is not observable.
- */
 const stagedCompanionRows = (edits: CompanionEdit[]): StagedCompanionRow[] => {
 	const seen = new Map<string, number>();
 	return edits.map((edit) => {
@@ -452,14 +381,6 @@ const stagedCompanionRows = (edits: CompanionEdit[]): StagedCompanionRow[] => {
 	});
 };
 
-/**
- * The camp's robo-worker queue: how many are owned, how many may still be
- * added, and the field that queues more.
- *
- * A component of its own because the camp section has no browser at all — this
- * is the whole of what the tab does — so the quantity it holds is read by one
- * button here and nothing else in the panel.
- */
 const RoboWorkerQueue = ({
 	summary,
 	edits,
@@ -532,7 +453,6 @@ const RoboWorkerQueue = ({
 	);
 };
 
-/** The staged additions this category is holding, and a way to drop each one. */
 const StagedCompanionList = ({
 	pending,
 	busy,
@@ -575,15 +495,6 @@ const StagedCompanionList = ({
 	</Paper>
 );
 
-/**
- * How many companions a staged edit stands for: one each, or a whole worker
- * batch's worth.
- *
- * It is counted rather than listed because the heading reports a single number
- * of "staged" things while the list below shows one row per edit — a batch of
- * fifty workers is one row and fifty companions, and the two counts are
- * deliberately not the same.
- */
 const stagedCompanionCount = (pending: StagedCompanionRow[]): number =>
 	pending.reduce(
 		(total, row) =>
@@ -591,16 +502,6 @@ const stagedCompanionCount = (pending: StagedCompanionRow[]): number =>
 		0,
 	);
 
-/**
- * The two tabs every non-camp category has: what the save holds, and what it
- * could hold.
- *
- * The camp is the odd one out — it has workers to queue instead of a browser —
- * so the tabbed half is its own component and the panel's only branch is which
- * of the two it renders. The tab opens on "add" for a category the save holds
- * nothing of, because a save with no pets has nothing to inspect and the only
- * useful question is what it could have.
- */
 const CompanionTabs = ({
 	props,
 	category,
@@ -646,10 +547,6 @@ const CompanionTabs = ({
 	</Tabs>
 );
 
-/**
- * The panel's title and its counts: what the save holds here, and what this
- * category has staged for the next download.
- */
 const CompanionHeading = ({
 	category,
 	ownedCount,

@@ -26,33 +26,13 @@ import {
 } from "./content";
 import type { HeroVisibility } from "./hero-visibility";
 
-/**
- * The CV's body, one component per section of the document.
- *
- * The split is the document's own: hero and contacts, then the two columns of
- * experience and expertise. Each section carries its own `data-reveal` index,
- * so the entrance order is still read top-to-bottom through the two columns
- * rather than restarted by the split.
- */
-
-/**
- * The staggered-entrance index. It is a number and not a class because the
- * print rules in `cv.css` reset `[data-reveal]` by selector, and the index only
- * has to survive into the cascade — not carry meaning of its own.
- */
 const reveal = (index: number): CSSProperties =>
 	({ "--reveal-i": index }) as CSSProperties;
 
-/** Announces that a `target="_blank"` link opens in a new tab. */
 const NewTabHint = () => <span className="sr-only">(opens in new tab)</span>;
 
 type CopyState = "idle" | "ok" | "error";
 
-/**
- * Copy with a transient confirmation. The text is fetched through a callback
- * rather than captured, so the same hook serves a constant string and
- * `window.location.href` without either being read during render.
- */
 const useCopy = (getText: () => string, label: string) => {
 	const [state, setState] = useState<CopyState>("idle");
 	const timer = useRef<number | undefined>(undefined);
@@ -83,11 +63,6 @@ const useCopy = (getText: () => string, label: string) => {
 	return { state, title, feedback, copy };
 };
 
-/**
- * A copy button plus its live-region feedback. The region sits next to the
- * button rather than inside it so the confirmation is announced once, by one
- * element, whether the copy succeeded or failed.
- */
 const CopyButton = ({ text, label }: { text: string; label: string }) => {
 	const { state, title, feedback, copy } = useCopy(() => text, label);
 
@@ -129,16 +104,10 @@ const LONDON_TIME = new Intl.DateTimeFormat("en-GB", {
 	timeZoneName: "short",
 });
 
-/**
- * The local time in the hero. Memoised because it ticks on a timer of its own
- * and must not re-render the hero — and everything the hero contains — twice a
- * minute.
- */
 const LocalClock = memo(function LocalClock() {
 	const [now, setNow] = useState(() => new Date());
 
 	useEffect(() => {
-		// Only HH:MM is shown; a 30s tick stays current without churning.
 		const id = window.setInterval(() => setNow(new Date()), 30_000);
 		return () => window.clearInterval(id);
 	}, []);
@@ -158,7 +127,6 @@ const LocalClock = memo(function LocalClock() {
 	);
 });
 
-/** One role in the timeline, with its achievements as a list. */
 const JobItem = ({ job }: { job: Job }) => (
 	<article className="cv-job">
 		<span
@@ -195,7 +163,6 @@ const JobItem = ({ job }: { job: Job }) => (
 	</article>
 );
 
-/** The contact list in the hero: each row a value, and a copy where it helps. */
 const ContactList = () => (
 	<ul className="cv-contact cv-contact-list" data-reveal style={reveal(1)}>
 		{CONTACTS.map((contact) => (
@@ -223,11 +190,6 @@ const ContactList = () => (
 	</ul>
 );
 
-/**
- * The page's opening block: name, role, where he is, and how to reach him. It
- * carries the ref the back-to-top button watches, because that ref has to point
- * at this element and nowhere else.
- */
 export const Hero = ({ heroRef }: { heroRef: HeroVisibility["heroRef"] }) => (
 	<section className="cv-shell cv-hero" ref={heroRef}>
 		<div data-reveal style={reveal(0)}>
@@ -268,7 +230,6 @@ export const Hero = ({ heroRef }: { heroRef: HeroVisibility["heroRef"] }) => (
 	</section>
 );
 
-/** Expertise: one group of tags per domain, each linking to matching projects. */
 const Expertise = () => (
 	<section className="cv-section" data-reveal style={reveal(5)}>
 		<div className="cv-section-head">
@@ -329,7 +290,6 @@ const EducationItem = ({
 	</div>
 );
 
-/** Education. Two degrees, newest first. */
 const Education = () => (
 	<section className="cv-section" data-reveal style={reveal(6)}>
 		<div className="cv-section-head">
@@ -352,7 +312,6 @@ const Education = () => (
 	</section>
 );
 
-/** The one-paragraph summary. */
 const Summary = () => (
 	<section className="cv-section" data-reveal style={reveal(2)}>
 		<div className="cv-section-head">
@@ -372,7 +331,6 @@ const Summary = () => (
 	</section>
 );
 
-/** The career timeline, newest role first. */
 const Experience = () => (
 	<section className="cv-section" data-reveal style={reveal(3)}>
 		<div className="cv-section-head">
@@ -387,7 +345,6 @@ const Experience = () => (
 	</section>
 );
 
-/** The peer-reviewed paper. */
 const Publication = () => (
 	<section className="cv-section" data-reveal style={reveal(4)}>
 		<div className="cv-section-head">
@@ -416,7 +373,6 @@ const Publication = () => (
 	</section>
 );
 
-/** The right-hand column: summary, experience, then the publication. */
 const MainColumn = () => (
 	<div className="cv-col cv-col--main">
 		<Summary />
@@ -425,7 +381,6 @@ const MainColumn = () => (
 	</div>
 );
 
-/** The left-hand column: expertise, then education. */
 const AsideColumn = () => (
 	<aside className="cv-col cv-col--aside">
 		<Expertise />
@@ -433,7 +388,6 @@ const AsideColumn = () => (
 	</aside>
 );
 
-/** The two columns of the document body, in reading order. */
 export const Body = () => (
 	<div className="cv-shell cv-main">
 		<AsideColumn />
@@ -441,11 +395,6 @@ export const Body = () => (
 	</div>
 );
 
-/**
- * The five header controls. All of them are `no-print` in effect: the print
- * rules hide the bar itself, so the copy feedback span is the one that has to
- * carry its own class to stay out of the paper.
- */
 export const HeaderActions = () => {
 	const linkCopy = useCopy(() => window.location.href, "CV link");
 
@@ -505,7 +454,6 @@ export const HeaderActions = () => {
 	);
 };
 
-/** The footer's outbound links: the dashboard and the two exports. */
 export const FooterLinks = () => (
 	<>
 		<a href="/">Dashboard</a>
@@ -534,20 +482,11 @@ export const FooterLinks = () => (
 	</>
 );
 
-/**
- * The floating back-to-top control. It appears only once the hero has left the
- * viewport, and it respects `prefers-reduced-motion` because a smooth scroll is
- * exactly the kind of large motion the preference exists to stop.
- */
 export const BackToTop = ({ heroInView }: { heroInView: boolean }) => (
 	<button
 		type="button"
 		className="cv-top no-print"
 		data-visible={!heroInView}
-		// Hidden state is `opacity: 0` + `pointer-events: none`, which leaves
-		// the button in the tab order and in the accessibility tree: Tab at the
-		// top of the page landed on a control nobody can see. Take it out of
-		// both while it is invisible.
 		aria-hidden={heroInView}
 		tabIndex={heroInView ? -1 : 0}
 		onClick={() =>

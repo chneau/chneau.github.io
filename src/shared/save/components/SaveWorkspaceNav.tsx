@@ -3,15 +3,6 @@ import { Download, FileUp, RefreshCw } from "lucide-react";
 import { AppNav } from "../../index";
 import { formatBytes } from "../file";
 
-/**
- * The loaded save's navbar: which file is open, how large it is, how many edits
- * are staged, and the two actions that leave the workspace.
- *
- * Split out of `SaveWorkbench` so the workspace branch is the layout rather
- * than the wiring of the navbar's centre and action slots. The theme pair is
- * passed straight through, because where the control reads its state from is
- * the workbench's business, not this component's.
- */
 export const SaveWorkspaceNav = ({
 	game,
 	name,

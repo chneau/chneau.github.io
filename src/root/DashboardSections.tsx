@@ -11,11 +11,6 @@ type GridProps = {
 	onTogglePin: (href: string) => void;
 };
 
-/**
- * A titled grid of app cards. The count sits inside the heading because it is
- * the heading's own subject — "Pinned (2)" — and on the results section it is
- * also the only feedback a screen-reader user gets while typing.
- */
 const Section = ({
 	title,
 	count,
@@ -24,7 +19,6 @@ const Section = ({
 }: {
 	title: string;
 	count: number;
-	/** Announce the count politely; only the searching section changes. */
 	live?: boolean;
 	children: ReactNode;
 }) => (
@@ -43,7 +37,6 @@ const Section = ({
 	</>
 );
 
-/** What the search and category filter left, or why nothing is left. */
 export const SearchResults = ({
 	items,
 	isPinned,
@@ -75,7 +68,6 @@ export const SearchResults = ({
 		</Section>
 	);
 
-/** One chip per recently opened app, so a return visit is one click. */
 const RecentChips = ({ items }: { items: AppEntry[] }) => (
 	<div className="app-recents">
 		{items.map((app) => {
@@ -90,11 +82,6 @@ const RecentChips = ({ items }: { items: AppEntry[] }) => (
 	</div>
 );
 
-/**
- * The landing view: what the visitor pinned, what they opened lately, and
- * everything else. Pinned and recent are omitted rather than shown empty,
- * because an empty "Pinned" heading is a thing to read past.
- */
 export const AppLists = ({
 	pinned,
 	recent,

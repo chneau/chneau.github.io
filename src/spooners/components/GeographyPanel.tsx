@@ -8,11 +8,9 @@ type Props = {
 	currency: string;
 	selected: string | null;
 	onSelect: (stat: AreaStat) => void;
-	/** Minimum pubs per area, shown in the caption. */
 	min?: number;
 };
 
-/** Price league table by county (or town when there is no county). */
 export const GeographyPanel = ({
 	stats,
 	currency,

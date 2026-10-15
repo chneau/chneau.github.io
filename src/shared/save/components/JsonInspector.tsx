@@ -20,18 +20,6 @@ import {
 } from "../json";
 import type { SaveEdit } from "../types";
 
-/**
- * Browsing and editing a decoded save.
- *
- * Two modes, because a decoded save defeats a single one. Browsing wants a
- * tree, so structure is visible and the common fields are two clicks away;
- * searching wants a flat result list, because a save is routinely tens of
- * thousands of leaves deep enough that finding a field by walking is hopeless.
- *
- * Only the expanded branch is rendered. `bun test` aside, a save that renders
- * every node on open locks the main thread for seconds on a mid-range laptop,
- * and the workbench deliberately keeps its work on the main thread.
- */
 export const JsonInspector = ({
 	doc,
 	staged,
@@ -40,7 +28,6 @@ export const JsonInspector = ({
 	onSearchChange,
 }: {
 	doc: JsonValue;
-	/** Paths already carrying a staged edit, so they can be marked. */
 	staged: ReadonlySet<string>;
 	onStage: (edit: SaveEdit) => void;
 	search: string;
@@ -77,8 +64,6 @@ export const JsonInspector = ({
 				value={search}
 				onChange={(event) => onSearchChange(event.currentTarget.value)}
 				placeholder="Search every field, e.g. gold"
-				// The placeholder is not a name: it disappears once a query is
-				// typed, and not every browser maps it to the accessible name.
 				aria-label="Search every field"
 				leftSection={<Search size={15} strokeWidth={2} />}
 				rightSection={
@@ -148,7 +133,6 @@ export const JsonInspector = ({
 	);
 };
 
-/** Indentation per depth level, in pixels. */
 const INDENT = 14;
 
 const Tree = ({
@@ -174,9 +158,6 @@ const Tree = ({
 	onCancel: () => void;
 	onStage: (edit: SaveEdit) => void;
 }) => {
-	// Identity, not display: this key is compared against `stagedPaths`, which is
-	// built from `pathKey` too. Using the rendered form here is what let a dotted
-	// or bracketed key in a save mark the wrong leaf as staged.
 	const key = pathKey(path);
 	const open = expanded.has(key);
 
@@ -222,22 +203,6 @@ const Tree = ({
 
 	return (
 		<Box>
-			{/*
-			 * A disclosure button per node, not a `role="treeitem"`.
-			 *
-			 * The rows claimed `treeitem` inside nothing: the only role above
-			 * them was a plain `Box`, so `aria-required-parent` fired (WCAG
-			 * 1.3.1) — a tree with no collection, which no assistive technology
-			 * can announce a level, position or set size for — and the pattern
-			 * that was advertised needs roving focus, one tab stop for the whole
-			 * tree, where this had `tabIndex={0}` on every node. A button keeps
-			 * the keyboard behaviour the row already had (Enter and Space, for
-			 * free rather than by hand), and `aria-expanded` says exactly what
-			 * the chevron shows.
-			 *
-			 * `Text component="span"` because a `<button>` cannot contain a
-			 * paragraph, and `Text` renders one by default.
-			 */}
 			<UnstyledButton
 				aria-expanded={open}
 				onClick={() => onToggle(key)}
@@ -351,14 +316,6 @@ const LeafRow = ({
 					<TextInput
 						size="xs"
 						autoFocus
-						/**
-						 * Named for the field it edits, not left to the row's
-						 * visible key: the input replaces that row's value in a
-						 * list that can hold thousands of leaves, and a
-						 * screen-reader user reaching it by keyboard heard only
-						 * "edit text". The pencil button's `aria-label` beside it
-						 * names the same path.
-						 */
 						aria-label={`Edit ${key}`}
 						value={draft ?? scalarToDraft(value)}
 						onChange={(event) => setDraft(event.currentTarget.value)}
@@ -393,17 +350,9 @@ const LeafRow = ({
 	);
 };
 
-/** The editable text for a scalar, chosen so the commit can invert it. */
 const scalarToDraft = (value: JsonValue): string =>
 	typeof value === "string" ? value : String(value);
 
-/**
- * Interprets typed text against the field's existing type, so a numeric field
- * does not silently become a string — which is the kind of change that decodes
- * fine and then fails in the game.
- *
- * `undefined` means "not a valid edit" and the caller discards it.
- */
 const parseScalar = (
 	draft: string,
 	previous: JsonValue,

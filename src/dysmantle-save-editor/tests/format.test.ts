@@ -15,27 +15,8 @@ import {
 import { decodeToJson, dysmantle, encodeFromJson } from "../lib/format";
 import { projectXml, unprojectXml, XML_DECLARATION } from "../lib/xml";
 
-// A DOM is needed for the XML half. Registered here rather than in the codec,
-// so the pure byte half of the suite would still run without it.
 await import("../../shared/tests/happy-dom");
 
-/**
- * ## The fixture is synthetic
- *
- * No real `profile.save` ships with this repository — it is somebody's save,
- * and it is not this project's to commit. Everything below is written by hand
- * to the shape measured against a real 1.4.1.12 save: the same `<array>` group
- * names, the same element names, the same attribute names, the same spacing, and
- * the same three element shapes (`<array>` always closed, `<node/>` always
- * self-closed, the one childless array closed rather than self-closed).
- *
- * What that buys and what it does not: it pins the codec's *behaviour* — the
- * container framing, the projection, the round trip, the quick actions — against
- * a document shaped like the real thing. It cannot prove a real save behaves the
- * same way. The two claims are kept apart on purpose, and the measurements taken
- * from the real file are written into the comments in `lib/xml.ts` and
- * `lib/format.ts` rather than quietly promoted to tests they are not.
- */
 const PROFILE_XML = `${XML_DECLARATION}
 <root>
 
@@ -99,14 +80,6 @@ const PROFILE_XML = `${XML_DECLARATION}
 	</array>
 </root>`;
 
-/**
- * The container the game writes: a header, then named segments, then a trailer.
- *
- * Assembled byte by byte rather than with the codec's own writer. A fixture
- * built from the code it is meant to test would prove nothing about the framing,
- * and the tests below read the result back through `dysmantle` to show they
- * agree.
- */
 const containerBytes = (): Bytes => {
 	const chunks: Uint8Array[] = [];
 	const push = (text: string): void => {
@@ -121,9 +94,6 @@ const containerBytes = (): Bytes => {
 		new DataView(bytes.buffer).setUint32(0, value, true);
 		chunks.push(bytes);
 	};
-	// `10TONS_CONTAINER\0`, `VERSION\0` + 1, `FILE_SIZE\0` + 0 — the header a
-	// real 1.4.1.12 save opens with, the `FILE_SIZE` field included: it is zero
-	// in that file and this codec copies it rather than inventing a meaning.
 	push("10TONS_CONTAINER\0");
 	push("VERSION\0");
 	u32(1);
@@ -131,8 +101,6 @@ const containerBytes = (): Bytes => {
 	u32(0);
 	for (const [name, content] of SEGMENTS) {
 		push("SEGMENT\0");
-		// The segment total covers the name field, the length field and the
-		// content, which is what the game writes.
 		u32(name.length + 1 + 4 + content.length);
 		push(`${name}\0`);
 		u32(content.length);
@@ -153,9 +121,6 @@ const containerBytes = (): Bytes => {
 
 const SEGMENTS: readonly (readonly [string, string])[] = [
 	["xml", PROFILE_XML],
-	// Two world segments the codec cannot interpret. The bytes are arbitrary on
-	// purpose: if it understood this format it would be tempted to rewrite them,
-	// and the tests below prove it does not.
 	["bin", "world-state-bytes"],
 	["STAGE_PERSISTENCY&stages/island/index.xml&puid1", "binary blob"],
 ];
@@ -163,9 +128,6 @@ const SEGMENTS: readonly (readonly [string, string])[] = [
 const buildSave = async (): Promise<Bytes> => {
 	const container = containerBytes();
 	const { zlibDeflate } = await import("../../shared");
-	// Copied into a concrete `Uint8Array`, which is what `Bytes` is: the
-	// element-less spelling admits a `SharedArrayBuffer` that neither WebCrypto
-	// nor a `WritableStream` will take.
 	const compressed = new Uint8Array(await zlibDeflate(container));
 	const out = new Uint8Array(12 + compressed.length);
 	for (const [index, character] of [...`10tc`].entries()) {
@@ -194,12 +156,6 @@ const buildSaveOf = async (profileXml: string): Promise<Bytes> => {
 const SAVE = await buildSave();
 const DOC = await decodeToJson(SAVE);
 
-/**
- * The document as the shared model sees it.
- *
- * Read through a narrowing helper rather than a cast, because the tests assert
- * on its shape and a cast would let a wrong shape through silently.
- */
 const asObject = (value: JsonValue): { readonly [key: string]: JsonValue } => {
 	if (!isJsonObject(value)) {
 		throw new Error("expected a JSON object in the decoded document");
@@ -236,7 +192,6 @@ const nodeNamed = (doc: JsonValue, arrayId: string, id: string): JsonValue => {
 	return found;
 };
 
-/** The key the container bytes travel under; see `lib/format.ts`. */
 const scaffoldOf = (doc: JsonValue): string => {
 	const value = asObject(doc).$scaffold;
 	if (typeof value !== "string") throw new Error("no scaffold in the document");
@@ -249,41 +204,18 @@ const planFor = (id: string, doc: JsonValue = DOC) => {
 	return action.plan(doc);
 };
 
-/** The array index of a named group, which is what the action labels show. */
 const indexOfArray = (doc: JsonValue, arrayId: string): number =>
 	arraysOf(doc).findIndex((entry) => entry.id === arrayId);
 
-/* ------------------------------------------------------------------ *
- * Reading a container back, for the write-path assertions
- *
- * ## Why this suite walks the format itself
- *
- * Everything below is about the *mutation* side: that writing a file back
- * leaves the parts the codec does not own untouched. Asserting that through
- * `decodeToJson` alone would be circular, because the scaffold is written by
- * the same code that reads it — a walk that dropped or reordered a segment
- * would carry the damage through its own document and read back equal.
- *
- * So the helpers here re-implement the framing, the way `containerBytes`
- * assembles it. Two independent implementations agreeing is evidence; one
- * implementation agreeing with itself is a tautology. That is why these are
- * duplicated rather than imported, and why they are written without reference
- * to `lib/format.ts`'s own walk.
- * ------------------------------------------------------------------ */
-
-/** One segment's location and content, read straight out of the bytes. */
 type ReadSegment = {
 	readonly name: string;
-	/** Offset of the total-length field. */
 	readonly totalAt: number;
-	/** Offset of the content-length field. */
 	readonly lengthAt: number;
 	readonly contentStart: number;
 	readonly contentEnd: number;
 	readonly content: Bytes;
 };
 
-/** Latin-1 view of a container: byte offsets and character offsets coincide. */
 const latin1Of = (bytes: Bytes): string => {
 	let out = "";
 	for (const byte of bytes) out += String.fromCharCode(byte);
@@ -296,16 +228,8 @@ const u32At = (bytes: Bytes, at: number): number =>
 		true,
 	);
 
-/**
- * Walks a container's segment list independently of `lib/format.ts`.
- *
- * Returns an empty list for a container whose header does not parse, so a
- * malformed rebuild shows up as "no segments here" and the assertion about it
- * fails on the thing the reader cares about.
- */
 const readSegmentsOf = (container: Bytes): readonly ReadSegment[] => {
 	const text = latin1Of(container);
-	// `10TONS_CONTAINER\0`, then `VERSION\0` + u32 and `FILE_SIZE\0` + u32.
 	const magicEnd = text.indexOf("\0");
 	if (magicEnd < 0) return [];
 	let at = magicEnd + 1;
@@ -337,7 +261,6 @@ const readSegmentsOf = (container: Bytes): readonly ReadSegment[] => {
 	return segments;
 };
 
-/** The inflated container of a `.save` file. */
 const containerOf = async (file: Bytes): Promise<Bytes> =>
 	new Uint8Array(await zlibInflate(file.subarray(12)));
 
@@ -349,10 +272,6 @@ const segmentNamed = (container: Bytes, name: string): ReadSegment => {
 	return found;
 };
 
-/**
- * Bytes as lowercase hex, for an assertion that has to name *where* two byte
- * strings parted rather than only that they did.
- */
 const hexOf = (bytes: Bytes, from = 0, to = bytes.length): string =>
 	Array.from(bytes.subarray(from, to))
 		.map((byte) => byte.toString(16).padStart(2, "0"))
@@ -375,10 +294,6 @@ describe("the XML projection", () => {
 	});
 
 	test("repeated siblings become real arrays, not objects keyed by index", () => {
-		// The whole point of the shape: `getAtPath` follows a numeric path
-		// segment only into an actual array, and `RECIPES` has 417 children in a
-		// real save, so an object here would be a document the editor cannot
-		// walk.
 		const recipes = asObject(
 			arraysOf(DOC).find((entry) => entry.id === "RECIPES") ?? null,
 		).node;
@@ -396,17 +311,12 @@ describe("the XML projection", () => {
 		expect(
 			getAtPath(changed, ["root", "array", at, "node", 0, "unlocked"]),
 		).toBe("1");
-		// And the original is untouched, which is what makes "re-encode and
-		// compare" a proof rather than a tautology.
 		expect(getAtPath(DOC, ["root", "array", at, "node", 0, "unlocked"])).toBe(
 			"0",
 		);
 	});
 
 	test("keeps attribute values as text, including the ones that look numeric", () => {
-		// `0.00` read as a number comes back as `0`, and `1.4.1.12` is not a
-		// number at all. Either would be a save that decodes and then loses
-		// formatting the game reads.
 		expect(asObject(nodeNamed(DOC, "PLAYER_STATE", "buildups")).cold).toBe(
 			"0.00",
 		);
@@ -428,9 +338,6 @@ describe("the XML projection", () => {
 	});
 
 	test("closes an <array> even with no children, and self-closes a <node>", () => {
-		// Both shapes are measured on a real save, where the one childless array
-		// is `<array id="TEMPORARY_MODIFIERS_0">\n\t</array>` and not a
-		// self-closing tag.
 		expect(PROFILE_XML).toContain(
 			'<array id="TEMPORARY_MODIFIERS_0">\n\t</array>',
 		);
@@ -444,8 +351,6 @@ describe("the XML projection", () => {
 	});
 
 	test("refuses text content rather than dropping it silently", () => {
-		// The projection cannot put text back, so a document carrying it would be
-		// mangled on the way out. Saying so beats mangling it.
 		expect(() =>
 			projectXml(
 				`${XML_DECLARATION}\n<root><array id="X">hello</array></root>`,
@@ -470,8 +375,6 @@ describe("the XML projection", () => {
 		const nodes = asObject(group[0]).node;
 		if (!Array.isArray(nodes)) throw new Error("no node group");
 		expect(asObject(nodes[0]).note).toBe("<hi>");
-		// `&` and `<` and `"` are escaped; `>` is not, and need not be — XML only
-		// requires it in `]]>`, and no attribute value in a real save has one.
 		expect(unprojectXml(doc)).toContain('note="&lt;hi>"');
 		expect(unprojectXml(doc)).toContain('id="A&amp;B"');
 	});
@@ -488,16 +391,11 @@ describe("the container codec", () => {
 	});
 
 	test("carries the world segments through byte for byte", async () => {
-		// These are the segments the codec cannot interpret, and the reason the
-		// scaffold travels in the document at all. A rebuild that dropped or
-		// rewrote them would be a save with the world missing.
 		const back = await decodeToJson(await encodeFromJson(DOC));
 		expect(scaffoldOf(back)).toBe(scaffoldOf(DOC));
 	});
 
 	test("writes the two header lengths the rebuild actually produced", async () => {
-		// The game reads both, and neither is the input file's: the compressed
-		// stream is this codec's own, at the platform's default level.
 		const rebuilt = await encodeFromJson(DOC);
 		const view = new DataView(
 			rebuilt.buffer,
@@ -525,8 +423,6 @@ describe("the container codec", () => {
 	});
 
 	test("refuses a document that did not come from this editor", async () => {
-		// Without the scaffold there is no way to rebuild the 47 world segments, and
-		// inventing them would be worse than refusing.
 		expect(encodeFromJson({ root: projectXml(PROFILE_XML) })).rejects.toThrow(
 			/the world, in 47 segments/,
 		);
@@ -539,9 +435,6 @@ describe("the container codec", () => {
 	});
 
 	test("refuses a file that inflates but is not a container", async () => {
-		// The wrong-file case, which is what a reader who picks the wrong `.save`
-		// actually hits, and the only rejection path here that does not go
-		// through the shared inflate helper's own failure mode.
 		expect(
 			dysmantle.decode(await buildSaveOf("just some text")),
 		).rejects.toThrow(/not a 10TONS container/);
@@ -572,35 +465,22 @@ describe("the container codec", () => {
 });
 
 describe("the write path", () => {
-	/** The rebuilt file's inflated container, for a given document. */
 	const rebuiltContainerOf = async (doc: JsonValue): Promise<Bytes> =>
 		containerOf(await encodeFromJson(doc));
 
 	test("the scaffold is the container with the profile's own bytes removed", async () => {
-		// Read straight from the document rather than through a helper the codec
-		// shares with its own writer: `base64Decode` is the only thing between
-		// them, and that is a shared primitive with its own tests.
 		const scaffold = base64Decode(scaffoldOf(DOC));
 		const container = await containerOf(SAVE);
 		const xml = segmentNamed(container, "xml");
 
-		// Assembled here rather than compared in pieces: the scaffold is the
-		// container with the profile's bytes *and the two lengths that describe
-		// them* taken out, so the only honest comparison is against a blob built
-		// that way here. Comparing only the byte range before the profile would
-		// miss those two fields — which are inside it — and comparing the whole
-		// thing would miss nothing but say less about where the difference is.
 		const expected = new Uint8Array(container.length - PROFILE_XML.length);
 		expected.set(container.subarray(0, xml.contentStart), 0);
 		expected.set(container.subarray(xml.contentEnd), xml.contentStart);
-		// The two lengths, zeroed, which is what makes the blob a fixed point.
 		for (const at of [xml.totalAt, xml.lengthAt]) {
 			new DataView(expected.buffer).setUint32(at, 0, true);
 		}
 		expect(bytesEqual(scaffold, expected)).toBe(true);
 		expect(hexOf(scaffold)).toBe(hexOf(expected));
-		// And the two lengths in that segment's header are zeroed, which is what
-		// makes the blob independent of the profile it will be rebuilt around.
 		expect(scaffold.length).toBe(container.length - PROFILE_XML.length);
 		expect(u32At(scaffold, xml.lengthAt)).toBe(0);
 		expect(u32At(scaffold, xml.totalAt)).toBe(0);
@@ -618,9 +498,6 @@ describe("the write path", () => {
 		for (const name of names) {
 			const before = segmentNamed(container, name);
 			const after = segmentNamed(scaffold, name);
-			// The profile's segment is emptied by design; the other two are the
-			// world, and they are the reason this editor is allowed to write a file
-			// back at all.
 			if (name !== "xml") {
 				expect(bytesEqual(after.content, before.content)).toBe(true);
 				expect(hexOf(after.content)).toBe(hexOf(before.content));
@@ -631,17 +508,12 @@ describe("the write path", () => {
 	});
 
 	test("writing a document back copies the world segments byte for byte", async () => {
-		// The central claim of the whole codec, asserted without going through the
-		// codec's own reader: rebuild after an edit, walk the result, and compare
-		// each segment's content against the file that was opened.
 		const working = applyEdits(DOC, effectiveEdits(planFor("max-level"), DOC));
 		const before = await containerOf(SAVE);
 		const after = await rebuiltContainerOf(working);
 
 		const beforeSegments = readSegmentsOf(before);
 		const afterSegments = readSegmentsOf(after);
-		// Same segments, same order, same names — a rebuild that dropped one or
-		// renamed one is a different file, not a different encoding.
 		expect(afterSegments.map((segment) => segment.name)).toEqual(
 			beforeSegments.map((segment) => segment.name),
 		);
@@ -662,11 +534,6 @@ describe("the write path", () => {
 		const beforeXml = segmentNamed(before, "xml");
 		const afterXml = segmentNamed(after, "xml");
 
-		// The bytes before the profile are the same bytes, and the bytes after it
-		// are the same bytes — except for the profile segment's own header, where
-		// the two lengths are rewritten to the sizes this rebuild produced. They
-		// are compared separately rather than skipped, so a codec that moved them
-		// somewhere else would fail rather than pass by exclusion.
 		expect(
 			bytesEqual(
 				after.subarray(0, beforeXml.totalAt),
@@ -685,23 +552,18 @@ describe("the write path", () => {
 				before.subarray(beforeXml.contentEnd),
 			),
 		).toBe(true);
-		// And those two fields were rewritten to the sizes this rebuild produced.
 		expect(u32At(after, afterXml.lengthAt)).toBe(
 			afterXml.contentEnd - afterXml.contentStart,
 		);
 		expect(u32At(after, afterXml.totalAt)).toBe(
 			u32At(after, afterXml.lengthAt) + 8,
 		);
-		// The edit is in there, not lost by the copy above.
 		expect(new TextDecoder().decode(afterXml.content)).toContain(
 			'<node id="experience_level" value="50"/>',
 		);
 	});
 
 	test("the scaffold is a fixed point: a rebuild hands back the same bytes", async () => {
-		// Two different profiles rebuilt into the same scaffold must produce the
-		// same scaffold, or the "39 kB opaque string at the top of the inspector"
-		// would be a second, divergent copy of the save's state.
 		const edited = applyEdits(DOC, effectiveEdits(planFor("unlock-all"), DOC));
 		expect(scaffoldOf(await decodeToJson(await encodeFromJson(DOC)))).toBe(
 			scaffoldOf(DOC),
@@ -715,22 +577,14 @@ describe("the write path", () => {
 		const first = await encodeFromJson(DOC);
 		const second = await encodeFromJson(DOC);
 		expect(bytesEqual(first, second)).toBe(true);
-		// Named rather than left as a bare `true`, so a failure says which byte
-		// range parted instead of only that something did.
 		expect(hexOf(first)).toBe(hexOf(second));
 		expect(bytesEqual(first, new Uint8Array(SAVE))).toBe(true);
 	});
 
 	test("every quick action is idempotent on the bytes it produces", async () => {
-		// Twice is the case that matters: a user who clicks "unlock all" twice, or
-		// clicks it, saves, opens the rebuild and clicks it again, must end up
-		// with the same file — not a save whose fields have been re-staged onto
-		// themselves, or whose world has drifted a segment.
 		for (const action of dysmantle.actions) {
 			const once = applyEdits(DOC, effectiveEdits(action.plan(DOC), DOC));
 			const firstBytes = await encodeFromJson(once);
-			// Re-planning against the document the action produced stages nothing:
-			// every target already holds the value the action writes.
 			expect(effectiveEdits(action.plan(once), once)).toEqual([]);
 			const twice = applyEdits(once, effectiveEdits(action.plan(once), once));
 			expect(JSON.stringify(twice)).toBe(JSON.stringify(once));
@@ -760,9 +614,6 @@ describe("the write path", () => {
 	});
 
 	test("every action's rebuild is a byte-stable fixed point", async () => {
-		// The round-trip check the workbench offers a rebuilt file, run over what
-		// each action produces: `identical`, not `semantic`, because the
-		// comparison is a rebuild against itself rather than against the original.
 		for (const action of dysmantle.actions) {
 			const working = applyEdits(DOC, effectiveEdits(action.plan(DOC), DOC));
 			const rebuilt = await encodeFromJson(working);
@@ -794,10 +645,6 @@ describe("the summary", () => {
 	});
 
 	test("omits a figure the save does not carry rather than reporting a zero", () => {
-		// A save from another game version genuinely lacks these names, and a
-		// zero would be a claim about the player's progress nobody measured —
-		// including for the counts, where "0 recipes" would be a statement about
-		// the game version rather than about the player.
 		const rows = dysmantle.summarise({
 			root: {
 				array: [{ id: "SAVE_FORMAT", node: [{ id: "version", value: "3" }] }],
@@ -814,14 +661,10 @@ describe("the quick actions", () => {
 	test("fill every material writes the stacks, the found flags and the pages", () => {
 		const player = indexOfArray(DOC, "PLAYER_STATE");
 		const root = `root.array.${player}`;
-		// material_storage, material_storage_alltime, the `found_` flags on
-		// `materials`, and the inventory pages.
 		expect(after("fill-materials", `${root}.node.7.SCRAP_METAL`)).toBe("9999");
 		expect(after("fill-materials", `${root}.node.8.PLANTS`)).toBe("9999");
 		expect(after("fill-materials", `${root}.node.6.found_STONE`)).toBe("1");
 		expect(after("fill-materials", `${root}.node.10.amount`)).toBe("9999");
-		// `id` names the node rather than holding a stack, and a number written
-		// into it would rename the node.
 		expect(
 			planFor("fill-materials").some((edit) => edit.label.endsWith(".id")),
 		).toBe(false);
@@ -845,9 +688,6 @@ describe("the quick actions", () => {
 
 	test("unlock all covers every recipe and skill, and levels the upgradable", () => {
 		const labels = planFor("unlock-all").map((edit) => edit.label);
-		// Six children: each gets unlocked/new/crafted, and the three that carry
-		// a `level` also get raised. The lily and the two skills have none, and
-		// an attribute the save does not have is never written.
 		expect(labels.filter((label) => label.endsWith(".unlocked"))).toHaveLength(
 			6,
 		);
@@ -869,8 +709,6 @@ describe("the quick actions", () => {
 
 	test("unlock features covers whatever the save lists, and skips a no-op", () => {
 		const edits = planFor("unlock-features");
-		// `CAMPFIRE_FAST_TRAVEL` is already available, so restaging it would be
-		// a change to the list that did nothing.
 		expect(edits).toHaveLength(1);
 		expect(edits[0]?.before).toBe("0");
 		expect(edits[0]?.after).toBe("1");
@@ -878,9 +716,6 @@ describe("the quick actions", () => {
 
 	test("make all items available covers both item lists", () => {
 		const labels = planFor("unlock-items").map((edit) => edit.label);
-		// The backpack is already available in both lists, and the crowbar's
-		// counter already reads zero, so only the three that would change are
-		// staged: an entry that changes nothing is noise in the list.
 		expect(labels).toHaveLength(4);
 		expect(labels.filter((label) => label.endsWith(".available"))).toHaveLength(
 			2,
@@ -911,14 +746,10 @@ describe("the quick actions", () => {
 	});
 
 	test("a weapon this save does not have greys its own button out", () => {
-		// No edits is how the workbench disables a quick action, so an absent
-		// recipe has to produce none rather than a partial set.
 		expect(planFor("unlock-laser-sword")).toEqual([]);
 	});
 
 	test("every plan is pure: it does not touch the document it is given", () => {
-		// A plan that mutated its input would leave the working document
-		// disagreeing with the one the round-trip check compares against.
 		const before = JSON.stringify(DOC);
 		for (const action of dysmantle.actions) action.plan(DOC);
 		expect(JSON.stringify(DOC)).toBe(before);
@@ -947,8 +778,6 @@ describe("the quick actions", () => {
 			expect(asObject(recipe).new).toBe("0");
 			expect(asObject(recipe).crafted).toBe("1");
 		}
-		// The upgradable ones reached 9; the lily and the two skills, which have
-		// no `level` attribute, were not given one.
 		expect(asObject(recipes[2] ?? null).level).toBe("9");
 		expect("level" in asObject(recipes[3] ?? null)).toBe(false);
 	});
@@ -961,41 +790,19 @@ describe("the codec contract", () => {
 	});
 
 	test("an untouched save rebuilds to the identical bytes", async () => {
-		// The strongest result the framework has, and this fixture earns it: it
-		// is deflated by this same platform, so nothing in the codec loses a
-		// byte. A *real* save is deflated by the game at a level
-		// `CompressionStream` cannot be asked for, so it reports `semantic`
-		// instead — which is why the note in `lib/format.ts` says so rather
-		// than promising byte equality it cannot keep.
 		const verdict = await verifyRoundTrip(dysmantle, SAVE, DOC, false);
 		expect(verdict.kind).toBe("identical");
 	});
 
 	test("the round-trip check passes after an edit", async () => {
-		// `semantic`, not `lossless-edit`: the document reads back exactly as
-		// asked, and the bytes differ because the profile genuinely changed.
 		const working = applyEdits(DOC, planFor("max-level"));
 		const verdict = await verifyRoundTrip(dysmantle, SAVE, working, true);
 		expect(verdict.kind).toBe("semantic");
 	});
 
-	/**
-	 * The byte-fidelity claim, stated on the *rebuilt* file rather than the
-	 * original.
-	 *
-	 * `verifyRoundTrip(dysmantle, SAVE, edited, true)` cannot be `identical`
-	 * and is not asked to be: `SAVE` is the untouched file and an edit
-	 * deliberately changes the profile inside it, so `semantic` is the honest
-	 * verdict there (asserted above). What *is* required is that what this
-	 * codec writes is a fixed point of itself — that its output re-encodes to
-	 * the same bytes — otherwise a user who opened a rebuilt file and saved it
-	 * again would drift on every pass, which for a container whose whole point
-	 * is byte fidelity is the failure worth catching.
-	 */
 	test("a rebuilt file re-encodes to the same bytes it was built from", async () => {
 		const rebuilt = await encodeFromJson(DOC);
 		const reread = await decodeToJson(rebuilt);
-		// Byte identity, asserted directly rather than inferred from a verdict.
 		expect(bytesEqual(await encodeFromJson(reread), rebuilt)).toBe(true);
 		expect(await verifyRoundTrip(dysmantle, rebuilt, reread, false)).toEqual({
 			kind: "identical",
@@ -1007,8 +814,6 @@ describe("the codec contract", () => {
 		const rebuilt = await encodeFromJson(working);
 		const reread = await decodeToJson(rebuilt);
 		expect(bytesEqual(await encodeFromJson(reread), rebuilt)).toBe(true);
-		// Not `lossless-edit`: the comparison here is a rebuild against *itself*,
-		// so the bytes are identical and there was nothing to edit in between.
 		expect(await verifyRoundTrip(dysmantle, rebuilt, reread, false)).toEqual({
 			kind: "identical",
 		});

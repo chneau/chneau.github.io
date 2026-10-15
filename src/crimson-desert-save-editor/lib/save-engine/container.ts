@@ -1,10 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/save_container.py`.
- *
- * HMAC-SHA256 is provided by WebCrypto, so `decodeSave`/`encodeSave` are
- * async (the original Python uses synchronous `hashlib`/`hmac`).
- */
-
 import { lz4CompressBlock, lz4DecompressBlock } from "../../../shared/save/lz4";
 import {
 	bytesEqual,
@@ -17,7 +10,7 @@ import {
 } from "./bytes";
 import { chacha20 } from "./codec";
 
-const MAGIC = new Uint8Array([0x53, 0x41, 0x56, 0x45]); // b"SAVE"
+const MAGIC = new Uint8Array([0x53, 0x41, 0x56, 0x45]);
 const HEADER_SIZE = 0x80;
 const VERSION_OFFSET = 0x04;
 const FLAGS_OFFSET = 0x06;
@@ -53,18 +46,11 @@ export type SaveHeader = {
 	raw: Uint8Array;
 };
 
-/**
- * A decoded save: the Payload, plus the Container fields a caller needs to
- * describe it. The compressed bytes are deliberately absent, so a caller is
- * handed the payload alone and a session that retains a decode retains one copy
- * of it.
- */
 export type DecodedSave = {
 	header: SaveHeader;
 	rawPayload: Uint8Array;
 };
 
-/** What `decodeSave` returns: a `DecodedSave` plus the bytes it decompressed. */
 type DecodeResult = DecodedSave & {
 	compressedPayload: Uint8Array;
 };
@@ -127,8 +113,6 @@ const hmacSha256 = async (
 	key: Uint8Array,
 	message: Uint8Array,
 ): Promise<Uint8Array> => {
-	// `importKey` is pure: the same bytes always yield an equivalent key, so
-	// cache the import per key and only pay for the sign operation per call.
 	let cryptoKey = hmacKeys.get(key);
 	if (cryptoKey === undefined) {
 		cryptoKey = crypto.subtle.importKey(

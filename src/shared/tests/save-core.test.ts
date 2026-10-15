@@ -1,12 +1,3 @@
-/**
- * Contracts for the save-editing primitives.
- *
- * These are the functions every codec on the site is written against, so the
- * tests are about behaviour a codec relies on rather than about any one
- * format: that a path addresses what it claims to, that an edit never mutates
- * the document it came from, that a revert truly restores, and that the
- * round-trip check refuses to pass a rebuild that does not read back.
- */
 import { describe, expect, test } from "bun:test";
 import {
 	applyEdits,
@@ -71,7 +62,6 @@ describe("setAtPath", () => {
 			count: 1,
 		});
 		expect(getAtPath(next, ["inventory", 0, "id"])).toBe("axe");
-		// The sibling entry is untouched, which is the copy-on-write property.
 		expect(getAtPath(next, ["inventory", 1, "count"])).toBe(3);
 	});
 
@@ -82,24 +72,14 @@ describe("setAtPath", () => {
 	});
 
 	test("refuses an array index the save never had, rather than padding it", () => {
-		// The object case above was covered from the start; the array case was not,
-		// and it did not throw. `setAtPath` wrote the index anyway, so the engine
-		// extended the array and filled the gap with `null` — the exact "invent a
-		// key the game never wrote" the function's own doc warns about. Worse, the
-		// round-trip check cannot see it: the invented holes are in the document it
-		// compares the rebuild against, so a codec that serialises the document
-		// directly reports `semantic` and offers the corrupted file.
 		const inventory = getAtPath(SAMPLE, ["inventory"]);
 		const length = Array.isArray(inventory) ? inventory.length : -1;
 		expect(() => setAtPath(SAMPLE, ["inventory", length + 3], null)).toThrow(
 			/not present/,
 		);
-		// Exactly at the end is the same thing: not a path, and an append by another
-		// name. Inventing an element that way is still inventing it.
 		expect(() => setAtPath(SAMPLE, ["inventory", length], null)).toThrow(
 			/not present/,
 		);
-		// It throws rather than padding, so the original is untouched either way.
 		expect(getAtPath(SAMPLE, ["inventory"])).toHaveLength(length);
 	});
 
@@ -124,8 +104,6 @@ describe("collectLeaves", () => {
 	});
 
 	test("refuses to descend past the depth cap", () => {
-		// A save is data from someone's disk, so a recursive walk must not be
-		// able to be made to blow the stack.
 		let deep: JsonValue = 1;
 		for (let index = 0; index < 200; index += 1) deep = { next: deep };
 		expect(() => collectLeaves(deep, 8)).not.toThrow();
@@ -162,8 +140,6 @@ describe("edits", () => {
 	});
 
 	test("reverting a path restores the value the save held", () => {
-		// Two edits to one field: reverting must land on the original, not on
-		// the intermediate value.
 		const first = editAt(["player", "gold"], 100);
 		const second = editAt(["player", "gold"], 200);
 		const kept = withoutPath([first, second], ["player", "gold"]);
@@ -198,8 +174,6 @@ describe("verifyRoundTrip", () => {
 	});
 
 	test("a rebuild that decodes to different values is refused", async () => {
-		// Encodes something that decodes cleanly but to the wrong document —
-		// the exact defect a save editor must never hand over.
 		const lying = {
 			decode: identity.decode,
 			encode: async () => new TextEncoder().encode('{"tampered":true}'),
@@ -230,8 +204,6 @@ describe("verifyRoundTrip", () => {
 	test("a semantically-equal but byte-different rebuild is allowed", async () => {
 		const reordered = {
 			decode: identity.decode,
-			// Same document, different serialisation — a legitimate outcome once
-			// anything has actually been edited.
 			encode: async (doc: JsonValue) =>
 				new TextEncoder().encode(JSON.stringify(doc, null, 1)),
 		};
@@ -241,19 +213,10 @@ describe("verifyRoundTrip", () => {
 	});
 
 	test("a rebuild whose codec reorders object keys is allowed", async () => {
-		// The same defect the test above leaves uncovered: key order is not part
-		// of a JSON document, so a codec that writes its fields out in another
-		// order — a struct serialised alphabetically, a node tree walked from an
-		// unordered map — has rebuilt the intended document and must not be
-		// reported as broken.
 		const reverseKeys = (value: JsonValue): JsonValue => {
 			if (Array.isArray(value)) return value.map(reverseKeys);
 			if (!isJsonObject(value)) return value;
 			const reordered: { [key: string]: JsonValue } = {};
-			// `SAMPLE`'s keys happen to be written in reverse alphabetical order
-			// already, so this is a plain reversal of the document's own order:
-			// nothing about the resulting text matches the input except its
-			// content.
 			for (const key of Object.keys(value).reverse()) {
 				const child = value[key];
 				if (child === undefined) continue;
@@ -272,8 +235,6 @@ describe("verifyRoundTrip", () => {
 	});
 
 	test("a reordered rebuild that loses a value is still refused", async () => {
-		// Order-insensitivity must not become value-insensitivity: the reorder
-		// is permitted, a dropped field under the same reorder is not.
 		const lossy = {
 			decode: identity.decode,
 			encode: async (doc: JsonValue) =>

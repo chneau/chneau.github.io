@@ -27,7 +27,6 @@ import { QuantityEditor } from "./equipment-quantity-editor";
 import { EquipmentEditor } from "./equipment-workshop";
 import { Picture } from "./picture";
 
-/** The picker's heading: what is being edited, and which copy of it. */
 const DrawerHeading = ({
 	item,
 	record,
@@ -63,13 +62,6 @@ const DrawerHeading = ({
 	</Stack>
 );
 
-/**
- * The workshop for a staged addition: an item the save does not hold yet.
- *
- * It needs its own record — the addition's own values, at slot -1 — and its own
- * key, because the workshop holds its sockets and rules in state and a reused
- * instance would carry one addition's sockets into the next.
- */
 const StagedAdditionEditor = ({
 	addition,
 	additionDefinition,
@@ -110,13 +102,6 @@ const StagedAdditionEditor = ({
 	/>
 );
 
-/**
- * The picker for *which* copy of an item to edit.
- *
- * A stack can hold several copies with different refinements, and they are
- * separate save records — editing one and seeing the other change would be a
- * data-loss bug, so the copy is chosen explicitly whenever there is a choice.
- */
 const RecordChooser = ({
 	item,
 	record,
@@ -150,14 +135,6 @@ const RecordChooser = ({
 	</Box>
 );
 
-/**
- * The workshop for gear that is really in the save.
- *
- * It edits the save's own record rather than the projected one, and its key
- * carries the staged values so a new set of sockets remounts the workshop: it
- * holds that state, and reusing the instance would carry the previous item's
- * sockets into this one.
- */
 const SavedEquipmentEditor = ({
 	savedRecord,
 	itemName,
@@ -195,14 +172,6 @@ const SavedEquipmentEditor = ({
 	/>
 );
 
-/**
- * The editor for whatever the inventory view has selected: refinement and
- * sockets for equipment, a quantity for a plain stack, and the same workshop
- * for a staged addition that has no save record yet.
- *
- * Which of those applies is decided by what the record is, so the branch lives
- * here rather than being spread over the details pane.
- */
 export const EquipmentEditorDrawer = ({
 	open,
 	onClose,
@@ -231,9 +200,7 @@ export const EquipmentEditorDrawer = ({
 	activeStorage: number | null;
 	catalog: Catalog | null;
 	busy: boolean;
-	/** The page's current error, surfaced inside the open drawer. */
 	error: string;
-	/** The save's own record, so the editor edits what is in the file. */
 	savedRecord: InventoryRecord | undefined;
 	stagedEquipment: EquipmentEdit | undefined;
 	addition: InsertEquipmentEdit | undefined;

@@ -1,4 +1,3 @@
-/** GitHub mark, inlined so we don't depend on an icon package. */
 export const GithubIcon = ({ size = 18 }: { size?: number }) => (
 	<svg
 		width={size}

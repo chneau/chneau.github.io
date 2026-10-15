@@ -6,10 +6,6 @@ import "../../shared/base.css";
 import { mountApp } from "../../shared/mountApp";
 import { Home } from "./page";
 
-/**
- * Sun-bleached olive and canvas, for a game about a world that is trying to end.
- * Index 5 is the dark-scheme shade, 6 the light-scheme shade.
- */
 const brand: MantineColorsTuple = [
 	"#f4f4e6",
 	"#e4e3c9",

@@ -30,7 +30,6 @@ type Props = {
 	onAdd: (name: string) => void;
 	onOnly: (name: string) => void;
 	onVenue: (ref: number) => void;
-	/** Shown when this item was opened from a pub page. */
 	onBack?: () => void;
 	format: Formatter;
 };
@@ -43,7 +42,6 @@ type Best = {
 	currency: string;
 };
 
-/** Everything the data knows about one item, and where it is cheapest. */
 export const ItemModal = ({
 	opened,
 	onClose,
@@ -76,8 +74,6 @@ export const ItemModal = ({
 				venue.metricValue,
 				venue.currency,
 			);
-			// In native mode keep one best per currency, so a € metric is never
-			// compared to a £ one.
 			const key = format.targetCurrency ? kind : `${kind}|${venue.currency}`;
 			const current = best.get(key);
 			const better =
@@ -113,7 +109,6 @@ export const ItemModal = ({
 				)
 				.slice(0, 10);
 		}
-		// Native mode: rank each currency on its own, then show both.
 		const groups = new Map<string, PricedVenue[]>();
 		for (const venue of venues) {
 			const list = groups.get(venue.currency);

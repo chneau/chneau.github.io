@@ -1,26 +1,3 @@
-/**
- * Data retrieval script for Scottish Rail network timetables & geography.
- *
- * Fetches:
- * 1. Natural Earth 50m physical coastlines & boundaries for Scotland
- * 2. Official National Rail ScotRail / LNER / Avanti / Caledonian Sleeper
- *    service patterns
- *
- * It only fetches and reports — it writes nothing. Run it to see what the
- * upstream sources currently return (counts, feature types, a sample record)
- * and copy the useful parts into `data/geography.ts` and `data/timetable.json`
- * by hand.
- *
- * This header used to claim the script "writes directly to geography.ts and
- * schedule.json / schedule.ts". It does not, and there is no `schedule.ts` in
- * this directory at all — the timetable is `data/timetable.json`. A provenance
- * script that misdescribes itself is worse than none, because the next person
- * runs it expecting files to appear.
- *
- * Nothing here validates what it fetched: the output is for a human to read, and
- * the committed data is hand-checked.
- */
-
 type Coordinate = [longitude: number, latitude: number];
 
 type GeoJSONFeature = {
@@ -65,7 +42,6 @@ const fetchCoastlineData = async (): Promise<Coordinate[][]> => {
 					: [];
 
 		for (const line of lines) {
-			// Bounds: Scotland mainland and outlying isles
 			const points = line.filter(
 				([lon, lat]) =>
 					lon >= -8.0 && lon <= -1.4 && lat >= 54.6 && lat <= 59.0,
@@ -81,12 +57,10 @@ const fetchCoastlineData = async (): Promise<Coordinate[][]> => {
 		}
 	}
 
-	// Sort segments by point length so primary landmasses appear first
 	scotlandSegments.sort((a, b) => b.length - a.length);
 	return scotlandSegments;
 };
 
-// Main Ingestion Runner
 if (import.meta.main) {
 	try {
 		console.log("=== Scotland Rail Real Data Ingestion Pipeline ===");

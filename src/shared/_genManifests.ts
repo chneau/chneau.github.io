@@ -1,48 +1,16 @@
-/**
- * Build-time generator for the per-app `manifests/*.json` and for
- * `public/sitemap.xml`.
- *
- * These files used to be maintained by hand — 13 near-identical documents each
- * restating a name, a description, a theme colour and a four-icon block — and
- * they had drifted from what `rsbuild.config.ts` actually shipped. They are now
- * derived from `APP_META`, so an app's manifest is one table row.
- *
- * The sitemap is the same story one file over: it was hand-maintained, and
- * it had lost an app (`witcher-3-save-editor` was shipping but never
- * listed). One `<url>` per row now, in `APP_META` order.
- *
- * The serialiser reproduces `deno fmt --use-tabs`'s JSON output byte for byte
- * (tabs, a short `display_override` array inline, the `icons` array expanded),
- * so a `bun run check` pass over the tree is a no-op and the committed files
- * stay exactly what this generator writes.
- *
- * Run it directly (`bun run src/shared/_genManifests.ts`) to regenerate; the
- * `build` and `build:birthday` scripts call it beside `_genIcs.ts`.
- */
-
 import { APP_META, type AppMeta } from "./app-meta";
 
-/** Any JSON value this generator can emit. */
 type JsonValue =
 	| string
 	| readonly JsonValue[]
 	| { readonly [key: string]: JsonValue };
 
-/** The formatter's line budget, matching `deno fmt`'s default of 80. */
 const LINE_WIDTH = 80;
 
-/** `deno fmt --use-tabs` indents with one tab per level. */
 const INDENT = "\t";
 
-/**
- * The site's canonical origin, the same value `rsbuild.config.ts` builds
- * its canonical and `og:url` tags from. It is restated rather than
- * imported: that module *is* the bundler config, so importing it would
- * drag `@rsbuild/core` and all fourteen environments in here.
- */
 const SITE_URL = "https://chneau.github.io";
 
-/** Render a value on a single line, whatever its size. */
 const inline = (value: JsonValue): string => {
 	if (typeof value === "string") return JSON.stringify(value);
 	if (Array.isArray(value)) return `[${value.map(inline).join(", ")}]`;
@@ -52,11 +20,6 @@ const inline = (value: JsonValue): string => {
 		.join(", ")} }`;
 };
 
-/**
- * Render a value the way `deno fmt` would: inline when the whole thing fits on
- * the current line, expanded (one entry per line, no trailing comma otherwise).
- * `column` is the character offset the value starts at, `level` its indent.
- */
 const render = (value: JsonValue, column: number, level: number): string => {
 	if (typeof value === "string") return JSON.stringify(value);
 	const pad = INDENT.repeat(level);
@@ -78,13 +41,6 @@ const render = (value: JsonValue, column: number, level: number): string => {
 	return `{\n${body}\n${pad}}`;
 };
 
-/**
- * The web manifest for one app, serialised exactly as the committed file.
- *
- * Every field is derived from `APP_META`: `id`/`start_url`/`scope` are the
- * app's path, the icons are the four sizes named after its slug, and the
- * platform chrome takes its colours from the same source as the HTML.
- */
 export const manifestJson = (meta: AppMeta): string => {
 	const icons = [
 		{
@@ -129,13 +85,6 @@ export const manifestJson = (meta: AppMeta): string => {
 	return `${render(manifest, 0, 0)}\n`;
 };
 
-/**
- * `public/sitemap.xml`, serialised exactly as the committed file.
- *
- * One `<url>` per app in `APP_META` order — root first, then the apps in
- * dashboard order — with tab indentation, `changefreq` before
- * `<priority>`, and the priority at the one decimal the format writes.
- */
 export const sitemapXml = (): string => {
 	const urls = APP_META.map((meta) =>
 		[
@@ -156,12 +105,6 @@ export const sitemapXml = (): string => {
 };
 
 if (import.meta.main) {
-	// Fourteen manifests, written together rather than one at a time. Each
-	// write names its own path and reads nothing another write produces, so
-	// there is no order to preserve and nothing a serial loop buys; the cost
-	// of the sequential version is fourteen round-trips through the
-	// filesystem for no reason at all. The sitemap goes out in the same
-	// batch, and for the same reason.
 	await Promise.all([
 		...APP_META.map((meta) =>
 			Bun.write(`manifests/${meta.slug}.json`, manifestJson(meta)),

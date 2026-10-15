@@ -18,7 +18,7 @@ import { readUrlState, writeUrlState } from "./url";
 import { clampReplayTime, MIN_REPLAY_TIME } from "./utils";
 
 type RailStore = {
-	timeOffset: number; // minutes from 00:00 (default 480 = 08:00)
+	timeOffset: number;
 	isPlaying: boolean;
 	speed: number;
 	viewPreset: ViewPreset;
@@ -31,17 +31,6 @@ type RailStore = {
 	settings: AppSettings;
 };
 
-// All loaded static services and station index
-/**
- * The timetable, validated once at the boundary.
- *
- * This is the single place `timetable.json` enters the app, and everything
- * downstream — `resolveServiceAtTime`, the category counters, the search over
- * `s.name` and `s.calls[].stationId`, the polyline the canvas draws — trusts this
- * shape. It used to be a bare cast. A parse failure here means the committed data
- * is wrong, which is a broken artefact rather than a runtime condition to recover
- * from, so it throws.
- */
 const allServices: TrainService[] = TrainServicesSchema.parse(TIMETABLE_DATA);
 const stationNamesById = new Map(STATIONS.map((s) => [s.id, s.name]));
 
@@ -57,14 +46,9 @@ const getInitialState = (): RailStore => {
 		selectedCategory: "all",
 		isInfoOpen: false,
 		isSettingsOpen: false,
-		// A COPY, not the shared constant. `proxy()` wraps whatever object it is
-		// given, so assigning `DEFAULT_SETTINGS` by reference meant every user
-		// toggle mutated the module-level constant - and `resetSettings` then
-		// spread that already-mutated object, making "reset to defaults" a no-op.
 		settings: { ...DEFAULT_SETTINGS },
 	};
 
-	// Deep links override the defaults; invalid/unknown values are ignored.
 	const urlState = readUrlState();
 	if (urlState.timeOffset !== undefined) {
 		defaults.timeOffset = urlState.timeOffset;
@@ -92,16 +76,13 @@ const getInitialState = (): RailStore => {
 				settings: { ...DEFAULT_SETTINGS, ...parsed },
 			};
 		}
-	} catch {
-		// ignore fallback
-	}
+	} catch {}
 
 	return defaults;
 };
 
 export const railStore = proxy<RailStore>(getInitialState());
 
-// Debounced localStorage persist to avoid synchronous I/O overhead on rapid setting toggles
 const saveSettings = debounce(() => {
 	if (typeof localStorage !== "undefined") {
 		try {
@@ -109,21 +90,12 @@ const saveSettings = debounce(() => {
 				"scotland_rail_settings",
 				JSON.stringify(railStore.settings),
 			);
-		} catch {
-			// ignore storage quota error
-		}
+		} catch {}
 	}
 }, 300);
 
-// Persist settings changes.
-//
-// Subscribed to the ROOT proxy, not `railStore.settings`: `resetSettings`
-// replaces the nested settings object wholesale, which would orphan a listener
-// bound to the old one and silently stop persisting every later change.
 subscribe(railStore, saveSettings);
 
-// Mirror the shareable subset of the store into the URL. Debounced because
-// timeOffset changes on every animation frame while the replay is playing.
 const saveUrl = debounce(() => {
 	writeUrlState({
 		timeOffset: railStore.timeOffset,
@@ -138,7 +110,6 @@ subscribe(railStore, () => {
 	saveUrl();
 });
 
-// Derived computed store for filtered services & active trains
 export const derivedStore = proxy<{
 	filteredServices: TrainService[];
 	activeTrains: ActiveTrainState[];
@@ -204,13 +175,8 @@ export const recomputeActiveTrains = () => {
 	derivedStore.activeCountsByCategory = counts;
 };
 
-// Actions helper for clean mutation anywhere
 export const railActions = {
 	setTimeOffset: (val: number) => {
-		// Clamp to the replay window. Without this the store could hold a
-		// clock outside the scrubber's range (timetable calls run up to 24:35),
-		// while `url.ts` clamped what it wrote - so the share link disagreed
-		// with the live view and reloading it silently moved the replay.
 		railStore.timeOffset = clampReplayTime(val);
 		recomputeActiveTrains();
 	},
@@ -252,22 +218,14 @@ export const railActions = {
 		railStore.settings[key] = value;
 	},
 	resetSettings: () => {
-		// A fresh object, and `saveSettings` runs on the root proxy so the
-		// restored defaults are actually written to storage.
 		railStore.settings = { ...DEFAULT_SETTINGS };
 	},
 	restart: () => {
-		// 05:00, the first minute of the replay window.
 		railActions.setTimeOffset(MIN_REPLAY_TIME);
 	},
 };
 
-// Initial compute
 recomputeFilteredServices();
 recomputeActiveTrains();
 
-/**
- * Stable store bundle for the throttled UI hook (`useThrottledSnapshots`).
- * Kept module-level so the subscription identity never changes between renders.
- */
 export const railUiStores = [railStore, derivedStore] as const;

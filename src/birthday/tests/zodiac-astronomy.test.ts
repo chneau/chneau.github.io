@@ -2,40 +2,12 @@ import { describe, expect, test } from "bun:test";
 import type { Birthday } from "../birthdays";
 import en from "../locales/en.json";
 
-/**
- * Zodiac, birthgem, moon-phase and life-path arithmetic.
- *
- * `getSign`, `getBirthgem`, `getMoonPhase` and `getLifePath` are all private to
- * `birthdays.ts`, but every one of them is a pure function of the *birth date
- * only*, and `recomputeBirthdays()` copies their results verbatim onto each
- * `Birthday` (`sign`, `signSymbol`, `element`, `birthgem`, `birthgemEmoji`,
- * `moonPhase`, `moonPhaseIcon`, `lifePathNumber`, `lifePathMeaning`). So the only
- * date-dependent noise in a row - age, countdown, next birthday - is irrelevant
- * here, and the whole thing is driven through the existing public entry points.
- *
- * The month index is the load-bearing detail in all of it. `Date#getMonth()` is
- * 0-based, so the zodiac table's `month * 100 + day` cusps all sit one month
- * lower than a human reading of "March 21" would suggest: the table's `221` is
- * really 21 February, not 21 March. Every assertion below pins an exact day on
- * each side of all 12 cusps, because an off-by-one in that encoding is silent -
- * it still returns *a* sign, just the neighbouring one.
- */
-
-// Widened to `string[]` on purpose: the app narrows these to literal unions,
-// which makes `expect(keys).toContain(value)` and template-built expectations
-// fight the compiler instead of the runtime.
 const ZODIAC_KEYS: string[] = Object.keys(en.data.zodiac);
 const BIRTHGEM_KEYS: string[] = Object.keys(en.data.birthgems);
 const ELEMENT_KEYS: string[] = Object.keys(en.data.elements);
 const MOON_PHASE_KEYS: string[] = Object.keys(en.data.moon_phases);
 const LIFE_PATH_KEYS: string[] = Object.keys(en.data.life_path);
 
-/**
- * `birthdays.ts` reads its raw list from `localStorage` and falls back to the
- * bundled `birthdays.json` when there is no `localStorage` at all, which is the
- * case under `bun test`. Installing a stub before the module is imported is what
- * lets a test feed in its own dates through the existing store.
- */
 const STORAGE_KEY = "custom_birthdays_data";
 const store = new Map<string, string>();
 (globalThis as { localStorage?: Storage }).localStorage = {
@@ -53,13 +25,8 @@ const store = new Map<string, string>();
 
 const { recomputeBirthdays } = await import("../birthdays");
 
-/** Both sides of all 12 cusps, in calendar order. */
 const CUSPS: { date: string; name: string; symbol: string; element: string }[] =
 	[
-		// 1-19 January belongs to Sagittarius, which the table reaches from
-		// 22 November and must wrap back around into. The wrap entry used to
-		// name Capricorn, reporting 19 days a year with the wrong sign AND the
-		// wrong element.
 		{ date: "2000-01-19", name: "sagittarius", symbol: "♐", element: "fire" },
 		{ date: "2000-01-20", name: "aquarius", symbol: "♒", element: "air" },
 		{ date: "2000-02-18", name: "aquarius", symbol: "♒", element: "air" },
@@ -86,7 +53,6 @@ const CUSPS: { date: string; name: string; symbol: string; element: string }[] =
 		{ date: "2000-12-22", name: "capricorn", symbol: "♑", element: "earth" },
 	];
 
-/** Birthgems, in `Date#getMonth()` order (index 0 = January). */
 const BIRTHGEMS: { month: number; key: string; emoji: string }[] = [
 	{ month: 1, key: "garnet", emoji: "🔴" },
 	{ month: 2, key: "amethyst", emoji: "🟣" },
@@ -102,12 +68,6 @@ const BIRTHGEMS: { month: number; key: string; emoji: string }[] = [
 	{ month: 12, key: "tanzanite", emoji: "🔵" },
 ];
 
-/**
- * Exact moon phases for 31 consecutive days from 2001-01-01. One lunation is
- * 29.53 days, so this window brackets a full cycle and must touch all eight
- * phases. Hard-coded on purpose: a snapshot is what catches a change in the
- * Julian-day offset, which a "returns something" assertion never would.
- */
 const MOON_CYCLE: [string, string, string][] = [
 	["2001-01-01", "waxing_crescent", "🌒"],
 	["2001-01-02", "first_quarter", "🌓"],
@@ -142,10 +102,6 @@ const MOON_CYCLE: [string, string, string][] = [
 	["2001-01-31", "first_quarter", "🌓"],
 ];
 
-/**
- * Replace the stored list with exactly `dates`, recompute, and return the
- * derived rows keyed by `birthdayString`.
- */
 const derive = (dates: string[]): Map<string, Birthday> => {
 	store.set(
 		STORAGE_KEY,
@@ -161,7 +117,6 @@ const derive = (dates: string[]): Map<string, Birthday> => {
 	return byDate;
 };
 
-/** Derive a single date and hand back its row, failing loudly if absent. */
 const rowFor = (date: string): Birthday => {
 	const row = derive([date]).get(date);
 	if (!row) throw new Error(`No row produced for ${date}`);
@@ -200,7 +155,6 @@ describe("getSign zodiac cusps", () => {
 			expect(row.signSymbol).not.toBe("");
 			seen.add(row.sign);
 		}
-		// 24 dates spread over the year reach every one of the 12 signs.
 		expect(seen.size).toBe(12);
 	});
 
@@ -421,16 +375,12 @@ describe("getMoonPhase", () => {
 			return MOON_PHASE_KEYS.indexOf(phase ?? "");
 		});
 		expect(indices.every((i) => i >= 0)).toBe(true);
-		// 0 new_moon .. 7 waning_crescent. A lunation is 29.53 days over 8
-		// phases, so a day never advances the phase by more than one step and
-		// never backwards; 7 -> 0 (waning_crescent -> new_moon) is the wrap.
 		for (let i = 1; i < indices.length; i++) {
 			const previous = indices[i - 1] as number;
 			const current = indices[i] as number;
 			const step = (current - previous + 8) % 8;
 			expect([dates[i], step === 0 || step === 1]).toEqual([dates[i], true]);
 		}
-		// The window wraps exactly once, on 24 January.
 		const wraps = indices.filter((n, i) => i > 0 && n < (indices[i - 1] ?? 0));
 		expect(wraps).toEqual([0]);
 		expect(dates[indices.indexOf(0)]).toBe("2001-01-24");
@@ -439,7 +389,6 @@ describe("getMoonPhase", () => {
 
 describe("getLifePath", () => {
 	test("digit reduction of a known date", () => {
-		// 1990-05-15 -> 6 + 5 + (1+9+9+0 = 19 -> 10 -> 1) = 12 -> 3
 		expect(rowFor("1990-05-15").lifePathNumber).toBe(3);
 		expect(rowFor("1990-05-15").lifePathMeaning).toBe("life_path_3");
 	});
@@ -490,7 +439,6 @@ describe("getLifePath", () => {
 	});
 
 	test("reduce never yields 0, 10, or a non-master value above 9", () => {
-		// Two years, every single day, in one batch: 731 dates.
 		const dates = isoDaysFrom("1999-01-01", 731);
 		const rows = derive(dates);
 		expect(rows.size).toBe(731);

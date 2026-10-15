@@ -1,13 +1,6 @@
 import type { SaveView } from "./inventory";
 import type { SaveEdit } from "./staged-edits";
 
-/**
- * How many staged edits each storage location and each view holds, for the
- * sidebar's badges.
- *
- * It is a plain fold over the edit list — no React, no engine — so the tests
- * can hold it to the counts the sidebar shows without rendering anything.
- */
 export const stagedCounts = (
 	edits: SaveEdit[],
 ): {

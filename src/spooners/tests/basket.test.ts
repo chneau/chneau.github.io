@@ -47,15 +47,12 @@ describe("basket round-trips through the URL", () => {
 });
 
 describe("basket round-trips against the real dataset", () => {
-	// A name that genuinely contains a comma, so the URL path is exercised
-	// end to end: serialise -> parse -> resolve venues.
 	const COMMA_NAME = "BBQ chicken, maple-cured bacon and Cheddar cheese";
 
 	test("every comma-containing item name resolves to the same venues", () => {
 		const commaNames = Object.keys(data.items).filter((name) =>
 			name.includes(","),
 		);
-		// The bug this guards: a comma in a name split the round into pieces.
 		expect(commaNames.length).toBeGreaterThan(0);
 		for (const name of commaNames) {
 			const direct = basketVenues(cache, [{ name, qty: 1 }]);

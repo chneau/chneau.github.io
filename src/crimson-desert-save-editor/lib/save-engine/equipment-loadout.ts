@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/equipment_loadout.py`.
- */
-
 import { readU16, readU32, readU64 } from "./bytes";
 import { defined } from "./defined";
 import {
@@ -23,7 +19,6 @@ type LocatorReference = {
 	payloadOffset: number;
 };
 
-/** One record of the equipped loadout, as this reader finds it. */
 type EquippedItemRecord = {
 	itemNo: number;
 	itemKey: number;

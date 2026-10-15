@@ -1,15 +1,3 @@
-/**
- * The add rule.
- *
- * Two contracts. The first is the rule itself: which of the three shapes adding
- * an item to a storage takes, and what it refuses instead. The second is the one
- * the views depend on — the edit the rule produces is one the engine really
- * applies, so a staged addition cannot fail at the download because the picker
- * and the applier disagreed.
- *
- * Run with `bun test`.
- */
-
 import { describe, expect, test } from "bun:test";
 import { planAddition, storageKeys } from "../lib/add-plan";
 import type { InsertEquipmentEdit } from "../lib/equipment";
@@ -24,7 +12,6 @@ import type {
 } from "../lib/staged-edits";
 import { catalogOf, fixture, mergedCatalog, opened } from "./fixtures";
 
-/** The storage the fixture's own inventory lives in. */
 const STORAGE = 2;
 
 const record = (overrides: Partial<InventoryRecord> = {}): InventoryRecord => ({
@@ -75,7 +62,6 @@ const insertEquipmentEdit = (itemKey: number): InsertEquipmentEdit => ({
 	},
 });
 
-/** The three shapes, as a plan either produced or refused to produce. */
 const shapeOf = (plan: ReturnType<typeof planAddition>): string =>
 	"error" in plan ? `error: ${plan.error}` : plan.edit.type;
 
@@ -132,7 +118,6 @@ describe("the add rule", () => {
 			itemKey: 500,
 			quantity: 2,
 		});
-		// The stage still expects the save's own quantity; only the total moves.
 		expect(editOf(plan)).toMatchObject({
 			expectedQuantity: 3,
 			newQuantity: 12,
@@ -192,8 +177,6 @@ describe("the add rule", () => {
 	test("a new stack is cloned from a donor the storage holds once", () => {
 		const plan = planAddition({
 			records: [
-				// A stackable item held twice is not a donor: cloning it would copy
-				// the wrong record's bytes.
 				record({ itemKey: 400, slotNo: 4, quantity: 5 }),
 				record({ itemKey: 400, slotNo: 5, quantity: 5 }),
 				record({ itemKey: 300, slotNo: 6, quantity: 1 }),
@@ -251,8 +234,6 @@ describe("the add rule", () => {
 	});
 
 	test("an equipment insertion counts against the item too", () => {
-		// The engine refuses a second record with an item key in one storage, so
-		// the membership question cannot be limited to the item insertions.
 		const plan = planAddition({
 			records: [],
 			catalog: catalogOf({ "800": { name: "Gear", max_stack: 1 } }),
@@ -294,7 +275,6 @@ describe("the add rule", () => {
 				}),
 			),
 		).toBe("error: Item 901 is not in this game's catalog.");
-		// A catalog that has not loaded yet is the same answer, not a crash.
 		expect(
 			shapeOf(
 				planAddition({
@@ -327,7 +307,6 @@ describe("what a storage holds and has staged", () => {
 			inventoryKey: STORAGE,
 		});
 		expect([...keys.held]).toEqual([500]);
-		// Only insertions count as staged, and only in this storage.
 		expect([...keys.staged]).toEqual([600, 800]);
 	});
 
@@ -343,7 +322,6 @@ describe("what a storage holds and has staged", () => {
 });
 
 describe("the plan against the appliers", () => {
-	/** Applies one edit the way the page does, and describes what came out. */
 	const applied = async (source: Uint8Array, edit: SaveEdit) => {
 		const run = planSaveEdits([edit])[0];
 		if (!run) throw new Error("the dispatch planned no run");
@@ -361,8 +339,6 @@ describe("the plan against the appliers", () => {
 		);
 		const heldKeys = new Set(held.map((record) => record.itemKey));
 
-		// A stack the storage already holds, one past the largest stack so the
-		// growth is unambiguous.
 		const stack = held.find((record) => record.quantity > 1);
 		expect(stack, "a stack to grow").toBeDefined();
 		if (!stack) return;
@@ -387,8 +363,6 @@ describe("the plan against the appliers", () => {
 			)?.quantity,
 		).toBe(stack.quantity + 3);
 
-		// A new stack cloned from a donor, and an item that adds as one, both for
-		// items the fixture does not already hold.
 		const keyOf = (pick: (item: CatalogItem) => boolean) =>
 			Object.entries(merged).find(
 				([key, item]) => !heldKeys.has(Number(key)) && pick(item),

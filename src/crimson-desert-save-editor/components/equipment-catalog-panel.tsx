@@ -12,14 +12,11 @@ import {
 import { EquipmentEditor } from "./equipment-workshop";
 import { Picture } from "./picture";
 
-/** The equipment browser lists about a thousand rows, so they are windowed. */
 const ROW_HEIGHT = 56;
 const LIST_HEIGHT = 320;
 
-/** Item 1000521 is suppressed by the game without its entitlement. */
 const ENTITLEMENT_SUPPRESSED_KEY = "1000521";
 
-/** Equipment the installed game refuses to hand out, whatever the save says. */
 const unavailable = (catalog: EquipmentCatalog | null, key: string): boolean =>
 	key === ENTITLEMENT_SUPPRESSED_KEY ||
 	catalog?.items[key]?.blockedInGameData === true;
@@ -38,7 +35,6 @@ export const EquipmentCatalogPanel = ({
 	storages: { key: number; name: string }[];
 	defaultStorage: number | null;
 	records: { inventoryKey: number; itemKey: number }[];
-	/** Every staged edit, so a row can say what the save would already hold. */
 	edits: SaveEdit[];
 	busy: boolean;
 	onStage: (edit: InsertEquipmentEdit) => void;
@@ -57,8 +53,6 @@ export const EquipmentCatalogPanel = ({
 	const [storage, setStorage] = useState<number | null>(defaultStorage);
 	const [selectedKey, setSelectedKey] = useState("");
 
-	// The parent re-renders on every interaction, and the catalog does not
-	// change, so the browse list and its membership sets are memoized.
 	const entries = useMemo<CatalogEntry[]>(
 		() =>
 			Object.entries(catalog?.items ?? {})
@@ -75,8 +69,6 @@ export const EquipmentCatalogPanel = ({
 				})),
 		[catalog],
 	);
-	// Membership sets keep the per-row lookups O(1) instead of scanning the
-	// inventory for every one of the thousand rows.
 	const { held, staged } = useMemo(
 		() => storageKeys({ records, edits, inventoryKey: storage }),
 		[records, edits, storage],

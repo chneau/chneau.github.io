@@ -11,14 +11,7 @@ import {
 	ViewPresetPicker,
 } from "./control-parts";
 
-/**
- * The bottom control bar. It owns nothing but the throttled subscription and
- * the arrangement; the controls themselves live in `control-parts` and write to
- * the store themselves, so this file reads as the shape of the bar rather than
- * as one long list of handlers.
- */
 export const Controls = () => {
-	// Throttled: the HUD does not need to follow the 60 fps clock exactly.
 	const [snap, derivedSnap] = useThrottledSnapshots(railUiStores);
 
 	const {
@@ -53,11 +46,7 @@ export const Controls = () => {
 				}}
 			>
 				<Box style={{ padding: "12px 18px" }}>
-					{/* Top Bar: Live Clock, Category Filters, Search and View Selector */}
 					<div
-						// Stacks to one column under the 640px breakpoint, where the
-						// three groups side by side leave each of them about a third
-						// of a phone.
 						className="sr-controls-row"
 						style={{
 							display: "flex",
@@ -86,7 +75,6 @@ export const Controls = () => {
 
 					<TimelineScrubber timeOffset={timeOffset} />
 
-					{/* Bottom Controls: Playback buttons & quick jumps */}
 					<div
 						className="sr-controls-sub"
 						style={{

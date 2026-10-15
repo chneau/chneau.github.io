@@ -26,8 +26,6 @@ import {
 	useShortcutsHelp,
 	useThemeMode,
 } from "../shared";
-// By path, not via the barrel: analytics is a side-effectful module and must
-// not be dragged onto every app that imports a single shared component.
 import { track } from "../shared/analytics";
 import { ConsentBanner, useAnalyticsConsent } from "../shared/consent";
 import { AppToolbar } from "./AppToolbar";
@@ -38,7 +36,6 @@ import { AppLists, SearchResults } from "./DashboardSections";
 import { GithubIcon } from "./GithubIcon";
 import { useDashboardShortcuts } from "./useDashboardShortcuts";
 
-/** A blue accent (#1677ff), expanded to Mantine's 10-shade tuple (shade 6). */
 const brand: MantineColorsTuple = [
 	"#e6f4ff",
 	"#bae0ff",
@@ -70,11 +67,6 @@ const FUSE_OPTIONS: ConstructorParameters<typeof Fuse<AppEntry>>[1] = {
 	ignoreLocation: true,
 };
 
-/**
- * The subset of `results` that is in `byCategory`. Fuse returns every fuzzy
- * match for the query, so this runs over its whole result set: membership is a
- * lookup against the category's apps, not a scan of them per result.
- */
 const withinCategory = (
 	byCategory: AppEntry[],
 	results: AppEntry[],
@@ -90,9 +82,6 @@ export const App = () => {
 	const { recents, visit, clear: clearRecents } = useRecents();
 	const { pinned, toggle: togglePin, isPinned } = usePinnedApps();
 
-	// Analytics is strictly opt-in: `granted` is false until the visitor
-	// accepts the banner, and stays false when Do Not Track / Global Privacy
-	// Control is set.
 	const { granted: analyticsOn, decide: setAnalyticsConsent } =
 		useAnalyticsConsent();
 	const toggleAnalytics = useCallback(
@@ -107,15 +96,6 @@ export const App = () => {
 		[visit],
 	);
 
-	// The shared `AppSwitcher` and the palette's built-in navigation commands
-	// set `location.href` themselves, so they never reach `handleVisit`. Watch
-	// the document for any in-app link so every route into an app is recorded
-	// once, whichever control the visitor used.
-	//
-	// `useEffectEvent` rather than a dependency array: a `visit` that changes
-	// identity (it closes over the recents list, which grows as apps are opened)
-	// would otherwise take the document listener down and put it back on every
-	// open, dropping any click that landed in between.
 	const recordAppVisit = useEffectEvent((href: string) => {
 		if (APPS.some((app) => app.href === href)) handleVisit(href);
 	});
@@ -145,7 +125,6 @@ export const App = () => {
 	const [now, setNow] = useState(() => new Date());
 	const searchRef = useRef<HTMLInputElement>(null);
 
-	// Keep the greeting and clock current without re-rendering every second.
 	useEffect(() => {
 		const timer = setInterval(() => setNow(new Date()), 30_000);
 		return () => clearInterval(timer);
@@ -195,10 +174,6 @@ export const App = () => {
 		window.location.href = app.href;
 	}, [handleVisit]);
 
-	// Enter-to-open has to navigate as well as record: `handleVisit` only
-	// writes the recents and the analytics event, so passing it as `onOpen`
-	// silently recorded a visit to an app that was never opened, and the
-	// search box's Enter stopped working at all.
 	const openApp = useCallback(
 		(href: string) => {
 			handleVisit(href);
@@ -243,8 +218,6 @@ export const App = () => {
 			>
 				<SkipLink />
 				<AppNav
-					// This app binds the command palette, so the shared help dialog
-					// may advertise it.
 					hasCommandPalette
 					icon={<Rocket size={18} />}
 					title="chneau.github.io"
@@ -314,8 +287,6 @@ export const App = () => {
 				/>
 			</Box>
 
-			{/* Renders only until the visitor answers, and never when the
-			    browser exports Do Not Track or Global Privacy Control. */}
 			<ConsentBanner />
 
 			<CommandPalette

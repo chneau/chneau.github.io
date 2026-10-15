@@ -11,12 +11,6 @@
 		<meta name="robots" content="noindex, nofollow" />
 		<meta name="theme-color" content="#f4f4f5" />
 		<link rel="icon" href="/icons/root-32.png" />
-		<!--
-			Served from the service worker (public/sw.js) whenever a navigation
-			fails and there is no cached copy of the page. Self-contained by
-			necessity: it cannot import the app bundle, so the tokens below mirror
-			src/shared/tokens.css and the brand accent from src/root/App.tsx.
-		-->
 		<style>
 		:root {
 			color-scheme: light;
@@ -57,9 +51,6 @@
 				0 18px 40px -24px rgba(24, 24, 27, 0.22);
 		}
 
-		/* Dark tokens twice on purpose: the media query covers the no-JS
-		   case, the attribute block an explicit toggle that contradicts
-		   the OS preference. */
 		@media (prefers-color-scheme: dark) {
 			:root:not([data-theme="light"]) {
 				color-scheme: dark;
@@ -120,7 +111,6 @@
 			-webkit-font-smoothing: antialiased;
 		}
 
-		/* Top bar: mirrors the shared AppHeader rhythm. */
 		.topbar {
 			display: flex;
 			align-items: center;
@@ -284,7 +274,6 @@
 			color: var(--app-accent-ink);
 		}
 
-		/* Footer: quiet, but carries the theme switch. */
 		.footer {
 			display: flex;
 			flex-wrap: wrap;
@@ -322,7 +311,6 @@
 			box-shadow: var(--app-shadow-sm);
 		}
 
-		/* A visible focus ring on every interactive element. */
 		a:focus-visible,
 		button:focus-visible {
 			outline: 2px solid var(--app-accent-ink);
@@ -347,13 +335,6 @@
 				border-color: var(--app-border-strong);
 			}
 		}
-		/*
-			 * Motion is switched *on* only when the visitor has not asked for
-			 * less of it, rather than switched off inside a `reduce` query. A
-			 * `reduce` override has to out-specify every animated rule and
-			 * needs `!important` to do it, which the formatter strips; gating
-			 * the positive case cannot lose a specificity fight.
-			 */
 		@media (prefers-reduced-motion: no-preference) {
 			.card {
 				animation: card-rise 0.45s var(--app-ease) both;
@@ -390,7 +371,6 @@
 		}
 		</style>
 		<script>
-		// Resolve the scheme before the first paint so there is no flash.
 		(() => {
 			const KEY = "fallback_theme";
 			const isMode = (v) => v === "light" || v === "dark" || v === "auto";
@@ -401,7 +381,6 @@
 					mode = stored;
 				}
 			} catch (_error) {
-				// Storage blocked (private mode, sandboxed frame): fall back to auto.
 			}
 			const dark = mode === "dark" ||
 				(mode === "auto" &&
@@ -518,7 +497,6 @@
 					mode = stored;
 				}
 			} catch (_error) {
-				// Storage blocked: stay on "auto".
 			}
 
 			const apply = (next) => {
@@ -552,12 +530,10 @@
 				try {
 					window.localStorage.setItem(KEY, next);
 				} catch (_error) {
-					// Storage blocked: the toggle still works for this page view.
 				}
 				apply(next);
 			});
 
-			// Follow the OS while the choice is "auto".
 			if (typeof media.addEventListener === "function") {
 				media.addEventListener("change", () => {
 					if (mode === "auto") apply("auto");
@@ -598,8 +574,6 @@
 				setStatus(false);
 			}
 
-			// As soon as the browser reports it is back, go straight to the
-			// page the visitor actually asked for.
 			window.addEventListener("online", () => {
 				setStatus(true);
 				window.setTimeout(reload, 350);

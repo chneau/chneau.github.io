@@ -1,21 +1,8 @@
-/**
- * Corrupt-input tests for the PARC parser.
- *
- * The parser trusts every length it reads, so a hostile or damaged payload is
- * the input that matters most: before the bounds guards it would walk past the
- * buffer and return a plausible-looking schema, and structural edits would then
- * write through that misread. These tests pin the failure: a corrupt blob must
- * throw, and a truncated one must not parse.
- *
- * Run with `bun test`.
- */
-
 import { describe, expect, test } from "bun:test";
 import { hasBytes, requireBytes, writeU32 } from "../lib/save-engine/bytes";
 import { parseParcBlob } from "../lib/save-engine/parc-serializer";
 import { fixture, opened } from "./fixtures";
 
-/** A deterministic byte stream, so a failing seed is reproducible. */
 const pseudoRandom = (length: number, seed: number): Uint8Array => {
 	const out = new Uint8Array(length);
 	let state = seed >>> 0;
@@ -52,8 +39,6 @@ describe("parseParcBlob corruption", () => {
 	test("random bytes after the magic throw rather than parse", () => {
 		for (let seed = 1; seed <= 32; seed++) {
 			const blob = pseudoRandom(96, seed);
-			// Keep the inner magic so parsing gets past it and reaches the
-			// attacker-controlled lengths the run is about.
 			blob[0] = 0xff;
 			blob[1] = 0xff;
 			expect(() => parseParcBlob(blob), `seed ${seed} must not parse`).toThrow(
@@ -83,9 +68,6 @@ describe("parseParcBlob corruption", () => {
 		const blob = new Uint8Array(32);
 		blob[0] = 0xff;
 		blob[1] = 0xff;
-		// numRootEntries (14) and numTypes (18) stay zero, so the schema is
-		// empty and the TOC header starts at 20. Claim 1000 entries with only
-		// a dozen bytes left.
 		writeU32(blob, 24, 1000);
 		expect(() => parseParcBlob(blob)).toThrow(/TOC entry count/);
 	});
@@ -94,9 +76,9 @@ describe("parseParcBlob corruption", () => {
 		const blob = new Uint8Array(14 + 6 + 12 + 20);
 		blob[0] = 0xff;
 		blob[1] = 0xff;
-		writeU32(blob, 24, 1); // entryCount
-		writeU32(blob, 44, 0); // dataOffset, before dataStart
-		writeU32(blob, 48, 4); // dataSize
+		writeU32(blob, 24, 1);
+		writeU32(blob, 44, 0);
+		writeU32(blob, 48, 4);
 		expect(() => parseParcBlob(blob)).toThrow(/outside the blob/);
 	});
 
@@ -104,9 +86,9 @@ describe("parseParcBlob corruption", () => {
 		const blob = new Uint8Array(14 + 6 + 12 + 20);
 		blob[0] = 0xff;
 		blob[1] = 0xff;
-		writeU32(blob, 24, 1); // entryCount
-		writeU32(blob, 44, 52); // dataOffset === dataStart
-		writeU32(blob, 48, 4); // dataSize runs past the end
+		writeU32(blob, 24, 1);
+		writeU32(blob, 44, 52);
+		writeU32(blob, 48, 4);
 		expect(() => parseParcBlob(blob)).toThrow(/outside the blob/);
 	});
 
@@ -114,7 +96,6 @@ describe("parseParcBlob corruption", () => {
 		const blob = new Uint8Array(20);
 		blob[0] = 0xff;
 		blob[1] = 0xff;
-		// numTypes is a u16 at offset 18; 0xffff is far past any real schema.
 		blob[18] = 0xff;
 		blob[19] = 0xff;
 		expect(() => parseParcBlob(blob)).toThrow(/implausible type count/);

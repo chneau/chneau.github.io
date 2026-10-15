@@ -1,8 +1,3 @@
-/**
- * Web Audio Procedural Synthesizer for Scotland Rail
- * Generates gentle ambient train clatter and arrival chimes
- */
-
 class RailAudioEngine {
 	private ctx: AudioContext | null = null;
 	private clatterOsc: OscillatorNode | null = null;
@@ -23,8 +18,6 @@ class RailAudioEngine {
 	public unlockAudio() {
 		this.init();
 		if (this.ctx && this.ctx.state === "suspended") {
-			// Autoplay policies can reject `resume()`; that is expected until a
-			// user gesture, so swallow it rather than surface an unhandled error.
 			void this.ctx.resume().catch(() => {});
 		}
 	}
@@ -38,7 +31,6 @@ class RailAudioEngine {
 			this.ctx.resume();
 		}
 
-		// Ambient low rhythmic rumble
 		const osc = this.ctx.createOscillator();
 		const gain = this.ctx.createGain();
 		const filter = this.ctx.createBiquadFilter();
@@ -75,16 +67,15 @@ class RailAudioEngine {
 			this.ctx.resume();
 		}
 
-		// British Rail 2-tone melodic chime (Bb4 -> Eb5)
 		const now = this.ctx.currentTime;
 		const osc1 = this.ctx.createOscillator();
 		const osc2 = this.ctx.createOscillator();
 		const gain = this.ctx.createGain();
 
 		osc1.type = "sine";
-		osc1.frequency.setValueAtTime(466.16, now); // Bb4
+		osc1.frequency.setValueAtTime(466.16, now);
 		osc2.type = "sine";
-		osc2.frequency.setValueAtTime(622.25, now + 0.18); // Eb5
+		osc2.frequency.setValueAtTime(622.25, now + 0.18);
 
 		gain.gain.setValueAtTime(0.06, now);
 		gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
@@ -105,9 +96,7 @@ class RailAudioEngine {
 			this.clatterOsc?.stop();
 			this.clatterOsc?.disconnect();
 			this.clatterGain?.disconnect();
-		} catch {
-			// ignore cleanup error
-		}
+		} catch {}
 		this.clatterOsc = null;
 		this.clatterGain = null;
 		this.isRunning = false;

@@ -6,23 +6,13 @@ import { formatRelativeTime } from "../recent";
 
 type AppCardProps = {
 	item: AppEntry;
-	/** Position in the grid, used to stagger the entrance animation. */
 	index?: number;
-	/** Whether the app is currently pinned (favourite). */
 	pinned?: boolean;
-	/** Timestamp of the last visit, if the app was opened before. */
 	lastVisitedAt?: number;
-	/** Toggle pin state; omit to hide the pin control. */
 	onTogglePin?: (href: string) => void;
-	/** Called before navigating, so the visit can be recorded. */
 	onVisit?: (href: string) => void;
 };
 
-/**
- * The dashboard's app tile. The whole surface is a single link (a stretched
- * link via `.app-card__link`) so pointer and keyboard users get the same
- * target; the pin control is a real button layered on top.
- */
 export const AppCard = ({
 	item,
 	index = 0,
@@ -41,24 +31,6 @@ export const AppCard = ({
 
 	return (
 		<article className="app-card app-rise" style={style}>
-			{/*
-			 * No `aria-label`: the link is named by what it shows.
-			 *
-			 * It carried `Open ${title} — ${tag}`, which is a *concise* name and
-			 * a WCAG 2.5.3 (Label in Name, AA) failure — the accessible name
-			 * has to contain the text presented visually, and a card's visible
-			 * text is the title, the tag, the description and the footer line.
-			 * axe reported all thirteen cards, in both colour schemes; a
-			 * speech-to-text user who reads "Senior Full-Stack & Systems" or
-			 * "New to you" off the card and says it gets nothing, because
-			 * neither string is in the name.
-			 *
-			 * The cost is that the link announces its whole content, which is
-			 * more words than the label was. That is what the card is — the
-			 * alternative, keeping the short name, is the failure this fixes.
-			 * The `kbd` keeps its own `Press Q` name, which is an instruction
-			 * rather than a duplicate of the one glyph it prints.
-			 */}
 			<a className="app-card__link" href={item.href} onClick={handleVisit}>
 				<span className="app-card__icon" aria-hidden="true">
 					<Icon size={24} strokeWidth={1.5} />
@@ -117,14 +89,6 @@ export const AppCard = ({
 	);
 };
 
-/**
- * The keyboard shortcut hint, hidden on touch devices via CSS.
- *
- * The keycap prints the key and only the key, because that is what a keycap
- * is; `shortcutKey` — the derived `Press Q` prose — rides on it as the
- * accessible name, so a screen reader announces the shortcut as an
- * instruction while a sighted visitor still sees a one-glyph keycap.
- */
 const kbd = (item: AppEntry) => (
 	<kbd
 		className="app-kbd app-card__kbd"

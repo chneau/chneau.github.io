@@ -1,10 +1,5 @@
 import { useEffect, useRef } from "react";
 
-/**
- * Magnetic micro-physics without React state: the element drifts toward the
- * cursor via a single rAF lerp writing `transform` directly. Skipped on coarse
- * pointers and fully cleaned up on unmount.
- */
 export const useMagnetic = <T extends HTMLElement>(strength = 0.22) => {
 	const ref = useRef<T>(null);
 

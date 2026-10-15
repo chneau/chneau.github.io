@@ -63,7 +63,6 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
 	},
 ];
 
-/** The three toggles in the header: sound, data sources, and map settings. */
 const HeaderActions = ({
 	soundEffects,
 	onToggleSound,
@@ -102,9 +101,6 @@ const HeaderActions = ({
 );
 
 export const App = () => {
-	// Throttled snapshots: the store is written every animation frame, but the
-	// HUD only needs to re-render at ~15 Hz. ReplayCanvas keeps its own raw
-	// subscription so the map itself still animates at 60 fps.
 	const [snap, derivedSnap] = useThrottledSnapshots(railUiStores);
 	const { dark, toggle } = useThemeMode();
 	const shortcuts = useShortcutsHelp();
@@ -126,7 +122,6 @@ export const App = () => {
 	useReplayClock(isPlaying, speed);
 	useAmbientAudio(settings.soundEffects, isPlaying, activeTrains.length);
 
-	// Trigger station arrival chime when selected train arrives at a station
 	const prevSelectedDwellingRef = useRef<boolean>(false);
 	useEffect(() => {
 		if (!selectedService || !settings.soundEffects) return;
@@ -168,9 +163,6 @@ export const App = () => {
 		},
 	];
 
-	// `searchQuery.trim()`, not `!== ""`: `NoMatchBanner` decides "has a search"
-	// the same way (and the store treats whitespace as no filter), so a restored
-	// `?q=%20` used to render the banner with neither of its recovery buttons.
 	const showNoMatch =
 		activeTrains.length === 0 &&
 		(searchQuery.trim().length > 0 || selectedCategory !== "all");
@@ -188,8 +180,6 @@ export const App = () => {
 		>
 			<SkipLink />
 			<AppNav
-				// This app binds the command palette, so the shared help dialog
-				// may advertise it.
 				hasCommandPalette
 				staticPosition
 				icon={<Compass size={18} />}
@@ -216,7 +206,6 @@ export const App = () => {
 				}
 			/>
 
-			{/* Map canvas and its floating overlays */}
 			<Box
 				component="main"
 				id="main"
@@ -227,23 +216,19 @@ export const App = () => {
 					overflow: "hidden",
 				}}
 			>
-				{/* Data Sources Modal */}
 				<SourcesModal
 					open={isInfoOpen}
 					onClose={() => railActions.setIsInfoOpen(false)}
 				/>
 
-				{/* Command Palette (Cmd/Ctrl-K) */}
 				<CommandPalette
 					opened={commandPalette.opened}
 					onClose={commandPalette.close}
 					commands={commands}
 				/>
 
-				{/* Map Canvas */}
 				<ReplayCanvas />
 
-				{/* Floating Empty Search Recovery Banner */}
 				{showNoMatch && (
 					<NoMatchBanner
 						searchQuery={searchQuery}
@@ -252,16 +237,12 @@ export const App = () => {
 					/>
 				)}
 
-				{/* Live Dynamic Stats Panel (Left HUD) */}
 				<StatsPanel />
 
-				{/* Settings Drawer */}
 				<SettingsModal onOpenShortcuts={shortcuts.open} />
 
-				{/* Controls */}
 				<Controls />
 
-				{/* Inspector Sidebar */}
 				<ServiceDetails />
 			</Box>
 		</Box>

@@ -1,4 +1,3 @@
-/** A small breathing status light. */
 export const StatusDot = ({
 	on = true,
 	label,

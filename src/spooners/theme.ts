@@ -1,7 +1,6 @@
 import type { MantineColorsTuple } from "@mantine/core";
 import { createAppTheme } from "../shared";
 
-/** Warm amber, in keeping with a decent pint. */
 const amber: MantineColorsTuple = [
 	"#fff8e1",
 	"#ffecb3",

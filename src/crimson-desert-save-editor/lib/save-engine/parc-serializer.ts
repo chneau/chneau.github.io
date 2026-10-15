@@ -1,14 +1,3 @@
-/**
- * TypeScript port of the upstream PARC serializer (`parc_serializer.py`) from
- * SWISS Knife / Crimson Desert Save Editor (MPL-2.0).
- *
- * This is a derivative of that covered source; preserve the upstream
- * attribution and license notices when redistributing.
- *
- * The parser returns plain objects rather than Python dicts. Byte ranges that
- * the Python code exposes as `bytes` are returned as `Uint8Array`.
- */
-
 import {
 	bytesEqual,
 	concatBytes,
@@ -85,11 +74,6 @@ export const parseParcBlob = (data: Uint8Array): ParcBlob => {
 			`Bad inner magic: 0x${magic.toString(16).toUpperCase().padStart(4, "0")}`,
 		);
 	}
-	// Every length in the blob is attacker-controlled: a corrupt or edited
-	// payload is exactly what this parser sees. `need` fails the parse the
-	// moment a read would leave the buffer, and the per-length caps below
-	// reject counts that cannot fit the remaining bytes, so a random blob
-	// throws instead of walking off the end into a plausible-looking schema.
 	const fail = (detail: string): never => {
 		throw new Error(`Invalid PARC blob: ${detail}`);
 	};
@@ -100,19 +84,12 @@ export const parseParcBlob = (data: Uint8Array): ParcBlob => {
 			fail(error instanceof Error ? error.message : String(error));
 		}
 	};
-	/** A length prefix must not claim more bytes than the blob still holds. */
 	const bounded = (offset: number, length: number, what: string): void => {
 		need(offset, length, what);
 	};
 
-	// Views, not copies: the parsed sections alias `data` and every consumer
-	// either reads them or copies before writing (patchScalars, concatBytes),
-	// so the multi-megabyte payload is never duplicated per parse.
 	const header = data.subarray(0, 14);
 
-	// A schema with millions of types cannot exist in a real save; the cap
-	// stops a corrupt count from driving a multi-gigabyte loop before the
-	// bounds checks below would notice.
 	const MAX_TYPES = 4096;
 	const MAX_FIELDS = 4096;
 
@@ -205,9 +182,6 @@ export const parseParcBlob = (data: Uint8Array): ParcBlob => {
 
 	const blockRaw = new Map<number, Uint8Array>();
 	for (const entry of tocEntries) {
-		// Blocks live after the TOC and must fit the blob. Without this a
-		// bogus offset is clamped by `subarray` and the block silently reads
-		// the wrong bytes (or none), which edit proofs would then trust.
 		if (
 			entry.dataOffset < dataStart ||
 			entry.dataSize > data.length - entry.dataOffset
@@ -301,18 +275,8 @@ const writeU32Buffer = (value: number): Uint8Array => {
 	return buffer;
 };
 
-/** Bytes in the inline-pointer sentinel: eight `0xff`. */
 const SENTINEL_BYTES = 8;
 
-/**
- * The next inline-pointer sentinel at or after `from`, before `end`, or -1.
- *
- * Serialization walks every byte of every shifted block looking for this
- * marker. Measuring `out.subarray(pos, pos + 8)` against the sentinel
- * allocated a view per byte — the single largest cost of an otherwise
- * two-byte edit — so the bytes are read in place instead. The offsets found
- * are the same; only the garbage is gone.
- */
 const findSentinel = (out: Uint8Array, from: number, end: number): number => {
 	for (let pos = from; pos < end; pos++) {
 		if (out[pos] !== 0xff) continue;
@@ -428,18 +392,7 @@ type ParsedBlock = {
 export class BlockParser {
 	readonly parc: ParcBlob;
 	readonly data: Uint8Array;
-	/** Element end offsets memoized across the parses of one payload. A list
-	 * is walked twice in normal use — once to find where it ends, once to report
-	 * its fields — and the walk is the expensive part on 46k-row tables. Sound
-	 * because both walks must already agree on every boundary for the parsed
-	 * output to be usable; this only skips recomputing the same answer. */
 	private elementEnds = new Map<number, number>();
-	/** One shared absent entry per (type, field index). Absent fields outnumber
-	 * present ones in the big tables — the quest stage table has 15 slots but 2
-	 * present — and an absent entry carries no data at all, only
-	 * `present: false`. Rebuilding one per field per element was the largest
-	 * allocation in a generic walk. Consumers only read `.present`/`.name` and
-	 * never mutate an entry, so sharing one instance is safe. */
 	private absentFields = new WeakMap<TypeDef, ParsedField[]>();
 
 	constructor(parc: ParcBlob) {
@@ -490,14 +443,6 @@ export class BlockParser {
 		};
 	}
 
-	/**
-	 * `parseFields` without building anything: reports each present field as
-	 * `(fieldIndex, start, end, value)` through `visit` and returns the cursor
-	 * after the last field. Used by the columnar list walk, which needs extents
-	 * and scalars for tens of thousands of elements but never materializes a
-	 * `ParsedField` or a `raw` view per field — allocating those was the walk's
-	 * dominant cost. Absent fields produce no callback at all.
-	 */
 	parseFieldExtents(
 		typedef: TypeDef,
 		maskBytes: Uint8Array,
@@ -544,8 +489,6 @@ export class BlockParser {
 				fieldIndex: index,
 				name: fdef.name,
 				present: true,
-				// A view, not a copy: lists hold tens of thousands of elements and
-				// this once allocated one slice per field per element.
 				raw: this.data.subarray(start, end),
 				value,
 				start,
@@ -809,12 +752,6 @@ export class BlockParser {
 		const start = pos;
 		let lastError: unknown = null;
 
-		// The header is probed at up to four byte shifts. Every probe that
-		// decodes a valid list walks the same self-describing elements, so the
-		// first success already gives the max end — confirmed empirically on
-		// 85k+ lists across both fixtures (a shifted probe that "succeeds" with
-		// a shorter walk was never observed). Early-exiting avoids re-walking
-		// 46k-element stage tables three extra times per parse.
 		for (const delta of [0, 1, 2, 3]) {
 			const body = pos + delta;
 			if (body + 18 > tail) continue;
@@ -897,16 +834,12 @@ export class BlockParser {
 	}
 
 	parseListElement(cursor: number, tail: number): number {
-		// Boundaries are deterministic for (data, cursor), so memoize per cursor.
-		// The end-scan in `parseObjectList` warms this for the later
-		// field-collection walk of the same list.
 		const cached = this.elementEnds.get(cursor);
 		if (cached !== undefined) return cached;
 		let end: number;
 		try {
 			end = this.parseFullLocatorElement(cursor, tail);
 		} catch {
-			// Fall through to the compact layout.
 			end = this.parseCompactElement(cursor, tail);
 		}
 		this.elementEnds.set(cursor, end);

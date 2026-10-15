@@ -7,45 +7,29 @@ import { ValueExplorer } from "./ValueExplorer";
 import { VenueModal } from "./VenueModal";
 
 type Props = {
-	/** The pub dialog's state, owned by the app because the map opens it too. */
 	venueRef: number | null;
 	onVenueChange: (ref: number | null) => void;
-	/** The cache the dialogs read their pub and item data from. */
 	cache: Parameters<typeof VenueModal>[0]["cache"];
 	format: Parameters<typeof VenueModal>[0]["format"];
-	/** Replace the whole round with one item. */
 	onOnlyItem: (name: string) => void;
-	/** Add one item to the round. */
 	onAddItem: (name: string) => void;
 	valueOpen: boolean;
 	onValueClose: () => void;
 	settingsOpen: boolean;
 	onSettingsClose: () => void;
-	/** The settings the dialog edits. */
 	settings: SpoonersSettings;
 	onSettings: (settings: SpoonersSettings) => void;
-	/** Currency codes offered for conversion. */
 	currencies: string[];
 	rateDate: string | null;
 	rateSource: string;
 	ratesLoading: boolean;
 	ratesError: string | null;
 	onRefreshRates: () => void;
-	/** The palette lives here but its open state does not: `useCommandPalette` is
-	 * per-instance, so a second hook would answer for a dialog nothing renders. */
 	paletteOpened: boolean;
 	onPaletteClose: () => void;
 	commands: Command[];
 };
 
-/**
- * Every dialog the app can open, and the palette.
- *
- * They live together because they are one another's navigation: picking an item
- * in the pub dialog opens the item dialog, which opens the value explorer, and
- * each has to remember which pub to hand back to. Spread across the tree, that
- * hand-back state would live in two places at once.
- */
 export const SpoonerDialogs = ({
 	venueRef,
 	onVenueChange,

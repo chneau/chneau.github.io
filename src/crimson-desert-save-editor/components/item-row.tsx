@@ -12,11 +12,6 @@ type ItemRowProps = {
 	onEdit: (item: GroupedItem) => void;
 };
 
-/**
- * One row of the storage table. It is memoized because a storage holds every
- * item the player owns: without this, selecting one item re-renders all of the
- * rows in the storage on every click.
- */
 export const ItemRow = memo(
 	({ item, selected, busy, onSelect, onEdit }: ItemRowProps) => (
 		<Table.Tr

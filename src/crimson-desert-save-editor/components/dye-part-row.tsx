@@ -9,19 +9,8 @@ import {
 import type { DyeDescription, DyeSlot } from "../lib/save-engine/dyes";
 import type { DyeChannels } from "./dye-channels";
 
-/** Which of the RGB channels a table column sets; the others are Selects. */
 type ChannelName = "red" | "green" | "blue" | "alpha" | "grime";
 
-/**
- * One part of one dyed item.
- *
- * The row is where every dye decision shows up — a part's name, its colour as
- * a swatch, each channel as a number, and the two lookups the save resolves by
- * key — so it is a component of its own and the panel keeps the rule that
- * decides which edit a keystroke produces. What the *panel* cannot know, and
- * this row can, is how a part looks: nothing here decides what to stage, it
- * only asks.
- */
 export const DyePartRow = ({
 	slot,
 	staged,
@@ -32,7 +21,6 @@ export const DyePartRow = ({
 	onStageAllParts,
 }: {
 	slot: DyeSlot;
-	/** The staged channels for this part, which win over what the save holds. */
 	staged: DyeChannels;
 	colorGroups: NonNullable<DyeDescription["colorGroups"]>;
 	materials: NonNullable<DyeDescription["materials"]>;
@@ -43,14 +31,9 @@ export const DyePartRow = ({
 	const red = staged.red ?? slot.red?.value ?? null;
 	const green = staged.green ?? slot.green?.value ?? null;
 	const blue = staged.blue ?? slot.blue?.value ?? null;
-	// A part the game stored no colour for has no swatch to edit, and a swatch
-	// over three nulls would read as black — a colour the save does not hold.
 	const colorStored =
 		Boolean(slot.red) || Boolean(slot.green) || Boolean(slot.blue);
 
-	// A null channel reads as 00, which is what the original `value ?? 0` did:
-	// the swatch is disabled in that state anyway, so the placeholder is not
-	// something the reader can read as a colour.
 	const hex = (value: number | null): string =>
 		(value ?? 0).toString(16).padStart(2, "0").toUpperCase();
 

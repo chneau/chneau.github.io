@@ -1,6 +1,5 @@
 import type { CSSProperties } from "react";
 
-/** A shimmering placeholder block. */
 export const Skeleton = ({
 	width,
 	height = 12,

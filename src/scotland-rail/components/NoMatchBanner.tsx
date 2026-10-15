@@ -5,12 +5,6 @@ import { railActions } from "../store";
 import { palette } from "../theme";
 import { formatTime } from "../utils";
 
-/**
- * The floating banner shown when the filters on the map have hidden every
- * service. It exists because an empty map is otherwise indistinguishable from a
- * broken one, so it names the reason and offers the two ways out: clear the
- * search, or show every category.
- */
 export const NoMatchBanner = ({
 	searchQuery,
 	selectedCategory,
@@ -28,10 +22,6 @@ export const NoMatchBanner = ({
 	return (
 		<div
 			className="sr-glass sr-rise sr-banner"
-			// The banner is the only thing on screen distinguishing "filtered to
-			// nothing" from "broken", and it appears when a filter changes — with no
-			// announcement, a screen-reader user gets silence instead of a recovery
-			// route. Its buttons are already in the tab order; this announces them.
 			role="status"
 			aria-live="polite"
 			style={{
@@ -49,9 +39,6 @@ export const NoMatchBanner = ({
 				gap: 12,
 				color: palette.text,
 				maxWidth: "calc(100vw - 32px)",
-				// Narrow screens put the banner directly above the stats panel; this
-				// keeps the row it wraps within the gap it is allowed, and the
-				// stylesheet drops the panel further on the same breakpoint.
 				rowGap: 8,
 			}}
 		>
@@ -105,9 +92,6 @@ const ClearButton = ({
 		style={{
 			color: palette.danger,
 			border: `1px solid ${palette.danger}`,
-			// `xs` is the right type size for a floating strip, but its 24px box
-			// is below the 44px a thumb needs — and this button is the only way
-			// out of an empty map.
 			minHeight: 44,
 		}}
 	>

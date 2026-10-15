@@ -1,20 +1,3 @@
-/**
- * Portion normalisation and "value" metrics.
- *
- * The API reports portions with inconsistent casing ("Half pint" / "Half Pint",
- * "750ml bottle" / "750ml Bottle") and mixes formats for the same item (wine by
- * the glass, by the 200ml single bottle and by the 750ml bottle). Comparing raw
- * "largest portion" prices therefore produces absurd spreads, so everything is
- * normalised here:
- *
- *  - labels are de-duplicated case-insensitively,
- *  - volumes are parsed from the label ("175ml glass", "Pint", "Single", ...),
- *  - a canonical portion is chosen per item type (beer -> pint, spirits -> single,
- *    wine/soft drinks -> the format most pubs actually sell),
- *  - and a comparable "value" metric is derived: price per alcohol unit, price
- *    per 100 ml, or calories per pound.
- */
-
 import { amount, currencySymbol } from "./price";
 import type { ItemDefinition, ItemNature, ValueKind } from "./types";
 
@@ -33,7 +16,6 @@ type PortionKind =
 	| "each"
 	| "other";
 
-/** Volume in ml of one measure, when the label does not spell it out. */
 const IMPLIED_ML: Record<PortionKind, number | null> = {
 	pint: 568,
 	half: 284,
@@ -44,15 +26,12 @@ const IMPLIED_ML: Record<PortionKind, number | null> = {
 	pitcher: 1140,
 	single: 25,
 	double: 50,
-	// "Standard" is ambiguous (a 25ml spirit? a pint of ale?) so it stays
-	// unknown and the value metric falls back to the description's units.
 	standard: null,
 	measure: null,
 	each: null,
 	other: null,
 };
 
-/** Canonical spelling for the labels that differ only by case. */
 const CANONICAL_LABEL: Record<string, string> = {
 	"half pint": "Half pint",
 	"large pitcher": "Large pitcher",
@@ -67,7 +46,6 @@ const CANONICAL_LABEL: Record<string, string> = {
 	each: "Each",
 };
 
-/** "Half Pint" -> "Half pint", "750ml Bottle" -> "750ml bottle". */
 export const portionLabel = (label: string): string => {
 	const low = label.trim().replace(/\s+/g, " ").toLowerCase();
 	return CANONICAL_LABEL[low] ?? low;
@@ -90,7 +68,6 @@ const classifyPortion = (label: string): PortionKind => {
 	return "other";
 };
 
-/** ml in one portion: from the label ("175ml glass") or from the kind. */
 const portionMl = (label: string): number | null => {
 	const match = /(\d+(?:\.\d+)?)\s*ml/.exec(portionLabel(label));
 	if (match?.[1]) {
@@ -115,7 +92,6 @@ const KIND_ORDER: PortionKind[] = [
 	"other",
 ];
 
-/** Sort key for the portion switcher: pints first, then halves, bottles... */
 export const portionRank = (label: string): number => {
 	const kind = classifyPortion(label);
 	const index = KIND_ORDER.indexOf(kind);
@@ -124,7 +100,6 @@ export const portionRank = (label: string): number => {
 	);
 };
 
-/** {rawLabel: price} -> {canonicalLabel: price}, de-duplicating case variants. */
 const normalizePortions = (
 	portions: Record<string, number>,
 ): Record<string, number> => {
@@ -137,10 +112,6 @@ const normalizePortions = (
 	}
 	return out;
 };
-
-// --------------------------------------------------------------------------- #
-// item nature + canonical portion                                                #
-// --------------------------------------------------------------------------- #
 
 const NATURE_PATTERNS: Array<[ItemNature, RegExp]> = [
 	[
@@ -205,10 +176,6 @@ const NATURE_KINDS: Record<ItemNature, PortionKind[]> = {
 	],
 };
 
-/**
- * The price for a venue, preferring the requested portion, then the item's
- * canonical portion, then the venue's own first/largest portion.
- */
 const choosePrice = (
 	portions: Record<string, number>,
 	requested: string | null,
@@ -224,7 +191,7 @@ const choosePrice = (
 		if (exact != null) {
 			return { portion: portionLabel(requested), price: exact };
 		}
-		return null; // strict: the caller asked for a format this venue lacks
+		return null;
 	}
 	const preferredKinds = NATURE_KINDS[nature];
 	const preferredKindSet = new Set(preferredKinds);
@@ -241,11 +208,6 @@ const choosePrice = (
 	return { portion, price };
 };
 
-// --------------------------------------------------------------------------- #
-// alcohol / value metrics                                                        #
-// --------------------------------------------------------------------------- #
-
-/** "330ml" written in a description rather than in the portion label. */
 const parseVolumeMl = (
 	description: string | null | undefined,
 ): number | null => {
@@ -277,7 +239,6 @@ const parseUnits = (description: string | null | undefined): number | null => {
 
 type Value = { kind: ValueKind; value: number };
 
-/** Facts decoded from an item's description, parsed once per definition. */
 type DescriptionFacts = {
 	abv: number | null;
 	units: number | null;
@@ -312,10 +273,6 @@ const describe = (definition: ItemDefinition | null): DescriptionFacts => {
 	return facts;
 };
 
-/**
- * The comparable metric for one portion: price per alcohol unit (best), price
- * per 100 ml for measured drinks, or calories per pound for food.
- */
 const computeValue = (input: {
 	nature: ItemNature;
 	price: number;
@@ -329,7 +286,6 @@ const computeValue = (input: {
 		return null;
 	}
 	const unitsFromVolume = abv != null && ml != null ? (abv * ml) / 1000 : null;
-	// For spirits a £/100ml figure would be meaningless, so only units count.
 	if (nature === "spirit") {
 		const units = unitsFromVolume ?? null;
 		return units && units > 0 ? { kind: "unit", value: price / units } : null;
@@ -357,22 +313,15 @@ const computeValue = (input: {
 	return null;
 };
 
-/** Lower is better, except for calories per pound where higher is better. */
 export const valueDirection = (kind: ValueKind): 1 | -1 =>
 	kind === "calorie" ? -1 : 1;
 
-/** One venue's resolved price for an item, with its comparable value metric. */
 type ItemValue = {
 	portion: string;
 	price: number;
 	value: Value | null;
 };
 
-/**
- * Resolve one venue's price for an item: choose the canonical portion and derive
- * the comparable value metric. Shared by the round calculator, the value
- * leaderboards and the venue menu.
- */
 export const pickItemValue = (
 	portions: Record<string, number>,
 	definition: ItemDefinition | null,

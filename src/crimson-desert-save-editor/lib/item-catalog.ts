@@ -1,10 +1,6 @@
 type StackInfo = {
 	max_stack?: number;
 	legacy_max_stack_hint?: number;
-	/**
-	 * The Item adds as one Record rather than as a stack, so the drawer fixes its
-	 * quantity at one. Not the same question as a Record's `noGearToEdit`.
-	 */
 	addsAsSingleRecord?: boolean;
 };
 

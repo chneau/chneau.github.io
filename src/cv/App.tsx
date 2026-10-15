@@ -30,7 +30,6 @@ import { CV_THEME_KEY } from "./theme";
 
 declare const BUILD_DATE: string;
 
-/** Desaturated emerald ramp, mirroring the CV's `--accent` token. */
 const cvAccent: MantineColorsTuple = [
 	"#e7f7f0",
 	"#c5ecdd",
@@ -46,24 +45,12 @@ const cvAccent: MantineColorsTuple = [
 
 const cvTheme = createAppTheme({ accent: cvAccent });
 
-/**
- * The page shell: theme, chrome, and the document itself.
- *
- * The document's own sections live in `sections.tsx`, one per section, and the
- * CV's prose and data live in `content.tsx`. What is left here is what is
- * genuinely about the page rather than about the CV: the palette, the escape
- * shortcut, and the landmarks.
- */
 export const App = () => {
 	const shortcuts = useShortcutsHelp();
 	const palette = useCommandPalette();
 	const theme = useThemeMode(CV_THEME_KEY);
 	const { heroRef, heroInView } = useHeroVisibility();
 
-	// Keyboard shortcut: Esc returns to the dashboard, but never while a dialog
-	// or an interactive control already handles the key. Mantine closes its
-	// modals without `preventDefault`, so the palette/listbox must be guarded
-	// too or keyboard users get ejected from the page.
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.key !== "Escape") return;
@@ -130,9 +117,6 @@ export const App = () => {
 			keywords: "cv url share link",
 			icon: <Copy size={16} />,
 			run: async () => {
-				// The shared helper, not `navigator.clipboard` directly: it carries
-				// the insecure-context fallback the hero button uses, so both copy
-				// affordances on this page give the same answer.
 				try {
 					await copyToClipboard(window.location.href);
 					notifications.show({
@@ -158,20 +142,13 @@ export const App = () => {
 			forceColorScheme={theme.dark ? "dark" : "light"}
 		>
 			<SkipLink />
-			{/* The palette's copy command reports its outcome through
-			    `notify`, which needs the container mounted. */}
 			<Notifications position="top-right" />
 			<div className="cv-root">
 				<div className="no-print">
 					<Grain />
 				</div>
 
-				{/* The bar holds eight controls here, which is 394px at
-				    360px wide — so on a phone the secondary ones collapse
-				    into the overflow menu `AppNav` wraps them in. */}
 				<AppNav
-					// This app binds the command palette, so the shared help dialog
-					// may advertise it.
 					hasCommandPalette
 					className="no-print"
 					icon={<span style={{ fontSize: 13, fontWeight: 700 }}>CN</span>}

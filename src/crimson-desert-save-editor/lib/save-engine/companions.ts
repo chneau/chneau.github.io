@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/browser_companions.py`.
- */
-
 import {
 	bytesEqual,
 	concatBytes,
@@ -213,13 +209,6 @@ const base64ToBytes = (value: string): Uint8Array => {
 	return bytes;
 };
 
-/**
- * The digest a template's recorded bytes hash to, resolved ahead of the clone
- * loop. A template that is absent, or whose record does not decode, resolves to
- * no digest rather than throwing: the clone loop decodes the same record itself
- * and reports that failure in socket order, so a pre-pass that threw would
- * refuse a different edit.
- */
 const templateDigest = async (
 	template: CompanionTemplate | undefined,
 ): Promise<string | undefined> => {
@@ -238,9 +227,6 @@ export const applyCompanionAdditions = async (
 	if (!Array.isArray(operations) || operations.length === 0) {
 		throw new Error("No companion additions requested.");
 	}
-	// The catalog, the templates and the decode are three independent reads of
-	// immutable data — none of them observes another's result — so they are
-	// awaited together rather than one after another.
 	const [catalog, templates, decoded] = await Promise.all([
 		companionCatalog(),
 		companionTemplates(),
@@ -260,9 +246,6 @@ export const applyCompanionAdditions = async (
 
 	const chosen: number[] = [];
 	let workerCount = 0;
-	// The ownership slots already taken by this batch: the duplicate check below
-	// is a lookup rather than a scan of every key queued so far, and a batch can
-	// hold hundreds of additions.
 	const newGroups = new Set<string>();
 	for (const op of operations) {
 		if (!op || typeof op !== "object") {
@@ -333,19 +316,11 @@ export const applyCompanionAdditions = async (
 	const clones: Uint8Array[] = [];
 	const expectedRows: Array<[number, Uint8Array, number, number, boolean]> = [];
 	const ids: number[] = [];
-	// The PARC type index of every type name in the save, resolved once: the
-	// locator loop below runs for every clone and a save carries hundreds of
-	// types, so a per-locator scan would be quadratic in the batch size.
 	const typeIndexByName = new Map<string, number>();
 	for (const type of before.parc.types) {
 		if (!typeIndexByName.has(type.name))
 			typeIndexByName.set(type.name, type.index);
 	}
-	// A clone is only written into the save once its bytes hash to the digest
-	// the template file records. The digests are a pure function of the
-	// template bytes and are computed together here, but compared in socket
-	// order below, so a corrupt template refuses the same edit it did when the
-	// hash was awaited inside the loop.
 	const digests = await Promise.all(
 		[...new Set(chosen)].map(async (key) => {
 			const entry = templates[String(key)];
@@ -474,8 +449,6 @@ export const applyCompanionAdditions = async (
 			expectedRows[index],
 			"expected companion row",
 		);
-		// The clone is validated as if it sat at the position it was written to,
-		// matching how the parsed record's inline self-pointers are normalized.
 		if (
 			!bytesEqual(
 				normalizedCompanionRecord(edited, record),

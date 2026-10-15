@@ -14,16 +14,6 @@ import {
 	withRawKeys,
 } from "../ManageBirthdaysModal";
 
-/**
- * `(name, date)` is a record's identity, so this file pins down both halves of
- * that promise: a duplicate identity can no longer be *created* (add, edit and
- * JSON import all refuse it), and one that already sits in storage can no longer
- * make one row act for another (delete takes exactly one record out, and two
- * rows sharing an identity drive their own row state).
- */
-
-// `t` echoes the key, so assertions name the key rather than English prose and
-// stay valid whatever wording the locale files end up with.
 mock.module("react-i18next", () => ({
 	useTranslation: () => ({
 		t: (key: string) => key,
@@ -48,14 +38,12 @@ const STORAGE_KEY = "custom_birthdays_data";
 
 const ada: RawBirthday = { name: "Ada", date: "1990-01-01", kind: BOY };
 const grace: RawBirthday = { name: "Grace", date: "1991-02-02", kind: GIRL };
-/** On 1995-01-01, the date the add form opens with, so a save needs no date edit. */
 const adaOnDefaultDate: RawBirthday = {
 	name: "Ada",
 	date: "1995-01-01",
 	kind: BOY,
 };
 
-/** Seeds storage directly, which is the only way to create legacy duplicates. */
 const seed = (...records: RawBirthday[]) => {
 	localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
 };
@@ -69,7 +57,6 @@ const wrap = (node: ReactNode) => (
 	</MantineProvider>
 );
 
-/** Mantine ties `label` to its control with `for`/`id`, so resolve it that way. */
 const byLabel = (label: string): HTMLInputElement => {
 	const target = [...document.querySelectorAll("label")].find(
 		(l) => l.textContent?.trim() === label,
@@ -87,11 +74,6 @@ const NATIVE_VALUE = Object.getOwnPropertyDescriptor(
 	"value",
 )?.set;
 
-/**
- * React 19 tracks the last value it wrote on the node, so a plain assignment is
- * swallowed as "no change"; going through the native setter and then a keystroke
- * is what makes the controlled input actually see the new value in happy-dom.
- */
 const type = async (input: HTMLInputElement, value: string) => {
 	await act(async () => {
 		fireEvent.focusIn(input);
@@ -106,7 +88,6 @@ const click = async (target: Element) => {
 	});
 };
 
-/** Popovers and nested modals render into a portal, so query the whole body. */
 const byRole = (name: string) =>
 	[...document.querySelectorAll<HTMLElement>("button, [role=button]")].find(
 		(el) =>
@@ -123,7 +104,6 @@ const deleteButtons = () =>
 		b.getAttribute("aria-label")?.startsWith("manage.delete_aria"),
 	);
 
-/** Renders the modal fresh, so it reads the freshly seeded storage. */
 const openModal = async () => {
 	render(wrap(<ManageBirthdaysModal open={true} onClose={() => undefined} />));
 	await act(async () => {
@@ -131,18 +111,12 @@ const openModal = async () => {
 	});
 };
 
-/** The file input is visually hidden but still a real input in the DOM. */
 const fileInput = () => {
 	const input = document.querySelector<HTMLInputElement>('input[type="file"]');
 	if (!input) throw new Error("file input missing");
 	return input;
 };
 
-/**
- * Polls inside `act` until `ready` holds. Anything that lands on a macrotask —
- * a `FileReader` callback, a portal commit — cannot be awaited directly, and a
- * fixed sleep makes the suite flaky on a loaded machine.
- */
 const waitFor = async (ready: () => boolean, what: string) => {
 	for (let attempt = 0; attempt < 200; attempt++) {
 		if (ready()) return;
@@ -153,7 +127,6 @@ const waitFor = async (ready: () => boolean, what: string) => {
 	throw new Error(`timed out waiting for ${what}`);
 };
 
-/** Delivers a JSON file to the import input and waits for the confirm popover. */
 const importJson = async (payload: unknown) => {
 	const input = fileInput();
 	const file = new File([JSON.stringify(payload)], "birthdays.json", {
@@ -163,7 +136,6 @@ const importJson = async (payload: unknown) => {
 		Object.defineProperty(input, "files", { value: [file] });
 		fireEvent.change(input);
 	});
-	// The import is armed by the parse landing, which opens the popover.
 	await waitFor(
 		() => byRole("manage.import_confirm") !== undefined,
 		"the import confirmation",
@@ -179,8 +151,6 @@ afterEach(cleanup);
 
 describe("add", () => {
 	test("a duplicate (name, date) is refused", async () => {
-		// Seeded on the add form's default date, so typing the name alone is
-		// enough to reproduce the duplicate.
 		seed(adaOnDefaultDate);
 		await openModal();
 		await click(byRole("manage.add") ?? document.body);
@@ -189,7 +159,6 @@ describe("add", () => {
 
 		expect(stored()).toEqual([adaOnDefaultDate]);
 		expect(document.body.textContent).toContain("manage.duplicate_entry");
-		// The editor stays open so the name/date can be corrected in place.
 		expect(byRole("manage.save")).not.toBeNull();
 		expect(notices).toEqual([]);
 	});
@@ -223,7 +192,6 @@ describe("edit", () => {
 	test("an unchanged save does not collide with itself", async () => {
 		seed(ada, grace);
 		await openModal();
-		// Open Ada's editor and hit save with nothing changed at all.
 		await click(editButtons()[0] ?? document.body);
 		await click(byRole("manage.save") ?? document.body);
 
@@ -233,7 +201,6 @@ describe("edit", () => {
 	});
 
 	test("a rename onto another record's identity is refused", async () => {
-		// Same date, so renaming Ada to Grace is the same identity.
 		seed(ada, { name: "Grace", date: "1990-01-01", kind: GIRL });
 		await openModal();
 		await click(editButtons()[0] ?? document.body);
@@ -256,8 +223,6 @@ describe("edit", () => {
 		await type(byLabel("manage.name_label"), "Ada Lovelace");
 		await click(byRole("manage.save") ?? document.body);
 
-		// The first Ada is untouched: `updateRawBirthday`'s findIndex would
-		// have rewritten her instead.
 		expect(stored()).toEqual([
 			ada,
 			{ name: "Ada Lovelace", date: "1990-01-01", kind: BOY },
@@ -274,7 +239,6 @@ describe("delete", () => {
 		await click(deleteButtons()[1] ?? document.body);
 		await click(byRole("manage.delete_confirm") ?? document.body);
 
-		// `deleteRawBirthday` would have filtered out all three.
 		expect(stored()).toEqual([
 			ada,
 			{ name: "Ada", date: "1990-01-01", kind: GIRL },
@@ -390,13 +354,9 @@ describe("BirthdayTable row identity", () => {
 	});
 
 	test("two duplicate rows expand independently", async () => {
-		// Real derived records, duplicates included, straight from the storage
-		// the app reads: a hand-rolled `Birthday` would drift from the columns
-		// and from `BirthdayDetails`.
 		seed(ada, ada, { name: "Ada", date: "1990-01-01", kind: GIRL });
 		const data = recomputeBirthdays();
 		expect(data.length).toBe(3);
-		// Two of the three share name *and* date, so a name+date key collides.
 		expect(new Set(withRowKeys(data).map((row) => row.key)).size).toBe(3);
 
 		const view = render(wrap(<BirthdayTable data={data} />));
@@ -404,8 +364,6 @@ describe("BirthdayTable row identity", () => {
 			await Promise.resolve();
 		});
 
-		// Scoped to the row's first cell: controls inside the expanded details
-		// panel carry `aria-expanded` of their own.
 		const toggles = () => [
 			...view.container.querySelectorAll<HTMLButtonElement>(
 				"tr:not(.tk-expanded-row) > td:first-child button",
@@ -419,15 +377,12 @@ describe("BirthdayTable row identity", () => {
 			toggles().every((b) => b.getAttribute("aria-expanded") === "false"),
 		).toBe(true);
 
-		// Expanding the first row leaves the others collapsed.
 		await click(toggles()[0] ?? document.body);
 		expect(toggles()[0]?.getAttribute("aria-expanded")).toBe("true");
 		expect(toggles()[1]?.getAttribute("aria-expanded")).toBe("false");
 		expect(toggles()[2]?.getAttribute("aria-expanded")).toBe("false");
 		expect(expandedCount()).toBe(1);
 
-		// Expanding the second hands the panel over rather than doubling it:
-		// with a shared key both rows would have flipped at once.
 		await click(toggles()[1] ?? document.body);
 		expect(toggles()[1]?.getAttribute("aria-expanded")).toBe("true");
 		expect(toggles()[0]?.getAttribute("aria-expanded")).toBe("false");

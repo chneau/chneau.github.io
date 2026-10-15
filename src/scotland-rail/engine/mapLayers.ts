@@ -18,24 +18,8 @@ import { drawSmoothPath } from "./curve";
 import type { ActiveTrainState } from "./interpolator";
 import { createProjection } from "./projection";
 
-/**
- * Everything that paints the map, as plain functions over a canvas context.
- *
- * None of this is React. The two routines are ~400 lines of imperative drawing
- * that happened to live inside the component owning the canvas, which made that
- * component impossible to read. They are split by *when* they run — the static
- * layer only when the transform changes, the dynamic layer every frame — because
- * that is exactly the seam the offscreen-canvas design already draws.
- */
-
-/** The projector returned by `createProjection`. */
 type Projector = ReturnType<typeof createProjection>;
 
-// The static layer (coastlines, lochs, rails, landmarks, stations) is baked to
-// an offscreen canvas and then blitted. Pan is applied as a bitmap translation,
-// so it never re-projects geometry. The bake is quantized to this grid: as long
-// as the live pan stays within one grid cell the cached bitmap is reused, and
-// STATIC_MARGIN of slack around the viewport hides the cell boundary.
 export const STATIC_GRID = 128;
 export const STATIC_MARGIN = STATIC_GRID;
 
@@ -47,7 +31,6 @@ type Atmosphere = {
 	lightFactor: number;
 };
 
-// Calculate atmospheric day/night colors based on time offset (00:00 to 24:00)
 const getDayNightAtmosphere = (
 	timeOffset: number,
 	enabled: boolean,
@@ -64,10 +47,6 @@ const getDayNightAtmosphere = (
 
 	const hours = (timeOffset / 60) % 24;
 
-	// Sunrise: 05:30 - 08:30
-	// Daytime: 08:30 - 18:00
-	// Sunset: 18:00 - 21:30
-	// Night: 21:30 - 05:30
 	if (hours >= 8.5 && hours <= 18) {
 		return {
 			bgColor: "#091724",
@@ -104,7 +83,6 @@ const getDayNightAtmosphere = (
 	};
 };
 
-// Vector marker for a scenic landmark, replacing the emoji glyphs used before.
 const drawLandmarkMarker = (
 	ctx: CanvasRenderingContext2D,
 	x: number,
@@ -122,24 +100,16 @@ const drawLandmarkMarker = (
 };
 
 type StaticLayerFrame = {
-	/** CSS pixels; the caller has already scaled the context by `dpr`. */
 	width: number;
 	height: number;
-	/** Quantised to two minutes: the labels do not need redrawing faster. */
 	quantisedTime: number;
 	settings: AppSettings;
 	viewPreset: ViewPreset;
 	zoom: number;
-	/** The pan this bitmap is baked for, quantised to `STATIC_GRID`. */
 	bakeX: number;
 	bakeY: number;
 };
 
-/**
- * Paints coastlines, lochs, rails, city lights, landmarks and stations onto the
- * offscreen layer, with a cell of slack on every side so translating the bitmap
- * to follow the live pan never exposes an unpainted edge.
- */
 export const bakeStaticLayer = (
 	sCtx: CanvasRenderingContext2D,
 	{
@@ -162,7 +132,6 @@ export const bakeStaticLayer = (
 
 	const atmo = getDayNightAtmosphere(quantisedTime, settings.dayNightCycle);
 
-	// Background
 	sCtx.fillStyle = atmo.bgColor;
 	sCtx.fillRect(-STATIC_MARGIN, -STATIC_MARGIN, bakeWidth, bakeHeight);
 
@@ -178,7 +147,6 @@ export const bakeStaticLayer = (
 		},
 	);
 
-	// 1. Coastlines
 	sCtx.fillStyle = atmo.landColor;
 	sCtx.strokeStyle = atmo.coastColor;
 	sCtx.lineWidth = 1.6;
@@ -195,7 +163,6 @@ export const bakeStaticLayer = (
 		sCtx.stroke();
 	}
 
-	// 2. Scottish Lochs
 	if (settings.showLochs) {
 		sCtx.fillStyle = atmo.bgColor;
 		sCtx.strokeStyle = atmo.coastColor;
@@ -211,7 +178,6 @@ export const bakeStaticLayer = (
 			sCtx.fill();
 			sCtx.stroke();
 
-			// Loch label if zoomed in
 			if (zoom > 1.3) {
 				const midPt = loch.coordinates[0];
 				if (midPt) {
@@ -224,8 +190,6 @@ export const bakeStaticLayer = (
 		}
 	}
 
-	// 3. Rail Paths (Curved High-Resolution Multi-Layer Track)
-	// Track base glow / bed
 	sCtx.strokeStyle = settings.congestionHeatmap
 		? "rgba(255, 100, 50, 0.35)"
 		: "#1b3342";
@@ -239,7 +203,6 @@ export const bakeStaticLayer = (
 		sCtx.stroke();
 	}
 
-	// Track main line
 	sCtx.strokeStyle = settings.congestionHeatmap ? "#ff7b47" : "#4d7388";
 	sCtx.lineWidth = 1.5;
 	for (const rail of RAIL_PATHS) {
@@ -249,7 +212,6 @@ export const bakeStaticLayer = (
 		sCtx.stroke();
 	}
 
-	// 4. City Night Lights
 	if (settings.cityLights && atmo.isNight) {
 		const majorCities = [
 			{ coord: [-4.258, 55.859] as [number, number], r: 35 },
@@ -271,7 +233,6 @@ export const bakeStaticLayer = (
 		}
 	}
 
-	// 5. Scenic Landmarks & Viaducts
 	if (settings.showLandmarks) {
 		for (const lm of LANDMARKS) {
 			const { x, y } = proj.project(lm.coordinate);
@@ -297,7 +258,6 @@ export const bakeStaticLayer = (
 		}
 	}
 
-	// 6. Stations & Labels
 	for (const st of STATIONS) {
 		const { x, y } = proj.project(st.coordinate);
 		if (
@@ -309,7 +269,6 @@ export const bakeStaticLayer = (
 			continue;
 		}
 
-		// Station Halo
 		if (st.isMajor) {
 			sCtx.fillStyle = "rgba(90, 169, 201, 0.16)";
 			sCtx.beginPath();
@@ -317,7 +276,6 @@ export const bakeStaticLayer = (
 			sCtx.fill();
 		}
 
-		// Station dot
 		sCtx.fillStyle = st.isMajor ? "#ffffff" : "#98b1be";
 		sCtx.strokeStyle = mapColors.bg;
 		sCtx.lineWidth = 1;
@@ -326,7 +284,6 @@ export const bakeStaticLayer = (
 		sCtx.fill();
 		sCtx.stroke();
 
-		// Station Label
 		if (st.isMajor || viewPreset !== "scotland" || zoom > 1.2) {
 			sCtx.font = st.isMajor
 				? "bold 11px system-ui, -apple-system, sans-serif"
@@ -341,7 +298,6 @@ export const bakeStaticLayer = (
 	}
 };
 
-/** One running train, projected, ready to draw. */
 type ProjectedTrain = {
 	x: number;
 	y: number;
@@ -349,13 +305,10 @@ type ProjectedTrain = {
 };
 
 type DynamicLayerFrame = {
-	/** The baked bitmap, blitted first and then overdrawn. */
 	staticCanvas: HTMLCanvasElement;
-	/** CSS pixels; the caller has already scaled the context by `dpr`. */
 	width: number;
 	height: number;
 	pan: { x: number; y: number };
-	/** The pan this bitmap was baked for, quantised to `STATIC_GRID`. */
 	bakeX: number;
 	bakeY: number;
 	viewPreset: ViewPreset;
@@ -369,10 +322,6 @@ type DynamicLayerFrame = {
 	activeTrains: Snapshot<readonly ActiveTrainState[]>;
 };
 
-/**
- * The Highland rain, from a fixed set of seeds so it falls consistently rather
- * than re-rolling every frame.
- */
 const drawRain = (
 	ctx: CanvasRenderingContext2D,
 	width: number,
@@ -382,10 +331,6 @@ const drawRain = (
 	ctx.strokeStyle = "rgba(180, 215, 240, 0.18)";
 	ctx.lineWidth = 1;
 	const timeSec = performance.now() / 1000;
-	// One path, one stroke: each drop was its own `beginPath`/`stroke` pair,
-	// 45 times per frame. The pixels are identical — a stroke draws every
-	// subpath in the path — so this is the same picture for one-tenth the
-	// canvas calls.
 	ctx.beginPath();
 	for (let i = 0; i < 45; i++) {
 		const seedX = (Math.sin(i * 12.9898) * 43758.5453) % 1;
@@ -399,7 +344,6 @@ const drawRain = (
 	ctx.restore();
 };
 
-/** The full route of the selected service: a soft underlay, then the line. */
 const drawSelectedRoute = (
 	ctx: CanvasRenderingContext2D,
 	proj: Projector,
@@ -410,7 +354,6 @@ const drawSelectedRoute = (
 	ctx.lineCap = "round";
 	ctx.lineJoin = "round";
 	const projected = service.pathCoordinates.map((pt) => proj.project(pt));
-	// Soft desaturated underlay gives legibility without a neon glow.
 	ctx.strokeStyle = catConfig.color;
 	ctx.globalAlpha = 0.26;
 	ctx.lineWidth = 6;
@@ -426,7 +369,6 @@ const drawSelectedRoute = (
 	ctx.restore();
 };
 
-/** The fading trail behind a moving train. */
 const drawTrail = (
 	ctx: CanvasRenderingContext2D,
 	proj: Projector,
@@ -450,7 +392,6 @@ const drawTrail = (
 	ctx.restore();
 };
 
-/** The forward headlight cone, at night and only while the train is moving. */
 const drawHeadlight = (
 	ctx: CanvasRenderingContext2D,
 	train: ProjectedTrain,
@@ -475,7 +416,6 @@ const drawHeadlight = (
 	ctx.restore();
 };
 
-/** The two expanding rings a dwelling train pulses, so it reads as stopped. */
 const drawDwellPulse = (
 	ctx: CanvasRenderingContext2D,
 	train: ProjectedTrain,
@@ -510,7 +450,6 @@ const drawDwellPulse = (
 	ctx.restore();
 };
 
-/** The selected/hovered white ring, drawn under the hull. */
 const drawSelectionRing = (
 	ctx: CanvasRenderingContext2D,
 	x: number,
@@ -526,10 +465,6 @@ const drawSelectionRing = (
 	ctx.globalAlpha = 1;
 };
 
-/**
- * The train body: a streamlined capsule along the heading, with a windshield.
- * Drawn last within a train so it sits over the trail and the dwell rings.
- */
 const drawHull = (
 	ctx: CanvasRenderingContext2D,
 	train: ProjectedTrain,
@@ -540,7 +475,6 @@ const drawHull = (
 	ctx.translate(x, y);
 	ctx.rotate(state.headingAngle);
 
-	// Streamlined Aerodynamic Train Capsule Hull
 	const halfL = size * 1.3;
 	const halfW = size * 0.65;
 	ctx.fillStyle = accent;
@@ -548,7 +482,6 @@ const drawHull = (
 	ctx.lineWidth = 1.4;
 
 	ctx.beginPath();
-	// Pointed / aerodynamic rounded nose along positive X axis (direction of heading)
 	ctx.moveTo(halfL, 0);
 	ctx.lineTo(halfL * 0.4, -halfW);
 	ctx.lineTo(-halfL, -halfW);
@@ -558,7 +491,6 @@ const drawHull = (
 	ctx.fill();
 	ctx.stroke();
 
-	// Windshield cockpit glass at front
 	ctx.fillStyle = "#ffffff";
 	ctx.beginPath();
 	ctx.moveTo(halfL * 0.7, 0);
@@ -569,11 +501,6 @@ const drawHull = (
 	ctx.fill();
 };
 
-/**
- * Blits the baked static layer, then draws everything that moves on top of it.
- * Runs per frame, so `reducedMotion` gates every time-varying flourish here
- * rather than only the ones that animate a CSS class.
- */
 export const drawDynamicLayer = (
 	ctx: CanvasRenderingContext2D,
 	frame: DynamicLayerFrame,
@@ -598,8 +525,6 @@ export const drawDynamicLayer = (
 
 	ctx.clearRect(0, 0, width, height);
 
-	// Static layer: the bitmap was baked for `bakeX/bakeY`, so translating
-	// it by the residual pan tracks the live camera without re-projecting.
 	ctx.drawImage(
 		staticCanvas,
 		pan.x - bakeX - STATIC_MARGIN,
@@ -618,12 +543,10 @@ export const drawDynamicLayer = (
 	);
 	const atmo = getDayNightAtmosphere(timeOffset, settings.dayNightCycle);
 
-	// 1. Highland Weather / Rain Effect
 	if (settings.weatherEffects && !reducedMotion) {
 		drawRain(ctx, width, height);
 	}
 
-	// 2. Draw Selected Service Full Route (High-Res Spline)
 	if (selectedServiceId) {
 		const activeSelected = filteredServices.find(
 			(s) => s.id === selectedServiceId,
@@ -631,7 +554,6 @@ export const drawDynamicLayer = (
 		if (activeSelected) drawSelectedRoute(ctx, proj, activeSelected);
 	}
 
-	// 3. Draw Active Trains & Trails
 	for (const state of activeTrains) {
 		const { x, y } = proj.project(state.position);
 		const train: ProjectedTrain = { x, y, state };
@@ -641,7 +563,6 @@ export const drawDynamicLayer = (
 
 		drawTrail(ctx, proj, train, catConfig.color);
 
-		// Headlight beam (atmosphere is hoisted above the train loop)
 		if (
 			settings.trainHeadlights &&
 			atmo.isNight &&
@@ -653,12 +574,10 @@ export const drawDynamicLayer = (
 
 		const size = isSelected || isHovered ? 6.5 : 4.5;
 
-		// Draw Station Dwelling / Stopped Train Visual Effect
 		if (state.isDwelling) {
 			drawDwellPulse(ctx, train, size, catConfig.color, reducedMotion);
 		}
 
-		// Draw Train Marker Outer Highlight Ring
 		ctx.save();
 		if (isSelected || isHovered) drawSelectionRing(ctx, x, y, size);
 
@@ -668,11 +587,6 @@ export const drawDynamicLayer = (
 	}
 };
 
-/**
- * Projects the running trains and returns the nearest within `radius`, or
- * `null`. Hover and click differ only in the radius they accept and what they
- * do with the answer, so the search itself is written once.
- */
 export const nearestTrainAt = (
 	proj: Projector,
 	pointer: { x: number; y: number },
@@ -684,7 +598,6 @@ export const nearestTrainAt = (
 
 	for (const state of activeTrains) {
 		const { x, y } = proj.project(state.position);
-		// Axis reject before the square root.
 		if (
 			Math.abs(x - pointer.x) > minDist ||
 			Math.abs(y - pointer.y) > minDist

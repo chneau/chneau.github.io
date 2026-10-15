@@ -8,15 +8,6 @@ import { ConfirmModal } from "./confirm-modal";
 import { StagedEditsDrawer } from "./staged-edits-drawer";
 import type { StagedTarget } from "./use-staged-edits";
 
-/**
- * Everything that floats above the panels: the two drawers, the palette and
- * the confirmations.
- *
- * These are siblings in the shell's layout rather than part of the column, and
- * they share one thing — they all act on the staged list — which is why they
- * are gathered here. The shell keeps the header, the banner and the footer,
- * which are the parts a reader scrolls past.
- */
 export const SaveOverlays = ({
 	result,
 	activeStorage,
@@ -71,7 +62,6 @@ export const SaveOverlays = ({
 	setDiscardModalOpen: Dispatch<SetStateAction<boolean>>;
 	replaceModalOpen: boolean;
 	setReplaceModalOpen: Dispatch<SetStateAction<boolean>>;
-	/** The file a reader picked, held until the replace dialog is answered. */
 	pendingFileRef: RefObject<File | null>;
 	parseFile: (file: File) => Promise<void>;
 }) => (
@@ -126,9 +116,6 @@ export const SaveOverlays = ({
 		<ConfirmModal
 			opened={replaceModalOpen}
 			title="Open another save?"
-			// The pending file is cleared on every way out of this dialog, so
-			// cancelling cannot leave a picked file armed to be opened by the next
-			// press of "Open save".
 			body={`Opening a save replaces the current one and discards all ${
 				edits.length
 			} staged change${edits.length === 1 ? "" : "s"}. Download the rebuilt save first if you want to keep them.`}

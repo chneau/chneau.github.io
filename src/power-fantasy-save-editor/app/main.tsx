@@ -6,13 +6,6 @@ import "../../shared/base.css";
 import { mountApp } from "../../shared/mountApp";
 import { Home } from "./page";
 
-/**
- * The single accent: arterial red, for a game whose currency is Blood Rubies
- * and whose unlock currency is blood runes. Deliberately more saturated than
- * the Crimson Desert editor's washed-out crimson, so the two save editors on
- * this site do not read as the same page. Index 5 is the dark-scheme shade, 6
- * the light-scheme shade.
- */
 const brand: MantineColorsTuple = [
 	"#fdecee",
 	"#f9d8dd",

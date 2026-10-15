@@ -10,35 +10,12 @@ import {
 } from "../lib/write";
 import { changedOffsets, FIXTURE_TIMEOUT_MS, smallSave } from "./fixtures";
 
-/**
- * Writing a field: the patch lands, and nothing else moves.
- *
- * This is the claim the codec's design exists to make, and it is the one a
- * static type system has nothing to say about. A Witcher 3 save carries no
- * checksum, so a wrong write is not *detected* — it is loaded, and the game
- * either misbehaves or discards the file. Which means the only place the
- * correctness of a patch can be established is here, by comparing the payload
- * before and after and requiring the difference to be exactly the bytes that
- * were asked for.
- *
- * The assertion is deliberately strict about *which* bytes changed, not only
- * how many. A patch that touched the right count of bytes in the wrong place
- * would pass a count-only check, and that is precisely the failure this editor
- * is built to make impossible.
- */
-
-/** Both fixtures' offsets, once per test run rather than once per test. */
 const writable = (bytes: Uint8Array) => locateWritable(bytes);
 
 describe("patching a scalar in place", () => {
 	test(
 		"changes exactly the bytes of the patched field, and nothing else",
 		() => {
-			// The level is an `i32` holding 4, so writing 12 touches one byte of the
-			// four — and the other three must be *bit-identical*, not merely equal in
-			// value. A writer that zeroed the field before writing, or that wrote a
-			// little-endian `i32` into a stream expecting something else, would leave
-			// more than one byte moved.
 			const payload = decompressContainer(smallSave()).data;
 			const found = writable(payload);
 			const level = found.level;
@@ -57,8 +34,6 @@ describe("patching a scalar in place", () => {
 			expect(moved).toEqual([level.offset]);
 			expect(readScalar(patched, level)).toBe(12);
 
-			// The three untouched bytes of the `i32` are asserted individually: a
-			// count of one is necessary but not sufficient.
 			expect([...patched.subarray(level.offset + 1, level.offset + 4)]).toEqual(
 				[...payload.subarray(level.offset + 1, level.offset + 4)],
 			);
@@ -69,11 +44,6 @@ describe("patching a scalar in place", () => {
 	test(
 		"leaves every other writable field exactly where it was",
 		() => {
-			// The stronger form of the same claim, and the one that catches a writer
-			// patching the wrong offset: after one field is written, every *other*
-			// address this codec knows must still read what it read before. Comparing
-			// the two address lists as well as the values catches a patch that moved
-			// a field rather than corrupting it.
 			const payload = decompressContainer(smallSave()).data;
 			const before = writable(payload);
 			const patched = payload.slice();
@@ -110,11 +80,6 @@ describe("patching a scalar in place", () => {
 	test(
 		"writes a value back through a rebuilt container, still touching only that field",
 		() => {
-			// The whole pipeline, rather than a patch into a buffer: inflate, write one
-			// scalar, rebuild, re-inflate, and require the payload to differ from the
-			// original in exactly the patched bytes. This is the assertion that a save
-			// handed to a player differs from the one they gave us in the one place
-			// they asked for.
 			const file = smallSave();
 			const original = decompressContainer(file);
 			const patched = original.data.slice();
@@ -139,13 +104,6 @@ describe("patching a scalar in place", () => {
 	);
 
 	test("clamps rather than wrapping, and refuses a write that changes nothing", () => {
-		// The `u16` crowns field cannot hold more than 65535, and a value over it
-		// is not a clamped quantity — it is a different record, which is why the
-		// field refuses rather than wrapping to 4464.
-		//
-		// A scratch buffer rather than a fixture: this is about the arithmetic in
-		// `patchScalar`, and reaching into a real save to test it would make the
-		// assertion depend on a byte this suite has no other reason to know.
 		const probe = (
 			buffer: Uint8Array,
 			at: number,
@@ -175,9 +133,6 @@ describe("patching a scalar in place", () => {
 			clamped: 65535,
 		});
 
-		// Two bytes wide and no wider: a `u16` write that spilled would corrupt
-		// whatever record field follows it, and this format lays records out
-		// contiguously.
 		const spilled = new Uint8Array(8).fill(0x11);
 		const bounded = probe(spilled, 0, 0, 0x1234);
 		expect({
@@ -188,8 +143,6 @@ describe("patching a scalar in place", () => {
 			0x34, 0x12, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
 		]);
 
-		// A write of the value already there changes nothing and says so, which is
-		// what keeps a no-op edit out of a rebuilt file.
 		const settled = new Uint8Array(8).fill(0x11);
 		const quiet = probe(settled, 0, 0x1111, 0x1111);
 		expect({
@@ -204,9 +157,6 @@ describe("patching a scalar in place", () => {
 	test(
 		"refuses a non-finite value rather than writing a NaN",
 		() => {
-			// `DataView.setInt32` truncates, and `Math.trunc(NaN)` is `NaN`, so a
-			// non-finite value would be written as zeros — a field the player never
-			// asked to change, silently set to 0.
 			const payload = decompressContainer(smallSave()).data.slice();
 			const found = writable(payload);
 			const level = found.level;
@@ -222,10 +172,6 @@ describe("patching a scalar in place", () => {
 	test(
 		"refuses an address past the end of the payload",
 		() => {
-			// A target discovered from one save and applied to another is the exact
-			// hazard the codec's design is built against — offsets differ between
-			// saves of the same build. `patchScalar` bounds-checks the write, so a
-			// stale address is a no-op rather than a write into the next allocation.
 			const payload = decompressContainer(smallSave()).data;
 			const beyond = {
 				id: "beyond",
@@ -248,20 +194,6 @@ describe("locating the wallet", () => {
 	test(
 		"returns nothing on a build whose crowns identity it does not hold",
 		() => {
-			// The honest-degradation contract, at the layer that decides it. The name
-			// and comment here used to say this build holds *zero* records of the right
-			// shape and that the refusal comes from the shape — both false. Measured:
-			// `8559a` holds 621 strict-shape records and 164 player items, and its
-			// `Crowns` item reads 397 through the document. What refuses is the
-			// **identity**: `locateMoney` filters on the `52586` constant
-			// `06 94 4f 0f`, and this build's crowns record carries `d4 07 ff 21`. The
-			// 1,845 the comment quoted is the *other* build's record count.
-			//
-			// The distinction matters: "I do not know this build's record shape" and "I
-			// know the shape and not this build's item identity" call for different
-			// work. Dropping the identity filter makes this test fail by finding a
-			// record, which is what shows the identity — not the shape — is what is
-			// load-bearing here.
 			const payload = decompressContainer(smallSave()).data;
 			expect(locateMoney(payload)).toBeUndefined();
 			expect(locateWritable(payload).money).toBeUndefined();

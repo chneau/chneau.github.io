@@ -2,36 +2,14 @@ import "./happy-dom";
 import { afterEach, describe, expect, test } from "bun:test";
 import type { registerServiceWorker } from "../service-worker";
 
-/**
- * Coverage for the *registrar* (`src/shared/service-worker.ts`), the page-side
- * half of the site's offline support.
- *
- * `sw.test.ts` next door exercises the worker script itself (`public/sw.js`) —
- * its cache keys, its navigation fallback, its version handling. Nothing
- * exercised the code every one of the thirteen apps runs at boot, so this file
- * pins it.
- *
- * The reload guard is the highest-risk property here, and it is the one the
- * source itself calls out as a historical bug: `clients.claim()` in the worker
- * makes `controllerchange` fire on pages that did not ask for it, and a
- * `controllerchange` handler that reloads unconditionally turns any deploy —
- * or any late `update()` — into a reload loop that only ends when the tab is
- * closed. Getting it wrong is not a cosmetic defect: the page becomes
- * unreloadable. So the assertions below are about the *absence* of a reload
- * (re-claim, empty controller, first visit) at least as much as its presence,
- * and each one reaches a real decision in the source rather than re-stating it.
- */
-
 type Listener = (event: Event) => void;
 
-/** A `ServiceWorker` stand-in: the registrar only reads `scriptURL` and posts. */
 type FakeWorker = {
 	scriptURL: string;
 	messages: unknown[];
 	postMessage: (message: unknown) => void;
 };
 
-/** The `ServiceWorkerContainer` surface the registrar touches. */
 type FakeContainer = {
 	controller: FakeWorker | null;
 	listeners: Map<string, Set<Listener>>;
@@ -40,14 +18,11 @@ type FakeContainer = {
 		url: string,
 		options?: RegistrationOptions,
 	) => Promise<FakeRegistration>;
-	/** Delivers a `controllerchange`, as the browser would after a claim. */
 	fire: (type: string) => void;
 	addEventListener: (type: string, listener: Listener) => void;
 	removeEventListener: (type: string, listener: Listener) => void;
 };
 
-/** A `ServiceWorkerRegistration` stand-in. `update()` is fire-and-forget in the
- * source (its rejection is swallowed), so it must not throw synchronously. */
 type FakeRegistration = {
 	updateCalls: number;
 	scope: string;
@@ -61,7 +36,6 @@ type FakeRegistration = {
 
 type Restore = () => void;
 
-/** Everything a scenario can observe, plus the undo for what it installed. */
 type Harness = {
 	container: FakeContainer;
 	registration: FakeRegistration;
@@ -72,16 +46,11 @@ type Harness = {
 type SetupOptions = {
 	protocol?: string;
 	hostname?: string;
-	/** The controller present *before* `register()` — the "was controlled" sample. */
 	controller?: FakeWorker | null;
-	/** Make `register()` reject, as it does for a blocked or 404 worker. */
 	registerFailure?: boolean;
 };
 
 const makeWorker = (scriptURL: string): FakeWorker => {
-	// The worker stand-in is the only place the SCOPE payload lands, so
-	// recording it lets a test prove the message reached *some* worker rather
-	// than proving nothing.
 	const messages: unknown[] = [];
 	return {
 		scriptURL,
@@ -106,16 +75,11 @@ const install = (options: SetupOptions = {}): Harness => {
 	const containerListeners = listenerMap();
 	const registrationListeners = listenerMap();
 
-	// A claim hands the page the worker it just registered. When the page was
-	// already controlled, that is the same worker under the same script URL —
-	// which is precisely the case the reload guard must ignore.
 	const claimed =
 		controller ?? makeWorker("https://chneau.github.io/sw.js?v=dev");
 	const registration: FakeRegistration = {
 		updateCalls: 0,
 		scope: "/",
-		// The claim hands back a worker the registrar may talk to directly; on a
-		// plain success it is the same one the controller now points at.
 		installing: null,
 		waiting: null,
 		active: claimed,
@@ -140,13 +104,7 @@ const install = (options: SetupOptions = {}): Harness => {
 		register: (url, registerOptions) => {
 			registerCalls.push({ url, options: registerOptions });
 			if (registerFailure) return Promise.reject(new Error("boom"));
-			// A real register() resolves with the controller already set: the
-			// worker calls clients.claim() before the promise settles. Modelling
-			// that is the whole reason `wasControlled` is sampled up front.
 			container.controller = claimed;
-			// No cast to `ServiceWorkerRegistration`: the registrar reaches this
-			// object through the real DOM types, and this fake is only ever seen
-			// at runtime, so the honest return type is the fake's own.
 			return Promise.resolve(registration);
 		},
 		fire: (type) => {
@@ -165,14 +123,6 @@ const install = (options: SetupOptions = {}): Harness => {
 	};
 
 	let reloads = 0;
-	// `registerServiceWorker` attaches its `load` handler to the real `window`,
-	// which Bun shares with every other suite in the process — and the handler
-	// is never removed, because in a real page the page goes away instead. Left
-	// alone, the first harness's handler would fire again under the tenth
-	// harness's globals and register a second time, so every assertion after the
-	// first would be measuring leakage rather than the source. Recording the
-	// handlers and detaching them on restore keeps each scenario to one
-	// registration.
 	const recordedLoads: Listener[] = [];
 	const nativeAdd = window.addEventListener.bind(window);
 	const nativeRemove = window.removeEventListener.bind(window);
@@ -201,8 +151,6 @@ const install = (options: SetupOptions = {}): Harness => {
 		navigator,
 		"serviceWorker",
 	);
-	// happy-dom exposes `location` as a configurable accessor on window, so the
-	// whole object can be swapped and put back exactly as found.
 	Object.defineProperty(window, "location", {
 		configurable: true,
 		value: {
@@ -249,23 +197,6 @@ const install = (options: SetupOptions = {}): Harness => {
 	};
 };
 
-/**
- * The source defers all of its work to a `load` listener. Dispatching the event
- * (rather than poking the handler directly) is what makes this a test of the
- * real entry point, and the awaits drain the register promise chain so the
- * assertions run after `controllerchange` has been wired up.
- */
-/**
- * A fresh copy of the registrar, so the module-level `registered` latch starts
- * unset for every scenario.
- *
- * The registrar is idempotent by design — one `load` listener per document — and
- * that idempotence is module state, so a statically imported copy would let the
- * first test in this file consume the single attempt and leave every later one
- * asserting nothing. Re-importing under a distinct specifier gives each scenario
- * its own module instance, which is the same trick `weather-cache.test.ts` uses
- * to get a fresh `store.ts`.
- */
 let instance = 0;
 const freshRegistrar = async (): Promise<typeof registerServiceWorker> => {
 	instance += 1;
@@ -279,8 +210,6 @@ const boot = async (_harness: Harness): Promise<void> => {
 	const register = await freshRegistrar();
 	register();
 	window.dispatchEvent(new Event("load"));
-	// Two turns: one for `register()`'s promise to settle, one for the
-	// `.then` body that registers the listener.
 	await Promise.resolve();
 	await Promise.resolve();
 	await Promise.resolve();
@@ -307,9 +236,6 @@ describe("registerServiceWorker — the environment gate", () => {
 		expect(harness.container.registerCalls).toHaveLength(1);
 	});
 
-	// Each of these is a refusal the source has decided on by name; a case that
-	// silently started registering would be a dev machine talking to a
-	// half-installed worker over an insecure origin.
 	const refused: { protocol: string; hostname: string; why: string }[] = [
 		{ protocol: "http:", hostname: "chneau.github.io", why: "insecure scheme" },
 		{ protocol: "https:", hostname: "localhost", why: "loopback by name" },
@@ -345,8 +271,6 @@ describe("registerServiceWorker — the environment gate", () => {
 	});
 
 	test("a refused origin attaches no load listener beyond the one it added", async () => {
-		// Guards the gate itself: `register()` is never reached, so the fake
-		// container must be untouched, not merely uncalled once.
 		const harness = install({ protocol: "http:", hostname: "localhost" });
 		afterEachRestore.push(harness.restore);
 
@@ -380,7 +304,6 @@ describe("registerServiceWorker — what it registers", () => {
 				options: { scope: "/" },
 			},
 		]);
-		// The proactive update is what surfaces a new deploy at all.
 		expect(harness.registration.updateCalls).toBe(1);
 	});
 
@@ -423,8 +346,6 @@ describe("registerServiceWorker — what it registers", () => {
 
 		await boot(harness);
 
-		// Offline support is best-effort: no throw, and crucially no
-		// controllerchange listener that could reload a page that has no worker.
 		expect(harness.container.listeners.size).toBe(0);
 		expect(harness.reloads()).toBe(0);
 	});
@@ -432,16 +353,10 @@ describe("registerServiceWorker — what it registers", () => {
 
 describe("registerServiceWorker — the reload guard", () => {
 	test("a first visit never reloads, because no listener is attached at all", async () => {
-		// `clients.claim()` sets the controller before `register()` resolves, so
-		// the pre-registered sample is null. The guard is the absence of a
-		// listener: asserting only "no reload" would also pass if the listener
-		// existed but happened not to fire, which is a weaker thing than what the
-		// code actually guarantees.
 		const harness = install({ controller: null });
 		afterEachRestore.push(harness.restore);
 
 		await boot(harness);
-		// Registration really did happen, and it really did hand us a controller.
 		expect(harness.container.registerCalls).toHaveLength(1);
 		expect(harness.container.controller).not.toBeNull();
 
@@ -452,9 +367,6 @@ describe("registerServiceWorker — the reload guard", () => {
 	});
 
 	test("a re-claim of the same worker does not reload", async () => {
-		// The historical bug: the worker calls claim() on every activation, so
-		// controllerchange fires with the *same* script URL. Reloading here is a
-		// loop.
 		const harness = install({
 			controller: makeWorker(
 				"https://chneau.github.io/sw.js?v=2026-10-04T120000Z",
@@ -491,8 +403,6 @@ describe("registerServiceWorker — the reload guard", () => {
 	});
 
 	test("an empty controller script URL does not reload", async () => {
-		// A controller without a usable scriptURL carries no evidence that the
-		// worker changed, so reloading on it would be a guess.
 		const harness = install({
 			controller: makeWorker("https://chneau.github.io/sw.js?v=old-deploy"),
 		});
@@ -504,7 +414,6 @@ describe("registerServiceWorker — the reload guard", () => {
 		harness.container.fire("controllerchange");
 		expect(harness.reloads()).toBe(0);
 
-		// ...and an absent controller after the claim is equally no evidence.
 		harness.container.controller = null;
 		harness.container.fire("controllerchange");
 		expect(harness.reloads()).toBe(0);
@@ -512,12 +421,6 @@ describe("registerServiceWorker — the reload guard", () => {
 });
 
 describe("registerServiceWorker — it runs at most once", () => {
-	/**
-	 * The comment claimed "at most once per page load" while the guard compared
-	 * only script URLs. `location.reload()` is asynchronous, so a second
-	 * `controllerchange` — an update landing while the navigation is still being
-	 * scheduled — arrives before the page goes away and reloaded again.
-	 */
 	test("two claims by the same new worker reload once, not twice", async () => {
 		const harness = install({
 			controller: makeWorker("https://chneau.github.io/sw.js?v=old"),
@@ -531,17 +434,10 @@ describe("registerServiceWorker — it runs at most once", () => {
 		harness.container.fire("controllerchange");
 		expect(harness.reloads()).toBe(1);
 
-		// Same worker again. The URL still differs from the pre-registered one, so
-		// the comparison alone would allow a second reload.
 		harness.container.fire("controllerchange");
 		expect(harness.reloads()).toBe(1);
 	});
 
-	/**
-	 * Idempotence: two calls previously added two `load` listeners, so two
-	 * registrations, two `update()` calls and two `controllerchange` listeners —
-	 * each of which could reload.
-	 */
 	test("calling it twice registers once", async () => {
 		const harness = install({
 			controller: makeWorker("https://chneau.github.io/sw.js?v=old"),
@@ -555,7 +451,6 @@ describe("registerServiceWorker — it runs at most once", () => {
 		await Promise.resolve();
 		await Promise.resolve();
 
-		// One `load` listener, so one registration.
 		expect(harness.container.registerCalls).toHaveLength(1);
 	});
 });

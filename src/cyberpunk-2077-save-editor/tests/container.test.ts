@@ -7,12 +7,6 @@ import {
 } from "../lib/container";
 import { buildSave } from "./synthetic";
 
-/**
- * The node names the real save uses, so a fixture built here is shaped like one.
- *
- * Taken from `savegame.ts` in the reference implementation, which searches the
- * tree for exactly these.
- */
 const NODES = [
 	"inventory",
 	"CharacetrCustomization_Appearances",
@@ -42,9 +36,6 @@ describe("VASC container", () => {
 	});
 
 	test("omits v3 below revision 83, as the header layout does", async () => {
-		// v1 = 60 predates the third version word. Writing it unconditionally
-		// would shift every byte after the header, so a decoder that assumes it is
-		// always there misreads the whole file.
 		const bytes = buildSave({ nodes: [{ name: "alpha", data: [1] }], v1: 60 });
 		const decoded = await decodeContainer(bytes);
 		expect(decoded.version.v1).toBe(60);
@@ -59,8 +50,6 @@ describe("VASC container", () => {
 	});
 
 	test("round-trips byte for byte with a save large enough to need several chunks", async () => {
-		// Past 256 KiB the chunking loop runs more than once, which is the code
-		// path a single-chunk fixture never reaches.
 		const bulk = new Uint8Array(700_000);
 		for (let index = 0; index < bulk.length; index += 1) {
 			bulk[index] = (index * 31 + (index >> 5)) & 0xff;
@@ -85,7 +74,6 @@ describe("VASC container", () => {
 		const decoded = await decodeContainer(bytes);
 		expect(decoded.version.ps4w).toBe(true);
 		expect(decoded.root.children.map((node) => node.name)).toEqual(NODES);
-		// And it must rebuild, since the flag is honoured on write.
 		const rebuilt = await encodeContainer(decoded);
 		const again = await decodeContainer(rebuilt);
 		expect(again.root.children.map((node) => node.name)).toEqual(NODES);
@@ -93,8 +81,6 @@ describe("VASC container", () => {
 	});
 
 	test("keeps payload that sits between a node and its children", async () => {
-		// The game stores unnamed payload in the gaps; this codec carries it
-		// through rather than parsing it, so a rebuilt save still has it.
 		const inner = new Uint8Array(await payloadBetweenNodes());
 		const bytes = buildSave({
 			nodes: [
@@ -120,22 +106,11 @@ describe("VASC container", () => {
 	});
 
 	test("refuses a file whose node stream was assembled out of order", async () => {
-		// Every node's payload starts with its own index, and the descriptor must
-		// agree. That redundancy is the format's own integrity check, so a stream
-		// whose prefix has been overwritten has to be refused — otherwise the
-		// reader returns a tree that looks plausible and is quietly wrong.
-		//
-		// The builder is asked for a node whose *claimed* index does not match the
-		// one it writes, which is exactly the disagreement the check is for. Doing
-		// it through the builder rather than by patching bytes keeps the test's
-		// arithmetic out of the picture — a hand-computed offset into a packed
-		// string table would be its own source of false confidence.
 		const bytes = buildSave({
 			nodes: [
 				{ name: "alpha", data: [1] },
 				{ name: "beta", data: [2] },
 			],
-			// The second node's prefix is written as 7 rather than 1.
 			tamperIndexOf: 1,
 		});
 		await expect(decodeContainer(bytes)).rejects.toThrow(/out of order/);
@@ -150,19 +125,12 @@ describe("VASC container", () => {
 	});
 });
 
-/** The node list the real save's top level carries, with small payloads. */
 const shapedNodes = (): {
 	name: string;
 	data: number[];
 }[] =>
 	NODES.map((name, index) => ({ name, data: [index, index + 1, index + 2] }));
 
-/**
- * A node stream holding bytes the format would store between a parent and child.
- *
- * Built by hand rather than through `buildSave`, because the builder lays a
- * node's payload contiguously and the gap this exercises has to be authored.
- */
 const payloadBetweenNodes = async (): Promise<Uint8Array> => {
 	const bytes = buildSave({
 		nodes: [

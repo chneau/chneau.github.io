@@ -9,19 +9,6 @@ import {
 } from "../lib/save-engine/data";
 import type { EquipmentCatalog } from "./equipment-details";
 
-/**
- * The item catalog with every piece of equipment folded into it.
- *
- * Equipment is not in the shipped item catalog — it is read from a second
- * table — but every panel that names an item reads it as one list, and a key
- * that is only in the equipment table would otherwise come out as "Unknown item
- * 12345". Folding them here rather than in each panel means the name, the
- * one-per-record rule and the category are decided once.
- *
- * A failed read leaves that catalog `null` rather than throwing: the editor is
- * usable without names, and a missing item catalog must not take the page with
- * it. The header says "catalog loading" in that state.
- */
 const mergeEquipmentCatalog = (
 	base: ItemCatalogFile | null,
 	equipment: EquipmentCatalog | null,
@@ -42,15 +29,7 @@ const mergeEquipmentCatalog = (
 	return { ...base, items };
 };
 
-/**
- * The three generated tables the editor reads once, on mount.
- *
- * They are shipped as JSON and read through the engine's table helpers, which
- * is why this is a hook rather than a module constant: the read is asynchronous
- * and each table failing is independent of the others.
- */
 export const useEditorCatalogs = (): {
-	/** The merged item catalog, or `null` until it has been read. */
 	catalog: Catalog | null;
 	equipmentCatalog: EquipmentCatalog | null;
 	knowledgeMap: ItemKnowledgeMapFile | null;

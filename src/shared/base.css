@@ -1,10 +1,3 @@
-/*
- * Shared base layer: a small reset plus the few utility classes every site
- * repeats (numbers, press feedback, frosted panels, skeletons, status lights,
- * scrollbars, empty states and the grain overlay). Values come from
- * `tokens.css` so all sites stay in sync.
- */
-
 *,
 *::before,
 *::after {
@@ -26,30 +19,6 @@ body {
 	text-rendering: optimizeLegibility;
 }
 
-/*
- * Mantine's `dimmed`, repointed at a token whose contrast is checked.
- *
- * `c="dimmed"` is the site's second text step, used 240-odd times, and Mantine
- * resolves it to `--mantine-color-gray-6` (`#868e96`): 3.02:1 on `--app-bg` and
- * 3.32:1 on a white card, both under WCAG AA's 4.5:1 for normal text. axe
- * reported it on the dashboard twice — the toolbar's "Press / to focus" hint
- * and the consent dialog's body — and the same value is behind every `dimmed`
- * text on every page.
- *
- * `--app-text-muted` is that second step and is already held to 4.5:1 in both
- * schemes by `tokens-theme.test.ts` and `design/audit.ts`. It happens to be
- * close to Mantine's dark-scheme value (`--mantine-color-dark-2`, `#a9a9b1`
- * against this site's neutral ramp; the token is `#a1a1aa`), so one value is
- * right in both schemes — hence both selectors.
- *
- * Written here rather than through `MantineProvider`'s `cssVariablesResolver`
- * because four apps mount their own provider and only three go through
- * `ThemedProvider`. Mantine declares this variable in
- * `@mantine/core/styles.css`, which every entry imports *before* this file, so
- * equal specificity with later order is what makes this win;
- * `tokens-theme.test.ts` asserts both halves, because reordering the imports
- * would silently restore the failing value.
- */
 :root[data-mantine-color-scheme="light"],
 :root[data-theme="light"],
 :root[data-mantine-color-scheme="dark"],
@@ -79,13 +48,11 @@ button {
 	border: 0;
 }
 
-/* Tabular figures so columns of times, counts and prices line up. */
 .app-num {
 	font-family: var(--app-font-mono);
 	font-variant-numeric: tabular-nums;
 }
 
-/* Physical push feedback on every interactive element. */
 .app-press {
 	transition:
 		transform 0.18s var(--app-ease),
@@ -97,7 +64,6 @@ button {
 	transform: translateY(1px) scale(0.985);
 }
 
-/* Frosted panel with a 1px inner refraction edge instead of a glow. */
 .app-glass {
 	background: var(--app-glass);
 	backdrop-filter: blur(12px) saturate(120%);
@@ -115,7 +81,6 @@ button {
 	box-shadow: var(--app-shadow);
 }
 
-/* thin scrollbars */
 .app-scroll {
 	scrollbar-width: thin;
 	scrollbar-color: var(--app-border-strong) transparent;
@@ -135,7 +100,6 @@ button {
 	background-clip: content-box;
 }
 
-/* Shimmer for loading placeholders. */
 @keyframes app-shimmer {
 	100% {
 		transform: translateX(100%);
@@ -162,7 +126,6 @@ button {
 	animation: app-shimmer 1.5s infinite;
 }
 
-/* Breathing status light, pure CSS on transform/opacity. */
 @keyframes app-breathe {
 	0%,
 	100% {
@@ -190,7 +153,6 @@ button {
 	background: var(--app-danger);
 }
 
-/* Sequential load-in for panels and rows. */
 @keyframes app-rise {
 	from {
 		opacity: 0;
@@ -206,7 +168,6 @@ button {
 	animation-delay: calc(var(--app-index, 0) * 70ms);
 }
 
-/* Composed empty state. */
 .app-empty {
 	display: flex;
 	flex-direction: column;
@@ -240,13 +201,6 @@ button {
 	line-height: 1.55;
 }
 
-/* ── Boot shell ───────────────────────────────────────────────
-   Painted from the HTML, before any JavaScript runs. Every app is its own
-   document, so changing page is a full navigation with a 400-850ms window in
-   which `#root` is empty; without this the user gets a blank white screen,
-   which reads as a dropped tap. `.app-boot` sits after `#root` in the body (see
-   `bootShell` in rsbuild.config.ts), so this rule retires it the instant React
-   renders — no mount hook, and no moment where both are on screen. */
 .app-boot {
 	position: fixed;
 	inset: 0;
@@ -256,8 +210,6 @@ button {
 	gap: 20px;
 	padding: 0 clamp(12px, 2.5vw, 20px);
 	background: var(--app-surface);
-	/* The skeleton itself must never intercept a tap: the point is to show
-	   progress, not to be a thing the user can press. */
 	pointer-events: none;
 }
 #root:not(:empty) ~ .app-boot {
@@ -321,10 +273,6 @@ button {
 	}
 }
 
-/* ── Top bar ───────────────────────────────────────────────────
-   One navbar for every site: 56px tall, solid surface, hairline border,
-   brand on the left and 36px action controls on the right. */
-
 .app-header {
 	position: sticky;
 	top: 0;
@@ -349,7 +297,6 @@ button {
 	color: inherit;
 	text-decoration: none;
 }
-/* `Brand` renders as a button when given `onClick` without `href`. */
 button.app-brand {
 	appearance: none;
 	padding: 0;
@@ -492,50 +439,21 @@ button.app-brand {
 	pointer-events: none;
 }
 
-/* App switcher dropdown */
-/* Overflow ("More") menu.
-   On a phone the apps carry more controls than a 56px row can hold, and
-   `.app-header__actions` is `flex: none` — so the actions win and the brand
-   collapses to zero width. The overflow goes in a menu rather than a
-   horizontally scrollable strip, because AppSwitcher's own dropdown lives
-   inside that row and a scroll container would clip it. */
 .app-header-overflow {
 	position: relative;
 	display: inline-flex;
 }
-/* The name an `iconOnly` control shows once it is collapsed into the menu. It is
-   hidden by default and revealed only inside the menu: the bar has no room for
-   it, which is the entire reason the menu exists. Without it the overflow menu
-   was a column of unlabelled icons — five controls across the site (back home,
-   theme, shortcuts, palette, GitHub) with nothing to read. */
 .app-header-action__menulabel {
 	display: none;
 }
-/* Two classes, deliberately. This menu *reuses* `.app-switcher__menu`, which is
-   declared later in the file at the same specificity, so a single-class rule
-   here loses to its `gap: 2px` on source order alone — the rows packed
-   2px apart and the spacing could not be fixed from the one-class rule no
-   matter what it said. */
 .app-switcher__menu.app-header-overflow__menu {
 	right: 0;
 	left: auto;
-	/* The container is a `fieldset` so the group is semantic, which brings UA
-	   border/margin/padding that must not show. */
 	border: 1px solid var(--app-border);
 	margin: 0;
 	padding: 6px;
-	/* 2px was the switcher's own rhythm, between app rows that are 44px tall
-	   with their own inner padding. Here it read as a clunk: bordered boxes
-	   almost touching. 6px separates them the way the app list's own rows are
-	   meant to read. */
 	gap: 6px;
 }
-/* The row's layout lives at the very end of this file, beside the label-reveal
-   rules, because it has to outrank two later blocks by specificity:
-   `.app-header__actions .app-header-action { padding: 0 }` in the narrow-screen
-   media query, and the reused `.app-switcher__menu`. See
-   `.app-header-overflow__row` there. Keeping it here instead meant restating it
-   twice to win on source order, which is a rule that goes stale silently. */
 
 .app-switcher {
 	position: relative;
@@ -544,21 +462,6 @@ button.app-brand {
 .app-switcher__menu {
 	position: absolute;
 	top: calc(100% + 8px);
-	/* Anchored to the trigger's RIGHT edge, growing leftwards into the page.
-	 *
-	 * The switcher lives in `.app-header__actions`, which is `flex: none` at the
-	 * end of a bar whose middle section is `flex: 1` — so the trigger sits near
-	 * the right edge of the viewport. With `left: 0` the menu's left edge lined up
-	 * with the trigger's and its `min-width: 268px` then ran off the right of the
-	 * screen, hiding the tail of the app list on a desktop-width window. The
-	 * `max-width: calc(100vw - 24px)` clamp cannot save it: that caps the width,
-	 * it does not move the box back inside the viewport.
-	 *
-	 * This is the same reasoning, and the same `right: 0; left: auto` pair, that
-	 * `.app-header-overflow__menu` already uses below. Only the narrow-screen
-	 * override had it, so the desktop bar was the one case left anchoring to the
-	 * trigger's left edge.
-	 */
 	right: 0;
 	left: auto;
 	z-index: 80;
@@ -567,11 +470,6 @@ button.app-brand {
 	gap: 2px;
 	min-width: 268px;
 	max-width: calc(100vw - 24px);
-	/* Thirteen apps plus the pinned and recent groups are taller than a short
-	 * laptop viewport once the 56px bar is taken off the top, and an absolutely
-	 * positioned box that overflows the bottom is simply unreachable — there is
-	 * nothing to scroll. The narrow override has always clamped and scrolled; the
-	 * desktop bar had neither. */
 	max-height: calc(100dvh - 76px);
 	overflow-y: auto;
 	overscroll-behavior: contain;
@@ -590,9 +488,6 @@ button.app-brand {
 	color: inherit;
 	text-decoration: none;
 }
-/* One row is the app link plus its pin toggle, side by side. The class was in
-   the markup from the start but had no rule, so the two were block-level and
-   the pin stacked under its own link — which doubled every row's height. */
 .app-switcher__row {
 	display: flex;
 	align-items: center;
@@ -651,7 +546,6 @@ button.app-brand {
 	);
 }
 
-/* Shared footer */
 .app-footer {
 	border-top: 1px solid var(--app-border);
 	padding-block: 22px;
@@ -716,8 +610,6 @@ button.app-brand {
 	vertical-align: middle;
 }
 
-/* Analytics consent prompt. Deliberately a corner card, not a modal: it must
-   never block the page it is asking about. */
 .app-consent {
 	position: fixed;
 	inset-block-end: clamp(12px, 3vw, 24px);
@@ -728,18 +620,6 @@ button.app-brand {
 	border-color: var(--app-border-strong);
 }
 
-/**
- * The consent prompt is `position: fixed`, so it covers whatever happens to be
- * in the bottom corner - on the hub that was the last app card, which the
- * visitor then had no way to reach or read.
- *
- * `:has()` reserves the space only while the prompt actually exists, so the
- * padding costs nothing once the visitor has answered and it cannot drift out
- * of sync with the component. The block-end padding is sized for the tallest
- * plausible rendering (longest translation, two buttons wrapped) rather than
- * measured, because a fixed reserve that is occasionally a little too small is
- * better than a measurement that has to be recomputed on every resize.
- */
 body:has(.app-consent) {
 	padding-block-end: clamp(9rem, 24vh, 13rem);
 }
@@ -747,7 +627,6 @@ body:has(.app-consent) {
 	min-inline-size: 0;
 }
 
-/* Stat block */
 .app-stat {
 	display: flex;
 	flex-direction: column;
@@ -807,8 +686,6 @@ body:has(.app-consent) {
 	.app-kbd {
 		display: none;
 	}
-	/* Meet the 44px touch-target guidance without changing the desktop
-	   rhythm: only coarse pointers (touch) get the larger hit areas. */
 	.app-header-action {
 		height: 44px;
 		min-width: 44px;
@@ -821,7 +698,6 @@ body:has(.app-consent) {
 	}
 }
 
-/* States that rely on background colour only need a border in forced-colors. */
 @media (forced-colors: active) {
 	.app-header-action--active,
 	.app-switcher__item--current {
@@ -840,11 +716,6 @@ body:has(.app-consent) {
 	}
 }
 
-/* Shared with the `max-width: 1100px` breakpoint in `HeaderOverflow`: this is
-   the width at which the apps stop fitting their controls inline and start
-   collapsing them behind the "More" menu. Birthday's ten controls need ~1000px,
-   so the constraint is "do they fit", not "is this a phone" — a 768px tablet
-   overflowed exactly as badly as a 360px one. */
 @media (max-width: 1100px) {
 	.app-header__actions .app-header-action__label {
 		display: none;
@@ -852,11 +723,6 @@ body:has(.app-consent) {
 	.app-header__actions .app-header-action {
 		padding: 0;
 	}
-	/* Both dropdowns become viewport-anchored sheets. Anchoring them to their
-	   trigger runs them off the side — the switcher's trigger sits ~60px from the
-	   right edge, so a 344px menu started 46px off the left. Thirteen apps at a
-	   44px hit area is also taller than the screen, so the list scrolls inside
-	   the sheet instead of hanging off the bottom. */
 	.app-switcher__menu {
 		position: fixed;
 		top: 60px;
@@ -868,12 +734,6 @@ body:has(.app-consent) {
 		overflow-y: auto;
 		overscroll-behavior: contain;
 	}
-	/* The brand is what names the app, so it wins the space contest: the
-	   actions row is allowed to shrink, and the brand is not allowed to
-	   disappear. Before this the row was `flex: none` and the brand was
-	   `min-width: 0`, so with 5-10 controls the brand measured 0px wide.
-	   `overflow: hidden` is what stops the row's children pushing the whole
-	   document sideways. */
 	.app-header__actions {
 		flex: 0 1 auto;
 		min-width: 0;
@@ -882,10 +742,6 @@ body:has(.app-consent) {
 	.app-brand {
 		flex: 0 0 auto;
 	}
-	/* Cap the title here too, not just on phones: crimson-desert's title is long
-	   enough to eat a 768px tablet's bar on its own. It ellipsizes, so the mark
-	   and the beginning of the name always survive. The subtitle needs the same
-	   cap — it is a separate line, and on that app it is the wider of the two. */
 	.app-brand__title,
 	.app-brand__subtitle {
 		max-width: 30vw;
@@ -893,26 +749,14 @@ body:has(.app-consent) {
 }
 
 @media (max-width: 640px) {
-	/* On a phone the subtitle is the first thing to go: it is secondary detail
-	   (a build stamp, a category) and the title alone still names the app. This
-	   is what buys the row room for a third control at a 44px hit area. */
 	.app-brand__subtitle {
 		display: none;
 	}
-	/* 320px is the narrowest phone still in use, and three 44px controls plus a
-	   36px mark and the gutters leave under 90px for the name. */
 	.app-brand__title {
 		max-width: 24vw;
 	}
 }
 
-/* Deliberately after the rules above, at the same specificity rather than a
-   higher one: inside the menu every row is a full-width list item, so the label
-   comes back. Hiding labels is a bar-width economy, and in the menu there is
-   width to spare — without this the menu is a column of unlabelled icons.
-   Both classes are covered because they are two different spans: the one a
-   labelled control renders, and the one an `iconOnly` control renders for this
-   menu alone. */
 .app-header-overflow__menu .app-header-action__label {
 	display: inline;
 }
@@ -920,22 +764,6 @@ body:has(.app-consent) {
 	display: inline;
 }
 
-/* One control per line, filling the sheet.
-
-   Placed at the end of this file deliberately, because it must beat
-   `.app-header__actions .app-header-action { padding: 0 }` in the
-   narrow-screen media query above, which also matches a menu row — the
-   menu lives inside the actions row. Both selectors are (0,2,0), so
-   declaration order decides and this one has to come second.
-
-   The obvious alternative was a repeated `.app-header-action.app-header-action`
-   to win on specificity instead, which needs no ordering discipline at all.
-   That was reverted: `HeaderAction` puts the same class list on its anchor as
-   on its button, so spelling the pair as `.app-header-action` /
-   `a.app-header-action` across three rules was redundant, and Biome read the
-   mixed specificity as a descending-specificity cascade. One selector that is
-   simply declared last is both shorter and easier to verify — and the ordering
-   constraint is now written down here instead of being invisible. */
 .app-header-overflow__row {
 	display: block;
 }
@@ -943,35 +771,15 @@ body:has(.app-consent) {
 	display: flex;
 	align-items: center;
 	justify-content: flex-start;
-	/* Fill the line, and be allowed to shrink inside it. `min-width: 0` is what
-	   stops a nowrap child from widening the flex item past the sheet — the sheet
-	   is a fixed `left: 8px; right: 8px` viewport box, so anything wider spills
-	   out of the side rather than scrolling. */
 	width: 100%;
 	min-width: 0;
-	/* A menu row is a touch target, so the bar's 36px is too short here. */
 	min-height: 44px;
-	/* Icon and name spaced like a list entry, not the bar's 7px. */
 	gap: 12px;
 	padding: 8px 12px;
-	/* `.app-header-action` sets `white-space: nowrap` to keep a bar control's
-	   text on one line. In a full-width menu row that is what pushed a long name
-	   ("Search apps and actions") past the sheet's edge, so the name wraps. */
 	white-space: normal;
 	background: var(--app-surface-2);
 	color: var(--app-text-muted);
 }
-/* The icon keeps its size while the name wraps beside it. Without this the flex
-   algorithm treats the svg as shrinkable and compresses a 16px glyph to fit a
-   long label, which reads as a smudge rather than an icon. `lucide-react` sets
-   no `flex` of its own, so nothing else defends it.
-
-   One selector, not a `.app-header-action` / `a.app-header-action` pair:
-   `HeaderAction` puts the same class list on its anchor as on its button, so
-   the second selector matched nothing the first did not. Spelling them
-   separately only made Biome see the pair as descending specificity
-   (0,3,1) then (0,2,2), which is a real warning about a rule that was
-   always one rule. */
 .app-header-overflow__row > .app-header-action > svg {
 	flex: none;
 }
@@ -980,7 +788,6 @@ body:has(.app-consent) {
 	color: var(--app-text);
 }
 
-/* Fixed, non-interactive film grain. */
 .app-grain {
 	position: fixed;
 	inset: 0;
@@ -1000,7 +807,6 @@ body:has(.app-consent) {
 	border-radius: var(--app-radius-xs);
 }
 
-/* Keyboard-only "skip to content" link; hidden until focused. */
 .app-skip-link {
 	position: fixed;
 	top: 8px;
@@ -1019,10 +825,6 @@ body:has(.app-consent) {
 .app-skip-link:focus {
 	transform: translateY(0);
 }
-
-/* ── App launcher (dashboard) ─────────────────────────────────
-   A responsive page shell, value-prop hero, toolbar, and the app tile
-   used by the hub. Everything draws from the shared tokens. */
 
 .app-page {
 	width: 100%;
@@ -1169,7 +971,6 @@ body:has(.app-consent) {
 	gap: 16px;
 }
 
-/* App tile: a stretched link plus a pin button layered on top. */
 .app-card {
 	position: relative;
 	border: 1px solid var(--app-border);
@@ -1233,27 +1034,6 @@ body:has(.app-consent) {
 	font-weight: 600;
 	letter-spacing: -0.01em;
 }
-/*
- * The tag pill's ink, in both schemes.
- *
- * Mantine's `variant="light"` pairs the hue's step-1 tint with its step-9 ink,
- * and that pair is not contrast-checked: at the 10px this pill renders, step 9
- * measures 2.69:1 on yellow, 3.62:1 on orange, 3.81:1 on green and 4.33:1 on
- * teal against their own tints — every one of them under WCAG AA's 4.5:1, and
- * axe reported all four on the dashboard. The hue stays in the pill's
- * background; the ink is the scheme's own body-text token, which clears 13.6:1
- * on the lightest tint and is already checked against the surfaces by
- * `tokens-theme.test.ts` and `design/audit.ts`. Tried first: darkening step 9
- * per hue, which needs ten rules and ten values that only its author can tell
- * apart.
- *
- * The declaration lands on the label rather than setting `--badge-color` on the
- * badge, because `Badge` writes that variable into the element's `style`
- * attribute — an inline declaration no selector can outrank. The label itself
- * has no inline colour, so a rule that names it wins over the value it
- * inherits, and naming `.mantine-Badge-label` is Mantine's documented class
- * name (the same thing `theme.ts` styles through `components.Badge.styles`).
- */
 .app-card .app-card__tag .mantine-Badge-label {
 	color: var(--app-text);
 }
@@ -1282,17 +1062,6 @@ body:has(.app-consent) {
 	font-size: 0.72rem;
 }
 .app-card__visited--new {
-	/*
-	 * The accent as *text*, which is not what `--app-accent` is for: the shared
-	 * layer and `design/audit.ts` hold it to 3:1 (WCAG 1.4.11, non-text), and
-	 * this label is 11.5px. Measured on the dashboard: the Ant Design blue the
-	 * hub uses for a filled button is 3.03:1 on a dark card, and axe reported
-	 * all thirteen cards in the dark scheme. `--app-accent-ink` is the accent's
-	 * text-grade sibling — CV defines it as `--accent-strong`, 6.5:1 on white —
-	 * and the fallback is `base.css`'s own convention for accent text on a
-	 * surface that has none: the body text colour, which `design/audit.ts`
-	 * holds to 4.5:1 in both schemes.
-	 */
 	color: var(--app-accent-ink, var(--app-text));
 	font-weight: 600;
 }
@@ -1350,26 +1119,10 @@ body:has(.app-consent) {
 
 @media (pointer: coarse) {
 	.app-card__pin {
-		/* Pins are always visible on touch, where there is no hover. */
 		opacity: 1;
 	}
 }
 
-/**
- * Global reduced-motion guard.
- *
- * `!important` is load-bearing here, not decorative. The `*` selector has
- * specificity (0,0,0) and a media query contributes none, so without it EVERY
- * class rule that declares its own duration wins outright - which is to say the
- * guard protected nothing at all. Measured before this change: 14 elements
- * still animated under `reduce`, including `.app-header-action`, `.app-card`,
- * `.app-skip-link` and `.app-statusdot`.
- *
- * `!important` inverts specificity, so the override beats class rules while
- * still yielding to a more specific `!important` further down the cascade -
- * which is what `cv/cv.css` and `shared/components/Section.css` rely on for
- * their own reduced-motion handling.
- */
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,

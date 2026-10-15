@@ -48,31 +48,6 @@ import { useSpoonersView } from "./useSpoonersView";
 
 const RATE_SOURCE = "European Central Bank, via frankfurter.dev";
 
-/**
- * The map, and Leaflet with it, in its own chunk.
- *
- * `MapPane` imports `react-leaflet`, so a static import put Leaflet's 144 kB of
- * JavaScript in an eager vendor chunk — downloaded, parsed and executed before
- * the first paint — for a map that cannot render anything until the 23 MB cache
- * has arrived and been parsed. Moving it out takes 159.7 kB (44.4 kB gzipped)
- * of JavaScript and 16.1 kB (6.2 kB gzipped) of CSS off the critical path of
- * every visit, including the ones that only ever see the loading skeleton.
- *
- * It is a *deferral*, not a saving: the chunk is still fetched on the same
- * visit, so a visitor who goes on to render the map transfers 8.8 kB more
- * JavaScript in total than before the split (4.6 kB gzipped) — the chunk
- * scaffolding the split adds. The win is when it is fetched, not whether.
- *
- * `warmMap` is what makes the deferral free: the fetch starts while the cache
- * is still arriving, so the map's own download does not move behind a 23 MB
- * parse, and `Suspense` finds the module cached on the frame the data lands.
- *
- * It is registered before the loading and error branches below, so it fires on
- * every mount — including a visit that ends on the retry screen and never shows
- * a map. A prefetch that overlaps the work that decides the page's fate is
- * worth its cost on the visits that succeed, which is the trade this split
- * makes; it does not save the failed visit anything.
- */
 const MapPane = lazy(() =>
 	import("./components/MapPane").then((module) => ({
 		default: module.MapPane,
@@ -81,13 +56,6 @@ const MapPane = lazy(() =>
 
 const warmMap = () => import("./components/MapPane");
 
-/**
- * The map's box, while its chunk is in flight and if it never arrives.
- *
- * One component for both, because the box has to be the same either way: it is
- * the space `MapPane` will occupy, so the sidebar does not jump when the map
- * lands. `failed` is the state a rejected `import()` leaves behind.
- */
 const MapFallback = ({
 	compact,
 	failed = false,
@@ -132,20 +100,6 @@ const MapFallback = ({
 	</Box>
 );
 
-/**
- * Keeps a failed map chunk from taking the page with it.
- *
- * A rejected `import()` rejects the suspended render, and without a boundary
- * that unmounts the whole tree down to the boot shell — the header, the sidebar
- * and the round in it all vanish because one deferred file did not arrive. This
- * is the shape the birthday app already uses around its `lazy()` sections
- * (`src/birthday/ErrorBoundary.tsx`); the copy is local because spooners ships
- * no locale bundle, and the fallback is a reload rather than a re-render because
- * React caches a rejected lazy module — clearing the error and rendering the
- * same element just throws the same rejection again. A fresh document imports
- * the chunk afresh, and if the network is still gone the service worker's
- * offline page answers instead of a blank box.
- */
 class MapErrorBoundary extends Component<
 	{ compact: boolean; children: ReactNode },
 	{ failed: boolean }
@@ -162,7 +116,6 @@ class MapErrorBoundary extends Component<
 	}
 }
 
-// Only keys implemented in this app — see `components/PubSearch.tsx`.
 const SHORTCUT_GROUPS: ShortcutGroup[] = [
 	{
 		title: "Search",
@@ -174,7 +127,6 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
 	},
 ];
 
-/** Shown while the 24 MB cache is still arriving. */
 const AppLoading = () => (
 	<LoadingState
 		label="Loading pub prices…"
@@ -195,7 +147,6 @@ const AppLoading = () => (
 	</LoadingState>
 );
 
-/** Shown when the cache could not be read at all; only a retry can help. */
 const AppLoadError = ({
 	message,
 	onRetry,
@@ -223,16 +174,6 @@ const AppLoadError = ({
 	/>
 );
 
-/**
- * The page shell.
- *
- * State, handlers and the two-column layout; everything the visitor reads lives
- * in `ResultsSidebar` (the round and what the data says about it), the map, and
- * `SpoonerDialogs`. The derivations between the cache and both of those live in
- * `useSpoonersView`, and the round, the filters, the address bar and the map
- * viewport each have their own hook in `appState.ts` — so what is left here is
- * only the wiring.
- */
 export const App = () => {
 	const url = useMemo(() => readUrl(), []);
 	const { data, error, loading, reload } = useDataset();
@@ -292,7 +233,6 @@ export const App = () => {
 		[derived.fallbackName],
 	);
 
-	// A click wins over the pub a link named; the link only fills the gap.
 	const focused = chosen ?? linkedVenue(url, derived.withDistance);
 
 	const isDefaultBasket =
@@ -333,13 +273,6 @@ export const App = () => {
 		setView,
 	);
 
-	/*
-	 * Adding from a pub dialog closes nothing and changes nothing on screen —
-	 * the modal is dismissed and the round is off behind it — so the click used
-	 * to look inert. The notification is the acknowledgement, following the
-	 * "link copied" toast in `AppHeader`. Spooners has no locale bundle (its
-	 * copy is plain British English throughout), so neither does this.
-	 */
 	const addItem = useCallback(
 		(name: string) => {
 			roundActions.add(name);
@@ -368,8 +301,6 @@ export const App = () => {
 		[filters, setSettings],
 	);
 
-	// A drink chosen in the discovery panel becomes the whole round, and the
-	// map should follow it back to the pubs rather than keep the area view.
 	const onlyItemFromDiscover = useCallback(
 		(name: string) => {
 			roundActions.replace(name);
@@ -378,16 +309,6 @@ export const App = () => {
 		[roundActions],
 	);
 
-	// The 24 MB cache is fetched once on mount, so a visitor who loaded the app
-	// offline is left with the retry screen and no way forward but to reload the
-	// tab by hand. Reconnecting is the signal that the fetch can now succeed.
-	// Only a failed load is retried: a reload that succeeds would tear the map
-	// down behind a loading skeleton on a perfectly working page.
-	//
-	// Registered once and reading the flag through a ref: re-subscribing on
-	// every `error` change tears the listener down and rebuilds it for a
-	// condition that only decides *whether the handler does anything*, not what
-	// it does.
 	const hasError = useRef(false);
 	useEffect(() => {
 		hasError.current = error !== null;
@@ -402,16 +323,6 @@ export const App = () => {
 		};
 	}, [reload]);
 
-	// Fetched here rather than lazily at the `<Suspense>` boundary below: this
-	// runs while the cache is still arriving, so the map's chunk downloads in
-	// parallel with 23 MB of JSON instead of after it. Registered once — the
-	// import is a module fetch, and the browser caches it.
-	//
-	// The rejection is swallowed on purpose, and it is not what handles a
-	// blocked chunk: a prefetch that fails is invisible, while the render
-	// below asks for the same chunk again and *that* rejection reaches
-	// `MapErrorBoundary`. Left unhandled it is an uncaught rejection on a page
-	// that is behaving exactly as designed.
 	useEffect(() => {
 		warmMap().catch(() => undefined);
 	}, []);

@@ -1,7 +1,3 @@
-/**
- * TypeScript port of `public/python/editor/item_catalog.py`.
- */
-
 import {
 	equipmentCatalogTable,
 	type ItemCatalogFile,
@@ -17,7 +13,6 @@ type CatalogItem = {
 	internalName: string;
 };
 
-/** The item and equipment catalog, merged and ready to read by key. */
 class CurrentItemCatalog {
 	schemaVersion: number;
 	steamBuildId: string;
@@ -71,7 +66,6 @@ class CurrentItemCatalog {
 	}
 }
 
-/** Public entry point: the committed item and equipment tables, merged. */
 export const loadItemCatalog = async (): Promise<CurrentItemCatalog> => {
 	const data: ItemCatalogFile = await itemCatalogTable();
 	const items = new Map<number, CatalogItem>();

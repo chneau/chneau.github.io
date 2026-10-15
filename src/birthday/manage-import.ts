@@ -2,13 +2,6 @@ import { z } from "zod";
 import { birthdaySchema, type RawBirthday } from "./birthdays";
 import { dedupeRecords } from "./raw-birthday-identity";
 
-/**
- * Reading a `.json` the user picked into records the app can store.
- *
- * A file is untrusted input, so the parse result is a discriminated union and
- * the caller has to handle the failure — that is the whole point of not
- * letting the FileReader callback decide what a notification says.
- */
 type ImportParse =
 	| {
 			readonly ok: true;
@@ -17,10 +10,6 @@ type ImportParse =
 	  }
 	| { readonly ok: false; readonly reason: "unreadable" | "invalid" };
 
-/**
- * Duplicates inside the file are dropped here rather than on confirm, and
- * counted so the user is told what was left out.
- */
 export const parseBirthdaysJson = (text: string): ImportParse => {
 	let parsed: unknown;
 	try {

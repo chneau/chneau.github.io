@@ -1,14 +1,8 @@
 import { portionRank } from "./portions";
 import type { ItemDefinition, SpoonersCache } from "./types";
 
-/** One pub's block of the cache. `VenueEntry` is internal to the cache schema. */
 type VenueEntry = SpoonersCache["venues"][string];
 
-/**
- * One line of a pub's menu, flattened out of the cache's nested
- * `item -> portion -> price` shape and annotated with the item's own facts, so
- * sorting and rendering never have to walk back into the cache.
- */
 export type MenuRow = {
 	name: string;
 	menu: string;
@@ -17,21 +11,17 @@ export type MenuRow = {
 	calories: number | null;
 	badges: string[];
 	portions: [string, number][];
-	/** Price of the pub's canonical portion, for sorting. */
 	from: number;
 };
 
-/** How the menu can be ordered; `"menu"` keeps the grouped default. */
 export type MenuSort = "menu" | "cheapest" | "dearest";
 
-/** Flags and badges this pub's keyword list carries, as display labels. */
 const badgeLabels = (definition: ItemDefinition | undefined): string[] =>
 	(definition?.keywords ?? [])
 		.filter((keyword) => keyword.isFlag || keyword.isBadge)
 		.map((keyword) => keyword.label ?? keyword.name ?? "")
 		.filter(Boolean);
 
-/** Portions in canonical order (pint before half, name as the tie-break). */
 const orderedPortions = (
 	portions: Record<string, number>,
 ): [string, number][] =>
@@ -39,11 +29,6 @@ const orderedPortions = (
 		(a, b) => portionRank(a[0]) - portionRank(b[0]) || a[0].localeCompare(b[0]),
 	);
 
-/**
- * The pub's whole menu, grouped the way it reads: menu, then category, then
- * item name. The grouping is what the header rows in `VenueMenu` follow, so
- * the sort and the headers cannot drift apart.
- */
 export const buildMenuRows = (
 	entry: VenueEntry | undefined,
 	items: Record<string, ItemDefinition>,
@@ -74,10 +59,6 @@ export const buildMenuRows = (
 	);
 };
 
-/**
- * The rows the menu shows: narrowed to one menu and/or a search term, then
- * ordered by the chosen sort.
- */
 export const filterMenuRows = (
 	rows: MenuRow[],
 	{

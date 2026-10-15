@@ -1,71 +1,28 @@
-/**
- * The `ScriptableSystemsContainer`: a StringPool and a list of serialised objects.
- *
- * ## What REDengine 4 stores
- *
- * Every name in these saves — field names, type names, enum values — is a
- * `CName`: a 16-bit index into a per-system string pool, not a string inline.
- * The pool itself is two regions of the blob: a table of 4-byte descriptors
- * (a 24-bit offset and an 8-bit length) followed by the bytes they point at. A
- * descriptor's length counts its own null terminator, so the stored text is one
- * byte shorter than it claims — the single easiest thing to get wrong here.
- *
- * An object is then a count, a table of `(name index, type index, byte offset)`
- * descriptors, and the field data those offsets point into. Slicing each field
- * as "from this offset to the next one" is what lets a field's bytes be read
- * without knowing its type's length in advance.
- *
- * ## Sparse struct arrays
- *
- * Attributes, proficiencies and development points are *arrays of structs* whose
- * fields are addressed relative to the start of each element rather than to the
- * array. Walking one means: read a count, then per element read its field count,
- * its descriptors and its data — then skip to where the next element starts,
- * which needs the size of the *last* field, derived from its type name.
- *
- * That last step is why `sizeOfField` refuses to guess. An unknown type name
- * means there is no way to say where the next element begins, so the walk stops
- * with what it has rather than desynchronising and reporting invented levels.
- */
 import type { Bytes } from "../../shared";
 
-/** One resolved entry of the string pool. */
 export type StringPool = {
 	readonly names: readonly string[];
-	/** The pool entry for an index, or `undefined` when there is none. */
 	at: (index: number) => string | undefined;
 };
 
-/** A field of a serialised object: its name, its declared type, its bytes. */
 export type ObjectField = {
 	readonly name: string;
 	readonly type: string;
 	readonly data: Bytes;
 };
 
-/** One object in the container, with its fields already sliced out. */
 type SerialObject = {
 	readonly ctypename: string;
 	readonly fields: readonly ObjectField[];
-	/** The field with this name, if the object has one. */
 	field: (name: string) => ObjectField | undefined;
 };
 
-/** A decoded `ScriptableSystemsContainer` node. */
 export type SystemsContainer = {
 	readonly pool: StringPool;
 	readonly objects: readonly SerialObject[];
-	/** The object with this class name, if the container has one. */
 	find: (ctypename: string) => SerialObject | undefined;
 };
 
-/**
- * Little-endian cursor over one blob, with the bounds checks a save needs.
- *
- * Every read goes through `slice`, which refuses to run past the end: a save
- * truncated by a bad edit should name the offset it wanted, not surface as an
- * opaque `DataView` range error.
- */
 export class BlobReader {
 	private at = 0;
 
@@ -79,12 +36,10 @@ export class BlobReader {
 		return this.bytes.length;
 	}
 
-	/** Moves the cursor. A caller that computed the offset has already checked it. */
 	seek(offset: number): void {
 		this.at = offset;
 	}
 
-	/** A `DataView` over the next `length` bytes, for a single scalar read. */
 	private take(length: number): DataView {
 		return new DataView(this.slice(length).buffer, 0, length);
 	}
@@ -117,17 +72,6 @@ export class BlobReader {
 		return this.take(4).getFloat32(0, true);
 	}
 
-	/**
-	 * A *borrowed* view of the next `length` bytes — a `subarray`, not a copy.
-	 *
-	 * This is the only way a patch reaches the caller's buffer. A field's data is
-	 * handed out as a view so that writing to it writes into the node's own bytes,
-	 * which is what makes an in-place edit possible at all: `readObjectFields` and
-	 * `readSparseArray` both slice their input, and a slice is a *copy*, so a patch
-	 * aimed at one of those would land in a temporary and be discarded.
-	 *
-	 * `copy()` is the counterpart, for the places that must not alias.
-	 */
 	view(length: number): Bytes {
 		if (length < 0 || this.at + length > this.bytes.length) {
 			throw new Error(
@@ -141,7 +85,6 @@ export class BlobReader {
 		return borrowed;
 	}
 
-	/** A detached copy of the next `length` bytes, for a caller that must own it. */
 	slice(length: number): Bytes {
 		const borrowed = this.view(length);
 		const owned = new Uint8Array(borrowed.length);
@@ -150,16 +93,6 @@ export class BlobReader {
 	}
 }
 
-/**
- * The size of a field of the given type name, or `undefined` when this editor
- * does not know the type.
- *
- * The named entries are the types the reference implementation reads and writes
- * for `PlayerDevelopmentData`. The `gamedata` rule is a property of the schema
- * rather than a guess about one enum: every one of the game's own enums is
- * declared with a 16-bit index, and its names are confirmed against the game's
- * `CEnums` catalogue. Anything else is genuinely unknown.
- */
 export const sizeOfField = (type: string): number | undefined => {
 	switch (type) {
 		case "Bool":
@@ -184,12 +117,6 @@ export const sizeOfField = (type: string): number | undefined => {
 	}
 };
 
-/**
- * Reads a struct field according to its type name.
- *
- * `undefined` means the type is one this editor does not model, and the caller
- * skips the field rather than inventing a value.
- */
 export const readFieldValue = (
 	reader: BlobReader,
 	type: string,
@@ -207,14 +134,6 @@ export const readFieldValue = (
 	return undefined;
 };
 
-/**
- * Writes a scalar back at `offset` in `blob`, according to its type name.
- *
- * Returns false for a type whose bytes are not a plain scalar, so a caller can
- * leave an unfamiliar field alone rather than corrupt it. Writing in place is
- * only ever done for a field whose size does not depend on the value, so the
- * surrounding blob keeps its length and every other offset in it stays valid.
- */
 export const writeFieldValue = (
 	blob: Bytes,
 	offset: number,
@@ -249,26 +168,12 @@ export const writeFieldValue = (
 	return false;
 };
 
-/** One `(name index, type index, data offset)` descriptor. */
 type FieldDescriptor = {
 	name: string;
 	type: string;
 	dataOffset: number;
 };
 
-/**
- * Reads the string pool: a descriptor table followed by the bytes it points at.
- *
- * Both halves are positioned relative to the pool's own base — the descriptor
- * table starts there and the strings begin after it — so a descriptor's offset
- * is added to that base rather than to the blob's. The length in the top byte
- * counts the null terminator, which is not part of the text.
- *
- * `descsSize` is the table's byte length and `dataSize` the text region's, which
- * together bound every entry: an offset pointing past them is a corrupt or
- * misread table, and is reported rather than clamped, because a clamped name
- * would silently identify the wrong field.
- */
 const readPool = (
 	blob: Bytes,
 	base: number,
@@ -305,13 +210,6 @@ const readPool = (
 	};
 };
 
-/**
- * Reads one object's fields.
- *
- * A field runs from its own offset to the next descriptor's, or to the end of
- * the object's slice for the last one: the format stores no length, so this
- * adjacency is the only way to bound a field.
- */
 const readObjectFields = (
 	blob: Bytes,
 	pool: StringPool,
@@ -327,10 +225,6 @@ const readObjectFields = (
 			dataOffset: reader.u32(),
 		});
 	}
-	// A field's bytes are handed out as a *view* into the blob, not a copy, so a
-	// patch written through one reaches the node's own buffer. That is what makes
-	// an in-place edit possible without re-serialising the object — and re-
-	// serialising would move every offset in it.
 	return descriptors.map((descriptor, position) => {
 		const next = descriptors[position + 1]?.dataOffset ?? blob.length;
 		const reader = new BlobReader(blob);
@@ -349,14 +243,11 @@ const readObjectFields = (
 	});
 };
 
-/** Indexes the objects by class name. The first of a class wins. */
 const indexByType = (
 	objects: readonly SerialObject[],
 ): Map<string, SerialObject> => {
 	const byType = new Map<string, SerialObject>();
 	for (const object of objects) {
-		// First one wins: a save can hold several objects of one class and the
-		// game addresses the first, so the later ones are not merged in.
 		if (object.ctypename !== "" && !byType.has(object.ctypename)) {
 			byType.set(object.ctypename, object);
 		}
@@ -364,18 +255,6 @@ const indexByType = (
 	return byType;
 };
 
-/**
- * Reads a `ScriptableSystemsContainer` blob.
- *
- * The blob opens with its own size, then six header words saying where the pool
- * and the object table sit inside it. Every offset is relative to the blob's own
- * start, so the bytes the header already consumed are added back on — which is
- * what stops a prefix from shifting every field by its own length.
- *
- * Ahead of the pool, a handle count above one means the blob carries one 64-bit
- * subsystem handle per entry. A count of one means there are none, which is the
- * usual case for a single-system node.
- */
 export const readSystemsContainer = (blob: Bytes): SystemsContainer => {
 	const reader = new BlobReader(blob);
 	const blobSize = reader.u32();
@@ -385,7 +264,7 @@ export const readSystemsContainer = (blob: Bytes): SystemsContainer => {
 		);
 	}
 
-	reader.u16(); // Two unknown words the game writes here.
+	reader.u16();
 	reader.u16();
 	const cnamesCount = reader.u32();
 	const strpoolDescsOffset = reader.u32();
@@ -433,9 +312,6 @@ export const readSystemsContainer = (blob: Bytes): SystemsContainer => {
 			Math.max(0, next === undefined ? end : at(next.dataOffset)),
 			blob.length,
 		);
-		// A view, so that a field inside it is a view into the node's own bytes
-		// and a patch written through the field reaches the buffer the container
-		// will re-serialise.
 		bounds.seek(from);
 		const slice = bounds.view(Math.max(0, to - from));
 		const fields = readObjectFields(slice, pool);
@@ -456,34 +332,18 @@ export const readSystemsContainer = (blob: Bytes): SystemsContainer => {
 	};
 };
 
-/** One element of a sparse struct array, with its fields resolved. */
 export type SparseEntry = {
-	/** The element's `type` field, or `""` when it has none. */
 	readonly type: string;
 	readonly values: ReadonlyMap<string, number | bigint | boolean | string>;
-	/**
-	 * Where each field's bytes start, so a value can be rewritten in place
-	 * without re-serialising the array — which would move every offset in it.
-	 */
 	readonly offsets: ReadonlyMap<string, number>;
 };
 
-/**
- * Reads a `u32`-counted array of self-describing structs.
- *
- * The walk stops early when an element's last field has a type this editor does
- * not know, because an element's length is only knowable from that field and a
- * wrong guess would shift every element after it. Stopping leaves the caller
- * with the elements that were certainly correct.
- */
 export const readSparseArray = (
 	blob: Bytes,
 	pool: StringPool,
 ): readonly SparseEntry[] => {
 	const reader = new BlobReader(blob);
 	const count = reader.u32();
-	// A count beyond the blob's own size is a corrupt or misread field, and
-	// iterating it would be a very long loop.
 	if (count > blob.length) {
 		throw new Error(
 			`This save's struct array claims ${count} elements, which its ${blob.length} bytes cannot hold.`,

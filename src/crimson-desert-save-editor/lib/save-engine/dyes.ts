@@ -1,28 +1,3 @@
-/**
- * Equipment dyeing: the per-part colour rows an item carries.
- *
- * Once an item has been dyed in-game, its `ItemSaveData` grows an
- * `_itemDyeDataList` — one `ItemDyeSaveData` row per dyeable part, each holding
- * the channels the part actually uses:
- *
- *   - `_dyeColorR` / `_dyeColorG` / `_dyeColorB` / `_dyeColorA`, a byte each;
- *   - `_grimeOpacity`, the weathering byte;
- *   - `_dyeColorGroupInfoKey`, the palette the part was dyed from (the game's
- *     `*_Color_Group_*` keys, named by the generated table);
- *   - `_texturePalleteKey`, the surface the dye sits on — cloth, metal, crystal.
- *
- * The mask is per-row and sparse: a part that only uses a tint stores no RGB at
- * all, and one that only stores a tint stores no alpha. So every channel is read
- * as present-or-`null`, and a channel the row does not carry is *refused* rather
- * than invented — writing one would mean inserting a field into a row nested
- * three levels inside the equipment block, which is a structural edit this
- * editor deliberately does not do to a save it cannot test in-game. Undyed
- * items have no list at all, so there is nothing to add to either.
- *
- * This is the same scope the reference editors ship: change the colours of gear
- * that has already been dyed, and dye the item once in-game first.
- */
-
 import { type DecodedSave, decodeSave } from "./container";
 import { type GameNamesFile, gameNamesTable, itemCatalogTable } from "./data";
 import { defined } from "./defined";
@@ -37,7 +12,6 @@ import {
 import { patchScalars, type ScalarWrite } from "./scalar-patch";
 import { commitSave } from "./transaction";
 
-/** The surface a dye sits on, by `_texturePalleteKey`. */
 const dyeMaterialNames: Record<number, string> = {
 	0: "Default",
 	1: "Cloth",
@@ -52,18 +26,14 @@ const dyeMaterialNames: Record<number, string> = {
 	10: "Crystal",
 };
 
-/** One serialized channel: its value, and where it sits in the payload. */
 type Channel = {
 	value: number;
 	offset: number;
 	size: number;
 };
 
-/** One dyeable part of an item. */
 export type DyeSlot = {
-	/** Row order within the item's list; the addressing handle. */
 	index: number;
-	/** `_dyeSlotNo`, which is what the game's material names the part by. */
 	slotNo: number | null;
 	name: string;
 	red: Channel | null;
@@ -75,13 +45,10 @@ export type DyeSlot = {
 	colorGroupName: string | null;
 	material: Channel | null;
 	materialName: string | null;
-	/** False when the row stores no channel this editor can write. */
 	editable: boolean;
 };
 
-/** An equipped item that carries dye rows. */
 export type DyedItem = {
-	/** `_itemNo`, the record's own identity within the equipment block. */
 	itemNo: number;
 	itemKey: number;
 	slotNo: number;
@@ -91,18 +58,14 @@ export type DyedItem = {
 
 export type DyeDescription = {
 	items: DyedItem[];
-	/** Palette choices, for the group picker. */
 	colorGroups: Array<{ key: number; name: string }>;
-	/** Surface choices, for the material picker. */
 	materials: Array<{ value: number; name: string }>;
 	error: string | null;
 };
 
 const dyeChannelLimits = {
-	/** R, G, B, A and grime are bytes. */
 	color: 255,
 	colorGroup: 4294967295,
-	/** `_texturePalleteKey` is two bytes in some rows and four in others. */
 	material: 65535,
 } as const;
 
@@ -122,7 +85,6 @@ const numberOrNull = (object: WalkedObject, name: string): number | null => {
 	return typeof value === "number" ? value : null;
 };
 
-/** The `_item` child of every element of the equipment list, in order. */
 const dyedItems = (
 	root: RootObject,
 ): Array<{
@@ -179,7 +141,6 @@ const readSlots = (rows: WalkedObject[], names: GameNamesFile): DyeSlot[] => {
 	});
 };
 
-/** Every equipped item that has been dyed, with its per-part channels. */
 export const describeDyes = async (
 	save: DecodedSave,
 ): Promise<DyeDescription> => {
@@ -218,17 +179,13 @@ export const describeDyes = async (
 	}
 };
 
-/** A colour change, on one part or on every part of one item. */
 export type DyeEdit = {
 	type: "dye";
-	/** Equipment record identity, so the applier re-finds it by value. */
 	itemNo: number;
 	itemKey: number;
 	slotNo: number;
-	/** Row indices to change; `null` means every row of the item. */
 	slotIndices: number[] | null;
 	label: string;
-	/** Each channel is left alone when `null`. */
 	red: number | null;
 	green: number | null;
 	blue: number | null;
@@ -238,7 +195,6 @@ export type DyeEdit = {
 	material: number | null;
 };
 
-/** One channel as the applier writes it. */
 const WRITABLE = [
 	{ key: "red", field: "_dyeColorR", limit: dyeChannelLimits.color },
 	{ key: "green", field: "_dyeColorG", limit: dyeChannelLimits.color },
@@ -257,7 +213,6 @@ const WRITABLE = [
 	},
 ] as const;
 
-/** A stable description of every dye row in the payload, for the diff proof. */
 const dyeSignature = (raw: Uint8Array, names: GameNamesFile): string => {
 	try {
 		const root = readRoot(raw, "EquipmentSaveData");
@@ -281,17 +236,10 @@ const dyeSignature = (raw: Uint8Array, names: GameNamesFile): string => {
 	}
 };
 
-/**
- * Rewrites the dye channels the caller asked for. Values the payload already
- * holds are skipped, and every channel is refused unless the row carries it.
- */
 export const applyDyeEdit = async (
 	sourceBytes: Uint8Array,
 	edit: DyeEdit,
 ): Promise<[Uint8Array, Record<string, unknown>]> => {
-	// The names table and the decode read two independent inputs — neither reads
-	// the other's result and neither mutates its argument — so they are awaited
-	// together.
 	const [names, decoded] = await Promise.all([
 		gameNamesTable(),
 		decodeSave(sourceBytes),

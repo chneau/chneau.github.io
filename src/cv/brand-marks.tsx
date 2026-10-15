@@ -1,12 +1,3 @@
-/**
- * The two brand marks the CV links out with.
- *
- * They live apart from `content.tsx` because they are presentation, not
- * content: the CV's own model is data, and a module that mixes the two makes an
- * edit to one look like an edit to the other. `content.tsx` imports these for
- * the contact rows; nothing else does.
- */
-
 type BrandIconProps = { className?: string };
 
 export const GithubMark = ({ className }: BrandIconProps) => (

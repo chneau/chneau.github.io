@@ -7,21 +7,6 @@ import { ErrorState } from "../components/ErrorState";
 import { LoadingState } from "../components/LoadingState";
 import { ConfirmDialog } from "../save/components/ConfirmDialog";
 
-/**
- * The announced states and the confirmation dialog.
- *
- * `LoadingState` and `ErrorState` are the site's only live regions, and
- * `ConfirmDialog` is the only place work is thrown away on a reader's say-so.
- * Both are contracts with a test behind them rather than markup that happens to
- * be in the right shape: a live region without its role is a silent state, and
- * a dialog whose two buttons reached the same handler would lose the meaning of
- * the words on them.
- *
- * Queries come from the render result rather than `screen`, which is bound to
- * `document.body` at import time — before this file's `happy-dom` import has
- * registered a document.
- */
-
 afterEach(() => cleanup());
 
 const provider = (ui: ReactNode) => <MantineProvider>{ui}</MantineProvider>;

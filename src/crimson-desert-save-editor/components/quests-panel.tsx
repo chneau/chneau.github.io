@@ -43,25 +43,10 @@ const PAGE_SIZE = 25;
 
 const kindOrder: QuestKind[] = ["quest", "mission", "stage", "gauge"];
 
-/** The two batch choices a whole table, or a whole section, can be put through. */
 type QuestPreset = "completeAll" | "resetAll";
 
-/**
- * The fallback for a save whose quest table has not been read yet.
- *
- * Module-level because the `matches` memo depends on this list, and an inline
- * `?? []` is a fresh array on every render — so a filter over tens of thousands
- * of rows would re-run on every keystroke. This section is the one that reads
- * its table lazily, so the empty case is the *common* one here, not the rare
- * one. Nothing mutates it; the panel only filters it.
- */
 const NO_ENTRIES: readonly QuestEntry[] = [];
 
-/**
- * Staged state of every row, folded out of the grouped per-row edits.
- *
- * One edit holds many row ids, so the table has to be read the other way round.
- */
 const stagedByRow = (edits: QuestStateEdit[]): Map<string, number> => {
 	const map = new Map<string, number>();
 	for (const edit of edits) {
@@ -71,7 +56,6 @@ const stagedByRow = (edits: QuestStateEdit[]): Map<string, number> => {
 	return map;
 };
 
-/** How many rows the queued per-row edits cover, presets aside. */
 const stagedRowCount = (edits: QuestStateEdit[]): number =>
 	edits
 		.filter((edit) => edit.type === "quest")
@@ -80,15 +64,6 @@ const stagedRowCount = (edits: QuestStateEdit[]): number =>
 			0,
 		);
 
-/**
- * The whole staged list after one row has been moved to `state`.
- *
- * The panel hands the entire section's edits back rather than a delta, so the
- * regrouping lives in one pure function: one edit per target state, holding
- * every row that state now applies to. Keeping it here rather than in the click
- * handler is what holds "complete a quest" to a single edit instead of one per
- * row it happens to share a state with.
- */
 const withRowMovedTo = (
 	edits: QuestStateEdit[],
 	presets: QuestPresetEdit[],
@@ -123,13 +98,6 @@ const withRowMovedTo = (
 	return [...presets, ...rows];
 };
 
-/**
- * The whole staged list after a batch preset has been queued or cleared.
- *
- * Queuing is a toggle rather than an accumulation: a second press hands back
- * the per-row edits and drops the preset, so the caller can send the result
- * straight to `onStage` without asking whether it was already queued.
- */
 const withPresetToggled = (
 	edits: QuestStateEdit[],
 	preset: QuestPreset,
@@ -158,7 +126,6 @@ const withPresetToggled = (
 	];
 };
 
-/** One quest row: the table it belongs to, and the state it is in. */
 const QuestRow = ({
 	entry,
 	state,
@@ -166,7 +133,6 @@ const QuestRow = ({
 	onStage,
 }: {
 	entry: QuestEntry;
-	/** The row's state once the staged edits are folded in; `null` when unstored. */
 	state: number | null;
 	busy: boolean;
 	onStage: (state: number) => void;
@@ -221,13 +187,6 @@ const QuestRow = ({
 	</Table.Tr>
 );
 
-/**
- * The scope select and the two batch buttons beside it.
- *
- * Neither button applies on press: "complete every quest" is not something to
- * do by a stray click, so each hands its preset to `onConfirm` and the panel
- * opens the dialog.
- */
 const PresetControls = ({
 	scope,
 	presets,
@@ -239,7 +198,6 @@ const PresetControls = ({
 	scope: QuestKind | "all";
 	presets: QuestPresetEdit[];
 	busy: boolean;
-	/** False while the tables are still being read; the buttons stay disabled. */
 	loaded: boolean;
 	onScopeChange: (scope: QuestKind | "all") => void;
 	onConfirm: (preset: QuestPreset) => void;
@@ -291,7 +249,6 @@ const PresetControls = ({
 	</Group>
 );
 
-/** What is queued, and the one button that throws all of it away. */
 const StagedQuestSummary = ({
 	edits,
 	presets,
@@ -333,7 +290,6 @@ const StagedQuestSummary = ({
 	</Paper>
 );
 
-/** The confirmation a batch preset has to pass before it is queued. */
 const PresetConfirmModal = ({
 	preset,
 	scope,
@@ -383,14 +339,6 @@ const PresetConfirmModal = ({
 	</Modal>
 );
 
-/**
- * Quest progress: the four state tables, one row each.
- *
- * The stages alone run to tens of thousands of rows, so this is the one section
- * that reads its table when it is opened rather than when the save is. The
- * staged changes live on the page as one entry per target state, which keeps a
- * "complete everything" choice to a handful of edits instead of one per row.
- */
 export const QuestsPanel = ({
 	session,
 	edits,

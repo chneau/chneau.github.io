@@ -31,26 +31,8 @@ type PanelProps = {
 
 const PAGE_SIZE = 25;
 
-/**
- * The fallback for a save with no companion roster.
- *
- * Module-level because the `matches` memo depends on this list, and an inline
- * `?? []` is a fresh array on every render — so the filter re-ran on every
- * keystroke in the one case where there is nothing to filter. Note that
- * `matches` returns `rows` itself when the query is empty, so this array is
- * handed to the render tree as-is; it must therefore never be written to, and
- * nothing here does.
- */
 const NO_ROWS: readonly CompanionNameRow[] = [];
 
-/**
- * The names the player has given their pets, horses and camp crew.
- *
- * A name is a field the game only stores once it has been set, so most of the
- * roster has none: typing one creates it, and changing one replaces it. The
- * record is identified by its mercenary number, because several companions
- * share a species and only that number tells them apart.
- */
 export const NamesPanel = ({
 	description,
 	edits,

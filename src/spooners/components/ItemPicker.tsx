@@ -14,21 +14,12 @@ type Props = {
 	label?: string;
 };
 
-/**
- * Searchable item picker with a virtualised dropdown: only the visible rows are
- * rendered, so the 1,600+ items cost the same as a handful.
- */
 export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 	const [opened, setOpened] = useState(false);
 	const [query, setQuery] = useState("");
 	const [highlight, setHighlight] = useState(0);
 	const [scrollTop, setScrollTop] = useState(0);
 	const viewportRef = useRef<HTMLDivElement>(null);
-	/**
-	 * True between `compositionstart` and `compositionend`. Enter is how a CJK
-	 * user accepts the candidate the IME is offering, so an unguarded Enter
-	 * handler picks an item from a list filtered by an uncommitted reading.
-	 */
 	const composing = useRef(false);
 	const listboxId = useId();
 	const optionId = (index: number) => `${listboxId}-option-${index}`;
@@ -46,7 +37,6 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 		);
 	}, [items, query]);
 
-	// keep the highlight in range as the results shrink
 	useEffect(() => {
 		setHighlight(0);
 		setScrollTop(0);
@@ -133,8 +123,6 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 						}
 					}}
 					onKeyDown={(event) => {
-						// While the IME is composing, Enter and the arrows belong to the
-						// candidate window; acting on them picks the wrong item.
 						if (composing.current) return;
 						if (event.key === "ArrowDown") {
 							event.preventDefault();
@@ -219,10 +207,6 @@ export const ItemPicker = ({ items, value, onChange, label }: Props) => {
 							);
 						})}
 					</Box>
-					{/* A filtered list with no rows would otherwise be a silently empty
-					    listbox; `role="status"` announces the reason as the query
-					    narrows, which is the only feedback the visitor has. It sits
-					    outside the virtualised spacer so it is not clipped by it. */}
 					{filtered.length === 0 ? (
 						<Box px="sm" py={6}>
 							<Text size="xs" c="dimmed" role="status">
