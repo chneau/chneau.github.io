@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { readZipDirectory, readZipEntry, type ZipEntry } from "./zip-archive";
 
 export const ARCHIVE_COUNT = 2;
@@ -148,9 +148,13 @@ const subscribePicture = (name: string | undefined, listener: () => void) => {
 
 export const useImage = (path: string | undefined): string | undefined => {
 	const name = path === undefined ? undefined : path.replace(/^\//, "");
-	return useSyncExternalStore(
-		(listener) => subscribePicture(name, listener),
-		() => (name === undefined ? undefined : imageUrl(name)),
-		() => undefined,
+	const subscribe = useCallback(
+		(listener: () => void) => subscribePicture(name, listener),
+		[name],
 	);
+	const snapshot = useCallback(
+		() => (name === undefined ? undefined : imageUrl(name)),
+		[name],
+	);
+	return useSyncExternalStore(subscribe, snapshot, () => undefined);
 };
