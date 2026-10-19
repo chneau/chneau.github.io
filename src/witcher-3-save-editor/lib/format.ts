@@ -33,6 +33,11 @@ import { readObjectTree } from "./objects";
 import { readPlayer } from "./player";
 import { questStepDetail } from "./quest-steps";
 import { questProgress } from "./quests";
+import {
+	ABILITY_FIELD_NAMES,
+	SLOT_FIELD_NAMES,
+	syncSkillState,
+} from "./skill-slots";
 import { experienceToNextLevel, type LevelDefinition } from "./stats";
 import { readUnlocksFromScan } from "./unlocks";
 import { locateWritable, type PatchableScalar, patchScalar } from "./write";
@@ -84,8 +89,20 @@ const readScaffold = (doc: JsonValue): Scaffold | undefined => {
 
 type SkillRow = {
 	readonly name: string;
+	readonly type: number | null;
 	readonly level: number | null;
 	readonly maxLevel: number | null;
+	readonly abilityName: string | null;
+	readonly isCoreSkill: boolean;
+};
+
+type SkillSlotRow = {
+	readonly id: number;
+	readonly group: number;
+	readonly unlockedOnLevel: number;
+	readonly unlocked: boolean;
+	readonly skill: string | null;
+	readonly skillType: number | null;
 };
 
 type MutationRow = {
@@ -95,6 +112,22 @@ type MutationRow = {
 	readonly requiredMutations: readonly string[];
 	readonly nameKey: string | null;
 	readonly label: string | null;
+	readonly researched: boolean;
+};
+
+const mutationResearched = (
+	progress: Readonly<Record<string, number | undefined>> | undefined,
+): boolean => {
+	if (progress === undefined) return false;
+	const overall = progress.overallProgress;
+	if (overall !== undefined) return overall >= 100;
+	let required = 0;
+	let used = 0;
+	for (const color of ["red", "blue", "green", "skillpoints"]) {
+		required += progress[`${color}Required`] ?? 0;
+		used += progress[`${color}Used`] ?? 0;
+	}
+	return required > 0 && used >= required;
 };
 
 const difficultyLabel = (doc: JsonValue): string => {
@@ -137,6 +170,13 @@ const project = (container: SaveContainer): JsonValue => {
 			headerSize: container.headerSize,
 			payloadBytes: container.data.length,
 			chunkBytes: container.chunks[0]?.decompressedSize ?? 0,
+			skillSlotsBytes: found.skillSlotsBytes,
+			skillSlotNamesBytes: missingNameBytes(found.scan.names, SLOT_FIELD_NAMES),
+			skillAbilitiesBytes: found.skillAbilitiesBytes,
+			skillAbilityNamesBytes: missingNameBytes(
+				found.scan.names,
+				ABILITY_FIELD_NAMES,
+			),
 		},
 		saveVersion,
 		level: found.level?.value ?? null,
@@ -218,10 +258,27 @@ const project = (container: SaveContainer): JsonValue => {
 		skills: found.skills.map(
 			(s): SkillRow => ({
 				name: s.name,
+				type: s.type ?? null,
 				level: s.level ?? null,
 				maxLevel: s.maxLevel ?? null,
+				abilityName: s.abilityName ?? null,
+				isCoreSkill: s.isCoreSkill,
 			}),
 		),
+		skillSlots: found.skillSlots.map(
+			(s): SkillSlotRow => ({
+				id: s.id,
+				group: s.group,
+				unlockedOnLevel: s.unlockedOnLevel,
+				unlocked: s.unlocked,
+				skill:
+					s.skillType === undefined
+						? null
+						: (found.scan.names[s.skillType - 1] ?? null),
+				skillType: s.skillType ?? null,
+			}),
+		),
+		skillAbilities: found.skillAbilities,
 		mutations: found.mutations.map(
 			(m): MutationRow => ({
 				name: m.name ?? null,
@@ -241,8 +298,17 @@ const project = (container: SaveContainer): JsonValue => {
 					m.localizationNameKey === undefined
 						? null
 						: (localizedString(m.localizationNameKey) ?? null),
+				researched: mutationResearched(m.progress),
 			}),
 		),
+		mutationSystem: {
+			enabled: found.mutationSystem.enabled ?? false,
+			enabledPresent: found.mutationSystem.enabledPresent,
+			initialized: found.mutationSystem.initialized ?? false,
+			initializedPresent: found.mutationSystem.initializedPresent,
+			equipped: found.mutationSystem.equipped ?? null,
+			equippedPresent: found.mutationSystem.equippedPresent,
+		},
 		equippedMutation: found.equippedMutation ?? null,
 		stats: {
 			baseStats: found.stats.baseStats,
@@ -352,10 +418,44 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 				(numberAt(progress, key) ?? 0) !== (mutation.progress?.[key] ?? 0),
 		);
 	});
-	if (wantsMutationResize) {
-		const resized = maxMutationsInPayload({ data: payload, chunks });
+	const system = objectAt(doc, "mutationSystem");
+	const equipped =
+		system === undefined ? undefined : stringAt(system, "equipped");
+	const enableSystem = system !== undefined && system.enabled === true;
+	const initializeSlots = system !== undefined && system.initialized === true;
+	const wantsEquipInsert =
+		equipped !== undefined &&
+		equipped !== "EPMT_None" &&
+		equipped !== "EPMT_MutationMaster" &&
+		found.mutationSystem.equippedOffset === undefined;
+	const wantsSystemInsert =
+		enableSystem && found.mutationSystem.enabledOffset === undefined;
+	const wantsInitializeInsert =
+		initializeSlots && found.mutationSystem.initializedOffset === undefined;
+	const needsMutationWrite =
+		wantsMutationResize ||
+		(found.mutations.length > 0 &&
+			(wantsEquipInsert || wantsSystemInsert || wantsInitializeInsert));
+	if (needsMutationWrite) {
+		const equip =
+			equipped !== undefined &&
+			equipped !== "EPMT_MutationMaster" &&
+			equipped !== "EPMT_None"
+				? equipped
+				: "EPMT_Mutation1";
+		const resized = maxMutationsInPayload({ data: payload, chunks }, equip, {
+			enableSystem,
+			initializeSlots,
+		});
 		payload = resized.data;
 		chunks = resized.chunks;
+		found = locateWritable(payload);
+	}
+
+	const synced = syncSkillState({ data: payload, chunks }, doc);
+	if (synced.data !== payload) {
+		payload = synced.data;
+		chunks = synced.chunks;
 		found = locateWritable(payload);
 	}
 
@@ -405,7 +505,11 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 			writeUint16(payload, item.quantityOffset, quantity);
 		}
 		const durability = numberAt(row, "durability");
-		if (durability !== undefined && item.durability !== null) {
+		if (
+			durability !== undefined &&
+			item.durability !== null &&
+			durability !== item.durability
+		) {
 			writeFloat32(payload, item.offset + 6, durability);
 		}
 	});
@@ -434,6 +538,39 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 			writeInt32(payload, offset, value);
 		}
 	});
+
+	const systemRow = objectAt(doc, "mutationSystem");
+	const enabled = systemRow === undefined ? undefined : systemRow.enabled;
+	if (
+		typeof enabled === "boolean" &&
+		found.mutationSystem.enabledOffset !== undefined &&
+		enabled !== found.mutationSystem.enabled
+	) {
+		payload[found.mutationSystem.enabledOffset] = enabled ? 1 : 0;
+	}
+	const initialized =
+		systemRow === undefined ? undefined : systemRow.initialized;
+	if (
+		typeof initialized === "boolean" &&
+		found.mutationSystem.initializedOffset !== undefined &&
+		initialized !== found.mutationSystem.initialized
+	) {
+		payload[found.mutationSystem.initializedOffset] = initialized ? 1 : 0;
+	}
+	const equippedName =
+		systemRow === undefined
+			? stringAt(doc, "equippedMutation")
+			: stringAt(systemRow, "equipped");
+	if (
+		equippedName !== undefined &&
+		found.mutationSystem.equippedOffset !== undefined &&
+		equippedName !== found.mutationSystem.equipped
+	) {
+		const equipIndex = found.scan.names.indexOf(equippedName);
+		if (equipIndex >= 0) {
+			writeUint16(payload, found.mutationSystem.equippedOffset, equipIndex + 1);
+		}
+	}
 
 	if (newCount > 0) {
 		const requests: {
@@ -631,6 +768,40 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 			value: toNext === null ? "not derivable" : `${toNext} XP`,
 		});
 	}
+	const mutations = (arrayAt(doc, "mutations") ?? []).filter(isJsonObject);
+	const regularMutations = mutations.filter(
+		(row) => stringAt(row, "name") !== "EPMT_MutationMaster",
+	);
+	const researched = regularMutations.filter(
+		(row) => row.researched === true,
+	).length;
+	rows.push({
+		label: "Mutations researched",
+		value: `${researched} of ${regularMutations.length}`,
+		emphasis:
+			regularMutations.length > 0 && researched === regularMutations.length,
+	});
+	const mutationSystem = objectAt(doc, "mutationSystem");
+	if (mutationSystem !== undefined) {
+		const equipped = stringAt(mutationSystem, "equipped");
+		rows.push({
+			label: "Equipped mutation",
+			value: equipped ?? "none",
+			emphasis: equipped === "EPMT_MutationMaster",
+		});
+	}
+	const skillSlots = arrayAt(doc, "skillSlots") ?? [];
+	const socketed = skillSlots.filter(
+		(row) => isJsonObject(row) && numberAt(row, "skillType") !== undefined,
+	).length;
+	rows.push({
+		label: "Skill slots",
+		value: `${socketed} socketed of ${skillSlots.length}`,
+	});
+	const abilities = arrayAt(doc, "skillAbilities");
+	if (abilities !== undefined) {
+		rows.push({ label: "Active abilities", value: String(abilities.length) });
+	}
 	const questRows = questSummaryRows(doc);
 	rows.push(...questRows);
 
@@ -653,10 +824,10 @@ const summarise = (doc: JsonValue): readonly SummaryRow[] => {
 const edit = (
 	path: readonly (string | number)[],
 	label: string,
-	before: number | string | null,
-	after: number | string | null,
+	before: JsonValue,
+	after: JsonValue,
 ): SaveEdit => ({
-	id: `${path.join(".")}=${after}`,
+	id: `${path.join(".")}=${String(after)}`,
 	label,
 	path,
 	before,
@@ -664,6 +835,26 @@ const edit = (
 });
 
 const QUEST_STEPS_LIMIT = 60;
+
+const missingNameBytes = (
+	names: readonly string[],
+	required: readonly string[],
+): number => {
+	const present = new Set(names);
+	return required.reduce(
+		(total, name) => (present.has(name) ? total : total + 1 + name.length),
+		0,
+	);
+};
+
+const encodedSlotBytes = (rows: readonly JsonValue[]): number => {
+	let total = 4;
+	for (const row of rows) {
+		total +=
+			isJsonObject(row) && numberAt(row, "skillType") !== undefined ? 58 : 48;
+	}
+	return total;
+};
 
 const payloadGrowthEdits = (
 	doc: JsonValue,
@@ -695,6 +886,13 @@ const payloadGrowthEdits = (
 };
 
 const MAX_SKILL_LEVEL = 3;
+
+const skillGroup = (name: string): number => {
+	if (name.startsWith("S_Magic")) return 2;
+	if (name.startsWith("S_Alchemy")) return 3;
+	if (name.startsWith("S_Perk")) return 4;
+	return 1;
+};
 
 const levelBearing = (
 	doc: JsonValue,
@@ -794,11 +992,12 @@ const ACTIONS: readonly QuickAction[] = [
 		id: "mutations-max",
 		label: "Max all mutations",
 		description:
-			"Fully research every Blood-and-Wine mutation. The engine recomputes progress from the four *Used counters, so this inserts each Used field (= its Required) into the save and sets progress to 100 — exactly what the game's own console `mutall` does. Resizing: it adds the fields, so the file grows.",
+			"Fully research every Blood-and-Wine mutation and open its four extra skill slots. The engine derives research from the four *Used counters and caches it in overallProgress, so this sets Used = Required and progress = 100 — what the game's own console `mutall` does — then equips a real mutation, because EPMT_MutationMaster is a progression track the game refuses to equip. It also enables the mutation system and unlocks the four group-5 slots. Missing Used fields are inserted, so the file grows.",
 		plan: (doc) => {
 			const mutations = requireArrayAt(doc, "mutations");
 			const edits: SaveEdit[] = [];
 			const colors = new Set<string>();
+			const mutationNames: string[] = [];
 			let inserts = 0;
 			mutations.forEach((row, index) => {
 				if (!isJsonObject(row)) return;
@@ -806,6 +1005,7 @@ const ACTIONS: readonly QuickAction[] = [
 				if (progress === undefined) return;
 				const name = stringAt(row, "name") ?? `mutation ${index}`;
 				if (name === "EPMT_MutationMaster") return;
+				mutationNames.push(name);
 				for (const color of ["red", "blue", "green", "skillpoints"]) {
 					const required = numberAt(progress, `${color}Required`);
 					if (required === undefined || required === null || required <= 0) {
@@ -838,32 +1038,178 @@ const ACTIONS: readonly QuickAction[] = [
 						),
 					);
 				}
+				if (row.researched !== true) {
+					edits.push(
+						edit(
+							["mutations", index, "researched"],
+							`${name} researched`,
+							false,
+							true,
+						),
+					);
+				}
 			});
-			if (inserts > 0) {
-				const equipped = stringAt(doc, "equippedMutation");
-				let equipAdded = 0;
-				if (equipped !== "EPMT_MutationMaster") {
+			if (mutationNames.length === 0) return edits;
+			const system = objectAt(doc, "mutationSystem");
+			const equipped =
+				system === undefined ? undefined : stringAt(system, "equipped");
+			const target =
+				equipped !== undefined &&
+				equipped !== "EPMT_MutationMaster" &&
+				equipped !== "EPMT_None"
+					? equipped
+					: mutationNames.includes("EPMT_Mutation1")
+						? "EPMT_Mutation1"
+						: mutationNames[0];
+			if (target !== undefined && equipped !== target) {
+				edits.push(
+					edit(
+						["mutationSystem", "equipped"],
+						"Equipped mutation",
+						equipped ?? null,
+						target,
+					),
+				);
+				const topLevel = stringAt(doc, "equippedMutation");
+				if (topLevel !== target) {
 					edits.push(
 						edit(
 							["equippedMutation"],
 							"Equipped mutation",
-							equipped ?? null,
-							"EPMT_MutationMaster",
+							topLevel ?? null,
+							target,
 						),
 					);
-					if (equipped === undefined) {
-						equipAdded = 10 + 1 + "equippedMutation".length;
-					}
 				}
-				const added =
-					inserts * 12 +
-					equipAdded +
-					[...colors].reduce(
-						(sum, color) => sum + 1 + `${color}Used`.length,
-						0,
+				if (system?.equippedPresent === false) {
+					edits.push(
+						edit(
+							["mutationSystem", "equippedPresent"],
+							"Equipped mutation field",
+							false,
+							true,
+						),
 					);
-				edits.push(...payloadGrowthEdits(doc, added));
+				}
 			}
+			if (system?.enabled !== true) {
+				edits.push(
+					edit(
+						["mutationSystem", "enabled"],
+						"Mutation system",
+						system?.enabled ?? null,
+						true,
+					),
+				);
+				if (system?.enabledPresent === false) {
+					edits.push(
+						edit(
+							["mutationSystem", "enabledPresent"],
+							"Mutation system field",
+							false,
+							true,
+						),
+					);
+				}
+			}
+			if (system?.initialized !== true) {
+				edits.push(
+					edit(
+						["mutationSystem", "initialized"],
+						"Mutation skill slots",
+						system?.initialized ?? null,
+						true,
+					),
+				);
+				if (system?.initializedPresent === false) {
+					edits.push(
+						edit(
+							["mutationSystem", "initializedPresent"],
+							"Mutation slot field",
+							false,
+							true,
+						),
+					);
+				}
+			}
+			const slots = arrayAt(doc, "skillSlots") ?? [];
+			let changedSlots: JsonValue[] | undefined;
+			slots.forEach((row, index) => {
+				if (!isJsonObject(row)) return;
+				const group = numberAt(row, "group");
+				const id = numberAt(row, "id");
+				const mutationSlot =
+					group === 5 || (id !== undefined && id >= 13 && id <= 16);
+				if (!mutationSlot || row.unlocked === true) return;
+				edits.push(
+					edit(
+						["skillSlots", index, "unlocked"],
+						`Skill slot ${id ?? index + 1}`,
+						false,
+						true,
+					),
+				);
+				changedSlots ??= [...slots];
+				changedSlots[index] = { ...row, unlocked: true };
+			});
+			const container = objectAt(doc, "container");
+			const slotsBefore =
+				container === undefined
+					? encodedSlotBytes(slots)
+					: (numberAt(container, "skillSlotsBytes") ?? encodedSlotBytes(slots));
+			const slotsAfter =
+				changedSlots === undefined
+					? slotsBefore
+					: encodedSlotBytes(changedSlots);
+			if (slotsAfter !== slotsBefore) {
+				edits.push(
+					edit(
+						["container", "skillSlotsBytes"],
+						"Skill slot bytes",
+						slotsBefore,
+						slotsAfter,
+					),
+				);
+			}
+			const slotNamesBefore =
+				container === undefined
+					? 0
+					: (numberAt(container, "skillSlotNamesBytes") ?? 0);
+			if (changedSlots !== undefined && slotNamesBefore !== 0) {
+				edits.push(
+					edit(
+						["container", "skillSlotNamesBytes"],
+						"Skill slot names",
+						slotNamesBefore,
+						0,
+					),
+				);
+			}
+			const nameBytes = [...colors].reduce(
+				(sum, color) => sum + 1 + `${color}Used`.length,
+				0,
+			);
+			const equipBytes =
+				target !== undefined &&
+				target !== equipped &&
+				system?.equippedPresent === false
+					? 10 + 1 + "equippedMutation".length
+					: 0;
+			const stateBytes =
+				(system?.enabled !== true && system?.enabledPresent === false
+					? 9 + 1 + "isMutationSystemEnabled".length
+					: 0) +
+				(system?.initialized !== true && system?.initializedPresent === false
+					? 9 + 1 + "mutationSkillSlotsInitialized".length
+					: 0);
+			const added =
+				inserts * 12 +
+				nameBytes +
+				equipBytes +
+				stateBytes +
+				(slotsAfter - slotsBefore) +
+				(changedSlots === undefined ? 0 : slotNamesBefore);
+			if (added !== 0) edits.push(...payloadGrowthEdits(doc, added));
 			return edits;
 		},
 	},
@@ -965,6 +1311,154 @@ const ACTIONS: readonly QuickAction[] = [
 		},
 	},
 	{
+		id: "skills-equip-all",
+		label: "Learn and socket every skill",
+		description:
+			"Set every skill to its own maximum, give every learned non-core skill a socket, and rebuild the saved active-ability list so each socketed skill counts at its full level. The game's panel has a fixed grid, so this appends socket records beyond it; the engine counts every socketed skill and its saved ability list, not only the visible squares.",
+		plan: (doc) => {
+			const skills = requireArrayAt(doc, "skills");
+			const edits: SaveEdit[] = [];
+			const learned: {
+				readonly name: string;
+				readonly type: number;
+				readonly ability: string;
+				readonly level: number;
+			}[] = [];
+			skills.forEach((row, index) => {
+				if (!isJsonObject(row)) return;
+				const type = numberAt(row, "type");
+				if (type === undefined || type < 1) return;
+				const name = stringAt(row, "name") ?? `skill ${index}`;
+				const level = numberAt(row, "level") ?? 0;
+				const cap = numberAt(row, "maxLevel") ?? MAX_SKILL_LEVEL;
+				if (level !== cap) {
+					edits.push(edit(["skills", index, "level"], name, level, cap));
+				}
+				if (row.isCoreSkill === true) return;
+				const abilityName = stringAt(row, "abilityName");
+				if (abilityName === undefined) return;
+				learned.push({ name, type, ability: abilityName, level: cap });
+			});
+			const slots = arrayAt(doc, "skillSlots") ?? [];
+			const socketed = new Set<number>();
+			let nextId = 1;
+			for (const row of slots) {
+				if (!isJsonObject(row)) continue;
+				const type = numberAt(row, "skillType");
+				if (type !== undefined) socketed.add(type);
+				const id = numberAt(row, "id");
+				if (id !== undefined) nextId = Math.max(nextId, id + 1);
+			}
+			const appended = learned
+				.filter((skill) => !socketed.has(skill.type))
+				.map((skill) => ({
+					id: nextId++,
+					group: skillGroup(skill.name),
+					unlockedOnLevel: 1,
+					unlocked: true,
+					skill: skill.name,
+					skillType: skill.type,
+				}));
+			const nextSlots = [...slots, ...appended];
+			if (appended.length > 0) {
+				edits.push({
+					id: "skillSlots=equip-all",
+					label: "Skill slots",
+					path: ["skillSlots"],
+					before: slots,
+					after: nextSlots,
+				});
+			}
+			const abilities = learned.flatMap((skill) =>
+				Array.from({ length: Math.max(1, skill.level) }, () => skill.ability),
+			);
+			const currentAbilities = arrayAt(doc, "skillAbilities") ?? [];
+			if (JSON.stringify(abilities) !== JSON.stringify(currentAbilities)) {
+				edits.push({
+					id: "skillAbilities=equip-all",
+					label: "Active abilities",
+					path: ["skillAbilities"],
+					before: currentAbilities,
+					after: abilities,
+				});
+			}
+			const container = objectAt(doc, "container");
+			const slotsBefore =
+				container === undefined
+					? encodedSlotBytes(slots)
+					: (numberAt(container, "skillSlotsBytes") ?? encodedSlotBytes(slots));
+			const slotsAfter =
+				appended.length > 0 ? encodedSlotBytes(nextSlots) : slotsBefore;
+			if (slotsAfter !== slotsBefore) {
+				edits.push(
+					edit(
+						["container", "skillSlotsBytes"],
+						"Skill slot bytes",
+						slotsBefore,
+						slotsAfter,
+					),
+				);
+			}
+			const abilitiesBefore =
+				container === undefined
+					? 4 + currentAbilities.length * 2
+					: (numberAt(container, "skillAbilitiesBytes") ??
+						4 + currentAbilities.length * 2);
+			const abilitiesAfter = 4 + abilities.length * 2;
+			if (abilities.length > 0 && abilitiesAfter !== abilitiesBefore) {
+				edits.push(
+					edit(
+						["container", "skillAbilitiesBytes"],
+						"Ability bytes",
+						abilitiesBefore,
+						abilitiesAfter,
+					),
+				);
+			}
+			const abilitiesHeader =
+				abilitiesBefore === 0 && abilities.length > 0 ? 8 : 0;
+			const slotNamesBefore =
+				container === undefined
+					? 0
+					: (numberAt(container, "skillSlotNamesBytes") ?? 0);
+			if (appended.length > 0 && slotNamesBefore !== 0) {
+				edits.push(
+					edit(
+						["container", "skillSlotNamesBytes"],
+						"Skill slot names",
+						slotNamesBefore,
+						0,
+					),
+				);
+			}
+			const abilityNamesBefore =
+				container === undefined
+					? 0
+					: (numberAt(container, "skillAbilityNamesBytes") ?? 0);
+			if (abilitiesHeader > 0 && abilityNamesBefore !== 0) {
+				edits.push(
+					edit(
+						["container", "skillAbilityNamesBytes"],
+						"Ability names",
+						abilityNamesBefore,
+						0,
+					),
+				);
+			}
+			const namesAdded =
+				(appended.length > 0 ? slotNamesBefore : 0) +
+				(abilitiesHeader > 0 ? abilityNamesBefore : 0);
+			const added =
+				slotsAfter -
+				slotsBefore +
+				(abilitiesAfter - abilitiesBefore) +
+				abilitiesHeader +
+				namesAdded;
+			if (added !== 0) edits.push(...payloadGrowthEdits(doc, added));
+			return edits;
+		},
+	},
+	{
 		id: "skills-reset",
 		label: "Reset every skill",
 		description: "Set every skill in this save back to level 0.",
@@ -1043,27 +1537,6 @@ const TABLES: readonly SaveTable[] = [
 		],
 	},
 	{
-		id: "mutations",
-		label: "Mutations",
-		path: ["mutations"],
-		columns: [
-			{ label: "Mutation", path: ["name"], readOnly: true },
-			{
-				label: "Overall",
-				path: ["progress", "overallProgress"],
-				width: "6rem",
-			},
-			{ label: "Red", path: ["progress", "redUsed"], width: "6rem" },
-			{ label: "Blue", path: ["progress", "blueUsed"], width: "6rem" },
-			{ label: "Green", path: ["progress", "greenUsed"], width: "6rem" },
-			{
-				label: "Skill points",
-				path: ["progress", "skillpointsUsed"],
-				width: "7rem",
-			},
-		],
-	},
-	{
 		id: "skills",
 		label: "Skills",
 		path: ["skills"],
@@ -1071,6 +1544,76 @@ const TABLES: readonly SaveTable[] = [
 			{ label: "Skill", path: ["name"], readOnly: true },
 			{ label: "Level", path: ["level"], width: "6rem" },
 			{ label: "Max", path: ["maxLevel"], readOnly: true, width: "6rem" },
+			{ label: "Ability", path: ["abilityName"], readOnly: true },
+			{ label: "Core", path: ["isCoreSkill"], readOnly: true, width: "5rem" },
+		],
+	},
+	{
+		id: "skill-slots",
+		label: "Skill slots",
+		path: ["skillSlots"],
+		columns: [
+			{ label: "ID", path: ["id"], readOnly: true, width: "4rem" },
+			{ label: "Group", path: ["group"], readOnly: true, width: "5rem" },
+			{ label: "Unlock level", path: ["unlockedOnLevel"], width: "7rem" },
+			{ label: "Unlocked", path: ["unlocked"], width: "6rem" },
+			{
+				label: "Socketed skill",
+				path: ["skill"],
+				readOnly: true,
+			},
+			{ label: "Skill type", path: ["skillType"], width: "6rem" },
+		],
+	},
+	{
+		id: "mutations",
+		label: "Mutations",
+		path: ["mutations"],
+		columns: [
+			{ label: "Mutation", path: ["name"], readOnly: true },
+			{
+				label: "Researched",
+				path: ["researched"],
+				readOnly: true,
+				width: "7rem",
+			},
+			{
+				label: "Overall",
+				path: ["progress", "overallProgress"],
+				width: "6rem",
+			},
+			{ label: "Red", path: ["progress", "redUsed"], width: "5rem" },
+			{
+				label: "Red required",
+				path: ["progress", "redRequired"],
+				readOnly: true,
+				width: "7rem",
+			},
+			{ label: "Blue", path: ["progress", "blueUsed"], width: "5rem" },
+			{
+				label: "Blue required",
+				path: ["progress", "blueRequired"],
+				readOnly: true,
+				width: "7rem",
+			},
+			{ label: "Green", path: ["progress", "greenUsed"], width: "5rem" },
+			{
+				label: "Green required",
+				path: ["progress", "greenRequired"],
+				readOnly: true,
+				width: "7rem",
+			},
+			{
+				label: "Skill points",
+				path: ["progress", "skillpointsUsed"],
+				width: "7rem",
+			},
+			{
+				label: "Points required",
+				path: ["progress", "skillpointsRequired"],
+				readOnly: true,
+				width: "8rem",
+			},
 		],
 	},
 ];
