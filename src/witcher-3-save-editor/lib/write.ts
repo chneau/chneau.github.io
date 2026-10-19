@@ -29,12 +29,34 @@ export type PatchableScalar = {
 };
 
 type PatchableSkill = {
-	readonly index: number;
 	readonly name: string;
+	readonly type?: number;
 	readonly level?: number;
 	readonly levelOffset?: number;
 	readonly isNew?: boolean;
 	readonly maxLevel?: number;
+	readonly abilityName?: string;
+	readonly isCoreSkill: boolean;
+};
+
+type PatchableSkillSlot = {
+	readonly id: number;
+	readonly group: number;
+	readonly unlockedOnLevel: number;
+	readonly unlocked: boolean;
+	readonly skillType?: number;
+};
+
+type MutationSystem = {
+	readonly enabled?: boolean;
+	readonly enabledOffset?: number;
+	readonly enabledPresent: boolean;
+	readonly initialized?: boolean;
+	readonly initializedOffset?: number;
+	readonly initializedPresent: boolean;
+	readonly equipped?: string;
+	readonly equippedOffset?: number;
+	readonly equippedPresent: boolean;
 };
 
 type DifficultyChoice = {
@@ -79,6 +101,11 @@ type WritableSave = {
 		readonly quantityOffset: number;
 	})[];
 	readonly mutations: readonly SavedMutation[];
+	readonly skillSlots: readonly PatchableSkillSlot[];
+	readonly skillSlotsBytes: number;
+	readonly skillAbilities: readonly string[];
+	readonly skillAbilitiesBytes: number;
+	readonly mutationSystem: MutationSystem;
 	readonly equippedMutation?: string;
 };
 
@@ -255,6 +282,43 @@ type CharacterSheet = {
 	readonly levelCurve: readonly LevelDefinition[];
 };
 
+export type AbilityManagerView = {
+	readonly token: Token;
+	readonly valueAt: number;
+	readonly object: ReflectedValue;
+};
+
+export const readAbilityManager = (
+	data: Uint8Array,
+	names: readonly string[],
+	tokens: readonly Token[],
+): AbilityManagerView | undefined => {
+	const levelIndex = tokens.findIndex(
+		(t) =>
+			t.name === "levelManager" && t.value?.type === "handle:W3LevelManager",
+	);
+	for (let i = levelIndex - 1; i >= 0; i -= 1) {
+		const token = tokens[i];
+		if (token === undefined || token.name !== "abilityManager") continue;
+		const value = token.value;
+		if (value === undefined) continue;
+		const bytes = value.bytes;
+		if (bytes.byteLength < 8 || bytes[0] !== 0) continue;
+		const classIndex = (bytes[6] ?? 0) | ((bytes[7] ?? 0) << 8);
+		if (names[classIndex - 1] !== "W3PlayerAbilityManager") continue;
+		const valueAt = token.offset + 12;
+		const object = reflectValue(
+			data,
+			names,
+			value.type,
+			valueAt,
+			bytes.byteLength,
+		);
+		if (object !== undefined) return { token, valueAt, object };
+	}
+	return undefined;
+};
+
 const readSheet = (
 	names: readonly string[],
 	levelManager: ReflectedValue | undefined,
@@ -330,17 +394,8 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 	const levelManager =
 		levelToken === undefined ? undefined : decodeToken(data, names, levelToken);
 
-	let ability: ReflectedValue | undefined;
-	for (let i = levelIndex - 1; i >= 0; i -= 1) {
-		const token = tokens[i];
-		if (token === undefined || token.name !== "abilityManager") continue;
-		const bytes = token.value?.bytes;
-		if (bytes === undefined || bytes.byteLength < 8 || bytes[0] !== 0) continue;
-		const classIndex = (bytes[6] ?? 0) | ((bytes[7] ?? 0) << 8);
-		if (names[classIndex - 1] !== "W3PlayerAbilityManager") continue;
-		ability = decodeToken(data, names, token);
-		break;
-	}
+	const view = readAbilityManager(data, names, tokens);
+	const ability = view?.object;
 
 	const levelOffset = memberOffset(levelManager, "level");
 	const levelValue = member(levelManager, "level");
@@ -401,8 +456,8 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 						? (names[skillType - 1] ?? `skill ${skillType}`)
 						: `skill ${index}`;
 			return {
-				index,
 				name,
+				type: skillType >= 1 ? skillType : undefined,
 				level:
 					levelMember === undefined
 						? undefined
@@ -416,6 +471,8 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 								const cap = Number(member(item, "maxLevel")?.text);
 								return Number.isFinite(cap) && cap > 0 ? cap : undefined;
 							})(),
+				abilityName: cname(names, member(item, "abilityName")),
+				isCoreSkill: member(item, "isCoreSkill")?.text === "true",
 			};
 		},
 	);
@@ -424,6 +481,46 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 		...item,
 		quantityOffset: quantityOffsetOf(item),
 	}));
+
+	const skillSlots: PatchableSkillSlot[] = (
+		member(ability, "skillSlots")?.items ?? []
+	).map((item, index) => {
+		const field = (name: string) =>
+			item.fields?.find((entry) => entry.name === name);
+		const number = (name: string): number | undefined => {
+			const found = field(name);
+			if (found === undefined) return undefined;
+			const parsed = Number(found.value.text);
+			return Number.isFinite(parsed) ? parsed : undefined;
+		};
+		const skillType = number("socketedSkill");
+		return {
+			id: number("id") ?? index + 1,
+			group: number("groupID") ?? -1,
+			unlockedOnLevel: number("unlockedOnLevel") ?? 0,
+			unlocked: field("unlocked")?.value.text === "true",
+			skillType:
+				skillType !== undefined && skillType >= 1 ? skillType : undefined,
+		};
+	});
+
+	const skillAbilities = (member(ability, "skillAbilities")?.items ?? [])
+		.map((item) => cname(names, item))
+		.filter((name): name is string => name !== undefined);
+
+	const enabledField = member(ability, "isMutationSystemEnabled");
+	const initializedField = member(ability, "mutationSkillSlotsInitialized");
+	const mutationSystem: MutationSystem = {
+		enabled: enabledField?.text === "true",
+		enabledOffset: memberOffset(ability, "isMutationSystemEnabled"),
+		enabledPresent: enabledField !== undefined,
+		initialized: initializedField?.text === "true",
+		initializedOffset: memberOffset(ability, "mutationSkillSlotsInitialized"),
+		initializedPresent: initializedField !== undefined,
+		equipped: enumName(names, numberAt(member(ability, "equippedMutation"))),
+		equippedOffset: memberOffset(ability, "equippedMutation"),
+		equippedPresent: member(ability, "equippedMutation") !== undefined,
+	};
 
 	return {
 		stats: readSheet(names, levelManager, ability),
@@ -435,6 +532,11 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 		skills,
 		items,
 		mutations: readSavedMutations(names, ability),
+		skillSlots,
+		skillSlotsBytes: member(ability, "skillSlots")?.width ?? 0,
+		skillAbilities,
+		skillAbilitiesBytes: member(ability, "skillAbilities")?.width ?? 0,
+		mutationSystem,
 		equippedMutation: enumName(
 			names,
 			numberAt(member(ability, "equippedMutation")),
