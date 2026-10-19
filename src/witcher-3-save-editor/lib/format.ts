@@ -902,13 +902,6 @@ const payloadGrowthEdits = (
 
 const MAX_SKILL_LEVEL = 3;
 
-const skillGroup = (name: string): number => {
-	if (name.startsWith("S_Magic")) return 2;
-	if (name.startsWith("S_Alchemy")) return 3;
-	if (name.startsWith("S_Perk")) return 4;
-	return 1;
-};
-
 const levelBearing = (
 	doc: JsonValue,
 ): readonly {
@@ -1413,7 +1406,7 @@ const ACTIONS: readonly QuickAction[] = [
 	{
 		id: "skills-learn-all",
 		label: "Max every skill",
-		description: `Set every skill in this save to its own maximum — level ${MAX_SKILL_LEVEL} at the top of the tree, less for the skills that cap lower — and rebuild the saved active-ability list for the skills you have socketed. This does not socket new skills; use the next action for that.`,
+		description: `Set every skill in this save to its own maximum — level ${MAX_SKILL_LEVEL} at the top of the tree, less for the skills that cap lower — and rebuild the saved active-ability list for the skills you have socketed. This does not append slot records; the engine's socket grid is fixed.`,
 		plan: (doc) => {
 			const skills = levelBearing(doc);
 			if (skills.length === 0) return [];
@@ -1441,148 +1434,20 @@ const ACTIONS: readonly QuickAction[] = [
 		id: "skills-equip-all",
 		label: "Learn and socket every skill",
 		description:
-			"Set every skill to its own maximum, give every learned non-core skill a socket, and rebuild the saved active-ability list so each socketed skill counts at its full level. The game's panel has a fixed grid, so this appends socket records beyond it; the engine counts every socketed skill and its saved ability list, not only the visible squares.",
+			"Set every skill to its own maximum. The engine's socket grid is fixed; it rebuilds the socketed skills and active-ability list from the maxed skills on load, so this action does not append slot records.",
 		plan: (doc) => {
-			const skills = requireArrayAt(doc, "skills");
-			const edits: SaveEdit[] = [];
-			const learned: {
-				readonly name: string;
-				readonly type: number;
-				readonly ability: string;
-				readonly level: number;
-			}[] = [];
-			skills.forEach((row, index) => {
-				if (!isJsonObject(row)) return;
-				const type = numberAt(row, "type");
-				if (type === undefined || type < 1) return;
-				const name = stringAt(row, "name") ?? `skill ${index}`;
-				const level = numberAt(row, "level") ?? 0;
-				const cap = numberAt(row, "maxLevel") ?? MAX_SKILL_LEVEL;
-				if (level !== cap) {
-					edits.push(edit(["skills", index, "level"], name, level, cap));
-				}
-				if (row.isCoreSkill === true) return;
-				const abilityName = stringAt(row, "abilityName");
-				if (abilityName === undefined) return;
-				learned.push({ name, type, ability: abilityName, level: cap });
-			});
-			const slots = arrayAt(doc, "skillSlots") ?? [];
-			const socketed = new Set<number>();
-			let nextId = 1;
-			for (const row of slots) {
-				if (!isJsonObject(row)) continue;
-				const type = numberAt(row, "skillType");
-				if (type !== undefined) socketed.add(type);
-				const id = numberAt(row, "id");
-				if (id !== undefined) nextId = Math.max(nextId, id + 1);
-			}
-			const appended = learned
-				.filter((skill) => !socketed.has(skill.type))
-				.map((skill) => ({
-					id: nextId++,
-					group: skillGroup(skill.name),
-					unlockedOnLevel: 1,
-					unlocked: true,
-					skill: skill.name,
-					skillType: skill.type,
-				}));
-			const nextSlots = [...slots, ...appended];
-			if (appended.length > 0) {
-				edits.push({
-					id: "skillSlots=equip-all",
-					label: "Skill slots",
-					path: ["skillSlots"],
-					before: slots,
-					after: nextSlots,
-				});
-			}
-			const abilities = learned.flatMap((skill) =>
-				Array.from({ length: Math.max(1, skill.level) }, () => skill.ability),
-			);
-			const currentAbilities = arrayAt(doc, "skillAbilities") ?? [];
-			if (JSON.stringify(abilities) !== JSON.stringify(currentAbilities)) {
-				edits.push({
-					id: "skillAbilities=equip-all",
-					label: "Active abilities",
-					path: ["skillAbilities"],
-					before: currentAbilities,
-					after: abilities,
-				});
-			}
-			const container = objectAt(doc, "container");
-			const slotsBefore =
-				container === undefined
-					? encodedSlotBytes(slots)
-					: (numberAt(container, "skillSlotsBytes") ?? encodedSlotBytes(slots));
-			const slotsAfter =
-				appended.length > 0 ? encodedSlotBytes(nextSlots) : slotsBefore;
-			if (slotsAfter !== slotsBefore) {
-				edits.push(
+			const skills = levelBearing(doc);
+			if (skills.length === 0) return [];
+			return skills
+				.filter((skill) => skill.level !== skill.maxLevel)
+				.map((skill) =>
 					edit(
-						["container", "skillSlotsBytes"],
-						"Skill slot bytes",
-						slotsBefore,
-						slotsAfter,
+						["skills", skill.index, "level"],
+						skill.name,
+						skill.level,
+						skill.maxLevel,
 					),
 				);
-			}
-			const abilitiesBefore =
-				container === undefined
-					? 4 + currentAbilities.length * 2
-					: (numberAt(container, "skillAbilitiesBytes") ??
-						4 + currentAbilities.length * 2);
-			const abilitiesAfter = 4 + abilities.length * 2;
-			if (abilities.length > 0 && abilitiesAfter !== abilitiesBefore) {
-				edits.push(
-					edit(
-						["container", "skillAbilitiesBytes"],
-						"Ability bytes",
-						abilitiesBefore,
-						abilitiesAfter,
-					),
-				);
-			}
-			const abilitiesHeader =
-				abilitiesBefore === 0 && abilities.length > 0 ? 8 : 0;
-			const slotNamesBefore =
-				container === undefined
-					? 0
-					: (numberAt(container, "skillSlotNamesBytes") ?? 0);
-			if (appended.length > 0 && slotNamesBefore !== 0) {
-				edits.push(
-					edit(
-						["container", "skillSlotNamesBytes"],
-						"Skill slot names",
-						slotNamesBefore,
-						0,
-					),
-				);
-			}
-			const abilityNamesBefore =
-				container === undefined
-					? 0
-					: (numberAt(container, "skillAbilityNamesBytes") ?? 0);
-			if (abilitiesHeader > 0 && abilityNamesBefore !== 0) {
-				edits.push(
-					edit(
-						["container", "skillAbilityNamesBytes"],
-						"Ability names",
-						abilityNamesBefore,
-						0,
-					),
-				);
-			}
-			const namesAdded =
-				(appended.length > 0 ? slotNamesBefore : 0) +
-				(abilitiesHeader > 0 ? abilityNamesBefore : 0);
-			const added =
-				slotsAfter -
-				slotsBefore +
-				(abilitiesAfter - abilitiesBefore) +
-				abilitiesHeader +
-				namesAdded;
-			if (added !== 0) edits.push(...payloadGrowthEdits(doc, added));
-			return edits;
 		},
 	},
 	{
