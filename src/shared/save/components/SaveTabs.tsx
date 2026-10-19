@@ -1,9 +1,10 @@
 import { Alert, Box, Divider, Stack, Tabs, Text, Title } from "@mantine/core";
 import { CheckCircle2 } from "lucide-react";
 import type { JsonValue } from "../json";
-import type { FormatNote, SaveEdit } from "../types";
+import type { FormatNote, SaveEdit, SaveTable } from "../types";
 import { HexViewer } from "./HexViewer";
 import { JsonInspector } from "./JsonInspector";
+import { SaveTable as SaveTableView } from "./SaveTable";
 
 export const SaveTabs = ({
 	tab,
@@ -15,6 +16,7 @@ export const SaveTabs = ({
 	onSearchChange,
 	bytes,
 	notes,
+	tables,
 }: {
 	tab: string | null;
 	onTabChange: (value: string | null) => void;
@@ -25,6 +27,7 @@ export const SaveTabs = ({
 	onSearchChange: (value: string) => void;
 	bytes: Uint8Array;
 	notes: readonly FormatNote[];
+	tables?: readonly SaveTable[];
 }) => (
 	<Tabs
 		value={tab}
@@ -39,6 +42,11 @@ export const SaveTabs = ({
 	>
 		<Tabs.List mb="sm">
 			<Tabs.Tab value="inspect">Inspector</Tabs.Tab>
+			{tables?.map((table) => (
+				<Tabs.Tab key={table.id} value={`table:${table.id}`}>
+					{table.label}
+				</Tabs.Tab>
+			))}
 			<Tabs.Tab value="raw">Raw bytes</Tabs.Tab>
 			<Tabs.Tab value="format">The format</Tabs.Tab>
 		</Tabs.List>
@@ -52,6 +60,21 @@ export const SaveTabs = ({
 				onSearchChange={onSearchChange}
 			/>
 		</Tabs.Panel>
+
+		{tables?.map((table) => (
+			<Tabs.Panel
+				key={table.id}
+				value={`table:${table.id}`}
+				style={{ flex: 1, minHeight: 0 }}
+			>
+				<SaveTableView
+					table={table}
+					doc={doc}
+					staged={staged}
+					onStage={onStage}
+				/>
+			</Tabs.Panel>
+		))}
 
 		<Tabs.Panel
 			value="raw"

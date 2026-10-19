@@ -27,6 +27,20 @@ export type FormatNote = {
 	readonly body: string;
 };
 
+export type SaveTableColumn = {
+	readonly label: string;
+	readonly path: SavePath;
+	readonly readOnly?: boolean;
+	readonly width?: string;
+};
+
+export type SaveTable = {
+	readonly id: string;
+	readonly label: string;
+	readonly path: SavePath;
+	readonly columns: readonly SaveTableColumn[];
+};
+
 export type SaveCodec = {
 	readonly game: string;
 	readonly formatLabel: string;
@@ -39,4 +53,5 @@ export type SaveCodec = {
 
 	summarise: (doc: JsonValue) => readonly SummaryRow[];
 	readonly actions: readonly QuickAction[];
+	readonly tables?: readonly SaveTable[];
 };

@@ -79,3 +79,68 @@ describe("SaveWorkbench workspace", () => {
 		expect(view.container.querySelector("main#main")).not.toBeNull();
 	});
 });
+
+const tableCodec: SaveCodec = {
+	...codec,
+	decode: async () => ({
+		items: [
+			{ name: "Sword", quantity: 1 },
+			{ name: "Potion", quantity: 3 },
+		],
+	}),
+	tables: [
+		{
+			id: "inventory",
+			label: "Inventory",
+			path: ["items"],
+			columns: [
+				{ label: "Item", path: ["name"], readOnly: true },
+				{ label: "Quantity", path: ["quantity"] },
+			],
+		},
+	],
+};
+
+describe("SaveWorkbench tables", () => {
+	test("a codec table is a tab whose cells stage edits", async () => {
+		const view = render(
+			provider(<SaveWorkbench codec={tableCodec} sample={sample} />),
+		);
+
+		await act(async () => {
+			fireEvent.click(view.getByRole("button", { name: /Load sample/ }));
+		});
+
+		await waitFor(
+			() =>
+				expect(view.queryByRole("tab", { name: "Inventory" })).not.toBeNull(),
+			{ timeout: 3000 },
+		);
+
+		await act(async () => {
+			const tab = view.getByRole("tab", { name: "Inventory" });
+			fireEvent.click(tab);
+		});
+
+		const editButtons = view.getAllByRole("button", {
+			name: "Edit items[0].quantity",
+		});
+		const editButton = editButtons[0];
+		if (editButton === undefined) throw new Error("no quantity edit button");
+		await act(async () => {
+			fireEvent.click(editButton);
+		});
+
+		const input = view.getByRole("textbox", {
+			name: "Edit items[0].quantity",
+		});
+		await act(async () => {
+			fireEvent.input(input, { target: { value: "5" } });
+		});
+		await act(async () => {
+			fireEvent.keyDown(input, { key: "Enter" });
+		});
+
+		expect(view.getByText("items[0].quantity")).not.toBeNull();
+	});
+});

@@ -166,6 +166,7 @@ export const SaveWorkbench = ({
 								onSearchChange={setSearch}
 								bytes={bytes}
 								notes={codec.notes}
+								tables={codec.tables}
 							/>
 						</Grid.Col>
 					</Grid>

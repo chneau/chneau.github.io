@@ -15,6 +15,7 @@ import type {
 	QuickAction,
 	SaveCodec,
 	SaveEdit,
+	SaveTable,
 	SummaryRow,
 } from "../../shared/save/types";
 import { addItemsToPayload } from "./add-item";
@@ -296,10 +297,6 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 	if (container.chunks.length === 0) {
 		throw new Error("The save has no content chunks.");
 	}
-	// The container is also the game's general compressed-file envelope, so a
-	// valid `SNFH` file is not necessarily a save. The engine checks this magic
-	// before it reads a save, and the token walk below has no way to tell a
-	// non-save stream from a corrupt one.
 	readHeader(container.data);
 	const doc = project(container);
 	attachScaffold(doc, {
@@ -404,8 +401,13 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		const row = items[index];
 		if (row === undefined || !isJsonObject(row)) return;
 		const quantity = numberAt(row, "quantity");
-		if (quantity === undefined || quantity === null) return;
-		writeUint16(payload, item.quantityOffset, quantity);
+		if (quantity !== undefined) {
+			writeUint16(payload, item.quantityOffset, quantity);
+		}
+		const durability = numberAt(row, "durability");
+		if (durability !== undefined && item.durability !== null) {
+			writeFloat32(payload, item.offset + 6, durability);
+		}
 	});
 
 	const skills = requireArrayAt(doc, "skills");
@@ -474,6 +476,16 @@ const writeUint16 = (data: Uint8Array, at: number, value: number): void => {
 	const clamped = Math.min(0xffff, Math.max(0, Math.trunc(value)));
 	data[at] = clamped & 0xff;
 	data[at + 1] = (clamped >>> 8) & 0xff;
+};
+
+const writeFloat32 = (data: Uint8Array, at: number, value: number): void => {
+	if (at <= 0 || at + 4 > data.length) return;
+	const clamped = Math.min(100, Math.max(0, value));
+	new DataView(data.buffer, data.byteOffset + at, 4).setFloat32(
+		0,
+		clamped,
+		true,
+	);
 };
 
 const readLevelCurveAt = (doc: JsonValue): readonly LevelDefinition[] => {
@@ -898,6 +910,30 @@ const ACTIONS: readonly QuickAction[] = [
 		},
 	},
 	{
+		id: "equipment-repair",
+		label: "Repair all equipment",
+		description:
+			"Set every item that records wear to 100%. Only equipment carries a wear value; an item the save stores as having none is left alone.",
+		plan: (doc) => {
+			const items = requireArrayAt(doc, "items");
+			const edits: SaveEdit[] = [];
+			for (const [index, row] of items.entries()) {
+				if (!isJsonObject(row)) continue;
+				const durability = numberAt(row, "durability");
+				if (durability === undefined || durability >= 100) continue;
+				edits.push(
+					edit(
+						["items", index, "durability"],
+						stringAt(row, "name") ?? `item ${index}`,
+						durability,
+						100,
+					),
+				);
+			}
+			return edits;
+		},
+	},
+	{
 		id: "experience-max",
 		label: "Max experience",
 		description: "Set available experience to 500.",
@@ -994,6 +1030,51 @@ const difficultyActions: readonly QuickAction[] = DIFFICULTIES.map((label) => ({
 	},
 }));
 
+const TABLES: readonly SaveTable[] = [
+	{
+		id: "inventory",
+		label: "Inventory",
+		path: ["items"],
+		columns: [
+			{ label: "Item", path: ["name"], readOnly: true },
+			{ label: "Quantity", path: ["quantity"], width: "7rem" },
+			{ label: "Wear %", path: ["durability"], width: "7rem" },
+			{ label: "Slot", path: ["slot"], readOnly: true, width: "5rem" },
+		],
+	},
+	{
+		id: "mutations",
+		label: "Mutations",
+		path: ["mutations"],
+		columns: [
+			{ label: "Mutation", path: ["name"], readOnly: true },
+			{
+				label: "Overall",
+				path: ["progress", "overallProgress"],
+				width: "6rem",
+			},
+			{ label: "Red", path: ["progress", "redUsed"], width: "6rem" },
+			{ label: "Blue", path: ["progress", "blueUsed"], width: "6rem" },
+			{ label: "Green", path: ["progress", "greenUsed"], width: "6rem" },
+			{
+				label: "Skill points",
+				path: ["progress", "skillpointsUsed"],
+				width: "7rem",
+			},
+		],
+	},
+	{
+		id: "skills",
+		label: "Skills",
+		path: ["skills"],
+		columns: [
+			{ label: "Skill", path: ["name"], readOnly: true },
+			{ label: "Level", path: ["level"], width: "6rem" },
+			{ label: "Max", path: ["maxLevel"], readOnly: true, width: "6rem" },
+		],
+	},
+];
+
 const NOTES: readonly FormatNote[] = [
 	{
 		title: "No checksum, and that is the whole trick",
@@ -1028,4 +1109,5 @@ export const witcher3: SaveCodec = {
 	encode,
 	summarise,
 	actions: [...ACTIONS, ...difficultyActions],
+	tables: TABLES,
 };

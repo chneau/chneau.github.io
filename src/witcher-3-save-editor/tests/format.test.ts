@@ -1068,15 +1068,6 @@ describe("difficulty", () => {
 	);
 });
 
-/**
- * The inner `SAV3` header the engine itself reads and writes.
- *
- * The values here were read out of `witcher3.exe` (build 5.0.1048522): its
- * writer emits `SAV3`, 67, 29, 164, and its loader reads the first value as the
- * save version. The fixtures are one build older and carry 66, 29, 164, which
- * is the point — the editor reports the version rather than asserting a build,
- * and refuses only a stream that is not `SAV3` at all.
- */
 describe("the inner SAV3 header", () => {
 	test("reads the three values from a real save's decompressed stream", () => {
 		expect(readHeader(decompressContainer(largeSave()).data)).toEqual({
@@ -1100,9 +1091,6 @@ describe("the inner SAV3 header", () => {
 	test(
 		"refuses a valid container that does not hold a SAV3 stream",
 		async () => {
-			// The surrounding SNFH/FZLC envelope is also the game's general
-			// compressed-file container. A file that inflates cleanly but does not
-			// begin with SAV3 must be named as such, not walked as a token stream.
 			const container = decompressContainer(largeSave());
 			const payload = container.data.slice();
 			payload.set(new TextEncoder().encode("NOPE"), 0);
@@ -1117,9 +1105,6 @@ describe("the inner SAV3 header", () => {
 	test(
 		"accepts the newer version the installed build writes",
 		async () => {
-			// Build 5.0.1048522 writes 67 where the fixtures carry 66. The version
-			// is reported, not asserted, so a save from the newer build must still
-			// decode rather than being refused for a number the editor has not seen.
 			const container = decompressContainer(largeSave());
 			const payload = container.data.slice();
 			const view = new DataView(
@@ -1139,9 +1124,6 @@ describe("the inner SAV3 header", () => {
 	test(
 		"names a legacy SAVY stream instead of parsing it as SAV3",
 		async () => {
-			// The engine accepts both magics, but behind them are different stream
-			// formats. Parsing a SAVY stream with this token grammar would produce a
-			// wrong document rather than an honest failure.
 			const container = decompressContainer(largeSave());
 			const payload = container.data.slice();
 			payload.set(new TextEncoder().encode("SAVY"), 0);
