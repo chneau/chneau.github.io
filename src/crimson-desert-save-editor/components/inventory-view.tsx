@@ -725,6 +725,11 @@ const DetailsSurface = ({
 const canEditQuantity = (record: InventoryRecord): boolean =>
 	!record.equipment && !record.staged && !record.noGearToEdit;
 
+const recordIdentity = (record: InventoryRecord | null): string | null =>
+	record === null
+		? null
+		: `${record.inventoryKey}:${record.slotNo}:${record.itemKey}`;
+
 const stagedQuantityChange = (
 	record: InventoryRecord,
 	item: GroupedItem,
@@ -1110,6 +1115,7 @@ export const InventoryView = ({
 	const [selectedKey, setSelectedKey] = useState<number | null>(null);
 	const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
 	const [quantityDraft, setQuantityDraft] = useState("");
+	const [draftRecord, setDraftRecord] = useState<string | null>(null);
 	const [editorOpen, setEditorOpen] = useState(false);
 	const [detailsOpen, setDetailsOpen] = useState(false);
 	const isWide = useMediaQuery("(min-width: 75em)") ?? true;
@@ -1181,13 +1187,28 @@ export const InventoryView = ({
 		quantityDraft,
 	});
 
+	const selectedIdentity = recordIdentity(selectedRecord);
+	if (draftRecord !== null && draftRecord !== selectedIdentity) {
+		setDraftRecord(null);
+		setQuantityDraft("");
+	}
+
 	const chooseRecord = useCallback(
 		(record: InventoryRecord) => {
 			setSelectedSlot(record.slotNo);
 			const staged = quantityEditFor(edits, record);
 			setQuantityDraft(String(staged?.newQuantity ?? record.quantity));
+			setDraftRecord(recordIdentity(record));
 		},
 		[edits],
+	);
+
+	const changeQuantityDraft = useCallback(
+		(value: string) => {
+			setQuantityDraft(value);
+			setDraftRecord(recordIdentity(selectedRecord));
+		},
+		[selectedRecord],
 	);
 
 	const selectItem = useCallback(
@@ -1242,7 +1263,7 @@ export const InventoryView = ({
 			busy={busy}
 			displayedQuantity={displayedQuantity}
 			stagedEdit={selectedStagedEdit}
-			onQuantityChange={setQuantityDraft}
+			onQuantityChange={changeQuantityDraft}
 			onChooseRecord={chooseRecord}
 			onStageQuantity={stageQuantity}
 			onOpenEquipment={() => setEditorOpen(true)}
@@ -1337,7 +1358,7 @@ export const InventoryView = ({
 				additionDefinition={additionDefinition}
 				stagedEdit={selectedStagedEdit}
 				displayedQuantity={displayedQuantity}
-				onQuantityChange={setQuantityDraft}
+				onQuantityChange={changeQuantityDraft}
 				onChooseRecord={chooseRecord}
 				onStageQuantity={stageQuantity}
 				onStageEquipment={onStageEquipment}

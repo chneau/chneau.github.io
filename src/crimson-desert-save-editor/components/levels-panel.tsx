@@ -232,10 +232,11 @@ export const LevelsPanel = ({
 		const rows = edits.filter(
 			(edit): edit is CharacterEdit => edit.type === "character",
 		);
-		const queued = presets.some((edit) => edit.preset === preset);
+		const rest = presets.filter((edit) => edit.preset !== preset);
+		const queued = rest.length !== presets.length;
 		onStage(
 			queued
-				? rows
+				? [...rest, ...rows]
 				: [
 						{
 							type: "characterPreset",
@@ -246,6 +247,7 @@ export const LevelsPanel = ({
 									: `Set every progression row to ${level ?? levelLimit}`,
 							level,
 						},
+						...rest,
 						...rows,
 					],
 		);
