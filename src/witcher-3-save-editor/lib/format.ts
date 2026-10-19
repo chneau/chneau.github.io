@@ -30,6 +30,7 @@ import { readContainers } from "./inventory";
 import { readJournal } from "./journal";
 import { maxMutationsInPayload } from "./max-mutations";
 import { readObjectTree } from "./objects";
+import { CHUNK_BYTES } from "./payload-resize";
 import { readPlayer } from "./player";
 import { questStepDetail } from "./quest-steps";
 import { questProgress } from "./quests";
@@ -880,19 +881,28 @@ const payloadGrowthEdits = (
 	const payloadBytes = numberAt(container, "payloadBytes");
 	if (payloadBytes === undefined || payloadBytes === null) return [];
 	const next = payloadBytes + added;
+	const nextChunkBytes = Math.min(next, CHUNK_BYTES);
 	const edits: SaveEdit[] = [
 		edit(["container", "payloadBytes"], "Payload size", payloadBytes, next),
 	];
-	const chunks = numberAt(container, "chunks");
 	const chunkBytes = numberAt(container, "chunkBytes");
 	if (
-		chunks !== undefined &&
-		chunks !== null &&
 		chunkBytes !== undefined &&
 		chunkBytes !== null &&
-		chunkBytes > 0
+		chunkBytes !== nextChunkBytes
 	) {
-		const count = Math.ceil(next / chunkBytes);
+		edits.push(
+			edit(
+				["container", "chunkBytes"],
+				"Chunk bytes",
+				chunkBytes,
+				nextChunkBytes,
+			),
+		);
+	}
+	const chunks = numberAt(container, "chunks");
+	if (chunks !== undefined && chunks !== null) {
+		const count = Math.ceil(next / CHUNK_BYTES);
 		if (count !== chunks) {
 			edits.push(edit(["container", "chunks"], "Chunk count", chunks, count));
 		}

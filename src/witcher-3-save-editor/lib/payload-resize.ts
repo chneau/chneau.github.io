@@ -9,7 +9,7 @@ export type Resizable = {
 };
 
 const BASE = 3084;
-const CHUNK_BYTES = 1 << 20;
+export const CHUNK_BYTES = 1 << 20;
 
 const u32 = (data: Uint8Array, at: number): number =>
 	((data[at] ?? 0) |
