@@ -15,7 +15,7 @@ from a habit carried in from another repository, this file wins.
 
 ## 0. Code Is the Source of Truth
 
-The code — names, types, structure, tests — is the only specification. There is
+The code — names, types and structure — is the only specification. There is
 no prose beside it: no comment, no README, no `docs/` tree, no page explaining
 what a module does. A second copy of the code is a copy that goes stale without
 anything failing — the preamble above said "six apps" and had drifted twice
@@ -27,8 +27,11 @@ and is read first.
   (`// ----`, `// ====`), an explanatory note in any language. If a comment feels
   necessary, the code is not explicit enough; change the code.
 - **REQUIRED**: make the code explicit enough to be read without prose —
-  descriptive names, single-purpose functions, precise domain types, and a test
-  that states the claim.
+  descriptive names, single-purpose functions, precise domain types, and an app
+  surface that exercises the claim.
+- **FORBIDDEN**: tests. There is no test suite, no `*.test.ts` / `*.test.tsx`,
+  no `tests/` directory and no `bun test` step. Do not recreate one. Behaviour is
+  verified by running the app, the production build and the gate.
 - **FORBIDDEN**: committing a `*.md` other than this handbook. There is no
   `README.md` and no `docs/` tree: a file like either is a finding to raise in
   your reply, never a file to add.
@@ -54,9 +57,9 @@ fixing. Everything else here is enforced by the gate in §1, or by reading.
 | ---------------------- | ----------------------------------------------------------------------------------- |
 | `bun start`            | Dev server for every app at `localhost:3000`                                        |
 | `bun run start:<app>`  | One app in isolation (`cv`, `birthday`, `design`, …)                                |
-| `bun run check`        | **The gate** — clean, Oxlint, Biome, unused exports, tsc                           |
-| `bun run check:fix`    | Formatters and linters only, no typecheck or tests                                  |
-| `bun run check:export` | `ts-unused-exports` — runs as part of `bun run check`, last before the typecheck |
+| `bun run check`        | **The gate** — clean, Oxlint, Biome, tsc                                            |
+| `bun run check:fix`    | Formatters and linters only, no typecheck                                           |
+| `bun run check:export` | `ts-unused-exports`, ad hoc — not part of `bun run check`                           |
 | `bun x react-doctor`   | React correctness, a11y, performance and maintainability — the React gate           |
 | `bun run build`        | Production build of all environments into `dist/`                                   |
 | `bun run deploy`       | Build, then publish `dist/` to GitHub Pages                                         |
@@ -191,25 +194,22 @@ weight sits.
   undocumented suppression is a bug, and a directive that no longer suppresses
   anything is deleted rather than left in place.
 - A rule switched off in `biome.jsonc` has no comment left to say why, so its
-  record is here and, wherever the property is assertable, a test.
+  record is here.
   - `noImportantStyles` is off because the reduced-motion guard in `base.css`,
     the print rules in `cv.css` and the motion overrides in `Section.css` are
     only load-bearing under `!important`; 14 elements animated under
     `prefers-reduced-motion: reduce` without it and 0 with it, and printing
     within the first ~1.2 s produced a page with a name and nothing else. That
     has already bitten: a `biome check --write --unsafe` pass stripped all of it
-    and the regressions came back silently. Held by
-    `shared/tests/tokens-theme.test.ts`, `cv/cv-media.test.ts` and
-    `shared/tests/motion.test.ts` — read those before touching either the rule
-    or the stylesheets it protects.
+    and the regressions came back silently. The stylesheets are the record —
+    read them before touching either the rule or the files it protects.
   - `noSvgWithoutTitle` is off for `public/icons/**`. The rule is about an
     inline `<svg>` in a page, where a screen reader cannot otherwise name the
     graphic; these files are referenced as favicons and maskable icons and are
     never inlined into the DOM, so a `<title>` element would never be exposed to
-    anyone, and adding one to satisfy the rule would be decorative. No test
-    holds this one — `manifests.test.ts` only asserts the icon set exists — so
-    if you inline an icon, the rule's premise arrives with it and the override
-    must go rather than the `<title>` be added.
+    anyone, and adding one to satisfy the rule would be decorative. If you
+    inline an icon, the rule's premise arrives with it and the override must go
+    rather than the `<title>` be added.
 - **FORBIDDEN**: silencing a finding to make the gate green. `noArrayIndexKey`
   is not pedantry — a key taken from a `.map()` index is reassigned when the
   list reorders, so React hands one element's state to another. Fix the code.
@@ -235,10 +235,9 @@ Top-level format constructors, not the string method:
 Check the installed version's types before reaching for a prop; do not write an
 API from memory of another major. Mantine, Recharts and Mantine Charts, Leaflet
 / React-Leaflet, Valtio for local reactive state, TanStack Query where a value
-is fetched, i18next / react-i18next for the birthday app's seven locales
-(covered by `birthday/tests/locales.test.ts` — a new key belongs in every locale
-file). Antd conventions from another repository do not travel here; this is
-Mantine.
+is fetched, i18next / react-i18next for the birthday app's seven locales — a
+new key belongs in every locale file. Antd conventions from another repository
+do not travel here; this is Mantine.
 
 ### Generated files are read-only
 
@@ -246,8 +245,8 @@ Mantine.
   and by `birthday/ics.ts` in the browser, through the same generator, so the
   two always agree. Edit the generator, never the `.ics`.
 - `src/crimson-desert-save-editor/lib/generated/*.json` and the save fixtures
-  under `saves/` and `assets/image-archive/` are inputs to the engine and its
-  tests, produced by `scripts/`. A hand edit is lost the next time they are
+  under `saves/` and `assets/image-archive/` are inputs to the engine, produced
+  by `scripts/`. A hand edit is lost the next time they are
   produced and leaves the file agreeing with neither its source nor the engine.
 - A rule the generated vocabulary cannot carry goes in a hand-written sibling
   module (`lib/add-plan.ts`, `lib/staged-projection.ts`), never inside the
@@ -270,9 +269,8 @@ Mantine.
   `build:<name>` scripts, an entry under `src/<name>/`, an `AppEntry` in
   `src/shared/apps.tsx` (which also drives the hotkeys, search, palette and
   404), its six-file `public/icons/<slug>-*` set (`.svg`, `-32`, `-192`,
-  `-512`, `-maskable-512`, `-maskable.svg`, named from the `APP_META` slug —
-  `manifests.test.ts` asserts all six exist and no script generates them), and
-  its tests.
+  `-512`, `-maskable-512`, `-maskable.svg`, named from the `APP_META` slug and
+  not generated by any script).
 - **Two branches, deliberately different.** `src` is the source of record;
   `master` is the *publishing* branch, holding `dist/` because `deploy` writes
   it there. `git push origin HEAD:master` is always rejected — push to `src`.
@@ -286,14 +284,13 @@ Mantine.
   `base.css` also repoints Mantine's `--mantine-color-dimmed` at
   `--app-text-muted`, because Mantine's own value is 3.02:1 on `--app-bg`; that
   override is only sound while it names both schemes and `base.css` is imported
-  after `@mantine/core/styles.css`, and `tokens-theme.test.ts` asserts both.
-- Anything visual, motion or keyboard-related is a contract with a test behind
-  it: contrast, reduced motion, the print path, the grid's roving focus, focus
-  rings, the skip link, `aria` names. Read the relevant test before changing the
-  markup, and add to it when you change the contract.
+  after `@mantine/core/styles.css`.
+- Anything visual, motion or keyboard-related is a contract: contrast, reduced
+  motion, the print path, the grid's roving focus, focus rings, the skip link
+  and `aria` names. Read the code that implements it and verify the surface in
+  a browser before changing the markup.
 - The site is installable and offline-capable: the shared service worker, the
-  per-app manifest, and the branded 404 all live in shared code and are covered
-  by `shared/tests/sw.test.ts`.
+  per-app manifest and the branded 404 all live in shared code.
 - The Crimson Desert editor never uploads a save and keeps its engine on the
   main thread, yielding through a `setTimeout` macrotask. Do not move work into a
   worker or add a server round-trip.
@@ -340,8 +337,7 @@ React 19, with `react-doctor` as the standing reviewer of the rules below.
 ## 7. Verification
 
 ```bash
-bun run check     # the gate: clean, Oxlint, Biome, unused exports, tsc
-bun test          # the suites on their own
+bun run check     # the gate: clean, Oxlint, Biome, tsc
 bun run build     # the real production build, per environment
 bun x react-doctor@latest   # the React gate: correctness, a11y, performance, maintainability
 ```
@@ -350,15 +346,12 @@ bun x react-doctor@latest   # the React gate: correctness, a11y, performance, ma
   `check` runs tsc (`bun run lint`), so `noUnusedLocals`, `noUnusedParameters`
   and `noUncheckedIndexedAccess` are enforced.
 - **There is no CI.** The GitHub Actions workflow has been removed, so nothing
-  runs automatically on push or on a pull request. Every gate is run by hand,
-  and `bun run check` does **not** include `bun test` — which makes `bun test`
-  the step most easily forgotten, since a change can pass `check` with a red
-  suite sitting behind it. Before calling work finished:
+  runs automatically on push or on a pull request. Every gate is run by hand.
+  Before calling work finished:
 
   ```bash
   bun install --frozen-lockfile   # catches a forgotten lockfile update
-  bun run check                   # style, types, dead exports (rewrites files)
-  bun test                        # NOT part of `check`
+  bun run check                   # style and types (rewrites files)
   bun run build                   # the real per-environment build
   ```
 - **Two gates, neither optional, and neither a substitute for the other.**
@@ -371,7 +364,7 @@ bun x react-doctor@latest   # the React gate: correctness, a11y, performance, ma
 - **FORBIDDEN**: "fixing" a `react-doctor` finding by suppressing it. A
   `doctor.config.json`, a `reactDoctor` key in `package.json`, or an inline
   `react-doctor-disable-next-line` switches a rule off and fixes nothing; it
-  hides the defect from the next reader and from every test. Refactor instead.
+  hides the defect from the next reader. Refactor instead.
   The only acceptable suppression is a narrowly scoped one for a provable false
   positive, it carries a `biome-ignore`-style reason, and it needs a second pair
   of eyes — §3 governs.
@@ -393,17 +386,12 @@ bun x react-doctor@latest   # the React gate: correctness, a11y, performance, ma
   in `biome.jsonc`. `deno.json` and the `deno` devDependency went with the step.
 - **Fix real problems by changing the code.** Suppressions are bounded by §3 and
   are not a route to a green gate.
-- **A green DOM suite is not a green page.** Every `axe.run` here is a fragment
-  run — a component rendered into a detached container, with eight
-  document-level rules disabled (`shared/tests/axe-fragment.ts`) — and happy-dom
-  reports no layout, so a rule that needs computed styles or rendered text
-  cannot fire at all: `color-contrast`, `label-content-name-mismatch`,
-  `heading-order`, `scrollable-region-focusable`. A survey of the built site
-  found thirteen documents with no `<html lang>`, thirteen card links whose
-  `aria-label` hid their own visible text, and four tag colours between 2.7:1
-  and 4.3:1, with every suite green. Run axe against the **built pages** in a
-  browser for anything touching markup, colour or headings, and say which pages
-  were opened.
+- **A green component render is not a green page.** A component rendered into
+  a detached container reports no layout, so a problem that needs computed
+  styles or rendered text cannot appear: missing `<html lang>`, an `aria-label`
+  that hides its own visible text, a heading order, a card colour below
+  contrast. Run the **built pages** in a browser for anything touching markup,
+  colour or headings, and say which pages were opened.
 - **A change worth more than a typo gets a review round by fresh sub-agents.**
   Spawn reviewers created for the review, with no prior context on the change
   and nothing invested in it, rather than re-reading your own diff — the
@@ -413,15 +401,15 @@ bun x react-doctor@latest   # the React gate: correctness, a11y, performance, ma
   worker; another on behaviour, state and the built page), point them at the
   diff, and ask for **defects with evidence** rather than confirmation that the
   change is correct. A review round does **not** replace the gates above: run
-  `bun run check`, `bun test`, `bun run build` and `react-doctor` as well.
+  `bun run check`, `bun run build` and `react-doctor` as well.
   **Record the outcome** — fix what it finds or answer it, since a silently
   ignored finding defeats the point of spawning the reviewers.
-- **The gates do not replace reading the code.** `tsc`, `biome`, `bun test` and
+- **The gates do not replace reading the code.** `tsc`, `biome` and
   `react-doctor` are all silent about a _stale read_ — a value read outside
   render that only stays fresh because of a read render used to do. Such a bug
-  typechecks, lints, passes every suite and scores 100 while being plainly
-  broken at runtime. So is the reverse: a test that passes because it reads what
-  the code writes.
+  typechecks, lints, passes the gate and scores 100 while being plainly broken
+  at runtime. So is the reverse: a check that passes because it reads what the
+  code writes.
 
 ---
 
@@ -437,14 +425,12 @@ Run the gate and record what it **already** reports, before the first edit. A
 finding that was there beforehand was not caused by this change, and telling
 those two apart is what decides whether the work is finished.
 
-### A green run once is not a green run
+### A pass once is not a pass
 
-Re-run a suite that passed before believing it — green once and red one time in
-five is a defect wearing a pass. A flaky test is a broken test, and the usual
-cause is the test contending with the code it is meant to observe: one recorded
-failure hit ~40 % of runs by reading from a channel the code under test was
-draining at the same moment. **FORBIDDEN**: reporting a suite as passing on the
-strength of a single run.
+Re-run the app and the gate before believing a result. A build that succeeded
+once and failed one time in five is a defect wearing a pass; so is a page that
+loaded correctly for the one path that was tried. **FORBIDDEN**: reporting a
+surface as working on the strength of a single run.
 
 ### A finding is a cause, not an obstacle
 
@@ -481,7 +467,7 @@ publishing step because it is a step in a script whose earlier steps are wanted.
 `git commit`, `git push`, `git rebase` and a branch switch happen only when the
 user asked for them in this conversation; otherwise a finished change is a
 finished working tree, and the diff is what you report. A clean `bun run check`
-and a green `bun test` do not make a commit yours to make. When a commit *is*
+and a green gate do not make a commit yours to make. When a commit *is*
 asked for, keep it granular and well-described with a conventional prefix
 (`feat:`, `fix:`, `chore:`, `refactor:`), and mind §5's two-branch rule — the
 publishing branch is not the one to push to.
