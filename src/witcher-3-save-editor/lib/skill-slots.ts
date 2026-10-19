@@ -277,6 +277,7 @@ export const syncSkillState = (
 	}
 	let view = abilityView(current.data);
 	if (view === undefined) return current;
+	let writtenSlotCount: number | undefined;
 	const slotsField = view.view.object.fields?.find(
 		(field) => field.name === "skillSlots",
 	);
@@ -287,6 +288,7 @@ export const syncSkillState = (
 			currentRows,
 			nameIndexMap(view.names),
 		);
+		writtenSlotCount = desiredRows.length;
 		if (!sameSlots(currentRows, desiredRows)) {
 			const ensured = ensureNames(current, view.names);
 			current = ensured.container;
@@ -307,6 +309,14 @@ export const syncSkillState = (
 	}
 	view = abilityView(current.data);
 	if (view === undefined) return current;
+	if (writtenSlotCount !== undefined) {
+		const totalField = view.view.object.fields?.find(
+			(field) => field.name === "totalSkillSlotsCount",
+		);
+		if (totalField !== undefined) {
+			writeU32(current.data, totalField.offset, writtenSlotCount);
+		}
+	}
 	const desired = (requestedAbilities ?? []).filter(
 		(value): value is string => typeof value === "string",
 	);
