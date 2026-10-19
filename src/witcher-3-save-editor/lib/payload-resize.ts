@@ -9,6 +9,7 @@ export type Resizable = {
 };
 
 const BASE = 3084;
+const CHUNK_BYTES = 1 << 20;
 
 const u32 = (data: Uint8Array, at: number): number =>
 	((data[at] ?? 0) |
@@ -140,7 +141,7 @@ const rechunk = (
 ): SaveContainer["chunks"] => {
 	const first = container.chunks[0];
 	if (first === undefined) throw new Error("this save has no chunks");
-	const unit = first.decompressedSize;
+	const unit = CHUNK_BYTES;
 	const chunks: SaveContainer["chunks"][number][] = [];
 	for (let start = 0; start < totalLength; start += unit) {
 		const template =
