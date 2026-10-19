@@ -184,9 +184,15 @@ const WANTED_USED = [
 	"skillpointsUsed",
 ] as const;
 
+export type MutationInsertOptions = {
+	readonly enableSystem?: boolean;
+	readonly initializeSlots?: boolean;
+};
+
 export const maxMutationsInPayload = (
 	container: Resizable,
-	equip: string = "EPMT_MutationMaster",
+	equip: string = "EPMT_Mutation1",
+	options: MutationInsertOptions = {},
 ): {
 	readonly data: Uint8Array<ArrayBuffer>;
 	readonly chunks: SaveContainer["chunks"];
@@ -294,9 +300,6 @@ export const maxMutationsInPayload = (
 		}
 	}
 	const usedTotal = total;
-	if (inserts.length === 0) {
-		return { data, chunks: container.chunks };
-	}
 
 	const existingEquip = findField(object.fields, "equippedMutation");
 	let equippedRecord: Insert | undefined;
@@ -330,7 +333,55 @@ export const maxMutationsInPayload = (
 					},
 				]
 			: [];
+	const stateRecords: Insert[] = [];
+	const statePatches: Insert[] = [];
+	const boolTypeIndex = indexOfName.get("Bool");
+	const insertBoolean = (
+		name: string,
+		field: { name: string; value: ReflectedValue; offset: number } | undefined,
+		wanted: boolean | undefined,
+	): void => {
+		if (wanted !== true) return;
+		if (field === undefined) {
+			if (boolTypeIndex === undefined) return;
+			const nameIndex = intern(name);
+			const record = new Uint8Array(9);
+			record[0] = nameIndex & 0xff;
+			record[1] = (nameIndex >>> 8) & 0xff;
+			record[2] = boolTypeIndex & 0xff;
+			record[3] = (boolTypeIndex >>> 8) & 0xff;
+			writeU32(record, 4, 5);
+			record[8] = 1;
+			stateRecords.push({ at: mutationsField.offset - 8, bytes: record });
+			total += record.length;
+			return;
+		}
+		if (field.value.text !== "true") {
+			statePatches.push({ at: field.offset, bytes: Uint8Array.of(1) });
+		}
+	};
+	insertBoolean(
+		"isMutationSystemEnabled",
+		findField(object.fields, "isMutationSystemEnabled"),
+		options.enableSystem,
+	);
+	insertBoolean(
+		"mutationSkillSlotsInitialized",
+		findField(object.fields, "mutationSkillSlotsInitialized"),
+		options.initializeSlots,
+	);
+	if (
+		inserts.length === 0 &&
+		equippedRecord === undefined &&
+		patches.length === 0 &&
+		stateRecords.length === 0 &&
+		statePatches.length === 0
+	) {
+		return { data, chunks: container.chunks };
+	}
 	if (equippedRecord !== undefined) inserts.push(equippedRecord);
+	inserts.push(...stateRecords);
+	patches.push(...statePatches);
 
 	const { offset: manuStart, end: namesEnd } = namesEndOf(data);
 	const extraNames = nameBytesOf(usedNames);
