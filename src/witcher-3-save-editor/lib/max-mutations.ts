@@ -1,7 +1,7 @@
 import type { SaveContainer } from "./container";
-import { readU32 } from "./inner";
 import { readNameTable } from "./names";
 import { readObjectTree } from "./objects";
+import { rebuildSpanIndex } from "./payload-resize";
 import { type ReflectedValue, reflectValue } from "./reflect";
 import { parseTokens, type Token } from "./tokens";
 
@@ -9,8 +9,6 @@ type Resizable = {
 	readonly data: Uint8Array<ArrayBuffer>;
 	readonly chunks: SaveContainer["chunks"];
 };
-
-const BASE = 3084;
 
 const u16 = (data: Uint8Array, at: number): number =>
 	(data[at] ?? 0) | ((data[at + 1] ?? 0) << 8);
@@ -25,15 +23,6 @@ const writeU32 = (data: Uint8Array, at: number, value: number): void => {
 	data[at + 1] = (value >>> 8) & 0xff;
 	data[at + 2] = (value >>> 16) & 0xff;
 	data[at + 3] = (value >>> 24) & 0xff;
-};
-
-const findSpanIndex = (data: Uint8Array): { at: number; count: number } => {
-	for (let i = 0; i + 6 < data.length; i += 1) {
-		if (data[i] !== 0x53 || data[i + 1] !== 0x43) continue;
-		const count = u32(data, i + 2);
-		if (i + 6 + count * 8 === data.length - 6) return { at: i, count };
-	}
-	throw new Error("this save has no SC span index; it cannot be resized here");
 };
 
 const namesEndOf = (data: Uint8Array): { offset: number; end: number } => {
@@ -115,52 +104,6 @@ const splice = (
 	return { out, shiftAt };
 };
 
-const updateSpanIndex = (
-	original: Uint8Array,
-	out: Uint8Array,
-	inserts: readonly Insert[],
-): void => {
-	const from = findSpanIndex(original);
-	const to = findSpanIndex(out);
-	for (let i = 0; i < from.count; i += 1) {
-		const at = from.at + 6 + i * 8;
-		const start = u32(original, at) - BASE;
-		const size = u32(original, at + 4);
-		const end = start + size;
-		let shift = 0;
-		let grow = 0;
-		for (const insert of inserts) {
-			if (insert.at <= start) shift += insert.bytes.length;
-			else if (insert.at < end) grow += insert.bytes.length;
-		}
-		const dest = to.at + 6 + i * 8;
-		writeU32(out, dest, start + shift + BASE);
-		writeU32(out, dest + 4, size + grow);
-	}
-};
-
-const rechunk = (
-	container: Resizable,
-	totalLength: number,
-): SaveContainer["chunks"] => {
-	const first = container.chunks[0];
-	if (first === undefined) throw new Error("this save has no chunks");
-	const unit = first.decompressedSize;
-	const chunks: SaveContainer["chunks"][number][] = [];
-	for (let start = 0; start < totalLength; start += unit) {
-		const template =
-			container.chunks[chunks.length] ??
-			container.chunks[container.chunks.length - 1] ??
-			first;
-		chunks.push({
-			...template,
-			index: chunks.length,
-			decompressedSize: Math.min(unit, totalLength - start),
-		});
-	}
-	return chunks;
-};
-
 const findField = (
 	fields:
 		| readonly { name: string; value: ReflectedValue; offset: number }[]
@@ -184,6 +127,24 @@ const WANTED_USED = [
 	"skillpointsUsed",
 ] as const;
 
+const ENGINE_MUTATION_NAME_SUFFIX = [
+	"Default weapon _Stats",
+	"mon_horse_weapon _Stats",
+	"isMutationSystemEnabled",
+	"redUsed",
+	"blueUsed",
+	"skillpointsUsed",
+	"greenUsed",
+	"equippedMutations",
+	"ETMT_Message",
+	"TutorialMutationsUnlocked",
+	"markAsSeenOnShow",
+	"CharacterMenu",
+	"MutationsOpenMutations",
+	"MutationMenu",
+	"MutationsFirstOpen",
+] as const;
+
 export type MutationInsertOptions = {
 	readonly enableSystem?: boolean;
 	readonly initializeSlots?: boolean;
@@ -191,7 +152,7 @@ export type MutationInsertOptions = {
 
 export const maxMutationsInPayload = (
 	container: Resizable,
-	equip: string = "EPMT_Mutation1",
+	equip: string | undefined,
 	options: MutationInsertOptions = {},
 ): {
 	readonly data: Uint8Array<ArrayBuffer>;
@@ -247,9 +208,19 @@ export const maxMutationsInPayload = (
 	for (const [i, name] of names.entries()) indexOfName.set(name, i + 1);
 	const interned = new Map<string, number>();
 	const usedNames: string[] = [];
+	for (const name of ENGINE_MUTATION_NAME_SUFFIX) {
+		if (indexOfName.has(name)) continue;
+		indexOfName.set(name, names.length + usedNames.length + 1);
+		usedNames.push(name);
+	}
 	const intern = (name: string): number => {
 		const already = interned.get(name);
 		if (already !== undefined) return already;
+		const existing = indexOfName.get(name);
+		if (existing !== undefined) {
+			interned.set(name, existing);
+			return existing;
+		}
 		usedNames.push(name);
 		const index = names.length + usedNames.length;
 		interned.set(name, index);
@@ -303,7 +274,7 @@ export const maxMutationsInPayload = (
 
 	const existingEquip = findField(object.fields, "equippedMutation");
 	let equippedRecord: Insert | undefined;
-	const equipValue = indexOfName.get(equip);
+	const equipValue = equip === undefined ? undefined : indexOfName.get(equip);
 	if (
 		existingEquip === undefined &&
 		enumTypeIndex !== undefined &&
@@ -370,6 +341,41 @@ export const maxMutationsInPayload = (
 		findField(object.fields, "mutationSkillSlotsInitialized"),
 		options.initializeSlots,
 	);
+
+	const mutationTypes = (mutationsField.value.items ?? [])
+		.map((item) => findField(item.fields ?? [], "type"))
+		.map((field) =>
+			field === undefined ? undefined : Number(field.value.text),
+		)
+		.filter(
+			(value): value is number =>
+				value !== undefined &&
+				Number.isFinite(value) &&
+				value >= 1 &&
+				names[value - 1] !== "EPMT_MutationMaster",
+		)
+		.reverse();
+	const equippedValue = new Uint8Array(4 + mutationTypes.length * 2);
+	writeU32(equippedValue, 0, mutationTypes.length);
+	mutationTypes.forEach((type, index) => {
+		equippedValue[4 + index * 2] = type & 0xff;
+		equippedValue[5 + index * 2] = (type >>> 8) & 0xff;
+	});
+	const equippedName = intern("equippedMutations");
+	const equippedType = intern("array:2,0,EPlayerMutationType");
+	const equippedField = new Uint8Array(8 + equippedValue.length);
+	equippedField[0] = equippedName & 0xff;
+	equippedField[1] = (equippedName >>> 8) & 0xff;
+	equippedField[2] = equippedType & 0xff;
+	equippedField[3] = (equippedType >>> 8) & 0xff;
+	writeU32(equippedField, 4, equippedValue.length + 4);
+	equippedField.set(equippedValue, 8);
+	inserts.push({
+		at: valueAt + token.value.bytes.length - 2,
+		bytes: equippedField,
+	});
+	total += equippedField.length;
+
 	if (
 		inserts.length === 0 &&
 		equippedRecord === undefined &&
@@ -390,7 +396,6 @@ export const maxMutationsInPayload = (
 		allInserts.push({ at: namesEnd, bytes: extraNames });
 
 	const { out, shiftAt } = splice(data, allInserts);
-	const totalAll = total + extraNames.length;
 
 	writeU32(out, shiftAt(token.offset + 8), token.value.bytes.length + total);
 	writeU32(
@@ -420,12 +425,16 @@ export const maxMutationsInPayload = (
 			out[at + 1] = (value >>> 8) & 0xff;
 		}
 	}
-	writeU32(
-		out,
-		out.length - 6,
-		(readU32(data, data.length - 6) ?? 0) + totalAll,
-	);
-	updateSpanIndex(data, out, allInserts);
+	const checksumAt = shiftAt(valueAt + 30);
+	out[checksumAt] = 0x48;
+	out[checksumAt + 1] = 0xa0;
 
-	return { data: out, chunks: rechunk(container, out.length) };
+	return rebuildSpanIndex(
+		container,
+		out,
+		allInserts.map((insert) => ({
+			at: insert.at,
+			length: insert.bytes.length,
+		})),
+	);
 };

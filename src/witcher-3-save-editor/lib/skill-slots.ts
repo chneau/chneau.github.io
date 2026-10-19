@@ -43,6 +43,22 @@ type SlotRow = {
 	readonly skillType?: number;
 };
 
+const requiredSlotNames = (rows: readonly SlotRow[]): readonly string[] => {
+	const required = new Set(["id", "groupID", "Int32"]);
+	if (rows.some((row) => row.unlockedOnLevel !== 0)) {
+		required.add("unlockedOnLevel");
+	}
+	if (rows.some((row) => row.unlocked)) {
+		required.add("Bool");
+		required.add("unlocked");
+	}
+	if (rows.some((row) => row.skillType !== undefined)) {
+		required.add("ESkill");
+		required.add("socketedSkill");
+	}
+	return [...required];
+};
+
 const groupForSkill = (name: string): number => {
 	if (name.startsWith("S_Magic")) return 2;
 	if (name.startsWith("S_Alchemy")) return 3;
@@ -82,8 +98,9 @@ const ensureNamesFor = (
 const ensureNames = (
 	container: Resizable,
 	names: readonly string[],
+	rows: readonly SlotRow[],
 ): { container: Resizable; names: readonly string[] } =>
-	ensureNamesFor(container, names, SLOT_NAMES);
+	ensureNamesFor(container, names, requiredSlotNames(rows));
 
 const nameIndexMap = (names: readonly string[]): ReadonlyMap<string, number> =>
 	new Map(names.map((name, index) => [name, index + 1]));
@@ -110,8 +127,18 @@ const int32 = (value: number): Uint8Array<ArrayBuffer> =>
 const uint16 = (value: number): Uint8Array<ArrayBuffer> =>
 	Uint8Array.of(value & 0xff, (value >>> 8) & 0xff);
 
-const slotWidth = (row: SlotRow): number =>
-	row.skillType === undefined ? 48 : 58;
+export const slotWidth = (row: {
+	readonly unlockedOnLevel: number;
+	readonly unlocked: boolean;
+	readonly skillType?: number;
+}): number =>
+	1 +
+	12 +
+	(row.unlockedOnLevel === 0 ? 0 : 12) +
+	(row.skillType === undefined ? 0 : 10) +
+	(row.unlocked ? 9 : 0) +
+	12 +
+	2;
 
 const slotBytes = (
 	names: readonly string[],
@@ -123,13 +150,16 @@ const slotBytes = (
 	writeU32(bytes, 0, rows.length);
 	const index = nameIndexMap(names);
 	const int32Type = requireIndex(index, "Int32");
-	const boolType = requireIndex(index, "Bool");
-	const skillType = requireIndex(index, "ESkill");
 	const idName = requireIndex(index, "id");
-	const levelName = requireIndex(index, "unlockedOnLevel");
-	const socketedName = requireIndex(index, "socketedSkill");
-	const unlockedName = requireIndex(index, "unlocked");
 	const groupName = requireIndex(index, "groupID");
+	const hasLevel = rows.some((row) => row.unlockedOnLevel !== 0);
+	const levelName = hasLevel ? requireIndex(index, "unlockedOnLevel") : 0;
+	const hasSkillType = rows.some((row) => row.skillType !== undefined);
+	const skillType = hasSkillType ? requireIndex(index, "ESkill") : 0;
+	const socketedName = hasSkillType ? requireIndex(index, "socketedSkill") : 0;
+	const hasUnlocked = rows.some((row) => row.unlocked);
+	const boolType = hasUnlocked ? requireIndex(index, "Bool") : 0;
+	const unlockedName = hasUnlocked ? requireIndex(index, "unlocked") : 0;
 	let at = 4;
 	const field = (name: number, type: number, value: Uint8Array): void => {
 		writeU16(bytes, at, name);
@@ -142,11 +172,15 @@ const slotBytes = (
 		bytes[at] = 0;
 		at += 1;
 		field(idName, int32Type, int32(row.id));
-		field(levelName, int32Type, int32(row.unlockedOnLevel));
+		if (row.unlockedOnLevel !== 0) {
+			field(levelName, int32Type, int32(row.unlockedOnLevel));
+		}
 		if (row.skillType !== undefined) {
 			field(socketedName, skillType, uint16(row.skillType));
 		}
-		field(unlockedName, boolType, Uint8Array.of(row.unlocked ? 1 : 0));
+		if (row.unlocked) {
+			field(unlockedName, boolType, Uint8Array.of(1));
+		}
 		field(groupName, int32Type, int32(row.group));
 		writeU16(bytes, at, 0);
 		at += 2;
@@ -290,7 +324,7 @@ export const syncSkillState = (
 		);
 		writtenSlotCount = desiredRows.length;
 		if (!sameSlots(currentRows, desiredRows)) {
-			const ensured = ensureNames(current, view.names);
+			const ensured = ensureNames(current, view.names, desiredRows);
 			current = ensured.container;
 			view = abilityView(current.data);
 			if (view === undefined) return current;
