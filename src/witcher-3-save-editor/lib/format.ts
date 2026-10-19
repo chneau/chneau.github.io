@@ -25,23 +25,36 @@ import { buildContainer } from "./container-write";
 import { readDialogues } from "./dialogues";
 import { readEntityFlags } from "./entities";
 import { readFactDB } from "./facts";
-import { readHeader, readSaveVersion } from "./inner";
+import { readHeader, readSaveVersion, readU32 } from "./inner";
 import { readContainers } from "./inventory";
 import { readJournal } from "./journal";
 import { maxMutationsInPayload } from "./max-mutations";
+import { readNameTable } from "./names";
 import { readObjectTree } from "./objects";
-import { CHUNK_BYTES } from "./payload-resize";
+import {
+	CHUNK_BYTES,
+	type Resizable,
+	replaceRange,
+	writeU32,
+} from "./payload-resize";
 import { readPlayer } from "./player";
 import { questStepDetail } from "./quest-steps";
 import { questProgress } from "./quests";
 import {
 	ABILITY_FIELD_NAMES,
 	SLOT_FIELD_NAMES,
+	slotWidth,
 	syncSkillState,
 } from "./skill-slots";
 import { experienceToNextLevel, type LevelDefinition } from "./stats";
+import { parseTokens } from "./tokens";
 import { readUnlocksFromScan } from "./unlocks";
-import { locateWritable, type PatchableScalar, patchScalar } from "./write";
+import {
+	locateWritable,
+	type PatchableScalar,
+	patchScalar,
+	readAbilityManager,
+} from "./write";
 
 const ID = "witcher-3-save-editor";
 
@@ -411,6 +424,51 @@ const templateFor = (
 	return best?.name;
 };
 
+const stripMasterOverallProgress = (container: Resizable): Resizable => {
+	const names = readNameTable(container.data).names;
+	const view = readAbilityManager(
+		container.data,
+		names,
+		parseTokens(container.data, names).tokens,
+	);
+	const mutations = view?.object.fields?.find(
+		(field) => field.name === "mutations",
+	);
+	for (const item of mutations?.value.items ?? []) {
+		const typeField = item.fields?.find((field) => field.name === "type");
+		const typeIndex =
+			typeField === undefined ? undefined : Number(typeField.value.text);
+		if (
+			typeIndex === undefined ||
+			names[typeIndex - 1] !== "EPMT_MutationMaster"
+		) {
+			continue;
+		}
+		const progress = item.fields?.find((field) => field.name === "progress");
+		const overall = progress?.value.fields?.find(
+			(field) => field.name === "overallProgress",
+		);
+		if (overall === undefined) return container;
+		const removed = 8 + overall.value.width;
+		const next = replaceRange(
+			container,
+			overall.offset - 8,
+			removed,
+			new Uint8Array(0),
+		);
+		if (mutations !== undefined) {
+			const at = mutations.offset - 4;
+			writeU32(next.data, at, (readU32(next.data, at) ?? 0) - removed);
+		}
+		if (progress !== undefined) {
+			const at = progress.offset - 4;
+			writeU32(next.data, at, (readU32(next.data, at) ?? 0) - removed);
+		}
+		return next;
+	}
+	return container;
+};
+
 const encode = async (doc: JsonValue): Promise<Bytes> => {
 	const scaffold = readScaffold(doc);
 	if (scaffold === undefined) {
@@ -458,7 +516,7 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 			equipped !== "EPMT_MutationMaster" &&
 			equipped !== "EPMT_None"
 				? equipped
-				: "EPMT_Mutation1";
+				: undefined;
 		const resized = maxMutationsInPayload({ data: payload, chunks }, equip, {
 			enableSystem,
 			initializeSlots,
@@ -474,6 +532,10 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		chunks = synced.chunks;
 		found = locateWritable(payload);
 	}
+	const stripped = stripMasterOverallProgress({ data: payload, chunks });
+	payload = stripped.data;
+	chunks = stripped.chunks;
+	found = locateWritable(payload);
 
 	const apply = (target: PatchableScalar | undefined, key: string): void => {
 		if (target === undefined) return;
@@ -866,8 +928,12 @@ const missingNameBytes = (
 const encodedSlotBytes = (rows: readonly JsonValue[]): number => {
 	let total = 4;
 	for (const row of rows) {
-		total +=
-			isJsonObject(row) && numberAt(row, "skillType") !== undefined ? 58 : 48;
+		if (!isJsonObject(row)) continue;
+		total += slotWidth({
+			unlockedOnLevel: numberAt(row, "unlockedOnLevel") ?? 0,
+			unlocked: row.unlocked === true,
+			skillType: numberAt(row, "skillType") ?? undefined,
+		});
 	}
 	return total;
 };
@@ -1114,7 +1180,7 @@ const ACTIONS: readonly QuickAction[] = [
 		id: "mutations-max",
 		label: "Max all mutations",
 		description:
-			"Fully research every Blood-and-Wine mutation and open its four extra skill slots. The engine derives research from the four *Used counters and caches it in overallProgress, so this sets Used = Required and progress = 100 — what the game's own console `mutall` does — then equips a real mutation, because EPMT_MutationMaster is a progression track the game refuses to equip. It also enables the mutation system and unlocks the four group-5 slots. Missing Used fields are inserted, so the file grows.",
+			"Fully research every Blood-and-Wine mutation and open every skill slot. The engine derives research from the four *Used counters and caches it in overallProgress, so this sets Used = Required and progress = 100 — what the game's own console `mutall` does. It also enables the mutation system and duplicates the active-ability list, as the engine's `mutall` save does. Missing Used fields are inserted, so the file grows.",
 		plan: (doc) => {
 			const mutations = requireArrayAt(doc, "mutations");
 			const edits: SaveEdit[] = [];
@@ -1126,7 +1192,6 @@ const ACTIONS: readonly QuickAction[] = [
 				const progress = objectAt(row, "progress");
 				if (progress === undefined) return;
 				const name = stringAt(row, "name") ?? `mutation ${index}`;
-				if (name === "EPMT_MutationMaster") return;
 				mutationNames.push(name);
 				for (const color of ["red", "blue", "green", "skillpoints"]) {
 					const required = numberAt(progress, `${color}Required`);
@@ -1173,47 +1238,6 @@ const ACTIONS: readonly QuickAction[] = [
 			});
 			if (mutationNames.length === 0) return edits;
 			const system = objectAt(doc, "mutationSystem");
-			const equipped =
-				system === undefined ? undefined : stringAt(system, "equipped");
-			const target =
-				equipped !== undefined &&
-				equipped !== "EPMT_MutationMaster" &&
-				equipped !== "EPMT_None"
-					? equipped
-					: mutationNames.includes("EPMT_Mutation1")
-						? "EPMT_Mutation1"
-						: mutationNames[0];
-			if (target !== undefined && equipped !== target) {
-				edits.push(
-					edit(
-						["mutationSystem", "equipped"],
-						"Equipped mutation",
-						equipped ?? null,
-						target,
-					),
-				);
-				const topLevel = stringAt(doc, "equippedMutation");
-				if (topLevel !== target) {
-					edits.push(
-						edit(
-							["equippedMutation"],
-							"Equipped mutation",
-							topLevel ?? null,
-							target,
-						),
-					);
-				}
-				if (system?.equippedPresent === false) {
-					edits.push(
-						edit(
-							["mutationSystem", "equippedPresent"],
-							"Equipped mutation field",
-							false,
-							true,
-						),
-					);
-				}
-			}
 			if (system?.enabled !== true) {
 				edits.push(
 					edit(
@@ -1258,11 +1282,8 @@ const ACTIONS: readonly QuickAction[] = [
 			let changedSlots: JsonValue[] | undefined;
 			slots.forEach((row, index) => {
 				if (!isJsonObject(row)) return;
-				const group = numberAt(row, "group");
 				const id = numberAt(row, "id");
-				const mutationSlot =
-					group === 5 || (id !== undefined && id >= 13 && id <= 16);
-				if (!mutationSlot || row.unlocked === true) return;
+				if (row.unlocked === true) return;
 				edits.push(
 					edit(
 						["skillSlots", index, "unlocked"],
@@ -1293,30 +1314,39 @@ const ACTIONS: readonly QuickAction[] = [
 					),
 				);
 			}
-			const slotNamesBefore =
-				container === undefined
-					? 0
-					: (numberAt(container, "skillSlotNamesBytes") ?? 0);
-			if (changedSlots !== undefined && slotNamesBefore !== 0) {
-				edits.push(
-					edit(
-						["container", "skillSlotNamesBytes"],
-						"Skill slot names",
-						slotNamesBefore,
-						0,
-					),
-				);
+			const abilities = arrayAt(doc, "skillAbilities") ?? [];
+			const nextAbilities = [...abilities, ...abilities];
+			let abilityGrowth = 0;
+			if (abilities.length > 0) {
+				edits.push({
+					id: "skillAbilities=mutations-max",
+					label: "Active abilities",
+					path: ["skillAbilities"],
+					before: abilities,
+					after: nextAbilities,
+				});
+				const abilitiesBefore =
+					container === undefined
+						? 4 + abilities.length * 2
+						: (numberAt(container, "skillAbilitiesBytes") ??
+							4 + abilities.length * 2);
+				const abilitiesAfter = 4 + nextAbilities.length * 2;
+				if (abilitiesAfter !== abilitiesBefore) {
+					edits.push(
+						edit(
+							["container", "skillAbilitiesBytes"],
+							"Ability bytes",
+							abilitiesBefore,
+							abilitiesAfter,
+						),
+					);
+					abilityGrowth = abilitiesAfter - abilitiesBefore;
+				}
 			}
 			const nameBytes = [...colors].reduce(
 				(sum, color) => sum + 1 + `${color}Used`.length,
 				0,
 			);
-			const equipBytes =
-				target !== undefined &&
-				target !== equipped &&
-				system?.equippedPresent === false
-					? 10 + 1 + "equippedMutation".length
-					: 0;
 			const stateBytes =
 				(system?.enabled !== true && system?.enabledPresent === false
 					? 9 + 1 + "isMutationSystemEnabled".length
@@ -1327,10 +1357,9 @@ const ACTIONS: readonly QuickAction[] = [
 			const added =
 				inserts * 12 +
 				nameBytes +
-				equipBytes +
 				stateBytes +
 				(slotsAfter - slotsBefore) +
-				(changedSlots === undefined ? 0 : slotNamesBefore);
+				abilityGrowth;
 			if (added !== 0) edits.push(...payloadGrowthEdits(doc, added));
 			return edits;
 		},
