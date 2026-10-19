@@ -150,8 +150,8 @@ export const useSaveDocument = (codec: SaveCodec): SaveDocument => {
 	);
 
 	const summary = useMemo(
-		() => (doc === null ? [] : codec.summarise(doc)),
-		[codec, doc],
+		() => (working === null ? [] : codec.summarise(working)),
+		[codec, working],
 	);
 
 	const rebuild = useCallback(async () => {
