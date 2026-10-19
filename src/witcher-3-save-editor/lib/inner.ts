@@ -21,14 +21,61 @@ export const readAscii = (
 };
 
 const HEADER_MAGIC = "SAV3";
+const LEGACY_MAGIC = "SAVY";
+
+/**
+ * The `SAV3` header: the magic and the three version fields the engine reads.
+ *
+ * Read, not asserted beyond the magic. The values are version fields — the
+ * committed fixtures carry `66/29/164` and build 5.0.1048522 writes
+ * `67/29/164` — so a hard check would reject a newer save the game loads. The
+ * magic *is* required: `SNFH`/`FZLC` is also the game's general compressed-file
+ * envelope, and a token walk over a file that is not a save produces a
+ * plausible document from unrelated bytes.
+ */
+type InnerHeader = {
+	readonly magic: typeof HEADER_MAGIC;
+	readonly saveVersion: number;
+	readonly typeCode1: number;
+	readonly typeCode2: number;
+};
+
+export const readHeader = (data: Uint8Array): InnerHeader => {
+	if (data.length < 16) {
+		throw new Error(
+			`The decompressed stream is ${data.length} bytes, too short for the 16-byte SAV3 header.`,
+		);
+	}
+	const magic = readAscii(data, 0, 4);
+	if (magic === LEGACY_MAGIC) {
+		throw new Error(
+			"This is a legacy SAVY save. The game still loads it, but this editor only understands the SAV3 stream; open a newer save (the game rewrites one when it saves).",
+		);
+	}
+	if (magic !== HEADER_MAGIC) {
+		throw new Error(
+			`The decompressed stream starts with ${JSON.stringify(
+				magic,
+			)} rather than ${JSON.stringify(
+				HEADER_MAGIC,
+			)}; this container is not a Witcher 3 save.`,
+		);
+	}
+	return {
+		magic: HEADER_MAGIC,
+		saveVersion: readU32(data, 4) ?? -1,
+		typeCode1: readU32(data, 8) ?? -1,
+		typeCode2: readU32(data, 12) ?? -1,
+	};
+};
 
 export const readSaveVersion = (data: Uint8Array): string => {
-	if (data.length < 16 || readAscii(data, 0, 4) !== HEADER_MAGIC) {
+	try {
+		const header = readHeader(data);
+		return `${header.saveVersion}/${header.typeCode1}/${header.typeCode2}`;
+	} catch {
 		return "unknown";
 	}
-	const codes = [readU32(data, 4), readU32(data, 8), readU32(data, 12)];
-	const numbers = codes.filter((code): code is number => code !== undefined);
-	return numbers.length === 3 ? numbers.join("/") : "unknown";
 };
 
 const FOOTER_MAGIC = "SE";

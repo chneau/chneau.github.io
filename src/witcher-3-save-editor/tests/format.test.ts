@@ -17,7 +17,9 @@ import {
 	stringAt,
 } from "../../shared/save/json";
 import { decompressContainer } from "../lib/container";
+import { buildContainer } from "../lib/container-write";
 import { witcher3 } from "../lib/format";
+import { readHeader } from "../lib/inner";
 import { locateWritable } from "../lib/write";
 import { FIXTURE_TIMEOUT_MS, largeSave, smallSave } from "./fixtures";
 
@@ -679,7 +681,7 @@ describe("the codec describes itself", () => {
 
 	test("carries format notes that are prose rather than placeholders", () => {
 		expect(witcher3.notes.length).toBeGreaterThanOrEqual(3);
-		expect(witcher3.notes.length).toBeLessThanOrEqual(4);
+		expect(witcher3.notes.length).toBeLessThanOrEqual(5);
 		for (const note of witcher3.notes) {
 			expect({
 				title: note.title.length > 0,
@@ -1061,6 +1063,90 @@ describe("difficulty", () => {
 					kind: "semantic",
 				});
 			}
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+});
+
+/**
+ * The inner `SAV3` header the engine itself reads and writes.
+ *
+ * The values here were read out of `witcher3.exe` (build 5.0.1048522): its
+ * writer emits `SAV3`, 67, 29, 164, and its loader reads the first value as the
+ * save version. The fixtures are one build older and carry 66, 29, 164, which
+ * is the point — the editor reports the version rather than asserting a build,
+ * and refuses only a stream that is not `SAV3` at all.
+ */
+describe("the inner SAV3 header", () => {
+	test("reads the three values from a real save's decompressed stream", () => {
+		expect(readHeader(decompressContainer(largeSave()).data)).toEqual({
+			magic: "SAV3",
+			saveVersion: 66,
+			typeCode1: 29,
+			typeCode2: 164,
+		});
+	});
+
+	test(
+		"reports the header in the document and the summary",
+		async () => {
+			const doc = await witcher3.decode(largeSave());
+			expect(getAtPath(doc, ["saveVersion"])).toBe("66/29/164");
+			expect(rowValue(doc, "Save version")).toBe("66/29/164");
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"refuses a valid container that does not hold a SAV3 stream",
+		async () => {
+			// The surrounding SNFH/FZLC envelope is also the game's general
+			// compressed-file container. A file that inflates cleanly but does not
+			// begin with SAV3 must be named as such, not walked as a token stream.
+			const container = decompressContainer(largeSave());
+			const payload = container.data.slice();
+			payload.set(new TextEncoder().encode("NOPE"), 0);
+			const rebuilt = buildContainer(container.chunks, payload);
+			await expect(witcher3.decode(rebuilt)).rejects.toThrow(
+				/decompressed stream starts with "NOPE".*"SAV3"/s,
+			);
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"accepts the newer version the installed build writes",
+		async () => {
+			// Build 5.0.1048522 writes 67 where the fixtures carry 66. The version
+			// is reported, not asserted, so a save from the newer build must still
+			// decode rather than being refused for a number the editor has not seen.
+			const container = decompressContainer(largeSave());
+			const payload = container.data.slice();
+			const view = new DataView(
+				payload.buffer,
+				payload.byteOffset,
+				payload.byteLength,
+			);
+			view.setUint32(4, 67, true);
+			const rebuilt = buildContainer(container.chunks, payload);
+			const doc = await witcher3.decode(rebuilt);
+			expect(getAtPath(doc, ["saveVersion"])).toBe("67/29/164");
+			expect(rowValue(doc, "Save version")).toBe("67/29/164");
+		},
+		FIXTURE_TIMEOUT_MS,
+	);
+
+	test(
+		"names a legacy SAVY stream instead of parsing it as SAV3",
+		async () => {
+			// The engine accepts both magics, but behind them are different stream
+			// formats. Parsing a SAVY stream with this token grammar would produce a
+			// wrong document rather than an honest failure.
+			const container = decompressContainer(largeSave());
+			const payload = container.data.slice();
+			payload.set(new TextEncoder().encode("SAVY"), 0);
+			const rebuilt = buildContainer(container.chunks, payload);
+			await expect(witcher3.decode(rebuilt)).rejects.toThrow(/SAVY/);
 		},
 		FIXTURE_TIMEOUT_MS,
 	);
