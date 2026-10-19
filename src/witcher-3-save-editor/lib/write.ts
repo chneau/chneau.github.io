@@ -47,6 +47,13 @@ type PatchableSkillSlot = {
 	readonly skillType?: number;
 };
 
+type PatchableMutagenSlot = {
+	readonly group: number;
+	readonly unlockedAtLevel: number;
+	readonly equipmentSlot: number;
+	readonly item: number | null;
+};
+
 type MutationSystem = {
 	readonly enabled?: boolean;
 	readonly enabledOffset?: number;
@@ -105,6 +112,7 @@ type WritableSave = {
 	readonly skillSlotsBytes: number;
 	readonly skillAbilities: readonly string[];
 	readonly skillAbilitiesBytes: number;
+	readonly mutagenSlots: readonly PatchableMutagenSlot[];
 	readonly mutationSystem: MutationSystem;
 	readonly equippedMutation?: string;
 };
@@ -508,6 +516,19 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 		.map((item) => cname(names, item))
 		.filter((name): name is string => name !== undefined);
 
+	const mutagenSlots: PatchableMutagenSlot[] = (
+		member(ability, "mutagenSlots")?.items ?? []
+	).map((item) => {
+		const value = member(item, "item")?.text ?? "";
+		const match = /^\{value=(\d+)\}$/.exec(value);
+		return {
+			group: numberAt(member(item, "skillGroupID")) ?? -1,
+			unlockedAtLevel: numberAt(member(item, "unlockedAtLevel")) ?? 0,
+			equipmentSlot: numberAt(member(item, "equipmentSlot")) ?? -1,
+			item: match === null ? null : Number(match[1]),
+		};
+	});
+
 	const enabledField = member(ability, "isMutationSystemEnabled");
 	const initializedField = member(ability, "mutationSkillSlotsInitialized");
 	const mutationSystem: MutationSystem = {
@@ -536,6 +557,7 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 		skillSlotsBytes: member(ability, "skillSlots")?.width ?? 0,
 		skillAbilities,
 		skillAbilitiesBytes: member(ability, "skillAbilities")?.width ?? 0,
+		mutagenSlots,
 		mutationSystem,
 		equippedMutation: enumName(
 			names,

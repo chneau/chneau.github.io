@@ -105,6 +105,13 @@ type SkillSlotRow = {
 	readonly skillType: number | null;
 };
 
+type MutagenSlotRow = {
+	readonly group: number;
+	readonly unlockedAtLevel: number;
+	readonly equipmentSlot: number;
+	readonly item: number | null;
+};
+
 type MutationRow = {
 	readonly name: string | null;
 	readonly colors: readonly string[];
@@ -279,6 +286,14 @@ const project = (container: SaveContainer): JsonValue => {
 			}),
 		),
 		skillAbilities: found.skillAbilities,
+		mutagenSlots: found.mutagenSlots.map(
+			(slot): MutagenSlotRow => ({
+				group: slot.group,
+				unlockedAtLevel: slot.unlockedAtLevel,
+				equipmentSlot: slot.equipmentSlot,
+				item: slot.item,
+			}),
+		),
 		mutations: found.mutations.map(
 			(m): MutationRow => ({
 				name: m.name ?? null,
@@ -924,6 +939,110 @@ const levelBearing = (
 	return out;
 };
 
+const skillLevelsFor = (
+	doc: JsonValue,
+	mode: "max" | "zero",
+): ReadonlyMap<number, number> => {
+	const levels = new Map<number, number>();
+	for (const row of requireArrayAt(doc, "skills")) {
+		if (!isJsonObject(row)) continue;
+		const type = numberAt(row, "type");
+		if (type === undefined || type < 1) continue;
+		const cap = numberAt(row, "maxLevel") ?? MAX_SKILL_LEVEL;
+		levels.set(type, mode === "max" ? cap : 0);
+	}
+	return levels;
+};
+
+type ActiveAbilityPlan = {
+	readonly abilities: readonly string[];
+	readonly current: readonly JsonValue[];
+	readonly beforeBytes: number;
+	readonly afterBytes: number;
+};
+
+const activeAbilityPlan = (
+	doc: JsonValue,
+	levels: ReadonlyMap<number, number>,
+): ActiveAbilityPlan => {
+	const byType = new Map<
+		number,
+		{
+			readonly ability?: string;
+			readonly core: boolean;
+			readonly level: number;
+		}
+	>();
+	for (const row of requireArrayAt(doc, "skills")) {
+		if (!isJsonObject(row)) continue;
+		const type = numberAt(row, "type");
+		if (type === undefined || type < 1) continue;
+		byType.set(type, {
+			ability: stringAt(row, "abilityName"),
+			core: row.isCoreSkill === true,
+			level: numberAt(row, "level") ?? 0,
+		});
+	}
+	const abilities: string[] = [];
+	for (const slot of arrayAt(doc, "skillSlots") ?? []) {
+		if (!isJsonObject(slot)) continue;
+		const type = numberAt(slot, "skillType");
+		if (type === undefined) continue;
+		const skill = byType.get(type);
+		if (skill === undefined || skill.core || skill.ability === undefined) {
+			continue;
+		}
+		const level = levels.get(type) ?? skill.level;
+		for (let index = 0; index < level; index += 1) {
+			abilities.push(skill.ability);
+		}
+	}
+	const current = arrayAt(doc, "skillAbilities") ?? [];
+	const container = objectAt(doc, "container");
+	const beforeBytes =
+		container === undefined
+			? 4 + current.length * 2
+			: (numberAt(container, "skillAbilitiesBytes") ?? 4 + current.length * 2);
+	return {
+		abilities,
+		current,
+		beforeBytes,
+		afterBytes:
+			beforeBytes === 0 && abilities.length === 0
+				? 0
+				: 4 + abilities.length * 2,
+	};
+};
+
+const abilityPlanEdits = (
+	doc: JsonValue,
+	plan: ActiveAbilityPlan,
+	id: string,
+): readonly SaveEdit[] => {
+	const edits: SaveEdit[] = [];
+	if (JSON.stringify(plan.abilities) !== JSON.stringify(plan.current)) {
+		edits.push({
+			id: `skillAbilities=${id}`,
+			label: "Active abilities",
+			path: ["skillAbilities"],
+			before: plan.current,
+			after: plan.abilities,
+		});
+	}
+	if (plan.afterBytes !== plan.beforeBytes) {
+		edits.push(
+			edit(
+				["container", "skillAbilitiesBytes"],
+				"Ability bytes",
+				plan.beforeBytes,
+				plan.afterBytes,
+			),
+		);
+		edits.push(...payloadGrowthEdits(doc, plan.afterBytes - plan.beforeBytes));
+	}
+	return edits;
+};
+
 const ACTIONS: readonly QuickAction[] = [
 	{
 		id: "crowns-max",
@@ -1259,7 +1378,7 @@ const ACTIONS: readonly QuickAction[] = [
 		id: "equipment-repair",
 		label: "Repair all equipment",
 		description:
-			"Set every item that records wear to 100%. Only equipment carries a wear value; an item the save stores as having none is left alone.",
+			"Set every item whose recorded durability is below 100 to 100. Items on a higher scale (some gear stores 200) are left alone because their maximum is not in the save. Items with no durability value are left alone.",
 		plan: (doc) => {
 			const items = requireArrayAt(doc, "items");
 			const edits: SaveEdit[] = [];
@@ -1294,11 +1413,11 @@ const ACTIONS: readonly QuickAction[] = [
 	{
 		id: "skills-learn-all",
 		label: "Max every skill",
-		description: `Set every skill in this save to its own maximum — level ${MAX_SKILL_LEVEL} at the top of the tree, less for the skills that cap lower. Each level is a 4-byte value already present in the save, so this resizes nothing.`,
+		description: `Set every skill in this save to its own maximum — level ${MAX_SKILL_LEVEL} at the top of the tree, less for the skills that cap lower — and rebuild the saved active-ability list for the skills you have socketed. This does not socket new skills; use the next action for that.`,
 		plan: (doc) => {
 			const skills = levelBearing(doc);
 			if (skills.length === 0) return [];
-			return skills
+			const edits: SaveEdit[] = skills
 				.filter((skill) => skill.level !== skill.maxLevel)
 				.map((skill) =>
 					edit(
@@ -1308,6 +1427,14 @@ const ACTIONS: readonly QuickAction[] = [
 						skill.maxLevel,
 					),
 				);
+			edits.push(
+				...abilityPlanEdits(
+					doc,
+					activeAbilityPlan(doc, skillLevelsFor(doc, "max")),
+					"learn-all",
+				),
+			);
+			return edits;
 		},
 	},
 	{
@@ -1461,11 +1588,12 @@ const ACTIONS: readonly QuickAction[] = [
 	{
 		id: "skills-reset",
 		label: "Reset every skill",
-		description: "Set every skill in this save back to level 0.",
+		description:
+			"Set every skill back to level 0 and clear the saved active-ability list. Socket assignments are kept, so maxing the skills again restores them.",
 		plan: (doc) => {
 			const skills = levelBearing(doc);
 			if (skills.length === 0) return [];
-			return skills
+			const edits: SaveEdit[] = skills
 				.filter((skill) => skill.level !== 0)
 				.map((skill) =>
 					edit(
@@ -1475,6 +1603,97 @@ const ACTIONS: readonly QuickAction[] = [
 						0,
 					),
 				);
+			edits.push(
+				...abilityPlanEdits(
+					doc,
+					activeAbilityPlan(doc, skillLevelsFor(doc, "zero")),
+					"reset",
+				),
+			);
+			return edits;
+		},
+	},
+	{
+		id: "skills-unequip-all",
+		label: "Unequip every skill",
+		description:
+			"Clear every socketed skill and the saved active-ability list. Skill levels are kept, so the next max action restores the same build.",
+		plan: (doc) => {
+			const slots = arrayAt(doc, "skillSlots") ?? [];
+			let changed = false;
+			const nextSlots = slots.map((row) => {
+				if (!isJsonObject(row)) return row;
+				if (numberAt(row, "skillType") === undefined) return row;
+				changed = true;
+				return { ...row, skill: null, skillType: null };
+			});
+			const edits: SaveEdit[] = [];
+			if (changed) {
+				edits.push({
+					id: "skillSlots=unequip-all",
+					label: "Skill slots",
+					path: ["skillSlots"],
+					before: slots,
+					after: nextSlots,
+				});
+			}
+			const current = arrayAt(doc, "skillAbilities") ?? [];
+			const container = objectAt(doc, "container");
+			const before =
+				container === undefined
+					? 4 + current.length * 2
+					: (numberAt(container, "skillAbilitiesBytes") ??
+						4 + current.length * 2);
+			const after = before === 0 ? 0 : 4;
+			if (before > 0 && current.length > 0) {
+				edits.push({
+					id: "skillAbilities=unequip-all",
+					label: "Active abilities",
+					path: ["skillAbilities"],
+					before: current,
+					after: [],
+				});
+				edits.push(
+					edit(
+						["container", "skillAbilitiesBytes"],
+						"Ability bytes",
+						before,
+						after,
+					),
+				);
+			}
+			const slotsBefore =
+				container === undefined
+					? encodedSlotBytes(slots)
+					: (numberAt(container, "skillSlotsBytes") ?? encodedSlotBytes(slots));
+			const slotsAfter = changed ? encodedSlotBytes(nextSlots) : slotsBefore;
+			if (slotsAfter !== slotsBefore) {
+				edits.push(
+					edit(
+						["container", "skillSlotsBytes"],
+						"Skill slot bytes",
+						slotsBefore,
+						slotsAfter,
+					),
+				);
+			}
+			const slotNames =
+				changed && container !== undefined
+					? (numberAt(container, "skillSlotNamesBytes") ?? 0)
+					: 0;
+			if (slotNames !== 0) {
+				edits.push(
+					edit(
+						["container", "skillSlotNamesBytes"],
+						"Skill slot names",
+						slotNames,
+						0,
+					),
+				);
+			}
+			const delta = slotsAfter - slotsBefore + (after - before) + slotNames;
+			if (delta !== 0) edits.push(...payloadGrowthEdits(doc, delta));
+			return edits;
 		},
 	},
 	{
@@ -1532,7 +1751,7 @@ const TABLES: readonly SaveTable[] = [
 		columns: [
 			{ label: "Item", path: ["name"], readOnly: true },
 			{ label: "Quantity", path: ["quantity"], width: "7rem" },
-			{ label: "Wear %", path: ["durability"], width: "7rem" },
+			{ label: "Durability", path: ["durability"], width: "7rem" },
 			{ label: "Slot", path: ["slot"], readOnly: true, width: "5rem" },
 		],
 	},
@@ -1563,6 +1782,27 @@ const TABLES: readonly SaveTable[] = [
 				readOnly: true,
 			},
 			{ label: "Skill type", path: ["skillType"], width: "6rem" },
+		],
+	},
+	{
+		id: "mutagen-slots",
+		label: "Mutagen slots",
+		path: ["mutagenSlots"],
+		columns: [
+			{ label: "Group", path: ["group"], readOnly: true, width: "5rem" },
+			{ label: "Item", path: ["item"], readOnly: true, width: "7rem" },
+			{
+				label: "Unlocked at",
+				path: ["unlockedAtLevel"],
+				readOnly: true,
+				width: "8rem",
+			},
+			{
+				label: "Equipment slot",
+				path: ["equipmentSlot"],
+				readOnly: true,
+				width: "9rem",
+			},
 		],
 	},
 	{
