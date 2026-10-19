@@ -708,6 +708,7 @@ describe("the codec describes itself", () => {
 			"mutation-research-kit",
 			"mutations-max",
 			"mutagens-greater",
+			"equipment-repair",
 			"experience-max",
 			"skills-learn-all",
 			"skills-reset",
