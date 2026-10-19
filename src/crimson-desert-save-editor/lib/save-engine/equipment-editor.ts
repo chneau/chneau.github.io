@@ -351,11 +351,6 @@ const applyValidSocketCount = async (
 		structuralMode = "scalar_existing_field";
 		rawSizeDelta = 0;
 	} else {
-		if (oldCount !== 0 || newCount !== 1) {
-			throw new Error(
-				"A missing count field may only be initialized from 0 to 1",
-			);
-		}
 		if (!("_socketSaveDataList" in before.fieldOffsets)) {
 			throw new Error(
 				"Cannot locate the socket list following the missing count",

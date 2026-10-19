@@ -295,6 +295,7 @@ export const applyDyeEdit = async (
 				field.start === undefined ||
 				field.end === undefined
 			) {
+				if (edit.slotIndices === null) continue;
 				throw new Error(
 					`Dye part ${index + 1} of this item does not store ${channel.field.replace(
 						/^_/,

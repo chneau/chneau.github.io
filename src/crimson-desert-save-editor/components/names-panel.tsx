@@ -66,13 +66,12 @@ export const NamesPanel = ({
 
 	const stageName = (row: CompanionNameRow, value: string) => {
 		const rest = edits.filter((edit) => edit.mercenaryNo !== row.mercenaryNo);
-		const name = value.trim();
-		if (name.length === 0) {
+		if (value.trim().length === 0) {
 			setNotice("");
 			onStage(rest);
 			return;
 		}
-		const rejection = nameRejection(name);
+		const rejection = nameRejection(value);
 		if (rejection) {
 			setNotice(`${rejection}. Keeping the previous value.`);
 			return;
@@ -84,7 +83,7 @@ export const NamesPanel = ({
 				type: "renameCompanion",
 				mercenaryNo: row.mercenaryNo,
 				characterKey: row.characterKey,
-				name,
+				name: value,
 				label: `${row.species} ${row.mercenaryNo}`,
 			},
 		]);

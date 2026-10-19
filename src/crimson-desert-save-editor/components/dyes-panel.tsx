@@ -120,15 +120,19 @@ export const DyesPanel = ({
 			...channelsOf(edits, item, index),
 			...normalized,
 		};
-		const others = edits.filter(
+		const bulk = edits.filter(
+			(candidate) =>
+				sameItem(candidate, item) && candidate.slotIndices === null,
+		);
+		const singles = edits.filter(
 			(candidate) =>
 				!sameItem(candidate, item) ||
 				(candidate.slotIndices !== null && candidate.slotIndices[0] !== index),
 		);
-		const bulk = others.filter((candidate) => candidate.slotIndices === null);
-		const singles = others.filter(
-			(candidate) => candidate.slotIndices !== null,
-		);
+		if (Object.values(current).every((value) => value === null)) {
+			onStage([...bulk, ...singles]);
+			return;
+		}
 		onStage([
 			...bulk,
 			...singles,

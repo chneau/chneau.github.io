@@ -98,17 +98,26 @@ const withRowMovedTo = (
 	return [...presets, ...rows];
 };
 
+const sameKinds = (
+	left: readonly QuestKind[],
+	right: readonly QuestKind[],
+): boolean =>
+	left.length === right.length &&
+	left.every((kind, index) => kind === right[index]);
+
 const withPresetToggled = (
 	edits: QuestStateEdit[],
 	preset: QuestPreset,
 	kinds: QuestKind[],
 ): QuestStateEdit[] => {
+	const matches = (edit: QuestPresetEdit): boolean =>
+		edit.preset === preset && sameKinds(edit.kinds, kinds);
 	const presets = edits.filter(
 		(edit): edit is QuestPresetEdit => edit.type === "questPreset",
 	);
 	const rows = edits.filter((edit): edit is QuestEdit => edit.type === "quest");
-	const rest = presets.filter((edit) => edit.preset !== preset);
-	const queued = presets.find((edit) => edit.preset === preset);
+	const rest = presets.filter((edit) => !matches(edit));
+	const queued = presets.find(matches);
 	if (queued) return [...rest, ...rows];
 	const verb = preset === "completeAll" ? "Complete" : "Reset";
 	return [
@@ -201,53 +210,62 @@ const PresetControls = ({
 	loaded: boolean;
 	onScopeChange: (scope: QuestKind | "all") => void;
 	onConfirm: (preset: QuestPreset) => void;
-}) => (
-	<Group align="flex-end" gap="sm">
-		<Select
-			w={200}
-			size="xs"
-			label="Batch scope"
-			value={scope}
-			allowDeselect={false}
-			data={[
-				{ value: "all", label: "All four tables" },
-				...kindOrder.map((entry) => ({
-					value: entry,
-					label: questKindLabels[entry],
-				})),
-			]}
-			onChange={(value) =>
-				onScopeChange((value ?? "quest") as QuestKind | "all")
-			}
-		/>
-		<Button
-			size="xs"
-			variant={
-				presets.some((edit) => edit.preset === "completeAll")
-					? "filled"
-					: "default"
-			}
-			leftSection={<CheckCheck size={14} />}
-			disabled={busy || !loaded}
-			onClick={() => onConfirm("completeAll")}
-		>
-			Complete all
-		</Button>
-		<Button
-			size="xs"
-			variant={
-				presets.some((edit) => edit.preset === "resetAll")
-					? "filled"
-					: "default"
-			}
-			leftSection={<RotateCcw size={14} />}
-			disabled={busy || !loaded}
-			onClick={() => onConfirm("resetAll")}
-		>
-			Reset all
-		</Button>
-	</Group>
-);
+}) => {
+	const kinds = scope === "all" ? kindOrder : [scope];
+	return (
+		<Group align="flex-end" gap="sm">
+			<Select
+				w={200}
+				size="xs"
+				label="Batch scope"
+				value={scope}
+				allowDeselect={false}
+				data={[
+					{ value: "all", label: "All four tables" },
+					...kindOrder.map((entry) => ({
+						value: entry,
+						label: questKindLabels[entry],
+					})),
+				]}
+				onChange={(value) =>
+					onScopeChange((value ?? "quest") as QuestKind | "all")
+				}
+			/>
+			<Button
+				size="xs"
+				variant={
+					presets.some(
+						(edit) =>
+							edit.preset === "completeAll" && sameKinds(edit.kinds, kinds),
+					)
+						? "filled"
+						: "default"
+				}
+				leftSection={<CheckCheck size={14} />}
+				disabled={busy || !loaded}
+				onClick={() => onConfirm("completeAll")}
+			>
+				Complete all
+			</Button>
+			<Button
+				size="xs"
+				variant={
+					presets.some(
+						(edit) =>
+							edit.preset === "resetAll" && sameKinds(edit.kinds, kinds),
+					)
+						? "filled"
+						: "default"
+				}
+				leftSection={<RotateCcw size={14} />}
+				disabled={busy || !loaded}
+				onClick={() => onConfirm("resetAll")}
+			>
+				Reset all
+			</Button>
+		</Group>
+	);
+};
 
 const StagedQuestSummary = ({
 	edits,
