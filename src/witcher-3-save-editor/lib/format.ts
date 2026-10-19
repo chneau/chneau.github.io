@@ -24,7 +24,7 @@ import { buildContainer } from "./container-write";
 import { readDialogues } from "./dialogues";
 import { readEntityFlags } from "./entities";
 import { readFactDB } from "./facts";
-import { readSaveVersion } from "./inner";
+import { readHeader, readSaveVersion } from "./inner";
 import { readContainers } from "./inventory";
 import { readJournal } from "./journal";
 import { maxMutationsInPayload } from "./max-mutations";
@@ -296,6 +296,11 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 	if (container.chunks.length === 0) {
 		throw new Error("The save has no content chunks.");
 	}
+	// The container is also the game's general compressed-file envelope, so a
+	// valid `SNFH` file is not necessarily a save. The engine checks this magic
+	// before it reads a save, and the token walk below has no way to tell a
+	// non-save stream from a corrupt one.
+	readHeader(container.data);
 	const doc = project(container);
 	attachScaffold(doc, {
 		payload: container.data,
@@ -1001,6 +1006,10 @@ const NOTES: readonly FormatNote[] = [
 	{
 		title: "Addresses are found, never remembered",
 		body: "Three saves of the same build put the wallet at 3640748, 3640300 and 3640999, because everything ahead of it in the stream moves. So this editor looks each field up by its shape and its build-specific identity every time, and stores values rather than addresses. The wallet is found by requiring both the record shape and the item identity: the shape alone matches 1845 records in a real save, and only one of them is the player's.",
+	},
+	{
+		title: "The header the engine reads",
+		body: "A decompressed save begins with SAV3 and three u32 values. The installed build's writer emits 67, 29 and 164; the reference saves here carry 66, 29 and 164. The engine reads the first as the save version, and one of its loader paths rejects a version at or above 68 or a third value at or above 165. They are version fields, not constants, so this editor reports them and does not assert exact numbers: a hard check would reject a newer save the game still loads. It does require the SAV3 magic, because the surrounding SNFH/FZLC container is also used for files that are not saves, and SAVY — the engine's legacy magic — is named in the error rather than parsed with the wrong grammar.",
 	},
 	{
 		title: "What the game does with the result",
