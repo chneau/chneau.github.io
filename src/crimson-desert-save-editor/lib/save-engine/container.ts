@@ -14,6 +14,8 @@ const MAGIC = new Uint8Array([0x53, 0x41, 0x56, 0x45]);
 const HEADER_SIZE = 0x80;
 const VERSION_OFFSET = 0x04;
 const FLAGS_OFFSET = 0x06;
+const COMPRESSION_OFFSET = 0x0c;
+const COMPRESSION_LZ4 = 0x2;
 const UNCOMPRESSED_SIZE_OFFSET = 0x12;
 const PAYLOAD_SIZE_OFFSET = 0x16;
 const NONCE_OFFSET = 0x1a;
@@ -39,6 +41,7 @@ class SaveContainerError extends Error {
 export type SaveHeader = {
 	version: number;
 	flags: number;
+	compressed: boolean;
 	uncompressedSize: number;
 	payloadSize: number;
 	nonce: Uint8Array;
@@ -82,8 +85,32 @@ const parseHeader = (data: Uint8Array): SaveHeader => {
 	}
 	const version = readU16(data, VERSION_OFFSET);
 	const flags = readU16(data, FLAGS_OFFSET);
+	const compression = readU32(data, COMPRESSION_OFFSET);
 	const uncompressedSize = readU32(data, UNCOMPRESSED_SIZE_OFFSET);
 	const payloadSize = readU32(data, PAYLOAD_SIZE_OFFSET);
+	if (VERSION_PREFIXES[version] === undefined) {
+		throw new SaveContainerError(
+			`Unsupported save-container version ${version}`,
+		);
+	}
+	if (flags !== 0x80) {
+		throw new SaveContainerError(
+			`Unsupported save flags 0x${flags.toString(16).toUpperCase()}; expected 0x80`,
+		);
+	}
+	if (compression !== 0 && compression !== COMPRESSION_LZ4) {
+		throw new SaveContainerError(
+			`Unsupported compression method ${compression}; expected 0 or ${COMPRESSION_LZ4}`,
+		);
+	}
+	if (uncompressedSize === 0 || payloadSize === 0) {
+		throw new SaveContainerError("Save header declares an empty payload");
+	}
+	if (payloadSize > uncompressedSize) {
+		throw new SaveContainerError(
+			`Payload size ${payloadSize} exceeds the declared ${uncompressedSize} bytes`,
+		);
+	}
 	const end = PAYLOAD_OFFSET + payloadSize;
 	if (end !== data.length) {
 		throw new SaveContainerError(
@@ -93,6 +120,7 @@ const parseHeader = (data: Uint8Array): SaveHeader => {
 	return {
 		version,
 		flags,
+		compressed: compression === COMPRESSION_LZ4,
 		uncompressedSize,
 		payloadSize,
 		nonce: data.slice(NONCE_OFFSET, NONCE_OFFSET + 16),
@@ -150,7 +178,9 @@ export const decodeSave = async (data: Uint8Array): Promise<DecodeResult> => {
 	if (!constantTimeEqual(actualDigest, header.digest)) {
 		throw new SaveContainerError("HMAC verification failed; refusing to parse");
 	}
-	const raw = lz4DecompressBlock(compressed, header.uncompressedSize);
+	const raw = header.compressed
+		? lz4DecompressBlock(compressed, header.uncompressedSize)
+		: compressed;
 	return { header, compressedPayload: compressed, rawPayload: raw };
 };
 
@@ -159,16 +189,21 @@ export const encodeSave = async (
 	original: SaveHeader,
 ): Promise<Uint8Array> => {
 	const key = saveKey(original.version);
-	const compressed = lz4CompressBlock(rawPayload);
+	const packed = original.compressed
+		? lz4CompressBlock(rawPayload)
+		: rawPayload;
+	const compressed = original.compressed && packed.length < rawPayload.length;
+	const stored = compressed ? packed : rawPayload;
 	const nonce = crypto.getRandomValues(new Uint8Array(16));
-	const digest = await hmacSha256(key, compressed);
-	const encrypted = chacha20(compressed, nonce, key);
+	const digest = await hmacSha256(key, stored);
+	const encrypted = chacha20(stored, nonce, key);
 	const header = original.raw.slice();
 	header.set(MAGIC, 0);
 	writeU16(header, VERSION_OFFSET, original.version);
 	writeU16(header, FLAGS_OFFSET, original.flags);
+	writeU32(header, COMPRESSION_OFFSET, compressed ? COMPRESSION_LZ4 : 0);
 	writeU32(header, UNCOMPRESSED_SIZE_OFFSET, rawPayload.length);
-	writeU32(header, PAYLOAD_SIZE_OFFSET, compressed.length);
+	writeU32(header, PAYLOAD_SIZE_OFFSET, stored.length);
 	header.set(nonce, NONCE_OFFSET);
 	header.set(digest, HMAC_OFFSET);
 	return concatBytes(header, encrypted);
