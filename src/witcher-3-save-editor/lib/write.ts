@@ -3,6 +3,7 @@ import {
 	type InventoryItem,
 	playerInventory,
 } from "./inventory";
+import { ENGINE_MUTATION_NAME_SUFFIX, WANTED_USED } from "./max-mutations";
 import { CROWNS_IDENTITY_52586 } from "./money";
 import { readNameTable } from "./names";
 import { type ReflectedValue, reflectValue } from "./reflect";
@@ -64,6 +65,11 @@ type MutationSystem = {
 	readonly equipped?: string;
 	readonly equippedOffset?: number;
 	readonly equippedPresent: boolean;
+	readonly active: readonly string[];
+	readonly activePresent: boolean;
+	readonly activeNameBytes: number;
+	readonly mutationNameBytes: number;
+	readonly mutationUsedBytes: number;
 };
 
 type DifficultyChoice = {
@@ -531,6 +537,46 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 
 	const enabledField = member(ability, "isMutationSystemEnabled");
 	const initializedField = member(ability, "mutationSkillSlotsInitialized");
+	const activeField = member(ability, "equippedMutations");
+	const activeNameBytes = [
+		...(activeField === undefined
+			? ["equippedMutations", "array:2,0,EPlayerMutationType"]
+			: []),
+		...(enabledField === undefined ? ["isMutationSystemEnabled"] : []),
+		...(initializedField === undefined
+			? ["mutationSkillSlotsInitialized"]
+			: []),
+	]
+		.filter((name) => !names.includes(name))
+		.reduce((sum, name) => sum + 1 + name.length, 0);
+	const mutationUsedBytes = (member(ability, "mutations")?.items ?? []).reduce(
+		(sum, item) => {
+			if (
+				enumName(names, numberAt(member(item, "type"))) ===
+				"EPMT_MutationMaster"
+			) {
+				return sum;
+			}
+			const present = new Set(
+				(member(item, "progress")?.fields ?? []).map((field) => field.name),
+			);
+			return (
+				sum +
+				WANTED_USED.filter(
+					(name) =>
+						present.has(name.replace("Used", "Required")) && !present.has(name),
+				).length *
+					12
+			);
+		},
+		0,
+	);
+	const mutationNameBytes = [
+		...ENGINE_MUTATION_NAME_SUFFIX,
+		"array:2,0,EPlayerMutationType",
+	]
+		.filter((name) => !names.includes(name))
+		.reduce((sum, name) => sum + 1 + name.length, 0);
 	const mutationSystem: MutationSystem = {
 		enabled: enabledField?.text === "true",
 		enabledOffset: memberOffset(ability, "isMutationSystemEnabled"),
@@ -541,6 +587,13 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 		equipped: enumName(names, numberAt(member(ability, "equippedMutation"))),
 		equippedOffset: memberOffset(ability, "equippedMutation"),
 		equippedPresent: member(ability, "equippedMutation") !== undefined,
+		active: (activeField?.items ?? [])
+			.map((item) => enumName(names, numberAt(item)))
+			.filter((name): name is string => name !== undefined),
+		activePresent: activeField !== undefined,
+		activeNameBytes,
+		mutationNameBytes,
+		mutationUsedBytes,
 	};
 
 	return {

@@ -337,6 +337,11 @@ const project = (container: SaveContainer): JsonValue => {
 			initializedPresent: found.mutationSystem.initializedPresent,
 			equipped: found.mutationSystem.equipped ?? null,
 			equippedPresent: found.mutationSystem.equippedPresent,
+			active: found.mutationSystem.active,
+			activePresent: found.mutationSystem.activePresent,
+			activeNameBytes: found.mutationSystem.activeNameBytes,
+			mutationNameBytes: found.mutationSystem.mutationNameBytes,
+			mutationUsedBytes: found.mutationSystem.mutationUsedBytes,
 		},
 		equippedMutation: found.equippedMutation ?? null,
 		stats: {
@@ -506,8 +511,20 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		enableSystem && found.mutationSystem.enabledOffset === undefined;
 	const wantsInitializeInsert =
 		initializeSlots && found.mutationSystem.initializedOffset === undefined;
+	const activeNames = (
+		system === undefined ? undefined : arrayAt(system, "active")
+	)?.filter((name): name is string => typeof name === "string");
+	const wantsActivation =
+		activeNames !== undefined &&
+		(activeNames.length !== found.mutationSystem.active.length ||
+			activeNames.some(
+				(name, index) => name !== found.mutationSystem.active[index],
+			));
+	const activationOnly =
+		wantsActivation && !wantsMutationResize && !wantsEquipInsert;
 	const needsMutationWrite =
 		wantsMutationResize ||
+		wantsActivation ||
 		(found.mutations.length > 0 &&
 			(wantsEquipInsert || wantsSystemInsert || wantsInitializeInsert));
 	if (needsMutationWrite) {
@@ -520,6 +537,8 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		const resized = maxMutationsInPayload({ data: payload, chunks }, equip, {
 			enableSystem,
 			initializeSlots,
+			activateOnly: activationOnly,
+			activeTypes: activeNames,
 		});
 		payload = resized.data;
 		chunks = resized.chunks;
@@ -532,10 +551,12 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		chunks = synced.chunks;
 		found = locateWritable(payload);
 	}
-	const stripped = stripMasterOverallProgress({ data: payload, chunks });
-	payload = stripped.data;
-	chunks = stripped.chunks;
-	found = locateWritable(payload);
+	if (!activationOnly) {
+		const stripped = stripMasterOverallProgress({ data: payload, chunks });
+		payload = stripped.data;
+		chunks = stripped.chunks;
+		found = locateWritable(payload);
+	}
 
 	const apply = (target: PatchableScalar | undefined, key: string): void => {
 		if (target === undefined) return;
@@ -1177,6 +1198,178 @@ const ACTIONS: readonly QuickAction[] = [
 		},
 	},
 	{
+		id: "mutations-activate",
+		label: "Unlock and activate all mutations",
+		description:
+			"Sets every mutation except Mutation Master to its required research, enables the mutation system, and puts all twelve mutations in equippedMutations. Skill slots and active abilities are left untouched.",
+		plan: (doc) => {
+			const mutations = requireArrayAt(doc, "mutations");
+			const edits: SaveEdit[] = [];
+			const types: string[] = [];
+			let masterStrip = 0;
+			mutations.forEach((row, index) => {
+				if (!isJsonObject(row)) return;
+				const progress = objectAt(row, "progress");
+				if (progress === undefined) return;
+				const name = stringAt(row, "name") ?? `mutation ${index}`;
+				if (name === "EPMT_MutationMaster") {
+					const overall = numberAt(progress, "overallProgress");
+					if (overall !== undefined && overall !== null) {
+						edits.push(
+							edit(
+								["mutations", index, "progress", "overallProgress"],
+								`${name} progress`,
+								overall,
+								null,
+							),
+						);
+						masterStrip = 12;
+					}
+					return;
+				}
+				types.push(name);
+				for (const color of ["red", "blue", "green", "skillpoints"]) {
+					const required = numberAt(progress, `${color}Required`);
+					if (required === undefined || required === null || required <= 0) {
+						continue;
+					}
+					const used = numberAt(progress, `${color}Used`);
+					if ((used ?? 0) >= required) continue;
+					edits.push(
+						edit(
+							["mutations", index, "progress", `${color}Used`],
+							`${name} ${color}`,
+							used ?? null,
+							required,
+						),
+					);
+				}
+				const overall = numberAt(progress, "overallProgress");
+				if (overall !== undefined && overall !== null && overall < 100) {
+					edits.push(
+						edit(
+							["mutations", index, "progress", "overallProgress"],
+							`${name} progress`,
+							overall,
+							100,
+						),
+					);
+				}
+				if (row.researched !== true) {
+					edits.push(
+						edit(
+							["mutations", index, "researched"],
+							`${name} researched`,
+							false,
+							true,
+						),
+					);
+				}
+			});
+			types.reverse();
+			const system = objectAt(doc, "mutationSystem");
+			const active = (arrayAt(system, "active") ?? []).filter(
+				(name): name is string => typeof name === "string",
+			);
+			if (!types.every((name) => active.includes(name))) {
+				edits.push(
+					edit(["mutationSystem", "active"], "Active mutations", active, types),
+				);
+			}
+			if (system?.enabled !== true) {
+				edits.push(
+					edit(
+						["mutationSystem", "enabled"],
+						"Mutation system",
+						system?.enabled ?? null,
+						true,
+					),
+				);
+			}
+			if (system?.enabledPresent !== true) {
+				edits.push(
+					edit(
+						["mutationSystem", "enabledPresent"],
+						"Mutation system field",
+						false,
+						true,
+					),
+				);
+			}
+			if (system?.initialized !== true) {
+				edits.push(
+					edit(
+						["mutationSystem", "initialized"],
+						"Mutation skill slots",
+						system?.initialized ?? null,
+						true,
+					),
+				);
+			}
+			if (system?.initializedPresent !== true) {
+				edits.push(
+					edit(
+						["mutationSystem", "initializedPresent"],
+						"Mutation slot field",
+						false,
+						true,
+					),
+				);
+			}
+			const present = system?.activePresent === true;
+			const nameBytes = numberAt(system, "mutationNameBytes") ?? 0;
+			const equippedBytes = present ? 0 : 12 + types.length * 2;
+			const stateBytes =
+				(system?.enabledPresent === true ? 0 : 9) +
+				(system?.initializedPresent === true ? 0 : 9);
+			const added =
+				(numberAt(system, "mutationUsedBytes") ?? 0) +
+				equippedBytes +
+				stateBytes +
+				nameBytes -
+				masterStrip;
+			if (added !== 0) edits.push(...payloadGrowthEdits(doc, added));
+			if (!present) {
+				edits.push(
+					edit(
+						["mutationSystem", "activePresent"],
+						"Activation field",
+						false,
+						true,
+					),
+				);
+			}
+			if (nameBytes > 0) {
+				edits.push(
+					edit(
+						["mutationSystem", "activeNameBytes"],
+						"Activation names",
+						numberAt(system, "activeNameBytes") ?? 0,
+						0,
+					),
+					edit(
+						["mutationSystem", "mutationNameBytes"],
+						"Mutation names",
+						nameBytes,
+						0,
+					),
+				);
+			}
+			const usedBytes = numberAt(system, "mutationUsedBytes") ?? 0;
+			if (usedBytes > 0) {
+				edits.push(
+					edit(
+						["mutationSystem", "mutationUsedBytes"],
+						"Used field growth",
+						usedBytes,
+						0,
+					),
+				);
+			}
+			return edits;
+		},
+	},
+	{
 		id: "mutations-max",
 		label: "Max all mutations",
 		description:
@@ -1184,7 +1377,6 @@ const ACTIONS: readonly QuickAction[] = [
 		plan: (doc) => {
 			const mutations = requireArrayAt(doc, "mutations");
 			const edits: SaveEdit[] = [];
-			const colors = new Set<string>();
 			const mutationNames: string[] = [];
 			let inserts = 0;
 			mutations.forEach((row, index) => {
@@ -1192,7 +1384,20 @@ const ACTIONS: readonly QuickAction[] = [
 				const progress = objectAt(row, "progress");
 				if (progress === undefined) return;
 				const name = stringAt(row, "name") ?? `mutation ${index}`;
-				if (name === "EPMT_MutationMaster") return;
+				if (name === "EPMT_MutationMaster") {
+					const overall = numberAt(progress, "overallProgress");
+					if (overall !== undefined && overall !== null) {
+						edits.push(
+							edit(
+								["mutations", index, "progress", "overallProgress"],
+								`${name} progress`,
+								overall,
+								null,
+							),
+						);
+					}
+					return;
+				}
 				mutationNames.push(name);
 				for (const color of ["red", "blue", "green", "skillpoints"]) {
 					const required = numberAt(progress, `${color}Required`);
@@ -1212,7 +1417,6 @@ const ACTIONS: readonly QuickAction[] = [
 					);
 					if (usedValue === undefined || usedValue === null) {
 						inserts += 1;
-						colors.add(color);
 					}
 				}
 				const overall = numberAt(progress, "overallProgress");
@@ -1239,6 +1443,45 @@ const ACTIONS: readonly QuickAction[] = [
 			});
 			if (mutationNames.length === 0) return edits;
 			const system = objectAt(doc, "mutationSystem");
+			const activeTypes = [...mutationNames].reverse();
+			const active = (arrayAt(system, "active") ?? []).filter(
+				(name): name is string => typeof name === "string",
+			);
+			if (
+				activeTypes.length > 0 &&
+				!activeTypes.every((name) => active.includes(name))
+			) {
+				edits.push(
+					edit(
+						["mutationSystem", "active"],
+						"Active mutations",
+						active,
+						activeTypes,
+					),
+				);
+			}
+			if (system?.activePresent !== true) {
+				edits.push(
+					edit(
+						["mutationSystem", "activePresent"],
+						"Activation field",
+						false,
+						true,
+					),
+					edit(
+						["mutationSystem", "activeNameBytes"],
+						"Activation names",
+						system?.activeNameBytes ?? 0,
+						0,
+					),
+					edit(
+						["mutationSystem", "mutationNameBytes"],
+						"Mutation names",
+						system?.mutationNameBytes ?? 0,
+						0,
+					),
+				);
+			}
 			if (system?.enabled !== true) {
 				edits.push(
 					edit(
@@ -1344,10 +1587,9 @@ const ACTIONS: readonly QuickAction[] = [
 					abilityGrowth = abilitiesAfter - abilitiesBefore;
 				}
 			}
-			const nameBytes = [...colors].reduce(
-				(sum, color) => sum + 1 + `${color}Used`.length,
-				0,
-			);
+			const nameBytes = numberAt(system, "mutationNameBytes") ?? 0;
+			const equippedBytes =
+				system?.activePresent === true ? 0 : 12 + activeTypes.length * 2;
 			const stateBytes =
 				(system?.enabled !== true && system?.enabledPresent === false
 					? 9 + 1 + "isMutationSystemEnabled".length
@@ -1357,6 +1599,7 @@ const ACTIONS: readonly QuickAction[] = [
 					: 0);
 			const added =
 				inserts * 12 +
+				equippedBytes +
 				nameBytes +
 				stateBytes +
 				(slotsAfter - slotsBefore) +
