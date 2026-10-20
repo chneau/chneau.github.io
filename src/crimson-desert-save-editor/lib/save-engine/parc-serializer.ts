@@ -3,6 +3,7 @@ import {
 	concatBytes,
 	readF32,
 	readF64,
+	readI8,
 	readI16,
 	readI32,
 	readI64,
@@ -459,7 +460,10 @@ export class BlockParser {
 		let cursor = pos;
 		for (let index = 0; index < typedef.fields.length; index++) {
 			const fdef = defined(typedef.fields[index], "field definition");
-			if (!fieldPresent(maskBytes, index)) continue;
+			if (!fieldPresent(maskBytes, index)) {
+				if (fdef.metaKind === 6 || fdef.metaKind === 7) cursor += 1;
+				continue;
+			}
 			const start = cursor;
 			const [value, end] = this.parseFieldValue(fdef, cursor, tail);
 			visit(index, fdef.name, start, end, value);
@@ -480,6 +484,7 @@ export class BlockParser {
 		for (let index = 0; index < typedef.fields.length; index++) {
 			const fdef = defined(typedef.fields[index], "field definition");
 			if (!fieldPresent(maskBytes, index)) {
+				if (fdef.metaKind === 6 || fdef.metaKind === 7) cursor += 1;
 				fields.push(defined(absent[index], "absent field entry"));
 				continue;
 			}
@@ -619,7 +624,10 @@ export class BlockParser {
 	readScalar(fdef: FieldDef, pos: number): number {
 		const metaSize = fdef.metaSize;
 		const typeName = fdef.typeName.toLowerCase();
-		if (metaSize === 1) return readU8(this.data, pos);
+		if (metaSize === 1) {
+			if (typeName.includes("int8")) return readI8(this.data, pos);
+			return readU8(this.data, pos);
+		}
 		if (metaSize === 2) {
 			if (typeName.includes("int16")) return readI16(this.data, pos);
 			return readU16(this.data, pos);
@@ -726,7 +734,10 @@ export class BlockParser {
 
 		for (let index = 0; index < typedef.fields.length; index++) {
 			const fdef = defined(typedef.fields[index], "field definition");
-			if (!fieldPresent(maskBytes, index)) continue;
+			if (!fieldPresent(maskBytes, index)) {
+				if (fdef.metaKind === 6 || fdef.metaKind === 7) cursor += 1;
+				continue;
+			}
 			const [, next] = this.parseFieldValue(fdef, cursor, tail);
 			cursor = next;
 		}

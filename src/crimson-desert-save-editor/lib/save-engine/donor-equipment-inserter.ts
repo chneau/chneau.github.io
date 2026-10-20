@@ -16,7 +16,6 @@ import { readKnowledge } from "./knowledge-reader";
 import {
 	listLayout,
 	locator,
-	parseFieldsWithListTrailers,
 	shiftExistingBlockPointers,
 	typeSignatureArray,
 	writeListCount,
@@ -54,9 +53,7 @@ const readInventoryItemDyes = (
 	);
 	const itemType = parc.typeByIndex.get(itemTypeIndex);
 	if (!itemType) throw new Error("Item type was not found");
-	const parsedFields = parseFieldsWithListTrailers(
-		raw,
-		parser,
+	const [parsedFields] = parser.parseFields(
 		itemType,
 		itemMask,
 		itemPayload + 4,
@@ -199,9 +196,7 @@ export const insertDonorEquipmentIntoInventory = async (
 		);
 		const itemType = donorParc.typeByIndex.get(itemTypeIndex);
 		if (!itemType) throw new Error("Donor item type was not found");
-		const parsedFields = parseFieldsWithListTrailers(
-			donorRaw,
-			donorParser,
+		const [parsedFields] = donorParser.parseFields(
 			itemType,
 			itemMask,
 			itemPayload + 4,
