@@ -1,16 +1,10 @@
 import type { Bytes } from "../../shared/save/bytes";
-import type { SaveContainer } from "./container";
 import { buildContainer } from "./container-write";
-import { readU32 } from "./inner";
 import { type InventoryItem, playerInventory } from "./inventory";
 import { readNameTable } from "./names";
 import { readObjectTree } from "./objects";
+import { type Resizable, shiftSpanIndex } from "./payload-resize";
 import { parseTokens } from "./tokens";
-
-type Resizable = {
-	readonly data: Uint8Array;
-	readonly chunks: SaveContainer["chunks"];
-};
 
 type AddItemRequest = {
 	readonly name: string;
@@ -18,17 +12,10 @@ type AddItemRequest = {
 	readonly template?: string;
 };
 
-const BASE = 3084;
 const RECORD_SIZE = 30;
 
 const u16 = (data: Uint8Array, at: number): number =>
 	(data[at] ?? 0) | ((data[at + 1] ?? 0) << 8);
-const u32 = (data: Uint8Array, at: number): number =>
-	((data[at] ?? 0) |
-		((data[at + 1] ?? 0) << 8) |
-		((data[at + 2] ?? 0) << 16) |
-		((data[at + 3] ?? 0) << 24)) >>>
-	0;
 const writeU16 = (data: Uint8Array, at: number, value: number): void => {
 	data[at] = value & 0xff;
 	data[at + 1] = (value >>> 8) & 0xff;
@@ -38,15 +25,6 @@ const writeU32 = (data: Uint8Array, at: number, value: number): void => {
 	data[at + 1] = (value >>> 8) & 0xff;
 	data[at + 2] = (value >>> 16) & 0xff;
 	data[at + 3] = (value >>> 24) & 0xff;
-};
-
-const findSpanIndex = (data: Uint8Array): { at: number; count: number } => {
-	for (let i = 0; i + 6 < data.length; i += 1) {
-		if (data[i] !== 0x53 || data[i + 1] !== 0x43) continue;
-		const count = u32(data, i + 2);
-		if (i + 6 + count * 8 === data.length - 6) return { at: i, count };
-	}
-	throw new Error("this save has no SC span index; it cannot be resized here");
 };
 
 const namesEndOf = (data: Uint8Array): { offset: number; end: number } => {
@@ -137,59 +115,10 @@ const enclosing = (
 	return chain;
 };
 
-const shiftSpanIndex = (
-	data: Uint8Array,
-	out: Uint8Array,
-	itemInsert: number,
-	recordLen: number,
-	namesInsert: number,
-	namesLen: number,
-): void => {
-	const original = findSpanIndex(data);
-	const current = findSpanIndex(out);
-	for (let i = 0; i < original.count; i += 1) {
-		const from = original.at + 6 + i * 8;
-		const start = u32(data, from) - BASE;
-		const size = u32(data, from + 4);
-		const end = start + size;
-		let shift = 0;
-		if (start >= itemInsert) shift += recordLen;
-		if (start >= namesInsert) shift += namesLen;
-		let grow = 0;
-		if (start < itemInsert && itemInsert < end) grow += recordLen;
-		if (start < namesInsert && namesInsert < end) grow += namesLen;
-		const to = current.at + 6 + i * 8;
-		writeU32(out, to, start + shift + BASE);
-		writeU32(out, to + 4, size + grow);
-	}
-};
-
-const rechunk = (
-	container: Resizable,
-	totalLength: number,
-): SaveContainer["chunks"] => {
-	const first = container.chunks[0];
-	if (first === undefined) throw new Error("this save has no chunks");
-	const unit = first.decompressedSize;
-	const chunks: SaveContainer["chunks"][number][] = [];
-	for (let start = 0; start < totalLength; start += unit) {
-		const template =
-			container.chunks[chunks.length] ??
-			container.chunks[container.chunks.length - 1] ??
-			first;
-		chunks.push({
-			...template,
-			index: chunks.length,
-			decompressedSize: Math.min(unit, totalLength - start),
-		});
-	}
-	return chunks;
-};
-
 const resize = (
 	container: Resizable,
 	requests: readonly AddItemRequest[],
-): { readonly data: Uint8Array; readonly chunks: SaveContainer["chunks"] } => {
+): Resizable => {
 	if (requests.length === 0) throw new Error("nothing to add");
 	const data = container.data;
 	const names = readNameTable(data).names;
@@ -241,25 +170,17 @@ const resize = (
 		namesInsertAt + nameBytes.length,
 	);
 	writeU32(out, manuStart + recordLen + 4, names.length + missing.length);
-	writeU32(
-		out,
-		out.length - 6,
-		(readU32(data, data.length - 6) ?? 0) + recordLen + nameBytes.length,
-	);
 
-	shiftSpanIndex(data, out, itemInsert, recordLen, namesEnd, nameBytes.length);
-
-	return {
-		data: out,
-		chunks: rechunk(container, out.length),
-	};
+	return shiftSpanIndex(container, out, [
+		{ at: itemInsert, remove: 0, insert: recordLen },
+		{ at: namesEnd, remove: 0, insert: nameBytes.length },
+	]);
 };
 
 export const addItemsToPayload = (
 	container: Resizable,
 	requests: readonly AddItemRequest[],
-): { readonly data: Uint8Array; readonly chunks: SaveContainer["chunks"] } =>
-	resize(container, requests);
+): Resizable => resize(container, requests);
 
 export const addItems = (
 	container: Resizable,
