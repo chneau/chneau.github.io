@@ -1,6 +1,6 @@
 import type { SaveContainer } from "./container";
 import { readNameTable } from "./names";
-import { enclosing, shiftSpanIndex } from "./payload-resize";
+import { enclosing, replaceRange, shiftSpanIndex } from "./payload-resize";
 import { type ReflectedValue, reflectValue } from "./reflect";
 import { parseTokens, type Token } from "./tokens";
 
@@ -91,14 +91,14 @@ const enumName = (
 	return index !== undefined && index >= 1 ? names[index - 1] : undefined;
 };
 
-const WANTED_USED = [
+export const WANTED_USED = [
 	"redUsed",
 	"blueUsed",
 	"greenUsed",
 	"skillpointsUsed",
 ] as const;
 
-const ENGINE_MUTATION_NAME_SUFFIX = [
+export const ENGINE_MUTATION_NAME_SUFFIX = [
 	"Default weapon _Stats",
 	"mon_horse_weapon _Stats",
 	"isMutationSystemEnabled",
@@ -119,6 +119,8 @@ const ENGINE_MUTATION_NAME_SUFFIX = [
 export type MutationInsertOptions = {
 	readonly enableSystem?: boolean;
 	readonly initializeSlots?: boolean;
+	readonly activateOnly?: boolean;
+	readonly activeTypes?: readonly string[];
 };
 
 export const maxMutationsInPayload = (
@@ -174,15 +176,18 @@ export const maxMutationsInPayload = (
 	if (mutationsField === undefined) {
 		throw new Error("the player ability manager has no mutations array");
 	}
+	const existingEquipped = findField(object.fields, "equippedMutations");
 
 	const indexOfName = new Map<string, number>();
 	for (const [i, name] of names.entries()) indexOfName.set(name, i + 1);
 	const interned = new Map<string, number>();
 	const usedNames: string[] = [];
-	for (const name of ENGINE_MUTATION_NAME_SUFFIX) {
-		if (indexOfName.has(name)) continue;
-		indexOfName.set(name, names.length + usedNames.length + 1);
-		usedNames.push(name);
+	if (options.activateOnly !== true) {
+		for (const name of ENGINE_MUTATION_NAME_SUFFIX) {
+			if (indexOfName.has(name)) continue;
+			indexOfName.set(name, names.length + usedNames.length + 1);
+			usedNames.push(name);
+		}
 	}
 	const intern = (name: string): number => {
 		const already = interned.get(name);
@@ -203,6 +208,7 @@ export const maxMutationsInPayload = (
 	const progressGrowth: { offset: number; width: number; within: number }[] =
 		[];
 	for (const item of mutationsField.value.items ?? []) {
+		if (options.activateOnly === true) break;
 		const typeField = findField(item.fields, "type");
 		enumTypeIndex ??=
 			typeField === undefined ? undefined : u16(data, typeField.offset - 6);
@@ -313,7 +319,7 @@ export const maxMutationsInPayload = (
 		options.initializeSlots,
 	);
 
-	const mutationTypes = (mutationsField.value.items ?? [])
+	const derivedTypes = (mutationsField.value.items ?? [])
 		.map((item) => findField(item.fields ?? [], "type"))
 		.map((field) =>
 			field === undefined ? undefined : Number(field.value.text),
@@ -326,26 +332,55 @@ export const maxMutationsInPayload = (
 				names[value - 1] !== "EPMT_MutationMaster",
 		)
 		.reverse();
+	const mutationTypes =
+		options.activeTypes === undefined
+			? derivedTypes
+			: options.activeTypes
+					.map((name) => indexOfName.get(name))
+					.filter((value): value is number => value !== undefined);
 	const equippedValue = new Uint8Array(4 + mutationTypes.length * 2);
 	writeU32(equippedValue, 0, mutationTypes.length);
 	mutationTypes.forEach((type, index) => {
 		equippedValue[4 + index * 2] = type & 0xff;
 		equippedValue[5 + index * 2] = (type >>> 8) & 0xff;
 	});
-	const equippedName = intern("equippedMutations");
-	const equippedType = intern("array:2,0,EPlayerMutationType");
-	const equippedField = new Uint8Array(8 + equippedValue.length);
-	equippedField[0] = equippedName & 0xff;
-	equippedField[1] = (equippedName >>> 8) & 0xff;
-	equippedField[2] = equippedType & 0xff;
-	equippedField[3] = (equippedType >>> 8) & 0xff;
-	writeU32(equippedField, 4, equippedValue.length + 4);
-	equippedField.set(equippedValue, 8);
-	inserts.push({
-		at: valueAt + token.value.bytes.length - 2,
-		bytes: equippedField,
-	});
-	total += equippedField.length;
+	if (existingEquipped === undefined) {
+		const equippedName = intern("equippedMutations");
+		const equippedType = intern("array:2,0,EPlayerMutationType");
+		const equippedField = new Uint8Array(8 + equippedValue.length);
+		equippedField[0] = equippedName & 0xff;
+		equippedField[1] = (equippedName >>> 8) & 0xff;
+		equippedField[2] = equippedType & 0xff;
+		equippedField[3] = (equippedType >>> 8) & 0xff;
+		writeU32(equippedField, 4, equippedValue.length + 4);
+		equippedField.set(equippedValue, 8);
+		inserts.push({
+			at: valueAt + token.value.bytes.length - 2,
+			bytes: equippedField,
+		});
+		total += equippedField.length;
+	} else {
+		const existingTypes = (existingEquipped.value.items ?? []).map((item) =>
+			Number(item.text),
+		);
+		const same =
+			existingEquipped.value.width === equippedValue.length &&
+			existingTypes.length === mutationTypes.length &&
+			mutationTypes.every((type, index) => existingTypes[index] === type);
+		if (!same) {
+			return maxMutationsInPayload(
+				replaceRange(
+					container,
+					existingEquipped.offset,
+					existingEquipped.value.width,
+					equippedValue,
+					existingEquipped.offset - 4,
+				),
+				equip,
+				options,
+			);
+		}
+	}
 
 	if (
 		inserts.length === 0 &&
@@ -396,10 +431,6 @@ export const maxMutationsInPayload = (
 			out[at + 1] = (value >>> 8) & 0xff;
 		}
 	}
-	const checksumAt = shiftAt(valueAt + 30);
-	out[checksumAt] = 0x48;
-	out[checksumAt + 1] = 0xa0;
-
 	return shiftSpanIndex(
 		container,
 		out,
