@@ -65,6 +65,121 @@ const fieldPresent = (maskBytes: Uint8Array, fieldIndex: number): boolean => {
 	return ((maskBytes[byteIndex] ?? 0) & (1 << bitIndex)) !== 0;
 };
 
+export const MAX_LIST_COUNT = 100000;
+
+export type ListCountField = {
+	offset: number;
+	width: number;
+};
+
+export type ObjectListHeader = {
+	count: number;
+	headerEnd: number;
+	countField: ListCountField;
+	countMinusOneField: ListCountField | null;
+};
+
+const isZeroRange = (data: Uint8Array, start: number, end: number): boolean => {
+	for (let index = start; index < end; index++) {
+		if ((data[index] ?? 0) !== 0) return false;
+	}
+	return true;
+};
+
+const listHeader = (
+	data: Uint8Array,
+	headerEnd: number,
+	countField: ListCountField,
+): ObjectListHeader => {
+	const count =
+		countField.width === 2
+			? ((data[countField.offset] ?? 0) << 8) |
+				(data[countField.offset + 1] ?? 0)
+			: readU32(data, countField.offset);
+	if (count > MAX_LIST_COUNT) {
+		throw new Error(`Implausible count ${count}`);
+	}
+	const minusOneOffset = countField.offset + 5;
+	const countMinusOneField =
+		countField.width === 4 &&
+		count !== 1 &&
+		minusOneOffset + 4 <= headerEnd &&
+		readU32(data, minusOneOffset) === (count - 1) >>> 0
+			? { offset: minusOneOffset, width: 4 }
+			: null;
+	return { count, headerEnd, countField, countMinusOneField };
+};
+
+const decodeListHeaderAt = (
+	data: Uint8Array,
+	body: number,
+	tail: number,
+): ObjectListHeader | null => {
+	if (body + 18 > tail) return null;
+	const prefix = data[body] ?? 0;
+	let markerEnd = body;
+	while (markerEnd < tail && (data[markerEnd] ?? 0) === 1) markerEnd += 1;
+	if (
+		markerEnd > body &&
+		markerEnd + 17 <= tail &&
+		(data[markerEnd] ?? 0) === 0 &&
+		isZeroRange(data, markerEnd + 5, markerEnd + 18)
+	) {
+		return listHeader(data, markerEnd + 18, {
+			offset: markerEnd + 1,
+			width: 4,
+		});
+	}
+	if (prefix === 0) {
+		const directCount = readU32(data, body + 1);
+		if (
+			(data[body + 1] ?? 0) === 0 &&
+			(data[body + 2] ?? 0) === 0 &&
+			(data[body + 3] ?? 0) === 0 &&
+			directCount > MAX_LIST_COUNT &&
+			readU32(data, body + 4) <= MAX_LIST_COUNT
+		) {
+			return listHeader(data, body + 18, { offset: body + 4, width: 4 });
+		}
+		return listHeader(data, body + 18, { offset: body + 1, width: 4 });
+	}
+	if (prefix === 1) {
+		if (
+			body + 21 <= tail &&
+			(data[body + 1] ?? 0) === 1 &&
+			(data[body + 2] ?? 0) === 1 &&
+			(data[body + 3] ?? 0) === 0
+		) {
+			return listHeader(data, body + 21, { offset: body + 4, width: 4 });
+		}
+		return listHeader(data, body + 19, { offset: body + 1, width: 2 });
+	}
+	return null;
+};
+
+export const decodeListHeader = (
+	data: Uint8Array,
+	start: number,
+	tail: number,
+): ObjectListHeader => {
+	let lastError: unknown = null;
+	for (const delta of [0, 1, 2, 3]) {
+		try {
+			const header = decodeListHeaderAt(data, start + delta, tail);
+			if (header) return header;
+		} catch (error) {
+			lastError = error;
+		}
+	}
+	throw lastError instanceof Error
+		? lastError
+		: new Error(
+				`Could not decode object-list header at 0x${start
+					.toString(16)
+					.toUpperCase()}`,
+			);
+};
+
 export const parseParcBlob = (data: Uint8Array): ParcBlob => {
 	if (data.length < 14) {
 		throw new Error("Invalid PARC blob: shorter than header");
@@ -442,7 +557,12 @@ export class BlockParser {
 		for (let index = 0; index < typedef.fields.length; index++) {
 			const fdef = defined(typedef.fields[index], "field definition");
 			if (!fieldPresent(maskBytes, index)) {
-				if (fdef.metaKind === 6 || fdef.metaKind === 7) cursor += 1;
+				if (
+					(fdef.metaKind === 6 || fdef.metaKind === 7) &&
+					(this.data[cursor] ?? 0) === 1
+				) {
+					cursor += 1;
+				}
 				continue;
 			}
 			const start = cursor;
@@ -465,7 +585,12 @@ export class BlockParser {
 		for (let index = 0; index < typedef.fields.length; index++) {
 			const fdef = defined(typedef.fields[index], "field definition");
 			if (!fieldPresent(maskBytes, index)) {
-				if (fdef.metaKind === 6 || fdef.metaKind === 7) cursor += 1;
+				if (
+					(fdef.metaKind === 6 || fdef.metaKind === 7) &&
+					(this.data[cursor] ?? 0) === 1
+				) {
+					cursor += 1;
+				}
 				fields.push(defined(absent[index], "absent field entry"));
 				continue;
 			}
@@ -722,20 +847,27 @@ export class BlockParser {
 		}
 
 		let cursor = payloadStart + 4;
+		let lastPresentEnd = cursor;
 
 		for (let index = 0; index < typedef.fields.length; index++) {
 			const fdef = defined(typedef.fields[index], "field definition");
 			if (!fieldPresent(maskBytes, index)) {
-				if (fdef.metaKind === 6 || fdef.metaKind === 7) cursor += 1;
+				if (
+					(fdef.metaKind === 6 || fdef.metaKind === 7) &&
+					(this.data[cursor] ?? 0) === 1
+				) {
+					cursor += 1;
+				}
 				continue;
 			}
 			const [, next] = this.parseFieldValue(fdef, cursor, tail);
 			cursor = next;
+			lastPresentEnd = next;
 		}
 
 		let sizeFieldOffset = -1;
 		const maxProbe = Math.min(tail - 4, cursor + 64);
-		for (let probe = cursor; probe <= maxProbe; probe++) {
+		for (let probe = lastPresentEnd; probe <= maxProbe; probe++) {
 			if (readU32(this.data, probe) === probe - payloadStart) {
 				sizeFieldOffset = probe;
 				break;
@@ -758,54 +890,9 @@ export class BlockParser {
 			const body = pos + delta;
 			if (body + 18 > tail) continue;
 			try {
-				const prefixU8 = this.data[body] ?? 0;
-				let count = 0;
-				let headerSize = 0;
-
-				let markerEnd = body;
-				while (markerEnd < tail && (this.data[markerEnd] ?? 0) === 1) {
-					markerEnd += 1;
-				}
-
-				if (
-					markerEnd > body &&
-					markerEnd + 17 <= tail &&
-					(this.data[markerEnd] ?? 0) === 0 &&
-					bytesEqual(
-						this.data.subarray(markerEnd + 5, markerEnd + 18),
-						new Uint8Array(13),
-					)
-				) {
-					count = readU32(this.data, markerEnd + 1);
-					headerSize = markerEnd - body + 1 + 4 + 13;
-				} else if (
-					prefixU8 === 0 &&
-					(this.data[body + 1] ?? 0) === 0 &&
-					(this.data[body + 2] ?? 0) === 0 &&
-					(this.data[body + 3] ?? 0) === 0
-				) {
-					count = readU32(this.data, body + 4);
-					headerSize = 18;
-				} else if (prefixU8 === 0) {
-					count =
-						(this.data[body + 1] ?? 0) |
-						((this.data[body + 2] ?? 0) << 8) |
-						((this.data[body + 3] ?? 0) << 16);
-					headerSize = 18;
-				} else if (
-					prefixU8 === 1 &&
-					body + 21 <= tail &&
-					(this.data[body + 1] ?? 0) === 1 &&
-					(this.data[body + 2] ?? 0) === 1 &&
-					(this.data[body + 3] ?? 0) === 0
-				) {
-					count = readU32(this.data, body + 4);
-					headerSize = 21;
-				} else if (prefixU8 === 1) {
-					count =
-						((this.data[body + 1] ?? 0) << 8) | (this.data[body + 2] ?? 0);
-					headerSize = 19;
-				} else {
+				const header = decodeListHeaderAt(this.data, body, tail);
+				if (!header) {
+					const prefixU8 = this.data[body] ?? 0;
 					throw new Error(
 						`Unsupported list prefix 0x${prefixU8
 							.toString(16)
@@ -814,12 +901,8 @@ export class BlockParser {
 					);
 				}
 
-				if (count > 100000) {
-					throw new Error(`Implausible count ${count}`);
-				}
-
-				let elementCursor = body + headerSize;
-				for (let index = 0; index < count; index++) {
+				let elementCursor = header.headerEnd;
+				for (let index = 0; index < header.count; index++) {
 					elementCursor = this.parseListElement(elementCursor, tail);
 				}
 
@@ -929,7 +1012,6 @@ type InventoryCategoryInfo = {
 	hasItemList: boolean;
 	itemListAbs: number;
 	itemCount: number;
-	itemCountOffsetAbs: number;
 	itemsEndAbs: number;
 	elemEndAbs: number;
 };
@@ -949,89 +1031,58 @@ export const findInventoryCategories = (
 	pos += maskByteCount;
 	pos += 4;
 
-	const listRaw = data.subarray(pos);
-	if (listRaw[0] === 0) {
-		const catCount =
-			(listRaw[1] ?? 0) === 0 &&
-			(listRaw[2] ?? 0) === 0 &&
-			(listRaw[3] ?? 0) === 0
-				? readU32(data, pos + 4)
-				: (listRaw[1] ?? 0) |
-					((listRaw[2] ?? 0) << 8) |
-					((listRaw[3] ?? 0) << 16);
-		let elemCursor = pos + 18;
-		const parser = new BlockParser(parc);
-		const categories: InventoryCategoryInfo[] = [];
+	const categoryHeader = decodeListHeader(data, pos, blockEnd);
+	let elemCursor = categoryHeader.headerEnd;
+	const parser = new BlockParser(parc);
+	const categories: InventoryCategoryInfo[] = [];
 
-		for (let index = 0; index < catCount; index++) {
-			const locatorAbs = elemCursor;
-			const elemMbc = readU16(data, elemCursor);
-			const elemMask = data.subarray(elemCursor + 2, elemCursor + 2 + elemMbc);
-			const off = elemCursor + 2 + elemMbc;
-			const payloadAbs = readU32(data, off + 11);
+	for (let index = 0; index < categoryHeader.count; index++) {
+		const locatorAbs = elemCursor;
+		const elemMbc = readU16(data, elemCursor);
+		const elemMask = data.subarray(elemCursor + 2, elemCursor + 2 + elemMbc);
+		const off = elemCursor + 2 + elemMbc;
+		const payloadAbs = readU32(data, off + 11);
 
-			let ppos = payloadAbs + 4;
-			let inventoryKey = -1;
-			if (fieldPresent(elemMask, 0)) {
-				inventoryKey = readU16(data, ppos);
-				ppos += 2;
+		let ppos = payloadAbs + 4;
+		let inventoryKey = -1;
+		if (fieldPresent(elemMask, 0)) {
+			inventoryKey = readU16(data, ppos);
+			ppos += 2;
+		}
+		if (fieldPresent(elemMask, 1)) ppos += 2;
+
+		const hasItemList = fieldPresent(elemMask, 2);
+		let itemListAbs = -1;
+		let itemCount = 0;
+		let itemsEndAbs = ppos;
+
+		if (hasItemList) {
+			itemListAbs = ppos;
+			const itemHeader = decodeListHeader(data, ppos, blockEnd);
+			itemCount = itemHeader.count;
+
+			let itemCursor = itemHeader.headerEnd;
+			for (let itemIndex = 0; itemIndex < itemCount; itemIndex++) {
+				itemCursor = parser.parseFullLocatorElement(itemCursor, blockEnd);
 			}
-			if (fieldPresent(elemMask, 1)) ppos += 2;
-
-			const hasItemList = fieldPresent(elemMask, 2);
-			let itemListAbs = -1;
-			let itemCount = 0;
-			let itemCountOffsetAbs = 0;
-			let itemsEndAbs = ppos;
-
-			if (hasItemList) {
-				itemListAbs = ppos;
-				const ilRaw = data.subarray(ppos);
-				if (ilRaw[0] === 0) {
-					itemCount =
-						(ilRaw[1] ?? 0) === 0 &&
-						(ilRaw[2] ?? 0) === 0 &&
-						(ilRaw[3] ?? 0) === 0
-							? readU32(data, ppos + 4)
-							: (ilRaw[1] ?? 0) |
-								((ilRaw[2] ?? 0) << 8) |
-								((ilRaw[3] ?? 0) << 16);
-				} else {
-					itemCount = 0;
-				}
-				itemCountOffsetAbs = ppos + 1;
-
-				let itemCursor = ppos + 18;
-				for (let itemIndex = 0; itemIndex < itemCount; itemIndex++) {
-					itemCursor = parser.parseFullLocatorElement(itemCursor, blockEnd);
-				}
-				itemsEndAbs = itemCursor;
-			}
-
-			const elemEnd = parser.parseFullLocatorElement(elemCursor, blockEnd);
-
-			categories.push({
-				locatorAbs,
-				payloadAbs,
-				maskBytes: elemMask,
-				inventoryKey,
-				hasItemList,
-				itemListAbs,
-				itemCount,
-				itemCountOffsetAbs,
-				itemsEndAbs,
-				elemEndAbs: elemEnd,
-			});
-			elemCursor = elemEnd;
+			itemsEndAbs = itemCursor;
 		}
 
-		return categories;
+		const elemEnd = parser.parseFullLocatorElement(elemCursor, blockEnd);
+
+		categories.push({
+			locatorAbs,
+			payloadAbs,
+			maskBytes: elemMask,
+			inventoryKey,
+			hasItemList,
+			itemListAbs,
+			itemCount,
+			itemsEndAbs,
+			elemEndAbs: elemEnd,
+		});
+		elemCursor = elemEnd;
 	}
 
-	throw new Error(
-		`Unexpected _inventorylist header prefix: 0x${(listRaw[0] ?? 0)
-			.toString(16)
-			.toUpperCase()
-			.padStart(2, "0")}`,
-	);
+	return categories;
 };

@@ -10,6 +10,9 @@ import {
 import { defined } from "./defined";
 import {
 	type BlockParser,
+	decodeListHeader,
+	type ListCountField,
+	MAX_LIST_COUNT,
 	type ParcBlob,
 	parseParcBlob,
 	serializeParc,
@@ -19,9 +22,29 @@ import {
 
 const SENTINEL = new Uint8Array(8).fill(0xff);
 
+const forEachZeroSentinelLocator = (
+	block: Uint8Array,
+	typeCount: number,
+	visit: (payloadField: number, payload: number) => void,
+): void => {
+	for (let start = 0; start + 18 <= block.length; start++) {
+		const maskByteCount = readU16(block, start);
+		if (maskByteCount < 1 || maskByteCount > 16) continue;
+		const offset = start + 2 + maskByteCount;
+		if (offset + 15 > block.length) continue;
+		if (readU16(block, offset) >= typeCount) continue;
+		if ((block[offset + 2] ?? 0) !== 0) continue;
+		if (readU32(block, offset + 3) !== 0) continue;
+		if (readU32(block, offset + 7) !== 0) continue;
+		visit(offset + 11, readU32(block, offset + 11));
+	}
+};
+
 export type ItemSocketRecord = {
 	currentEndurance: number | null;
 	itemKey: number | null;
+	typeIndex: number;
+	recordStart: number;
 	fieldOffsets: Record<string, number>;
 	values: Record<string, unknown>;
 };
@@ -30,65 +53,13 @@ type IdentifiedRecord = {
 	itemNo: number;
 };
 
-const isZero = (data: Uint8Array, start: number, end: number): boolean => {
-	for (let index = start; index < end; index++) {
-		if ((data[index] ?? 0) !== 0) return false;
-	}
-	return true;
-};
-
 export const listLayout = (
 	data: Uint8Array,
 	start: number,
 	tail: number,
 ): [number, number] => {
-	for (const delta of [0, 1, 2, 3]) {
-		const body = start + delta;
-		if (body + 18 > tail) continue;
-		const prefix = data[body] ?? 0;
-		let markerEnd = body;
-		while (markerEnd < tail && (data[markerEnd] ?? 0) === 1) markerEnd += 1;
-		if (
-			markerEnd > body &&
-			markerEnd + 17 <= tail &&
-			(data[markerEnd] ?? 0) === 0 &&
-			isZero(data, markerEnd + 5, markerEnd + 18)
-		) {
-			return [readU32(data, markerEnd + 1), markerEnd + 18];
-		}
-		if (
-			prefix === 0 &&
-			(data[body + 1] ?? 0) === 0 &&
-			(data[body + 2] ?? 0) === 0 &&
-			(data[body + 3] ?? 0) === 0
-		) {
-			return [readU32(data, body + 4), body + 18];
-		}
-		if (prefix === 0) {
-			const count =
-				(data[body + 1] ?? 0) |
-				((data[body + 2] ?? 0) << 8) |
-				((data[body + 3] ?? 0) << 16);
-			return [count, body + 18];
-		}
-		if (
-			prefix === 1 &&
-			body + 21 <= tail &&
-			(data[body + 1] ?? 0) === 1 &&
-			(data[body + 2] ?? 0) === 1 &&
-			(data[body + 3] ?? 0) === 0
-		) {
-			return [readU32(data, body + 4), body + 21];
-		}
-		if (prefix === 1) {
-			return [((data[body + 1] ?? 0) << 8) | (data[body + 2] ?? 0), body + 19];
-		}
-	}
-	throw new Error(
-		`Could not decode object-list header at 0x${start
-			.toString(16)
-			.toUpperCase()}`,
-	);
+	const header = decodeListHeader(data, start, tail);
+	return [header.count, header.headerEnd];
 };
 
 export const locator = (
@@ -170,6 +141,8 @@ export const readObjectListValues = (
 					? Number(entryValues._currentEndurance)
 					: null,
 			itemKey: "_itemKey" in entryValues ? Number(entryValues._itemKey) : null,
+			typeIndex,
+			recordStart: cursor,
 			fieldOffsets: entryOffsets,
 			values: entryValues,
 		});
@@ -178,62 +151,36 @@ export const readObjectListValues = (
 	return values;
 };
 
+const writeCountField = (
+	block: Uint8Array,
+	field: ListCountField,
+	value: number,
+): void => {
+	if (field.width === 2) {
+		if (value > 0xffff) {
+			throw new Error("List count exceeds compact two-byte encoding");
+		}
+		block[field.offset] = (value >>> 8) & 0xff;
+		block[field.offset + 1] = value & 0xff;
+		return;
+	}
+	writeU32(block, field.offset, value);
+};
+
 export const writeListCount = (
 	block: Uint8Array,
 	absoluteStart: number,
 	listAbs: number,
 	count: number,
 ): void => {
-	const pos = listAbs - absoluteStart;
-	let markerEnd = pos;
-	while (markerEnd < block.length && (block[markerEnd] ?? 0) === 1) {
-		markerEnd += 1;
+	if (!Number.isInteger(count) || count < 0 || count > MAX_LIST_COUNT) {
+		throw new Error(`Implausible count ${count}`);
 	}
-	if (
-		markerEnd > pos &&
-		markerEnd + 17 <= block.length &&
-		(block[markerEnd] ?? 0) === 0 &&
-		isZero(block, markerEnd + 5, markerEnd + 18)
-	) {
-		writeU32(block, markerEnd + 1, count);
-		return;
+	const header = decodeListHeader(block, listAbs - absoluteStart, block.length);
+	writeCountField(block, header.countField, count);
+	if (header.countMinusOneField) {
+		writeCountField(block, header.countMinusOneField, (count - 1) >>> 0);
 	}
-	if (
-		(block[pos] ?? 0) === 0 &&
-		(block[pos + 1] ?? 0) === 0 &&
-		(block[pos + 2] ?? 0) === 0 &&
-		(block[pos + 3] ?? 0) === 0
-	) {
-		writeU32(block, pos + 4, count);
-		return;
-	}
-	if ((block[pos] ?? 0) === 0) {
-		if (count > 0xffffff) {
-			throw new Error("List count exceeds compact three-byte encoding");
-		}
-		block[pos + 1] = count & 0xff;
-		block[pos + 2] = (count >>> 8) & 0xff;
-		block[pos + 3] = (count >>> 16) & 0xff;
-		return;
-	}
-	if (
-		(block[pos] ?? 0) === 1 &&
-		(block[pos + 1] ?? 0) === 1 &&
-		(block[pos + 2] ?? 0) === 1 &&
-		(block[pos + 3] ?? 0) === 0
-	) {
-		writeU32(block, pos + 4, count);
-		return;
-	}
-	if ((block[pos] ?? 0) === 1) {
-		if (count > 0xffff) {
-			throw new Error("List count exceeds compact two-byte encoding");
-		}
-		block[pos + 1] = (count >>> 8) & 0xff;
-		block[pos + 2] = count & 0xff;
-		return;
-	}
-	throw new Error("Unsupported object-list count encoding");
 };
 
 export const rebaseClonePointers = (
@@ -310,8 +257,16 @@ export const spliceInsertions = (
 		if (pointerOffset + 4 > block.length) continue;
 		const pointer = readU32(block, pointerOffset);
 		if (pointer !== blockStart + pointerOffset + 4) continue;
+		const pointerAbs = blockStart + pointerOffset;
 		for (const insertion of insertions) {
 			const remove = insertion.remove ?? 0;
+			if (
+				remove > 0 &&
+				pointerAbs >= insertion.at &&
+				pointerAbs < insertion.at + remove
+			) {
+				throw new Error("An inline pointer field is inside a replaced range");
+			}
 			if (
 				remove > 0 &&
 				pointer >= insertion.at &&
@@ -358,7 +313,11 @@ export const unusedItemNo = (
 	raw: Uint8Array,
 	records: IdentifiedRecord[],
 ): number => {
-	let candidate = Math.max(...records.map((record) => record.itemNo)) + 1;
+	let highest = 0;
+	for (const record of records) {
+		if (record.itemNo > highest) highest = record.itemNo;
+	}
+	let candidate = highest + 1;
 	while (indexOfBytes(raw, packU64(candidate)) >= 0) candidate += 1;
 	return candidate;
 };
@@ -391,6 +350,15 @@ export const normalizedBlock = (
 		}
 		cursor = sentinel + 1;
 	}
+	forEachZeroSentinelLocator(
+		block,
+		parc.types.length,
+		(pointerOffset, pointer) => {
+			if (pointer === entry.dataOffset + pointerOffset + 4) {
+				writeU32(block, pointerOffset, pointer - entry.dataOffset);
+			}
+		},
+	);
 	return block;
 };
 
@@ -415,6 +383,15 @@ export const relocatedRoot = (
 		}
 		cursor = sentinel + 1;
 	}
+	forEachZeroSentinelLocator(
+		source,
+		before.types.length,
+		(pointerOffset, pointer) => {
+			if (pointer === oldEntry.dataOffset + pointerOffset + 4) {
+				writeU32(expected, pointerOffset, pointer + delta);
+			}
+		},
+	);
 	return expected;
 };
 
@@ -425,8 +402,8 @@ export const preservedRoot = (
 	newEntry: TOCEntry,
 ): boolean => {
 	return sameBytes(
-		relocatedRoot(before, oldEntry, newEntry),
-		after.blockRaw.get(newEntry.index) ?? new Uint8Array(),
+		normalizedBlock(before, oldEntry),
+		normalizedBlock(after, newEntry),
 	);
 };
 
