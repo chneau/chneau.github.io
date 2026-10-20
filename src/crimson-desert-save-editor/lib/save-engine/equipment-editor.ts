@@ -4,8 +4,10 @@ import {
 	readU16,
 	readU32,
 	writeI64,
+	writeU8,
 	writeU16,
 	writeU32,
+	writeU64,
 } from "./bytes";
 import { decodeSave } from "./container";
 import { equipmentCatalogTable } from "./data";
@@ -28,8 +30,9 @@ import {
 	findInventoryCategories,
 	findInventoryTocIndex,
 	parseParcBlob,
+	type TypeDef,
 } from "./parc-serializer";
-import { assertOnlyChanged } from "./raw-diff";
+import { patchScalars } from "./scalar-patch";
 import { defaultSocketCaps } from "./socket-caps";
 import { commitSave } from "./transaction";
 
@@ -40,6 +43,52 @@ type AppliedPayload = {
 	before: InventoryRecord;
 	beforeRecords: InventoryRecord[];
 	details: Record<string, unknown>;
+};
+
+type FieldDefinition = TypeDef["fields"][number];
+
+const SCALAR_SIZES: Record<number, true> = {
+	1: true,
+	2: true,
+	4: true,
+	8: true,
+};
+
+const scalarFieldWidth = (field: FieldDefinition): number => {
+	if (
+		(field.metaKind !== 0 && field.metaKind !== 2) ||
+		!SCALAR_SIZES[field.metaSize] ||
+		/float|double/i.test(field.typeName)
+	) {
+		throw new Error(
+			`Field ${field.name} is not a supported scalar (kind ${field.metaKind}, size ${field.metaSize}, type ${field.typeName})`,
+		);
+	}
+	return field.metaSize;
+};
+
+const fieldByName = (type: TypeDef, name: string): FieldDefinition => {
+	const field = type.fields.find((candidate) => candidate.name === name);
+	if (!field) {
+		throw new Error(`${type.name} has no ${name} field`);
+	}
+	return field;
+};
+
+const scalarBytes = (value: number, field: FieldDefinition): Uint8Array => {
+	const width = scalarFieldWidth(field);
+	const limit = width === 8 ? Number.MAX_SAFE_INTEGER : 2 ** (width * 8) - 1;
+	if (!Number.isInteger(value) || value < 0 || value > limit) {
+		throw new Error(
+			`${field.name} value ${value} does not fit in ${width} bytes`,
+		);
+	}
+	const buffer = new Uint8Array(width);
+	if (width === 1) writeU8(buffer, 0, value);
+	else if (width === 2) writeU16(buffer, 0, value);
+	else if (width === 4) writeU32(buffer, 0, value);
+	else writeU64(buffer, 0, BigInt(value));
+	return buffer;
 };
 
 const recordSignature = (record: InventoryRecord): string => {
@@ -90,32 +139,38 @@ const applyEnchantLevel = async (
 
 	let payload: Uint8Array;
 	let changed: number[] = [];
+	const parc = parseParcBlob(raw);
+	const [kindIndex, mask] = locator(raw, before.recordStart, parc.typeByIndex);
+	const kind = parc.typeByIndex.get(kindIndex);
+	if (!kind) throw new Error("Item type was not found");
 	if ("_enchantLevel" in before.fieldOffsets) {
 		const offset = before.fieldOffsets._enchantLevel ?? 0;
-		payload = raw.slice();
-		writeU16(payload, offset, newLevel);
-		changed = assertOnlyChanged(
-			raw,
-			payload,
-			[{ start: offset, size: 2 }],
-			"Refinement edit",
-		);
+		const field = fieldByName(kind, "_enchantLevel");
+		const patched = patchScalars(raw, "Refinement edit", [
+			{
+				offset,
+				size: scalarFieldWidth(field),
+				value: newLevel,
+				label: `_enchantLevel of item ${target.itemKey}`,
+			},
+		]);
+		payload = patched.payload;
+		changed = patched.changed;
 	} else {
-		const parc = parseParcBlob(raw);
-		const [kindIndex, mask] = locator(
-			raw,
-			before.recordStart,
-			parc.typeByIndex,
-		);
-		const kind = parc.typeByIndex.get(kindIndex);
-		if (!kind) throw new Error("Item type was not found");
 		const fieldIndex = kind.fields.findIndex(
 			(field) => field.name === "_enchantLevel",
 		);
-		const field = kind.fields[fieldIndex];
+		if (fieldIndex < 0) {
+			throw new Error("Item type has no _enchantLevel field");
+		}
+		const field = defined(
+			kind.fields[fieldIndex],
+			"refinement field definition",
+		);
+		const fieldWidth = scalarFieldWidth(field);
 		const maskByteSet =
 			(((mask[Math.floor(fieldIndex / 8)] ?? 0) >> (fieldIndex % 8)) & 1) === 1;
-		if (field?.metaKind !== 0 || field.metaSize !== 2 || maskByteSet) {
+		if (maskByteSet) {
 			throw new Error("Unsupported missing-refinement field layout.");
 		}
 		const following = kind.fields
@@ -141,7 +196,7 @@ const applyEnchantLevel = async (
 		const relative = insertAbs - entry.dataOffset;
 		const newBlock = concatBytes(
 			oldBlock.slice(0, relative),
-			u16(newLevel),
+			scalarBytes(newLevel, field),
 			oldBlock.slice(relative),
 		);
 		const maskCount = readU16(raw, before.recordStart);
@@ -161,18 +216,23 @@ const applyEnchantLevel = async (
 			newBlock,
 			entry.dataOffset,
 			insertAbs,
-			2,
+			fieldWidth,
 		);
 		for (const trailer of [before.recordEnd - 4, category.elemEndAbs - 4]) {
-			const relativeTrailer = trailer + 2 - entry.dataOffset;
+			const relativeTrailer = trailer + fieldWidth - entry.dataOffset;
 			writeU32(
 				newBlock,
 				relativeTrailer,
-				readU32(newBlock, relativeTrailer) + 2,
+				readU32(newBlock, relativeTrailer) + fieldWidth,
 			);
 		}
 		parc.modifiedBlocks.set(toc, newBlock);
 		payload = serializeWithPreservedRoots(parc);
+		if (payload.length !== raw.length + fieldWidth) {
+			throw new Error(
+				"Refinement field insertion must grow the save by the field width",
+			);
+		}
 		assertNonInventoryBlocksUnchanged(raw, payload);
 	}
 
@@ -337,17 +397,28 @@ const applyValidSocketCount = async (
 	let structuralMode: string;
 	let rawSizeDelta: number;
 
+	const parc = parseParcBlob(beforeRaw);
+	const [itemTypeIndex, itemMask] = locator(
+		beforeRaw,
+		before.recordStart,
+		parc.typeByIndex,
+	);
+	const itemType = parc.typeByIndex.get(itemTypeIndex);
+	if (!itemType) throw new Error("Item type was not found");
+
 	if (hasValidCount) {
 		const offset = before.fieldOffsets._validSocketCount ?? 0;
-		const edited = beforeRaw.slice();
-		edited[offset] = newCount & 0xff;
-		changed = assertOnlyChanged(
-			beforeRaw,
-			edited,
-			[{ start: offset, size: 1 }],
-			"Socket-count edit",
-		);
-		payload = edited;
+		const field = fieldByName(itemType, "_validSocketCount");
+		const patched = patchScalars(beforeRaw, "Socket-count edit", [
+			{
+				offset,
+				size: scalarFieldWidth(field),
+				value: newCount,
+				label: `_validSocketCount of item ${target.itemKey}`,
+			},
+		]);
+		changed = patched.changed;
+		payload = patched.payload;
 		structuralMode = "scalar_existing_field";
 		rawSizeDelta = 0;
 	} else {
@@ -356,14 +427,6 @@ const applyValidSocketCount = async (
 				"Cannot locate the socket list following the missing count",
 			);
 		}
-		const parc = parseParcBlob(beforeRaw);
-		const [itemTypeIndex, itemMask] = locator(
-			beforeRaw,
-			before.recordStart,
-			parc.typeByIndex,
-		);
-		const itemType = parc.typeByIndex.get(itemTypeIndex);
-		if (!itemType) throw new Error("Item type was not found");
 		const validIndex = itemType.fields.findIndex(
 			(field) => field.name === "_validSocketCount",
 		);
@@ -373,6 +436,11 @@ const applyValidSocketCount = async (
 		if (socketIndex !== validIndex + 1) {
 			throw new Error("Unexpected ItemSaveData socket field order");
 		}
+		const validField = defined(
+			itemType.fields[validIndex],
+			"socket count field definition",
+		);
+		const validWidth = scalarFieldWidth(validField);
 		if (
 			(((itemMask[Math.floor(validIndex / 8)] ?? 0) >> (validIndex % 8)) &
 				1) ===
@@ -409,7 +477,7 @@ const applyValidSocketCount = async (
 		const insertRel = insertAbs - inventoryEntry.dataOffset;
 		const newBlock = concatBytes(
 			oldBlock.slice(0, insertRel),
-			new Uint8Array([newCount & 0xff]),
+			scalarBytes(newCount, validField),
 			oldBlock.slice(insertRel),
 		);
 		const maskCount = readU16(beforeRaw, before.recordStart);
@@ -429,7 +497,7 @@ const applyValidSocketCount = async (
 			inventoryEntry.dataOffset;
 		newBlock[maskRel] = (newBlock[maskRel] ?? 0) | (1 << (validIndex % 8));
 
-		rawSizeDelta = 1;
+		rawSizeDelta = validWidth;
 		shiftExistingBlockPointers(
 			oldBlock,
 			newBlock,
@@ -450,7 +518,7 @@ const applyValidSocketCount = async (
 		payload = serializeWithPreservedRoots(parc);
 		if (payload.length !== beforeRaw.length + rawSizeDelta) {
 			throw new Error(
-				"First-socket field insertion must grow the save by one byte",
+				"First-socket field insertion must grow the save by the field width",
 			);
 		}
 		structuralMode = "insert_missing_field";
@@ -578,18 +646,24 @@ const applySocketItem = async (
 		throw new Error("Safe mode refuses to create a duplicate socket item");
 	}
 
+	const parc = parseParcBlob(raw);
+	const socketType = parc.typeByIndex.get(socket.typeIndex);
+	if (socketType?.name !== "ItemSocketSaveData") {
+		throw new Error("ItemSocketSaveData type was not found");
+	}
+	const field = fieldByName(socketType, "_itemKey");
 	const offset = socket.fieldOffsets._itemKey ?? 0;
-	const payload = raw.slice();
-	writeU32(payload, offset, newSocketItemKey);
-	const changed = assertOnlyChanged(
-		raw,
-		payload,
-		[{ start: offset, size: 4 }],
-		"Socket item edit",
-	);
+	const patched = patchScalars(raw, "Socket item edit", [
+		{
+			offset,
+			size: scalarFieldWidth(field),
+			value: newSocketItemKey,
+			label: `_itemKey of socket ${socketIndex}`,
+		},
+	]);
 
 	return {
-		payload,
+		payload: patched.payload,
 		before,
 		beforeRecords,
 		details: {
@@ -598,7 +672,7 @@ const applySocketItem = async (
 			new_socket_item_key: newSocketItemKey,
 			gameplay_socket_cap: capInfo.maxSockets,
 			gameplay_socket_cap_source: capInfo.source,
-			raw_changed_byte_offsets: changed,
+			raw_changed_byte_offsets: patched.changed,
 		},
 	};
 };
@@ -1065,12 +1139,6 @@ export const setEquipment = async (
 			inventory_reparsed: true,
 		},
 	];
-};
-
-const u16 = (value: number): Uint8Array => {
-	const buffer = new Uint8Array(2);
-	writeU16(buffer, 0, value);
-	return buffer;
 };
 
 const mapsEqual = (a: Map<string, string>, b: Map<string, string>): boolean => {
