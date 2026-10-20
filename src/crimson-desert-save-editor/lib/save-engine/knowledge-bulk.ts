@@ -1,12 +1,18 @@
-import { concatBytes, writeI64, writeU8, writeU32 } from "./bytes";
+import { concatBytes, writeU8, writeU16, writeU32, writeU64 } from "./bytes";
 import { defined } from "./defined";
 import { readKnowledge } from "./knowledge-reader";
 import {
+	locator,
 	rebaseClonePointers,
 	shiftExistingBlockPointers,
 	writeListCount,
 } from "./parc";
-import { BlockParser, parseParcBlob, serializeParc } from "./parc-serializer";
+import {
+	BlockParser,
+	parseParcBlob,
+	serializeParc,
+	type TypeDef,
+} from "./parc-serializer";
 import { commitSave, openSave } from "./transaction";
 
 export type KnowledgeTarget = {
@@ -27,6 +33,55 @@ type KnowledgeChangeOptions = {
 type KnowledgeRecord = ReturnType<typeof readKnowledge>[number];
 
 const KNOWLEDGE_BLOCK = "KnowledgeSaveData";
+
+const SCALAR_SIZES: Record<number, true> = {
+	1: true,
+	2: true,
+	4: true,
+	8: true,
+};
+
+type KnowledgeField = TypeDef["fields"][number];
+
+const scalarFieldWidth = (field: KnowledgeField): number => {
+	if (
+		(field.metaKind !== 0 && field.metaKind !== 2) ||
+		!SCALAR_SIZES[field.metaSize] ||
+		/float|double/i.test(field.typeName)
+	) {
+		throw new Error(
+			`Field ${field.name} is not a supported scalar (kind ${field.metaKind}, size ${field.metaSize}, type ${field.typeName})`,
+		);
+	}
+	return field.metaSize;
+};
+
+const fieldByName = (type: TypeDef, name: string): KnowledgeField => {
+	const field = type.fields.find((candidate) => candidate.name === name);
+	if (!field) {
+		throw new Error(`${type.name} has no ${name} field`);
+	}
+	return field;
+};
+
+const writeScalar = (
+	data: Uint8Array,
+	offset: number,
+	field: KnowledgeField,
+	value: number,
+): void => {
+	const width = scalarFieldWidth(field);
+	const limit = width === 8 ? Number.MAX_SAFE_INTEGER : 2 ** (width * 8) - 1;
+	if (!Number.isInteger(value) || value < 0 || value > limit) {
+		throw new Error(
+			`${field.name} value ${value} does not fit in ${width} bytes`,
+		);
+	}
+	if (width === 1) writeU8(data, offset, value);
+	else if (width === 2) writeU16(data, offset, value);
+	else if (width === 4) writeU32(data, offset, value);
+	else writeU64(data, offset, BigInt(value));
+};
 
 export const MAX_KNOWLEDGE_LEVEL = 99;
 
@@ -93,16 +148,29 @@ const insertMissing = (
 	if (keys.length === 0) return { raw, inserted: 0 };
 	const { parc, entry, listField } = knowledgeEntry(raw);
 	const records = readKnowledge(raw);
-	const template = records.at(-1);
+	const complete = ["_key", "_level", "_learnedFieldTime", "_isNewMark"];
+	const required = ["_key", "_level"];
+	const newestFirst = [...records].reverse();
+	const template =
+		newestFirst.find((record) =>
+			complete.every((name) => name in record.fieldOffsets),
+		) ??
+		newestFirst.find((record) =>
+			required.every((name) => name in record.fieldOffsets),
+		);
 	if (!template) {
 		throw new Error("Knowledge list has no entry to clone as a template");
 	}
-	const keyOffset = template.fieldOffsets._key;
-	const levelOffset = template.fieldOffsets._level;
-	if (keyOffset === undefined || levelOffset === undefined) {
-		throw new Error("Knowledge template is missing its _key or _level field");
-	}
 	const insertAbs = defined(listField.end, "knowledge list end");
+	const [templateTypeIndex] = locator(
+		raw,
+		template.recordStart,
+		parc.typeByIndex,
+	);
+	const templateType = parc.typeByIndex.get(templateTypeIndex);
+	if (!templateType) {
+		throw new Error("Knowledge template type was not found");
+	}
 
 	const clones: Uint8Array[] = [];
 	let cursor = insertAbs;
@@ -111,18 +179,17 @@ const insertMissing = (
 		const patch = (name: string, value: number): void => {
 			const offset = template.fieldOffsets[name];
 			if (offset === undefined) return;
-			writeU32(clone, offset - template.recordStart, value);
+			writeScalar(
+				clone,
+				offset - template.recordStart,
+				fieldByName(templateType, name),
+				value,
+			);
 		};
 		patch("_key", key);
 		patch("_level", levelOf(key));
-		const learnedOffset = template.fieldOffsets._learnedFieldTime;
-		if (learnedOffset !== undefined) {
-			writeI64(clone, learnedOffset - template.recordStart, 0n);
-		}
-		const newMarkOffset = template.fieldOffsets._isNewMark;
-		if (newMarkOffset !== undefined) {
-			writeU8(clone, newMarkOffset - template.recordStart, 0);
-		}
+		patch("_learnedFieldTime", 0);
+		patch("_isNewMark", 0);
 		rebaseClonePointers(clone, template.recordStart, cursor);
 		clones.push(clone);
 		cursor += clone.length;
@@ -159,6 +226,7 @@ const patchLevels = (
 	records: KnowledgeRecord[],
 	desired: Map<number, number>,
 ): { raw: Uint8Array; patched: number; relearned: number } => {
+	const parc = parseParcBlob(raw);
 	const edited = raw.slice();
 	let patched = 0;
 	let relearned = 0;
@@ -171,7 +239,12 @@ const patchLevels = (
 				`Knowledge entry ${record.key} has no serialized _level field`,
 			);
 		}
-		writeU32(edited, offset, target);
+		const [typeIndex] = locator(raw, record.recordStart, parc.typeByIndex);
+		const type = parc.typeByIndex.get(typeIndex);
+		if (!type) {
+			throw new Error(`Knowledge entry ${record.key} type was not found`);
+		}
+		writeScalar(edited, offset, fieldByName(type, "_level"), target);
 		patched += 1;
 		if (record.level === 0 && target >= 1) relearned += 1;
 	}

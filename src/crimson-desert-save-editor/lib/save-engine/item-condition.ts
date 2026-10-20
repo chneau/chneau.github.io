@@ -4,6 +4,8 @@ import {
 	type InventoryRecord,
 	readInventory,
 } from "./inventory-reader";
+import { locator } from "./parc";
+import { parseParcBlob, type TypeDef } from "./parc-serializer";
 import { patchScalars, type ScalarWrite } from "./scalar-patch";
 import { commitSave } from "./transaction";
 
@@ -20,6 +22,26 @@ const conditionLimits = {
 	chargedUses: 999_999_999,
 	maxChargedUses: 999_999_999,
 } as const;
+
+const SCALAR_SIZES: Record<number, true> = {
+	1: true,
+	2: true,
+	4: true,
+	8: true,
+};
+
+const scalarFieldWidth = (field: TypeDef["fields"][number]): number => {
+	if (
+		(field.metaKind !== 0 && field.metaKind !== 2) ||
+		!SCALAR_SIZES[field.metaSize] ||
+		/float|double/i.test(field.typeName)
+	) {
+		throw new Error(
+			`Field ${field.name} is not a supported scalar (kind ${field.metaKind}, size ${field.metaSize}, type ${field.typeName})`,
+		);
+	}
+	return field.metaSize;
+};
 
 const field = (record: InventoryRecord, name: string): number | null => {
 	if (record.fieldOffsets[name] === undefined) return null;
@@ -50,25 +72,21 @@ export type ItemConditionEdit = {
 const FIELDS: Array<{
 	key: "endurance" | "sharpness" | "chargedUses";
 	name: string;
-	size: number;
 	limit: number;
 }> = [
 	{
 		key: "endurance",
 		name: "_endurance",
-		size: 2,
 		limit: conditionLimits.endurance,
 	},
 	{
 		key: "sharpness",
 		name: "_sharpness",
-		size: 2,
 		limit: conditionLimits.sharpness,
 	},
 	{
 		key: "chargedUses",
 		name: "_chargedUseableCount",
-		size: 8,
 		limit: conditionLimits.chargedUses,
 	},
 ];
@@ -84,6 +102,10 @@ export const applyItemCondition = async (
 		slotNo: edit.slotNo,
 		itemKey: edit.itemKey,
 	});
+	const parc = parseParcBlob(raw);
+	const [itemTypeIndex] = locator(raw, before.recordStart, parc.typeByIndex);
+	const itemType = parc.typeByIndex.get(itemTypeIndex);
+	if (!itemType) throw new Error("Item type was not found");
 	const current = describeCondition(before);
 	const writes: ScalarWrite[] = [];
 	const requested: Array<{
@@ -110,9 +132,15 @@ export const applyItemCondition = async (
 		}
 		const existing = Number(before.values[field.name] ?? 0);
 		if (existing === value) continue;
+		const definition = itemType.fields.find(
+			(candidate) => candidate.name === field.name,
+		);
+		if (!definition) {
+			throw new Error(`The item type has no ${field.name} field`);
+		}
 		writes.push({
 			offset,
-			size: field.size,
+			size: scalarFieldWidth(definition),
 			value,
 			label: `${field.name} of item ${edit.itemKey}`,
 		});
