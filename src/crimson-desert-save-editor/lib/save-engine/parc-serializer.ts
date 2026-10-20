@@ -493,6 +493,16 @@ export class BlockParser {
 		const metaKind = fdef.metaKind;
 		const metaSize = fdef.metaSize;
 
+		if ((metaKind === 0 || metaKind === 2) && metaSize > 8) {
+			return [
+				{
+					kind: "inline_bytes",
+					count: 1,
+					data: this.data.subarray(pos, pos + metaSize),
+				},
+				pos + metaSize,
+			];
+		}
 		if ((metaKind === 0 || metaKind === 2) && metaSize > 0) {
 			return [this.readScalar(fdef, pos), pos + metaSize];
 		}
