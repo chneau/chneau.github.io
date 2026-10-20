@@ -21,7 +21,7 @@ export const insertKnowledge = async (
 	options: InsertKnowledgeOptions,
 ): Promise<[Uint8Array, Record<string, unknown>]> => {
 	const knowledgeKey = options.knowledgeKey;
-	const templateKnowledgeKey = options.templateKnowledgeKey ?? 1;
+	const templateKnowledgeKey = options.templateKnowledgeKey;
 	const level = options.level ?? 1;
 	const isNew = options.isNew ?? true;
 
@@ -41,20 +41,23 @@ export const insertKnowledge = async (
 			},
 		];
 	}
-	const templates = before.filter(
-		(record) => record.key === templateKnowledgeKey,
-	);
-	if (templates.length !== 1) {
-		throw new Error(
-			`Expected one knowledge template, found ${templates.length}`,
-		);
+	const required = ["_key", "_level"];
+	const complete = [...required, "_learnedFieldTime", "_isNewMark"];
+	const newestFirst = [...before].reverse();
+	const template =
+		templateKnowledgeKey === undefined
+			? (newestFirst.find((record) =>
+					complete.every((name) => name in record.fieldOffsets),
+				) ??
+				newestFirst.find((record) =>
+					required.every((name) => name in record.fieldOffsets),
+				))
+			: before.find((record) => record.key === templateKnowledgeKey);
+	if (!template) {
+		throw new Error("Knowledge list has no suitable template");
 	}
-	const template = defined(templates[0], "knowledge template");
-	const required = ["_key", "_level", "_learnedFieldTime", "_isNewMark"];
 	if (!required.every((name) => name in template.fieldOffsets)) {
-		throw new Error(
-			"Knowledge template does not contain all four scalar fields",
-		);
+		throw new Error("Knowledge template is missing its _key or _level field");
 	}
 
 	const parc = parseParcBlob(raw);
@@ -91,8 +94,12 @@ export const insertKnowledge = async (
 	};
 	patch("_key", "u32", knowledgeKey);
 	patch("_level", "u32", level);
-	patch("_learnedFieldTime", "u64", 0);
-	patch("_isNewMark", "u8", isNew ? 1 : 0);
+	if ("_learnedFieldTime" in template.fieldOffsets) {
+		patch("_learnedFieldTime", "u64", 0);
+	}
+	if ("_isNewMark" in template.fieldOffsets) {
+		patch("_isNewMark", "u8", isNew ? 1 : 0);
+	}
 	rebaseClonePointers(
 		clone,
 		template.recordStart,
@@ -130,7 +137,10 @@ export const insertKnowledge = async (
 		throw new Error("Knowledge record did not reparse exactly once");
 	}
 	const record = defined(inserted[0], "inserted knowledge record");
-	if (record.level !== level || record.isNew !== isNew) {
+	if (record.level !== level) {
+		throw new Error("Knowledge record reparsed with unexpected values");
+	}
+	if ("_isNewMark" in template.fieldOffsets && record.isNew !== isNew) {
 		throw new Error("Knowledge record reparsed with unexpected values");
 	}
 	if (after.length !== before.length + 1) {
@@ -147,6 +157,7 @@ export const insertKnowledge = async (
 		{
 			edit: "insert_knowledge",
 			knowledge_key: knowledgeKey,
+			template_knowledge_key: template.key,
 			level,
 			is_new: isNew,
 			already_present: false,
