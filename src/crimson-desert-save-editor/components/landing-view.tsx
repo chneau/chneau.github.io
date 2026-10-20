@@ -209,7 +209,9 @@ export const LandingView = ({
 								<Text size="xs" c="dimmed">
 									Windows default path:{" "}
 									<Text span ff="monospace" size="xs">
-										%LOCALAPPDATA%\CrimsonDesert\Saved\SaveGames\
+										{
+											"%LOCALAPPDATA%\\Pearl Abyss\\<product>\\save\\<account>\\slot<N>\\"
+										}
 									</Text>
 								</Text>
 							</Group>

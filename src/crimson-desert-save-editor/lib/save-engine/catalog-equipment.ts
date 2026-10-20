@@ -172,6 +172,7 @@ export const insertCatalogEquipment = async (
 		itemKey: options.itemKey,
 		inventoryKey: options.inventoryKey ?? 2,
 		refinement: options.refinement ?? 0,
+		edit: "insert_catalog_equipment",
 	});
 };
 
@@ -189,14 +190,20 @@ export const insertCatalogItem = async (
 		itemKey: options.itemKey,
 		inventoryKey: options.inventoryKey ?? 2,
 		refinement: 0,
+		edit: "insert_catalog_item",
 	});
 };
 
 const insertCatalogRecord = async (
 	sourceBytes: Uint8Array,
-	options: { itemKey: number; inventoryKey: number; refinement: number },
+	options: {
+		itemKey: number;
+		inventoryKey: number;
+		refinement: number;
+		edit: string;
+	},
 ): Promise<[Uint8Array, Record<string, unknown>]> => {
-	const { itemKey, inventoryKey, refinement } = options;
+	const { itemKey, inventoryKey, refinement, edit } = options;
 	if (
 		!Number.isInteger(itemKey) ||
 		!Number.isInteger(inventoryKey) ||
@@ -361,7 +368,7 @@ const insertCatalogRecord = async (
 	return [
 		output,
 		{
-			edit: "insert_catalog_equipment",
+			edit,
 			item_key: itemKey,
 			item_name: definition.name,
 			inventory_key: inventoryKey,
