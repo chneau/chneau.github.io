@@ -109,12 +109,7 @@ export const insertInventoryItem = async (
 				else if (kind === "u32") writeU32(clone, localOffset, value);
 				else writeU16(clone, localOffset, value);
 			}
-			rebaseClonePointers(
-				clone,
-				template.recordStart,
-				template.recordEnd,
-				insertAbs,
-			);
+			rebaseClonePointers(clone, template.recordStart, insertAbs);
 
 			const oldBlock = parc.blockRaw.get(inventoryToc) ?? new Uint8Array();
 			const insertOffset = insertAbs - entry.dataOffset;

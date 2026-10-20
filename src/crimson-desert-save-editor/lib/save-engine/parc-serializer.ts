@@ -318,8 +318,6 @@ const fixupGlobalSelfReferences = (
 	if (deltas.size !== 1) return;
 	const delta = defined([...deltas][0], "block delta");
 
-	const typeIndices = new Set(oldParc.typeByIndex.keys());
-
 	for (const [blockStart, blockEnd] of shiftedBlocks) {
 		let pos = blockStart;
 		while (pos < blockEnd - 12) {
@@ -334,30 +332,13 @@ const fixupGlobalSelfReferences = (
 			}
 
 			const oldRef = readU32(out, refPos);
-			const expectedOldRef = pos - delta + 12;
-			if (oldRef === expectedOldRef) {
+			if (oldRef === pos - delta + 12) {
 				writeU32(out, refPos, oldRef + delta);
 				pos += 12;
 				continue;
 			}
 
-			let foundValid = false;
-			for (const maskByteCount of [1, 2, 3, 4, 8]) {
-				const locStart = pos - (maskByteCount + 5);
-				if (locStart < blockStart) continue;
-				const readMaskByteCount = readU16(out, locStart);
-				if (readMaskByteCount !== maskByteCount) continue;
-				const typeIndexPos = locStart + 2 + maskByteCount;
-				if (typeIndexPos + 3 > pos) continue;
-				const typeIndex = readU16(out, typeIndexPos);
-				if (!typeIndices.has(typeIndex)) continue;
-				if ((out[typeIndexPos + 2] ?? 0) !== 0) continue;
-				writeU32(out, refPos, oldRef + delta);
-				foundValid = true;
-				break;
-			}
-
-			pos += foundValid ? 12 : 1;
+			pos += 1;
 		}
 	}
 };

@@ -100,12 +100,7 @@ export const insertKnowledge = async (
 	if ("_isNewMark" in template.fieldOffsets) {
 		patch("_isNewMark", "u8", isNew ? 1 : 0);
 	}
-	rebaseClonePointers(
-		clone,
-		template.recordStart,
-		template.recordEnd,
-		insertAbs,
-	);
+	rebaseClonePointers(clone, template.recordStart, insertAbs);
 
 	const oldBlock = parc.blockRaw.get(entry.index) ?? new Uint8Array();
 	const insertOffset = insertAbs - entry.dataOffset;

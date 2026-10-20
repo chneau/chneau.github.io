@@ -123,12 +123,7 @@ const insertMissing = (
 		if (newMarkOffset !== undefined) {
 			writeU8(clone, newMarkOffset - template.recordStart, 0);
 		}
-		rebaseClonePointers(
-			clone,
-			template.recordStart,
-			template.recordEnd,
-			cursor,
-		);
+		rebaseClonePointers(clone, template.recordStart, cursor);
 		clones.push(clone);
 		cursor += clone.length;
 	}
