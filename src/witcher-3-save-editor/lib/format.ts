@@ -1192,6 +1192,7 @@ const ACTIONS: readonly QuickAction[] = [
 				const progress = objectAt(row, "progress");
 				if (progress === undefined) return;
 				const name = stringAt(row, "name") ?? `mutation ${index}`;
+				if (name === "EPMT_MutationMaster") return;
 				mutationNames.push(name);
 				for (const color of ["red", "blue", "green", "skillpoints"]) {
 					const required = numberAt(progress, `${color}Required`);

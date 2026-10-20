@@ -1,7 +1,6 @@
 import type { SaveContainer } from "./container";
 import { readNameTable } from "./names";
-import { readObjectTree } from "./objects";
-import { shiftSpanIndex } from "./payload-resize";
+import { enclosing, shiftSpanIndex } from "./payload-resize";
 import { type ReflectedValue, reflectValue } from "./reflect";
 import { parseTokens, type Token } from "./tokens";
 
@@ -44,34 +43,6 @@ const nameBytesOf = (names: readonly string[]): Uint8Array => {
 		at += name.length;
 	}
 	return bytes;
-};
-
-const enclosing = (
-	data: Uint8Array,
-	offset: number,
-): { tag: string; offset: number; childSize: number }[] => {
-	const tree = readObjectTree(data);
-	const chain: { tag: string; offset: number; childSize: number }[] = [];
-	const walk = (nodes: ReturnType<typeof readObjectTree>["roots"]): boolean => {
-		for (const node of nodes) {
-			if (!(node.span.offset <= offset && offset < node.span.end)) continue;
-			const token = node.span.token;
-			if (
-				(token.tag === "BLCK" || token.tag === "SS") &&
-				token.childSize !== undefined
-			) {
-				chain.push({
-					tag: token.tag,
-					offset: token.offset,
-					childSize: token.childSize,
-				});
-			}
-			if (walk(node.children)) return true;
-		}
-		return false;
-	};
-	walk(tree.roots);
-	return chain;
 };
 
 type Insert = { readonly at: number; readonly bytes: Uint8Array };
