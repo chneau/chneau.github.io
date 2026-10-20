@@ -4,10 +4,8 @@ import {
 	type ItemSocketRecord,
 	listLayout,
 	locator,
-	parseFieldsWithListTrailers,
 	present,
 	readObjectListValues,
-	readPostListScalarsFromEnd,
 } from "./parc";
 import { BlockParser, parseParcBlob } from "./parc-serializer";
 
@@ -148,9 +146,7 @@ export const readInventoryWithDiagnostics = (
 				if (itemDef?.name !== "ItemSaveData") {
 					throw new Error(`Expected ItemSaveData, got ${itemDef?.name}`);
 				}
-				const parsedFields = parseFieldsWithListTrailers(
-					raw,
-					parser,
+				const [parsedFields] = parser.parseFields(
 					itemDef,
 					itemMask,
 					itemPayload + 4,
@@ -169,15 +165,6 @@ export const readInventoryWithDiagnostics = (
 					values[field.name] = field.value;
 					offsets[field.name] = field.start ?? 0;
 				}
-				const [trailingValues, trailingOffsets] = readPostListScalarsFromEnd(
-					raw,
-					parser,
-					itemDef,
-					itemMask,
-					itemEnd,
-				);
-				Object.assign(values, trailingValues);
-				Object.assign(offsets, trailingOffsets);
 				let sockets: ItemSocketRecord[] = [];
 				const socketField = parsedFields.find(
 					(field) => field.present && field.name === "_socketSaveDataList",

@@ -33,6 +33,11 @@ export const readU8 = (data: Uint8Array, offset: number): number => {
 	return data[offset] ?? 0;
 };
 
+export const readI8 = (data: Uint8Array, offset: number): number => {
+	const value = readU8(data, offset);
+	return value >= 0x80 ? value - 0x100 : value;
+};
+
 export const readU16 = (data: Uint8Array, offset: number): number => {
 	return (data[offset] ?? 0) | ((data[offset + 1] ?? 0) << 8);
 };

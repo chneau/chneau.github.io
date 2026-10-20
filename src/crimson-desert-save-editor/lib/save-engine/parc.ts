@@ -11,7 +11,6 @@ import { defined } from "./defined";
 import {
 	type BlockParser,
 	type ParcBlob,
-	type ParsedField,
 	parseParcBlob,
 	serializeParc,
 	type TOCEntry,
@@ -177,68 +176,6 @@ export const readObjectListValues = (
 		cursor = elementEnd;
 	}
 	return values;
-};
-
-export const parseFieldsWithListTrailers = (
-	raw: Uint8Array,
-	parser: BlockParser,
-	typeDef: TypeDef,
-	mask: Uint8Array,
-	position: number,
-	tail: number,
-): ParsedField[] => {
-	const parsed: ParsedField[] = [];
-	let cursor = position;
-	for (let index = 0; index < typeDef.fields.length; index++) {
-		const field = defined(typeDef.fields[index], "field definition");
-		if (!present(mask, index)) {
-			parsed.push({ fieldIndex: index, name: field.name, present: false });
-			continue;
-		}
-		const start = cursor;
-		const [value, fieldEnd] = parser.parseFieldValue(field, cursor, tail);
-		parsed.push({
-			fieldIndex: index,
-			name: field.name,
-			present: true,
-			value,
-			start,
-			end: fieldEnd,
-		});
-		cursor = fieldEnd;
-		if (
-			(field.metaKind === 6 || field.metaKind === 7) &&
-			(raw[cursor] ?? 0) === 1 &&
-			(raw[cursor + 1] ?? 0) === 1
-		) {
-			cursor += 2;
-		}
-	}
-	return parsed;
-};
-
-export const readPostListScalarsFromEnd = (
-	_raw: Uint8Array,
-	parser: BlockParser,
-	typeDef: TypeDef,
-	mask: Uint8Array,
-	recordEnd: number,
-): [Record<string, unknown>, Record<string, number>] => {
-	if (present(mask, 23)) return [{}, {}];
-
-	let cursor = recordEnd - 4;
-	const values: Record<string, unknown> = {};
-	const offsets: Record<string, number> = {};
-	for (let index = typeDef.fields.length - 1; index > 16; index--) {
-		if (!present(mask, index)) continue;
-		const field = defined(typeDef.fields[index], "field definition");
-		if (field.metaKind !== 0 && field.metaKind !== 2) return [{}, {}];
-		if (field.metaSize <= 0) return [{}, {}];
-		cursor -= field.metaSize;
-		offsets[field.name] = cursor;
-		values[field.name] = parser.readScalar(field, cursor);
-	}
-	return [values, offsets];
 };
 
 export const writeListCount = (

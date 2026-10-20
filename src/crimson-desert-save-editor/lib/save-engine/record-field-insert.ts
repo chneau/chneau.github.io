@@ -118,34 +118,23 @@ type PendingRun = {
 	bytes: Uint8Array;
 };
 
-const runPosition = (
-	target: FieldTarget,
-	first: number,
-	last: number,
-): number => {
-	let next: number | null = null;
-	let previousEnd: number | null = null;
+const runPosition = (target: FieldTarget, first: number): number => {
+	const present: Array<ParsedField | undefined> = [];
 	for (const field of target.fields) {
-		if (
-			!field.present ||
-			field.start === undefined ||
-			field.end === undefined
-		) {
-			continue;
-		}
-		if (field.fieldIndex > last && (next === null || field.start < next)) {
-			next = field.start;
-		}
-		if (
-			field.fieldIndex < first &&
-			(previousEnd === null || field.end > previousEnd)
-		) {
-			previousEnd = field.end;
+		if (field.present) present[field.fieldIndex] = field;
+	}
+	let cursor = target.emptyAt;
+	for (let index = 0; index < first; index++) {
+		const definition = target.type.fields[index];
+		if (!definition) break;
+		const field = present[index];
+		if (field?.end !== undefined) {
+			cursor = field.end;
+		} else if (definition.metaKind === 6 || definition.metaKind === 7) {
+			cursor += 1;
 		}
 	}
-	if (next !== null) return next;
-	if (previousEnd !== null) return previousEnd;
-	return target.emptyAt;
+	return cursor;
 };
 
 const groupRuns = (
@@ -158,11 +147,10 @@ const groupRuns = (
 	const flush = (): void => {
 		if (current.length === 0) return;
 		const first = defined(current[0], "first field of a run");
-		const last = defined(current[current.length - 1], "last field of a run");
 		runs.push({
 			target,
 			fields: current,
-			at: runPosition(target, first.index, last.index),
+			at: runPosition(target, first.index),
 			bytes: concat(current.map((field) => field.bytes)),
 		});
 		current = [];
