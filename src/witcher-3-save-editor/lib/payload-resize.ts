@@ -1,6 +1,5 @@
 import type { SaveContainer } from "./container";
 import { readNameTable } from "./names";
-import { type ObjectNode, readObjectTree } from "./objects";
 import { parseTokens } from "./tokens";
 
 export type Resizable = {
@@ -80,31 +79,24 @@ export const nameBytesOf = (
 	return bytes;
 };
 
-const enclosing = (
+export const enclosing = (
 	data: Uint8Array,
 	offset: number,
 ): { tag: string; offset: number; childSize: number }[] => {
-	const tree = readObjectTree(data);
+	const names = readNameTable(data).names;
 	const chain: { tag: string; offset: number; childSize: number }[] = [];
-	const walk = (nodes: readonly ObjectNode[]): boolean => {
-		for (const node of nodes) {
-			if (!(node.span.offset <= offset && offset < node.span.end)) continue;
-			const token = node.span.token;
-			if (
-				(token.tag === "BLCK" || token.tag === "SS") &&
-				token.childSize !== undefined
-			) {
-				chain.push({
-					tag: token.tag,
-					offset: token.offset,
-					childSize: token.childSize,
-				});
-			}
-			if (walk(node.children)) return true;
+	for (const token of parseTokens(data, names).tokens) {
+		if (token.tag !== "BLCK" && token.tag !== "SS") continue;
+		const childSize = token.childSize;
+		if (childSize === undefined) continue;
+		const header = token.tag === "SS" ? 6 : 10;
+		if (
+			!(token.offset < offset && offset < token.offset + header + childSize)
+		) {
+			continue;
 		}
-		return false;
-	};
-	walk(tree.roots);
+		chain.push({ tag: token.tag, offset: token.offset, childSize });
+	}
 	return chain;
 };
 
