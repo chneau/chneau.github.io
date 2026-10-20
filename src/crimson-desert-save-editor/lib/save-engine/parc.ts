@@ -239,7 +239,6 @@ export const writeListCount = (
 export const rebaseClonePointers = (
 	clone: Uint8Array,
 	sourceStart: number,
-	sourceEnd: number,
 	targetStart: number,
 ): void => {
 	const delta = targetStart - sourceStart;
@@ -251,7 +250,7 @@ export const rebaseClonePointers = (
 		const pointerOffset = sentinel + 8;
 		if (pointerOffset + 4 <= clone.length) {
 			const pointer = readU32(clone, pointerOffset);
-			if (pointer >= sourceStart && pointer < sourceEnd) {
+			if (pointer === sourceStart + pointerOffset + 4) {
 				writeU32(clone, pointerOffset, pointer + delta);
 				found += 1;
 			}
@@ -302,7 +301,6 @@ export const spliceInsertions = (
 		);
 	}
 
-	const blockEnd = blockStart + block.length;
 	let cursor = 0;
 	for (;;) {
 		const sentinel = indexOfBytes(block, SENTINEL, cursor);
@@ -311,7 +309,7 @@ export const spliceInsertions = (
 		const pointerOffset = sentinel + 8;
 		if (pointerOffset + 4 > block.length) continue;
 		const pointer = readU32(block, pointerOffset);
-		if (pointer < blockStart || pointer >= blockEnd) continue;
+		if (pointer !== blockStart + pointerOffset + 4) continue;
 		for (const insertion of insertions) {
 			const remove = insertion.remove ?? 0;
 			if (
@@ -339,14 +337,13 @@ export const shiftExistingBlockPointers = (
 	delta: number,
 ): void => {
 	let cursor = 0;
-	const oldBlockEnd = blockStart + oldBlock.length;
 	for (;;) {
 		const sentinel = indexOfBytes(oldBlock, SENTINEL, cursor);
 		if (sentinel < 0) break;
 		const pointerOffset = sentinel + 8;
 		if (pointerOffset + 4 <= oldBlock.length) {
 			const pointer = readU32(oldBlock, pointerOffset);
-			if (pointer >= insertAbs && pointer < oldBlockEnd) {
+			if (pointer === blockStart + pointerOffset + 4 && pointer >= insertAbs) {
 				const oldPointerAbs = blockStart + pointerOffset;
 				const newPointerOffset =
 					pointerOffset + (oldPointerAbs >= insertAbs ? delta : 0);
@@ -388,10 +385,7 @@ export const normalizedBlock = (
 		const pointerOffset = sentinel + 8;
 		if (pointerOffset + 4 <= block.length) {
 			const pointer = readU32(block, pointerOffset);
-			if (
-				pointer >= entry.dataOffset &&
-				pointer < entry.dataOffset + entry.dataSize
-			) {
+			if (pointer === entry.dataOffset + pointerOffset + 4) {
 				writeU32(block, pointerOffset, pointer - entry.dataOffset);
 			}
 		}

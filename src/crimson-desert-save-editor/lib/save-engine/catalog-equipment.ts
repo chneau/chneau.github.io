@@ -156,7 +156,7 @@ const normalizedRecord = (
 	record: InventoryRecord,
 ): Uint8Array => {
 	const blob = raw.slice(record.recordStart, record.recordEnd);
-	rebaseClonePointers(blob, record.recordStart, record.recordEnd, 0);
+	rebaseClonePointers(blob, record.recordStart, 0);
 	return blob;
 };
 
