@@ -112,7 +112,7 @@ const parseHeader = (data: Uint8Array): SaveHeader => {
 		);
 	}
 	const end = PAYLOAD_OFFSET + payloadSize;
-	if (end !== data.length) {
+	if (end > data.length) {
 		throw new SaveContainerError(
 			`Payload/file-size mismatch: header ends at ${end}, file is ${data.length} bytes`,
 		);
@@ -172,7 +172,10 @@ const constantTimeEqual = (a: Uint8Array, b: Uint8Array): boolean => {
 export const decodeSave = async (data: Uint8Array): Promise<DecodeResult> => {
 	const header = parseHeader(data);
 	const key = saveKey(header.version);
-	const encrypted = data.subarray(PAYLOAD_OFFSET);
+	const encrypted = data.subarray(
+		PAYLOAD_OFFSET,
+		PAYLOAD_OFFSET + header.payloadSize,
+	);
 	const compressed = chacha20(encrypted, header.nonce, key);
 	const actualDigest = await hmacSha256(key, compressed);
 	if (!constantTimeEqual(actualDigest, header.digest)) {

@@ -212,19 +212,38 @@ const openParc = (raw: Uint8Array): [ParcBlob, BlockParser] => {
 	return [parc, new BlockParser(parc)];
 };
 
-const findRoot = (parc: ParcBlob, typeName: string): number => {
+const findRoot = (
+	parc: ParcBlob,
+	typeName: string,
+	ordinal?: number,
+): number => {
 	const entries = parc.tocEntries.filter(
 		(entry) => parc.typeByIndex.get(entry.classIndex)?.name === typeName,
 	);
-	if (entries.length !== 1) {
-		throw new Error(`Expected one ${typeName} block, found ${entries.length}`);
+	if (ordinal === undefined) {
+		if (entries.length !== 1) {
+			throw new Error(
+				`Expected one ${typeName} block, found ${entries.length}`,
+			);
+		}
+		return defined(entries[0], "root block").index;
 	}
-	return defined(entries[0], "root block").index;
+	const entry = entries[ordinal];
+	if (entry === undefined) {
+		throw new Error(
+			`Expected ${typeName} block ${ordinal}, found ${entries.length}`,
+		);
+	}
+	return entry.index;
 };
 
-export const readRoot = (raw: Uint8Array, typeName: string): RootObject => {
+export const readRoot = (
+	raw: Uint8Array,
+	typeName: string,
+	ordinal?: number,
+): RootObject => {
 	const [parc, parser] = openParc(raw);
-	const tocIndex = findRoot(parc, typeName);
+	const tocIndex = findRoot(parc, typeName, ordinal);
 	const root = parser.parseRootBlock(tocIndex);
 	const type = defined(
 		parc.typeByIndex.get(root.classIndex),
