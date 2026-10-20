@@ -132,29 +132,13 @@ const rechunk = (
 
 export type IndexShift = {
 	readonly at: number;
-	readonly length: number;
+	readonly remove: number;
+	readonly insert: number;
 };
 
 type SpanEntry = {
 	readonly start: number;
 	readonly size: number;
-};
-
-const spanKey = (entry: SpanEntry): string => `${entry.start}:${entry.size}`;
-
-const collectSpans = (data: Uint8Array): SpanEntry[] => {
-	const spans: SpanEntry[] = [];
-	const walk = (nodes: readonly ObjectNode[]): void => {
-		for (const node of nodes) {
-			spans.push({
-				start: node.span.offset + BASE,
-				size: node.span.size,
-			});
-			walk(node.children);
-		}
-	};
-	walk(readObjectTree(data).roots);
-	return spans;
 };
 
 const readIndex = (data: Uint8Array): SpanEntry[] => {
@@ -167,56 +151,76 @@ const readIndex = (data: Uint8Array): SpanEntry[] => {
 	return entries;
 };
 
-export const rebuildSpanIndex = (
+const findRootIndex = (
+	data: Uint8Array,
+	manuAt: number,
+): { readonly at: number; readonly count: number } | undefined => {
+	for (let at = manuAt - 2; at >= 0; at -= 1) {
+		if (data[at] !== 0x52 || data[at + 1] !== 0x42) continue;
+		const count = u32(data, at + 2);
+		if (count > 100_000) continue;
+		if (at + 6 + count * 6 === manuAt - 2) return { at, count };
+	}
+	return undefined;
+};
+
+const shiftPosition = (
+	position: number,
+	isEnd: boolean,
+	shifts: readonly IndexShift[],
+): number => {
+	let shift = 0;
+	for (const move of shifts) {
+		const removedEnd = move.at + move.remove;
+		const delta = move.insert - move.remove;
+		if (
+			position > removedEnd ||
+			(position === removedEnd && (!isEnd || move.remove > 0))
+		) {
+			shift += delta;
+			continue;
+		}
+		if (position > move.at) return move.at + move.insert;
+	}
+	return position + shift;
+};
+
+export const shiftSpanIndex = (
 	container: Resizable,
 	out: Uint8Array<ArrayBuffer>,
 	shifts: readonly IndexShift[],
 ): Resizable => {
 	const original = container.data;
-	const originalSpans = new Set(collectSpans(original).map(spanKey));
-	const carried = readIndex(original).filter(
-		(entry) => !originalSpans.has(spanKey(entry)),
-	);
-	const shifted = carried.map((entry) => {
-		const payloadStart = entry.start - BASE;
-		let shift = 0;
-		for (const move of shifts) {
-			if (move.at <= payloadStart) shift += move.length;
-		}
-		return { start: payloadStart + shift + BASE, size: entry.size };
+	const from = findSpanIndex(original);
+	const to = findSpanIndex(out);
+	const footer = u32(original, original.length - 6);
+	const split = footer - from.at;
+	readIndex(original).forEach((entry, i) => {
+		const start = entry.start - BASE;
+		const end = start + entry.size;
+		const nextStart = shiftPosition(start, false, shifts);
+		const nextEnd = shiftPosition(end, true, shifts);
+		const at = to.at + 6 + i * 8;
+		writeU32(out, at, nextStart + BASE);
+		writeU32(out, at + 4, Math.max(0, nextEnd - nextStart));
 	});
-	const oldIndexBefore = findSpanIndex(out);
-	for (let i = 0; i < oldIndexBefore.count; i += 1) {
-		const at = oldIndexBefore.at + 6 + i * 8;
-		const start = u32(out, at) - BASE;
-		const size = u32(out, at + 4);
-		const end = start + size;
-		let shift = 0;
-		let grow = 0;
-		for (const move of shifts) {
-			if (move.at <= start) shift += move.length;
-			else if (move.at < end) grow += move.length;
+	writeU32(out, out.length - 6, to.at + split);
+	const root = findRootIndex(original, readNameTable(original).offset);
+	if (root !== undefined) {
+		const nextRoot = findRootIndex(out, readNameTable(out).offset);
+		if (nextRoot !== undefined) {
+			for (let i = 0; i < root.count; i += 1) {
+				const fromAt = root.at + 6 + i * 6;
+				const toAt = nextRoot.at + 6 + i * 6;
+				const payloadAt = u32(original, fromAt + 2) - BASE;
+				writeU32(out, toAt + 2, shiftPosition(payloadAt, false, shifts) + BASE);
+			}
 		}
-		writeU32(out, at, start + shift + BASE);
-		writeU32(out, at + 4, size + grow);
+		const rootShift = shiftPosition(root.at, false, shifts) - root.at;
+		writeU32(out, to.at - 8, u32(original, from.at - 8) + rootShift);
+		writeU32(out, to.at - 4, u32(original, from.at - 4) + rootShift);
 	}
-	const entries = [...collectSpans(out), ...shifted].sort(
-		(a, b) => a.start - b.start,
-	);
-	const oldIndex = findSpanIndex(out);
-	const body = out.subarray(0, oldIndex.at);
-	const rebuilt = new Uint8Array(body.length + 6 + entries.length * 8 + 6);
-	rebuilt.set(body);
-	rebuilt[body.length] = 0x53;
-	rebuilt[body.length + 1] = 0x43;
-	writeU32(rebuilt, body.length + 2, entries.length);
-	entries.forEach((entry, i) => {
-		const at = body.length + 6 + i * 8;
-		writeU32(rebuilt, at, entry.start);
-		writeU32(rebuilt, at + 4, entry.size);
-	});
-	writeU32(rebuilt, rebuilt.length - 6, body.length + BASE + 2);
-	return { data: rebuilt, chunks: rechunk(container, rebuilt.length) };
+	return { data: out, chunks: rechunk(container, out.length) };
 };
 
 export const replaceRange = (
@@ -260,5 +264,7 @@ export const replaceRange = (
 			writeU32(out, token.offset + 8, length + delta);
 		}
 	}
-	return rebuildSpanIndex(container, out, [{ at, length: insert.length }]);
+	return shiftSpanIndex(container, out, [
+		{ at, remove: removeLength, insert: insert.length },
+	]);
 };

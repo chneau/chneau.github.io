@@ -1,7 +1,7 @@
 import type { SaveContainer } from "./container";
 import { readNameTable } from "./names";
 import { readObjectTree } from "./objects";
-import { rebuildSpanIndex } from "./payload-resize";
+import { shiftSpanIndex } from "./payload-resize";
 import { type ReflectedValue, reflectValue } from "./reflect";
 import { parseTokens, type Token } from "./tokens";
 
@@ -429,12 +429,13 @@ export const maxMutationsInPayload = (
 	out[checksumAt] = 0x48;
 	out[checksumAt + 1] = 0xa0;
 
-	return rebuildSpanIndex(
+	return shiftSpanIndex(
 		container,
 		out,
 		allInserts.map((insert) => ({
 			at: insert.at,
-			length: insert.bytes.length,
+			remove: 0,
+			insert: insert.bytes.length,
 		})),
 	);
 };
