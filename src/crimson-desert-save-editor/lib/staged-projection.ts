@@ -20,7 +20,8 @@ const quantityEditFor = (
 		(edit): edit is QuantityEdit =>
 			edit.type === "quantity" &&
 			edit.inventoryKey === record.inventoryKey &&
-			edit.slotNo === record.slotNo,
+			edit.slotNo === record.slotNo &&
+			edit.itemKey === record.itemKey,
 	);
 
 const equipmentEditFor = (
