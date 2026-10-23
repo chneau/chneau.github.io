@@ -58,7 +58,7 @@ export const APP_META = [
 		entry: "./src/root/index.tsx",
 		title: "chneau.github.io",
 		description:
-			"Personal hub and web apps by chneau — CV, birthday tracker, Scottish rail replay, save editor and pub price maps.",
+			"Personal hub and web apps by chneau — CV, birthday tracker, Scottish rail replay, Unreal and Unity save editors, and pub price maps.",
 		themeColor: "#1677ff",
 		backgroundColor: "#09090b",
 		manifestName: "chneau.github.io",
@@ -199,6 +199,35 @@ export const APP_META = [
 			hotkey: "4",
 			description:
 				"Edit Crimson Desert save files — inventory, gear, skills, quests and companions — entirely on your device.",
+		},
+	},
+	{
+		slug: "librarian-save-editor",
+		path: "/librarian-save-editor/",
+		entry: "./src/librarian-save-editor/app/main.tsx",
+		title: "Librarian: Tidy Up the Arcane Library Save Editor",
+		description:
+			"Read the Librarian's Unreal 5.5 save in your browser — spell levels, skill progress and row counts, with every major spell maxed in a click and the rebuilt file verified.",
+		themeColor: "#6d5aa8",
+		backgroundColor: "#0e0e11",
+		manifestName: "Librarian Save Editor",
+		manifestShortName: "Librarian",
+		emoji: "📚",
+		lucideIcon: "BookOpen",
+		defineBuildDate: false,
+		metaType: "website",
+		alternateLocales: [],
+		jsonLd: [],
+		copies: [],
+		sitemap: { changefreq: "monthly", priority: 0.7 },
+		dashboard: {
+			title: "Librarian Save Editor",
+			tag: "UE 5.5 GVAS",
+			tagColor: "violet",
+			category: "Saves",
+			hotkey: "l",
+			description:
+				"Read the Librarian's Unreal 5.5 save in your browser — spell levels, skill progress and row counts, with every major spell maxed in a click and the rebuilt file verified.",
 		},
 	},
 	{

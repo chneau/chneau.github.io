@@ -1,5 +1,6 @@
 import {
 	Beer,
+	BookOpen,
 	Cake,
 	Car,
 	Cat,
@@ -34,6 +35,7 @@ export const hotkeyLabel = (hotkey: string): string =>
 
 const LUCIDE_ICONS: Record<string, LucideIcon> = {
 	Beer,
+	BookOpen,
 	Cake,
 	Car,
 	Cat,

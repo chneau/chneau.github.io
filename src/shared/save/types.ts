@@ -30,6 +30,11 @@ export type FormatNote = {
 export type SaveTableColumn = {
 	readonly label: string;
 	readonly path: SavePath;
+	readonly resolvePath?: (
+		row: JsonValue,
+		index: number,
+	) => SavePath | undefined;
+	readonly read?: (row: JsonValue, index: number) => JsonValue | undefined;
 	readonly readOnly?: boolean;
 	readonly width?: string;
 };
@@ -38,6 +43,8 @@ export type SaveTable = {
 	readonly id: string;
 	readonly label: string;
 	readonly path: SavePath;
+	readonly resolvePath?: (doc: JsonValue) => SavePath | undefined;
+	readonly emptyMessage?: string;
 	readonly columns: readonly SaveTableColumn[];
 };
 
