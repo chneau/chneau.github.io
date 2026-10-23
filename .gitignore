@@ -3,3 +3,4 @@ dist
 .impeccable/
 rsbuild.log
 private/
+.tmp-*

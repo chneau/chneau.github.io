@@ -44,23 +44,30 @@ export const SaveTable = ({
 	const [filter, setFilter] = useState("");
 	const [editing, setEditing] = useState<string | null>(null);
 
+	const tablePath = useMemo(
+		() => table.resolvePath?.(doc) ?? table.path,
+		[doc, table],
+	);
+
 	const rows = useMemo(() => {
-		const value = getAtPath(doc, table.path);
+		const value = getAtPath(doc, tablePath);
 		if (!Array.isArray(value)) return null;
 		const needle = filter.trim().toLowerCase();
 		return value
 			.map((row, index) => ({ row, index }))
-			.filter(({ row }) => {
+			.filter(({ row, index }) => {
 				if (needle.length === 0) return true;
 				return table.columns.some((column) => {
-					const value = getAtPath(row, column.path);
+					const value =
+						column.read?.(row, index) ??
+						getAtPath(row, column.resolvePath?.(row, index) ?? column.path);
 					return (
 						value !== undefined &&
 						previewValue(value).toLowerCase().includes(needle)
 					);
 				});
 			});
-	}, [doc, filter, table]);
+	}, [doc, filter, table, tablePath]);
 
 	return (
 		<Box style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
@@ -82,7 +89,8 @@ export const SaveTable = ({
 
 			{rows === null ? (
 				<Text size="sm" c="dimmed">
-					This save does not carry the {table.label.toLowerCase()} table.
+					{table.emptyMessage ??
+						`This save does not carry the ${table.label.toLowerCase()} table.`}
 				</Text>
 			) : rows.length === 0 ? (
 				<Text size="sm" c="dimmed">
@@ -112,17 +120,21 @@ export const SaveTable = ({
 						</Table.Thead>
 						<Table.Tbody>
 							{rows.map(({ row, index }) => {
-								const rowPath = [...table.path, index];
+								const rowPath = [...tablePath, index];
 								return (
 									<Table.Tr key={pathKey(rowPath)}>
 										{table.columns.map((column) => {
-											const path = [...rowPath, ...column.path];
+											const cellPath =
+												column.resolvePath?.(row, index) ?? column.path;
+											const path = [...rowPath, ...cellPath];
+											const value =
+												column.read?.(row, index) ?? getAtPath(row, cellPath);
 											return (
 												<TableCell
-													key={`${column.label}:${pathKey(column.path)}`}
+													key={`${column.label}:${pathKey(cellPath)}`}
 													path={path}
 													column={column}
-													value={getAtPath(row, column.path)}
+													value={value}
 													staged={staged.has(pathKey(path))}
 													editing={editing === pathKey(path)}
 													onEdit={() => setEditing(pathKey(path))}
