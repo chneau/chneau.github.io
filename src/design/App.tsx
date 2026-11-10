@@ -1,6 +1,6 @@
 import { Badge, Group, type MantineColorsTuple, Stack } from "@mantine/core";
 import { Keyboard, Layers, Moon, RotateCcw, Sun } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	APP_SWITCH_SHORTCUTS,
 	APPS,
@@ -62,22 +62,24 @@ const appTheme = createAppTheme({
 
 const useSchemeAudit = (
 	scheme: "light" | "dark",
-): { findings: readonly Finding[]; audited: "light" | "dark" } => {
+): { findings: readonly Finding[]; pending: boolean } => {
 	const [audit, setAudit] = useState<{
-		scheme: "light" | "dark";
 		findings: readonly Finding[];
-	}>({ scheme: "light", findings: [] });
+		pending: boolean;
+	}>({ findings: [], pending: true });
 
-	const scheduleAudit = useCallback((next: "light" | "dark") => {
+	useEffect(() => {
+		const next = scheme;
 		let cancelled = false;
 		let timer = 0;
+		let frame = 0;
 
-		setAudit({ scheme: next, findings: [] });
+		setAudit({ findings: [], pending: true });
 
 		const finish = () => {
 			if (cancelled) return;
-			window.requestAnimationFrame(() => {
-				if (!cancelled) setAudit({ scheme: next, findings: runAudit(next) });
+			frame = window.requestAnimationFrame(() => {
+				if (!cancelled) setAudit({ findings: runAudit(next), pending: false });
 			});
 		};
 
@@ -96,19 +98,18 @@ const useSchemeAudit = (
 		if (running.length > 0) {
 			void Promise.allSettled(running.map((a) => a.finished)).then(finish);
 		} else {
-			window.requestAnimationFrame(finish);
+			frame = window.requestAnimationFrame(finish);
 		}
 		timer = window.setTimeout(finish, AUDIT_SETTLE_MS);
 
 		return () => {
 			cancelled = true;
 			window.clearTimeout(timer);
+			window.cancelAnimationFrame(frame);
 		};
-	}, []);
+	}, [scheme]);
 
-	useEffect(() => scheduleAudit(scheme), [scheme, scheduleAudit]);
-
-	return { findings: audit.findings, audited: audit.scheme };
+	return { findings: audit.findings, pending: audit.pending };
 };
 
 export const App = () => {
@@ -121,7 +122,7 @@ export const App = () => {
 	const palette = useCommandPalette();
 
 	const { layers, live } = useTokenSnapshot(scheme);
-	const { findings, audited } = useSchemeAudit(scheme);
+	const { findings, pending } = useSchemeAudit(scheme);
 
 	const themeRef = useRef(theme);
 	useEffect(() => {
@@ -188,8 +189,6 @@ export const App = () => {
 		},
 	];
 
-	const auditPending = findings.length === 0 || audited !== scheme;
-
 	return (
 		<ThemedProvider theme={appTheme}>
 			<SkipLink />
@@ -218,7 +217,7 @@ export const App = () => {
 
 						<AuditSection
 							findings={findings}
-							pending={auditPending}
+							pending={pending}
 							scheme={scheme}
 						/>
 

@@ -106,6 +106,9 @@ export const applyItemCondition = async (
 	const [itemTypeIndex] = locator(raw, before.recordStart, parc.typeByIndex);
 	const itemType = parc.typeByIndex.get(itemTypeIndex);
 	if (!itemType) throw new Error("Item type was not found");
+	const definitions = new Map(
+		itemType.fields.map((candidate) => [candidate.name, candidate] as const),
+	);
 	const current = describeCondition(before);
 	const writes: ScalarWrite[] = [];
 	const requested: Array<{
@@ -132,9 +135,7 @@ export const applyItemCondition = async (
 		}
 		const existing = Number(before.values[field.name] ?? 0);
 		if (existing === value) continue;
-		const definition = itemType.fields.find(
-			(candidate) => candidate.name === field.name,
-		);
+		const definition = definitions.get(field.name);
 		if (!definition) {
 			throw new Error(`The item type has no ${field.name} field`);
 		}

@@ -398,6 +398,7 @@ const readSavedMutations = (
 
 export const locateWritable = (data: Uint8Array): WritableSave => {
 	const names = readNameTable(data).names;
+	const nameSet = new Set(names);
 	const tokens = parseTokens(data, names).tokens;
 
 	const levelIndex = tokens.findIndex(
@@ -547,7 +548,7 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 			? ["mutationSkillSlotsInitialized"]
 			: []),
 	]
-		.filter((name) => !names.includes(name))
+		.filter((name) => !nameSet.has(name))
 		.reduce((sum, name) => sum + 1 + name.length, 0);
 	const mutationUsedBytes = (member(ability, "mutations")?.items ?? []).reduce(
 		(sum, item) => {
@@ -575,7 +576,7 @@ export const locateWritable = (data: Uint8Array): WritableSave => {
 		...ENGINE_MUTATION_NAME_SUFFIX,
 		"array:2,0,EPlayerMutationType",
 	]
-		.filter((name) => !names.includes(name))
+		.filter((name) => !nameSet.has(name))
 		.reduce((sum, name) => sum + 1 + name.length, 0);
 	const mutationSystem: MutationSystem = {
 		enabled: enabledField?.text === "true",

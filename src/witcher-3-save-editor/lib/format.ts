@@ -1271,7 +1271,8 @@ const ACTIONS: readonly QuickAction[] = [
 			const active = (arrayAt(system, "active") ?? []).filter(
 				(name): name is string => typeof name === "string",
 			);
-			if (!types.every((name) => active.includes(name))) {
+			const activeSet = new Set(active);
+			if (!types.every((name) => activeSet.has(name))) {
 				edits.push(
 					edit(["mutationSystem", "active"], "Active mutations", active, types),
 				);
@@ -1447,9 +1448,10 @@ const ACTIONS: readonly QuickAction[] = [
 			const active = (arrayAt(system, "active") ?? []).filter(
 				(name): name is string => typeof name === "string",
 			);
+			const activeSet = new Set(active);
 			if (
 				activeTypes.length > 0 &&
-				!activeTypes.every((name) => active.includes(name))
+				!activeTypes.every((name) => activeSet.has(name))
 			) {
 				edits.push(
 					edit(
