@@ -44,7 +44,7 @@ const brand: MantineColorsTuple = [
 	"#c7d2fe",
 	"#a5b4fc",
 	"#818cf8",
-	"#6366f1",
+	"#5b5eea",
 	"#4f46e5",
 	"#4338ca",
 	"#3730a3",
