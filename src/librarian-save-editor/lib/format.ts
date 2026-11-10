@@ -385,7 +385,7 @@ const planSkillLevels = (
 	if (players !== undefined) {
 		const properties = players.properties.slice();
 		const at = propertyIndex(properties, "CollectedItems");
-		properties.splice(at < 0 ? 0 : at, 0, newSkillData(desired));
+		properties.splice(Math.max(at, 0), 0, newSkillData(desired));
 		const path = ["list", "properties", players.index, "value", "properties"];
 		return [
 			{

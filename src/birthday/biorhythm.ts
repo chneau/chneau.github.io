@@ -10,7 +10,7 @@ export const biorhythmValue = (daysLived: number, period: number): number => {
 	if (!Number.isFinite(period) || period <= 0) return 0;
 	if (!Number.isFinite(daysLived)) return 0;
 
-	const day = daysLived < 0 ? 0 : daysLived;
+	const day = Math.max(daysLived, 0);
 
 	const phase = ((day % period) + period) % period;
 

@@ -13,7 +13,7 @@ if (import.meta.main) {
 	const newestDate = records.reduce((newest, record) => {
 		const parsed = Date.parse(record.date);
 		if (Number.isNaN(parsed)) return newest;
-		return parsed > newest ? parsed : newest;
+		return Math.max(parsed, newest);
 	}, 0);
 
 	const content = generateIcs(records, {
