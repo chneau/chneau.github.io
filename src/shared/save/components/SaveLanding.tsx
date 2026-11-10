@@ -11,9 +11,74 @@ import {
 	Title,
 } from "@mantine/core";
 import { FileUp, LockKeyhole, ShieldCheck, TriangleAlert } from "lucide-react";
-import { type DragEvent, type ReactNode, useRef, useState } from "react";
+import {
+	type DragEvent,
+	type ReactNode,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { LoadingState } from "../../components/LoadingState";
 import type { SaveCodec } from "../types";
+
+const readFileEntry = (entry: object): Promise<File> => {
+	const { promise, resolve, reject } = Promise.withResolvers<File>();
+	const read: unknown = Reflect.get(entry, "file");
+	if (typeof read !== "function") {
+		reject(new Error("That dropped item is not a readable file."));
+		return promise;
+	}
+	read.call(entry, resolve, reject);
+	return promise;
+};
+
+const readDirectoryEntry = (entry: object): Promise<readonly unknown[]> => {
+	const { promise, resolve } = Promise.withResolvers<readonly unknown[]>();
+	const createReader: unknown = Reflect.get(entry, "createReader");
+	if (typeof createReader !== "function") {
+		resolve([]);
+		return promise;
+	}
+	const reader: unknown = createReader.call(entry);
+	if (typeof reader !== "object" || reader === null) {
+		resolve([]);
+		return promise;
+	}
+	const readEntries: unknown = Reflect.get(reader, "readEntries");
+	if (typeof readEntries !== "function") {
+		resolve([]);
+		return promise;
+	}
+	readEntries.call(reader, resolve, () => resolve([]));
+	return promise;
+};
+
+const filesOfEntry = async (entry: unknown): Promise<readonly File[]> => {
+	if (typeof entry !== "object" || entry === null) return [];
+	if ("isFile" in entry && entry.isFile === true) {
+		return [await readFileEntry(entry)];
+	}
+	if (!("isDirectory" in entry) || entry.isDirectory !== true) return [];
+	const collected: File[] = [];
+	const pending = (await readDirectoryEntry(entry)).map(filesOfEntry);
+	for (const files of await Promise.all(pending)) collected.push(...files);
+	return collected;
+};
+
+const droppedFiles = async (
+	transfer: DataTransfer,
+): Promise<readonly File[]> => {
+	const entries: unknown[] = [];
+	for (let index = 0; index < transfer.items.length; index++) {
+		const item = transfer.items[index];
+		if (item === undefined) continue;
+		const getter: unknown = Reflect.get(item, "webkitGetAsEntry");
+		if (typeof getter === "function") entries.push(getter.call(item));
+	}
+	if (entries.length === 0) return Array.from(transfer.files);
+	const groups = await Promise.all(entries.map(filesOfEntry));
+	return groups.flat();
+};
 
 export const SaveLanding = ({
 	codec,
@@ -21,6 +86,7 @@ export const SaveLanding = ({
 	status,
 	error,
 	onSelectFile,
+	onSelectFiles,
 	children,
 }: {
 	codec: SaveCodec;
@@ -28,13 +94,28 @@ export const SaveLanding = ({
 	status: string;
 	error: string;
 	onSelectFile: (file: File) => void;
+	onSelectFiles?: (files: readonly File[]) => void;
 	children?: ReactNode;
 }) => {
 	const [dragging, setDragging] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const folderInputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		folderInputRef.current?.setAttribute("webkitdirectory", "");
+	}, []);
 
 	const take = (file: File | undefined): void => {
 		if (file) onSelectFile(file);
+	};
+
+	const takeFiles = (files: readonly File[]): void => {
+		if (files.length === 0) return;
+		if (onSelectFiles) {
+			onSelectFiles(files);
+			return;
+		}
+		take(files[0]);
 	};
 
 	return (
@@ -50,7 +131,9 @@ export const SaveLanding = ({
 					onDrop={(event: DragEvent) => {
 						event.preventDefault();
 						setDragging(false);
-						take(event.dataTransfer.files[0]);
+						void droppedFiles(event.dataTransfer)
+							.then(takeFiles)
+							.catch(() => undefined);
 					}}
 					aria-busy={loading}
 					p="xl"
@@ -120,9 +203,28 @@ export const SaveLanding = ({
 									event.target.value = "";
 								}}
 							/>
-							<Button mt="md" onClick={() => fileInputRef.current?.click()}>
-								Choose save file
-							</Button>
+							<input
+								ref={folderInputRef}
+								type="file"
+								style={{ display: "none" }}
+								onChange={(event) => {
+									takeFiles(Array.from(event.target.files ?? []));
+									event.target.value = "";
+								}}
+							/>
+							<Group gap="sm" mt="md">
+								<Button onClick={() => fileInputRef.current?.click()}>
+									Choose save file
+								</Button>
+								{onSelectFiles ? (
+									<Button
+										variant="default"
+										onClick={() => folderInputRef.current?.click()}
+									>
+										Choose save folder
+									</Button>
+								) : null}
+							</Group>
 						</Stack>
 					)}
 				</Box>

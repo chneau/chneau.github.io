@@ -91,6 +91,7 @@ export type {
 	QuickAction,
 	SaveCodec,
 	SaveEdit,
+	SaveTable,
 	SummaryRow,
 } from "./save/types";
 export { registerServiceWorker } from "./service-worker";

@@ -20,9 +20,11 @@ export type SaveSample = {
 export const SaveWorkbench = ({
 	codec,
 	sample,
+	resolveFile,
 }: {
 	codec: SaveCodec;
 	sample?: SaveSample;
+	resolveFile?: (files: readonly File[]) => File | undefined;
 }) => {
 	const {
 		name,
@@ -96,6 +98,14 @@ export const SaveWorkbench = ({
 						status={status}
 						error={error}
 						onSelectFile={onSelectFile}
+						onSelectFiles={
+							resolveFile
+								? (files) => {
+										const chosen = resolveFile(files);
+										if (chosen) onSelectFile(chosen);
+									}
+								: undefined
+						}
 					>
 						{sample ? (
 							<SampleLoaderCard

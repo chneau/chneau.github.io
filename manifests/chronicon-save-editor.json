@@ -1,0 +1,39 @@
+{
+	"id": "/chronicon-save-editor/",
+	"name": "Chronicon Save Editor",
+	"short_name": "Chronicon",
+	"description": "Edit Chronicon's shared bag in your browser — crystals, essences, gems, materials and every other item count, labelled with the game's real names and rebuilt on your device.",
+	"start_url": "/chronicon-save-editor/",
+	"scope": "/chronicon-save-editor/",
+	"display": "standalone",
+	"display_override": ["standalone", "minimal-ui"],
+	"background_color": "#0e0e11",
+	"theme_color": "#c99a14",
+	"lang": "en",
+	"icons": [
+		{
+			"src": "/icons/chronicon-save-editor-32.png",
+			"sizes": "32x32",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/chronicon-save-editor-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/chronicon-save-editor-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icons/chronicon-save-editor-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		}
+	]
+}
