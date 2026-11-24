@@ -7,6 +7,7 @@ import {
 	type JsonValue,
 	objectAt,
 	type QuickAction,
+	type SaveCheat,
 	type SaveCodec,
 	type SaveEdit,
 	type SummaryRow,
@@ -35,6 +36,20 @@ import {
 	SCRIPTABLE_SYSTEMS_NODE,
 	SPENDABLE_ATTRIBUTES,
 } from "./development";
+import {
+	COMPONENT_STACKS,
+	readComponents,
+	readMoney,
+	writeComponents,
+	writeMoney,
+} from "./items";
+import {
+	capacityBonusOf,
+	capacityModifiers,
+	carryCapacityBonus,
+	setCapacityBonus,
+	setCarryCapacity,
+} from "./stats";
 import { readSystemsContainer } from "./systems";
 
 const DEFAULT_PATH =
@@ -44,18 +59,31 @@ const KEY_VERSION = "version";
 const KEY_TREE = "tree";
 const KEY_CHARACTER = "character";
 
-const KEY_TREE_BYTES = "__nodeTree";
+const KEY_CONTAINER = "__container";
 
 const POINT_ATTRIBUTES = "Attribute";
 const POINT_PRIMARY = "Primary";
 const POINT_SECONDARY = "Secondary";
 const POINT_ESPIONAGE = "Espionage";
+const POINT_LEVEL = "Level";
+const POINT_STREET_CRED = "StreetCred";
+
+const STATS_NODE = "StatsSystem";
+
+const MAX_MONEY = 2_147_000_000;
+const CAPACITY_BONUS = 100_000;
+const COMPONENT_STACK = 9_999;
+const CARRY_CAPACITY = 9_999;
 
 type CharacterSection = {
 	readonly lifePath: string;
 	readonly developmentPoints: ReadonlyMap<string, DevelopmentPoints>;
 	readonly attributes: ReadonlyMap<string, number>;
 	readonly skills: ReadonlyMap<string, { level: number; exp: number }>;
+	readonly money: number | null;
+	readonly cyberwareCapacityBonus: number | null;
+	readonly inventoryCapacityBonus: number | null;
+	readonly components: ReadonlyMap<string, number>;
 };
 
 type DecodedParts = {
@@ -67,13 +95,13 @@ type DecodedParts = {
 	readonly character: CharacterSection;
 };
 
-const isSaveNode = (value: unknown): value is SaveNode =>
+const isDecodedContainer = (value: unknown): value is DecodedContainer =>
 	typeof value === "object" &&
 	value !== null &&
-	typeof (value as Partial<SaveNode>).name === "string" &&
-	(value as Partial<SaveNode>).data instanceof Uint8Array &&
-	(value as Partial<SaveNode>).afterChildren instanceof Uint8Array &&
-	Array.isArray((value as Partial<SaveNode>).children);
+	(value as Partial<DecodedContainer>).root !== undefined &&
+	(value as Partial<DecodedContainer>).bytes instanceof Uint8Array &&
+	(value as Partial<DecodedContainer>).nodeData instanceof Uint8Array &&
+	Array.isArray((value as Partial<DecodedContainer>).chunks);
 
 const buildTree = (source: SaveNode): SaveNode => {
 	let next = 0;
@@ -83,6 +111,7 @@ const buildTree = (source: SaveNode): SaveNode => {
 		}
 		return {
 			index,
+			offset: node.offset,
 			name: node.name,
 			nextIndex: -1,
 			childIndex: -1,
@@ -141,6 +170,7 @@ const readDocument = (doc: JsonValue): DecodedParts => {
 	const developmentPoints = new Map<string, DevelopmentPoints>();
 	const attributes = new Map<string, number>();
 	const skills = new Map<string, { level: number; exp: number }>();
+	const components = new Map<string, number>();
 	for (const [key, value] of Object.entries(character)) {
 		if (key === "developmentPoints" && isJsonObject(value)) {
 			for (const [name, entry] of Object.entries(value)) {
@@ -153,6 +183,10 @@ const readDocument = (doc: JsonValue): DecodedParts => {
 		} else if (key === "skills" && isJsonObject(value)) {
 			for (const [name, entry] of Object.entries(value)) {
 				skills.set(name, skillAt(entry));
+			}
+		} else if (key === "components" && isJsonObject(value)) {
+			for (const [name, entry] of Object.entries(value)) {
+				if (typeof entry === "number") components.set(name, entry);
 			}
 		}
 	}
@@ -182,6 +216,16 @@ const readDocument = (doc: JsonValue): DecodedParts => {
 			developmentPoints,
 			attributes,
 			skills,
+			money: typeof character.money === "number" ? character.money : null,
+			cyberwareCapacityBonus:
+				typeof character.cyberwareCapacityBonus === "number"
+					? character.cyberwareCapacityBonus
+					: null,
+			inventoryCapacityBonus:
+				typeof character.inventoryCapacityBonus === "number"
+					? character.inventoryCapacityBonus
+					: null,
+			components,
 		},
 	};
 };
@@ -213,6 +257,16 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 		developmentPoints: {},
 		attributes: {},
 		skills: {},
+		components: Object.fromEntries(readComponents(container.root)),
+		money: readMoney(container.root),
+		cyberwareCapacityBonus: capacityBonusOf(
+			capacityModifiers(
+				findNode(container.root, STATS_NODE)?.data ?? new Uint8Array(0),
+			),
+		),
+		inventoryCapacityBonus: carryCapacityBonus(
+			findNode(container.root, STATS_NODE)?.data ?? new Uint8Array(0),
+		),
 	};
 	if (development !== undefined) {
 		character.developmentPoints = Object.fromEntries(
@@ -233,20 +287,24 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 		tableEntries: container.version.tableEntriesCount ?? 0,
 	};
 
-	Object.defineProperty(version, KEY_TREE_BYTES, {
-		value: container.root,
+	Object.defineProperty(version, KEY_CONTAINER, {
+		value: container,
 		enumerable: false,
 		writable: true,
 		configurable: true,
 	});
 
+	const tree: { [key: string]: JsonValue } = {
+		names: container.root.children.map((child) => child.name),
+	};
+	Object.defineProperties(tree, {
+		nodes: { value: nodes.length, enumerable: false },
+		bytes: { value: container.nodeData.length, enumerable: false },
+	});
+
 	return {
 		[KEY_VERSION]: version,
-		[KEY_TREE]: {
-			nodes: nodes.length,
-			names: container.root.children.map((child) => child.name),
-			bytes: container.nodeData.length,
-		},
+		[KEY_TREE]: tree,
 		[KEY_CHARACTER]: character,
 	};
 };
@@ -255,20 +313,15 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 	const document = readDocument(doc);
 	const remembered: unknown = (() => {
 		const version = isJsonObject(doc) ? objectAt(doc, KEY_VERSION) : undefined;
-		return version === undefined ? undefined : version[KEY_TREE_BYTES];
+		return version === undefined ? undefined : version[KEY_CONTAINER];
 	})();
-	if (remembered === undefined) {
+	if (!isDecodedContainer(remembered)) {
 		throw new Error(
-			"This save cannot be rebuilt: this document has no node tree behind it. Open the save from the file again.",
-		);
-	}
-	if (!isSaveNode(remembered)) {
-		throw new Error(
-			"This save cannot be rebuilt: the node tree behind this document is not readable.",
+			"This save cannot be rebuilt: this document has no container behind it. Open the save from the file again.",
 		);
 	}
 
-	const root = buildTree(remembered);
+	const root = buildTree(remembered.root);
 	const node = findNode(root, SCRIPTABLE_SYSTEMS_NODE);
 	if (node !== undefined) {
 		const desired: Development = {
@@ -280,12 +333,21 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		applyPatches(planPatches(readSystemsContainer(node.data), desired));
 	}
 
-	return encodeContainer({
-		version: document.version,
-		root,
-		nodeData: new Uint8Array(0),
-		padSize: 0,
-	});
+	const { money, cyberwareCapacityBonus, inventoryCapacityBonus, components } =
+		document.character;
+	if (money !== null) writeMoney(root, money);
+	writeComponents(root, components);
+	const stats = findNode(root, STATS_NODE);
+	if (stats !== undefined) {
+		if (cyberwareCapacityBonus !== null) {
+			setCapacityBonus(stats.data, cyberwareCapacityBonus);
+		}
+		if (inventoryCapacityBonus !== null) {
+			setCarryCapacity(stats.data, inventoryCapacityBonus);
+		}
+	}
+
+	return encodeContainer({ ...remembered, root });
 };
 
 const summariseHeader = (document: DecodedParts): readonly SummaryRow[] => [
@@ -364,6 +426,35 @@ const summariseCharacter = (document: DecodedParts): readonly SummaryRow[] => {
 	if (level !== undefined) {
 		rows.push({ label: "Character level", value: String(level.level) });
 	}
+	if (character.money !== null) {
+		rows.push({
+			label: "Money",
+			value: character.money.toLocaleString("en-GB"),
+		});
+	}
+	if (character.cyberwareCapacityBonus !== null) {
+		rows.push({
+			label: "Cyberware capacity bonus",
+			value: `+${character.cyberwareCapacityBonus.toLocaleString("en-GB")}`,
+		});
+	}
+	if (character.inventoryCapacityBonus !== null) {
+		rows.push({
+			label: "Inventory capacity bonus",
+			value: `+${character.inventoryCapacityBonus.toLocaleString("en-GB")}`,
+		});
+	}
+	for (const [family, label] of [
+		["item", "Item components"],
+		["upgrade", "Upgrade components"],
+		["quickhack", "Quickhack components"],
+	] as const) {
+		const values = COMPONENT_STACKS.filter(
+			(stack) => stack.family === family,
+		).map((stack) => character.components.get(stack.label) ?? 0);
+		if (values.length === 0) continue;
+		rows.push({ label, value: values.join(" / ") });
+	}
 	return rows;
 };
 
@@ -381,8 +472,9 @@ const numberEdit = (
 });
 
 const targetSkillLevel = (name: string): number | undefined => {
-	if (name === "StreetCred") return MAX_STREET_CRED;
-	if (name === "Espionage") return 1;
+	if (name === POINT_LEVEL) return 60;
+	if (name === POINT_STREET_CRED) return MAX_STREET_CRED;
+	if (name === POINT_ESPIONAGE) return 1;
 	if (name.endsWith("Skill")) return MAX_SKILL;
 	return PROFICIENCY_ORDER.includes(name) ? 20 : undefined;
 };
@@ -478,6 +570,193 @@ const ACTIONS: readonly QuickAction[] = [
 			return edits;
 		},
 	},
+	{
+		id: "money",
+		label: "Money to 2 billion",
+		description:
+			"Set the wallet to 2,000,000,000 eddies. The game stores money as a signed 32-bit integer, so 2,147,483,647 is its ceiling; 99 billion cannot be represented and would wrap negative. The stash is a separate record and is left alone.",
+		plan: (doc) => {
+			const { character } = readDocument(doc);
+			if (character.money === null || character.money === MAX_MONEY) return [];
+			return [
+				numberEdit(
+					[KEY_CHARACTER, "money"],
+					`money → ${MAX_MONEY}`,
+					character.money,
+					MAX_MONEY,
+				),
+			];
+		},
+	},
+	{
+		id: "cyberware-capacity",
+		label: "Cyberware capacity +100,000",
+		description:
+			"Set the extra capacity the save adds on top of what the game computes from level, Technical Ability, perks and capacity shards. It is the same additive Humanity modifier a capacity shard writes, so it shows up as a larger bar at the ripperdoc.",
+		plan: (doc) => {
+			const { character } = readDocument(doc);
+			if (
+				character.cyberwareCapacityBonus === null ||
+				character.cyberwareCapacityBonus === CAPACITY_BONUS
+			) {
+				return [];
+			}
+			return [
+				numberEdit(
+					[KEY_CHARACTER, "cyberwareCapacityBonus"],
+					`extra capacity → ${CAPACITY_BONUS}`,
+					character.cyberwareCapacityBonus,
+					CAPACITY_BONUS,
+				),
+			];
+		},
+	},
+	{
+		id: "inventory-capacity",
+		label: "Inventory capacity +9,999",
+		description:
+			"Repurpose one spare Humanity modifier into an additive CarryCapacity one, so the weight bar at the top of the backpack grows by 9,999 on top of what Body and its perks already grant.",
+		plan: (doc) => {
+			const { character } = readDocument(doc);
+			if (character.inventoryCapacityBonus === CARRY_CAPACITY) return [];
+			return [
+				numberEdit(
+					[KEY_CHARACTER, "inventoryCapacityBonus"],
+					`inventory capacity → ${CARRY_CAPACITY}`,
+					character.inventoryCapacityBonus,
+					CARRY_CAPACITY,
+				),
+			];
+		},
+	},
+	{
+		id: "components",
+		label: "9,999 of every component",
+		description:
+			"Stock every tier of Item, Upgrade and Quickhack Components this save carries to 9,999. Stacks the save does not carry are left alone: adding a stack means adding a node, and a rebuilt node table is what the game rejects as damaged data.",
+		plan: (doc) => {
+			const { character } = readDocument(doc);
+			const edits: SaveEdit[] = [];
+			for (const [label, current] of character.components) {
+				if (current === COMPONENT_STACK) continue;
+				edits.push(
+					numberEdit(
+						[KEY_CHARACTER, "components", label],
+						`${label} → ${COMPONENT_STACK}`,
+						current,
+						COMPONENT_STACK,
+					),
+				);
+			}
+			return edits;
+		},
+	},
+];
+
+const attributeCheats: readonly SaveCheat[] = SPENDABLE_ATTRIBUTES.map(
+	(name) => ({
+		id: `attribute-${name}`,
+		label: name,
+		description: `The ${name} attribute, in the same field the perk tree reads. The game caps it at ${MAX_ATTRIBUTE}.`,
+		group: "Attributes",
+		path: [KEY_CHARACTER, "attributes", name],
+		min: 0,
+		max: MAX_ATTRIBUTE,
+	}),
+);
+
+const skillCheats: readonly SaveCheat[] = PROFICIENCY_ORDER.flatMap((name) => {
+	const max = targetSkillLevel(name);
+	if (max === undefined) return [];
+	return [
+		{
+			id: `skill-${name}`,
+			label: name,
+			description: `The ${name} proficiency level. The game caps this one at ${max}.`,
+			group: "Skills",
+			path: [KEY_CHARACTER, "skills", name, "level"],
+			min: 0,
+			max,
+		},
+	];
+});
+
+const pointCheats: readonly SaveCheat[] = [
+	{
+		id: "points-attribute",
+		label: "Perk points",
+		description:
+			"Unspent perk points. Spending them in the game is the only way to unlock a perk; this cannot pick the perk for you.",
+		group: "Points",
+		path: [KEY_CHARACTER, "developmentPoints", POINT_ATTRIBUTES, "unspent"],
+		min: 0,
+		max: MAX_POINTS,
+	},
+	{
+		id: "points-primary",
+		label: "Attribute points",
+		description:
+			"Unspent attribute points, capped by the game at the same 720 the refill action uses.",
+		group: "Points",
+		path: [KEY_CHARACTER, "developmentPoints", POINT_PRIMARY, "unspent"],
+		min: 0,
+		max: MAX_POINTS,
+	},
+	{
+		id: "points-secondary",
+		label: "Secondary points",
+		description:
+			"The secondary point pool the 2.0 tree spends on the two attributes it retired.",
+		group: "Points",
+		path: [KEY_CHARACTER, "developmentPoints", POINT_SECONDARY, "unspent"],
+		min: 0,
+		max: 12,
+	},
+];
+
+const componentCheats: readonly SaveCheat[] = COMPONENT_STACKS.map((stack) => ({
+	id: `component-${stack.family}-${stack.tier}`,
+	label: stack.label,
+	description: `How many ${stack.label.toLowerCase()} the save carries. Ripperdocs spend item, upgrade and quickhack components to improve gear; a family this save does not carry is left alone.`,
+	group: "Components",
+	path: [KEY_CHARACTER, "components", stack.label],
+	min: 0,
+	max: 2_147_483_647,
+}));
+
+const CHEATS: readonly SaveCheat[] = [
+	{
+		id: "money",
+		label: "Money",
+		description:
+			"The wallet balance, a signed 32-bit integer, so 2,147,483,647 is the ceiling and anything above it wraps negative.",
+		group: "Wallet",
+		path: [KEY_CHARACTER, "money"],
+		min: 0,
+		max: MAX_MONEY,
+	},
+	{
+		id: "cyberware-capacity",
+		label: "Cyberware capacity bonus",
+		description:
+			"Extra capacity added on top of what the game computes from level, Technical Ability, perks and capacity shards.",
+		group: "Cyberware",
+		path: [KEY_CHARACTER, "cyberwareCapacityBonus"],
+		min: 0,
+	},
+	{
+		id: "inventory-capacity",
+		label: "Inventory capacity bonus",
+		description:
+			"Extra carry weight added on top of what Body and its perks grant, written into the same modifier the carrying capacity shard uses.",
+		group: "Cyberware",
+		path: [KEY_CHARACTER, "inventoryCapacityBonus"],
+		min: 0,
+	},
+	...attributeCheats,
+	...skillCheats,
+	...pointCheats,
+	...componentCheats,
 ];
 
 const NOTES: readonly FormatNote[] = [
@@ -498,8 +777,16 @@ const NOTES: readonly FormatNote[] = [
 		body: "Every field name, type name and enum value inside the systems container is a 16-bit index into a per-system string pool. The readable character data on this page — attributes, skills, Street Cred, perk points — comes out of the game's own PlayerDevelopmentData object under its real field names, and the enum orders used to identify elements positionally are transcribed from the game's CEnums catalogue rather than guessed.",
 	},
 	{
+		title: "Items are identified by a TweakDBID",
+		body: 'An inventory stack is a short record that opens with its item id: the name\'s length in the high 32 bits and its CRC-32 in the low 32, so "Items.money" is 0x0000000bf5e188ec. Its quantity is a signed 32-bit integer 21 bytes in, which is why money tops out at 2,147,483,647 rather than the billions a decimal wallet would allow. The wallet is the money stack the game does not use as its 10,000-eddie sentinel.',
+	},
+	{
+		title: "Cyberware capacity is an additive stat modifier",
+		body: "The capacity bar is computed on load from level, Technical Ability, perks and capacity shards; each shard is a constant additive modifier on the Humanity stat, serialised as the class name, the stat's 64-bit FNV-1a hash and a float value. Raising the bar means rewriting those floats, which this page does in place. A save that carries no such modifier cannot gain one here: growing the stats buffer would move every slice after it.",
+	},
+	{
 		title: "What this page cannot do",
-		body: "It will not touch anything it cannot name. Unlocking every perk needs the game's own perk tree, which lives in the TweakDB rather than the save; money is an inventory item whose layout changes across the container revisions this codec supports. The reference tool's cheat command delegated to a WolvenKit binary and its sync command to GOG Cloud — neither a page in a browser tab can or should do. Those are absent rather than stubbed. Everything else stays editable in the inspector.",
+		body: "It will not touch anything it cannot name. Unlocking every perk needs the game's own perk tree, which lives in the TweakDB rather than the save. The reference tool's sync command went to GOG Cloud, which a page in a browser tab can or should not do. Those are absent rather than stubbed. Everything else stays editable in the inspector.",
 	},
 ];
 
@@ -516,4 +803,5 @@ export const cyberpunk2077: SaveCodec = {
 		return [...summariseHeader(document), ...summariseCharacter(document)];
 	},
 	actions: ACTIONS,
+	cheats: CHEATS,
 };

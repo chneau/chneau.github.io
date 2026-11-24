@@ -5,8 +5,6 @@ import {
 	yieldToBrowser,
 } from "../../shared";
 
-const CHUNK_SIZE = 0x40000;
-
 const tag = (text: string): number => {
 	let value = 0;
 	for (const [index, character] of [...text].entries()) {
@@ -23,10 +21,11 @@ const TAG_CHUNK_SWAPPED = tag("4ZLX");
 const TAG_NODES = tag("NODE");
 const TAG_NODES_SWAPPED = tag("EDON");
 const TAG_DONE = tag("DONE");
-const TAG_DONE_SWAPPED = tag("EDNE");
+const TAG_DONE_SWAPPED = tag("ENOD");
 
 export type SaveNode = {
 	index: number;
+	offset: number;
 	readonly name: string;
 	nextIndex: number;
 	childIndex: number;
@@ -51,9 +50,12 @@ export type DecodedContainer = {
 	readonly root: SaveNode;
 	readonly nodeData: Bytes;
 	readonly padSize: number;
+	readonly bytes: Bytes;
+	readonly chunks: readonly ChunkDescriptor[];
+	readonly chunkTableAt: number;
 };
 
-type ChunkDescriptor = {
+export type ChunkDescriptor = {
 	offset: number;
 	size: number;
 	dataSize: number;
@@ -147,25 +149,6 @@ const readPacked = (cursor: Cursor): bigint => {
 	return negative ? -value : value;
 };
 
-const writePacked = (value: bigint): number[] => {
-	const negative = value < 0n;
-	let rest = negative ? -value : value;
-	let head = Number(rest & 0x3fn);
-	rest >>= 6n;
-	if (negative) head |= 0x80;
-	if (rest === 0n) return [head];
-	const bytes = [head | 0x40];
-	for (;;) {
-		const part = Number(rest & 0x7fn);
-		rest >>= 7n;
-		if (rest === 0n) {
-			bytes.push(part);
-			return bytes;
-		}
-		bytes.push(part | 0x80);
-	}
-};
-
 const readLpfxd = (cursor: Cursor): string => {
 	const packed = readPacked(cursor);
 	if (packed === 0n) return "";
@@ -181,12 +164,6 @@ const readLpfxd = (cursor: Cursor): string => {
 		text += String.fromCharCode(low | (high << 8));
 	}
 	return text;
-};
-
-const writeLpfxd = (text: string): number[] => {
-	const utf8 = new TextEncoder().encode(text);
-	if (utf8.length === 0) return [0];
-	return [...writePacked(-BigInt(utf8.length)), ...utf8];
 };
 
 const pushU32 = (bytes: number[], value: number): void => {
@@ -397,6 +374,7 @@ const buildNode = (
 	if (descriptor.childIndex >= 0) {
 		let cursorAt = bodyStart;
 		let link = descriptor.childIndex;
+		let first = true;
 		while (link >= 0) {
 			if (link >= descriptors.length) {
 				throw new Error(
@@ -405,9 +383,10 @@ const buildNode = (
 			}
 			const child = descriptors[link];
 			if (child === undefined) break;
-			if (child.dataOffset > cursorAt) {
-				descriptor.data = nodeData.slice(cursorAt, child.dataOffset);
+			if (first && child.dataOffset > bodyStart) {
+				descriptor.data = nodeData.slice(bodyStart, child.dataOffset);
 			}
+			first = false;
 			children.push(buildNode(descriptors, link, nodeData, depth + 1));
 			cursorAt = child.dataOffset + child.dataSize;
 			link = child.nextIndex;
@@ -421,6 +400,7 @@ const buildNode = (
 
 	return {
 		index,
+		offset: descriptor.dataOffset,
 		name: descriptor.name,
 		nextIndex: descriptor.nextIndex,
 		childIndex: descriptor.childIndex,
@@ -444,6 +424,7 @@ export const decodeContainer = async (
 
 	const root: SaveNode = {
 		index: -2,
+		offset: 0,
 		name: "root",
 		nextIndex: -1,
 		childIndex: -1,
@@ -463,170 +444,99 @@ export const decodeContainer = async (
 	root.children = children;
 	root.childIndex = children[0]?.index ?? -1;
 
-	return { version, root, nodeData, padSize: structure.padSize };
-};
-
-const countNodes = (node: SaveNode): number => {
-	let total = node.index < 0 ? 0 : 1;
-	for (const child of node.children) total += countNodes(child);
-	return total;
-};
-
-const flatten = (
-	root: SaveNode,
-	padSize: number,
-): { descriptors: NodeDescriptor[]; stream: number[] } => {
-	const descriptors: NodeDescriptor[] = [];
-	for (let index = 0; index < countNodes(root); index += 1) {
-		descriptors.push({
-			name: "",
-			nextIndex: -1,
-			childIndex: -1,
-			dataOffset: 0,
-			dataSize: 0,
-			data: new Uint8Array(0),
-			afterChildren: new Uint8Array(0),
-		});
-	}
-	const stream: number[] = [];
-	for (let at = 0; at < padSize; at += 1) stream.push(0);
-	let next = 0;
-
-	const writeChildren = (node: SaveNode): void => {
-		for (const [position, child] of node.children.entries()) {
-			const descriptor = writeNode(child);
-			if (descriptor === undefined) continue;
-			const following = node.children[position + 1];
-			descriptor.nextIndex = following === undefined ? -1 : following.index;
-		}
+	return {
+		version,
+		root,
+		nodeData,
+		padSize: structure.padSize,
+		bytes,
+		chunks: structure.chunks,
+		chunkTableAt: structure.chunkTableAt,
 	};
-
-	const writeNode = (node: SaveNode): NodeDescriptor | undefined => {
-		if (node.index < 0) {
-			for (const byte of node.data) stream.push(byte);
-			writeChildren(node);
-			for (const byte of node.afterChildren) stream.push(byte);
-			return undefined;
-		}
-
-		const index = next;
-		next += 1;
-		const descriptor = descriptors[index];
-		if (descriptor === undefined) {
-			throw new Error("This save's node tree has more nodes than it declared.");
-		}
-		descriptor.name = node.name;
-		descriptor.dataOffset = stream.length;
-		pushU32(stream, index);
-		for (const byte of node.data) stream.push(byte);
-
-		descriptor.childIndex = node.children.length > 0 ? next : -1;
-		descriptor.dataSize = stream.length - descriptor.dataOffset;
-		writeChildren(node);
-		for (const byte of node.afterChildren) stream.push(byte);
-		return descriptor;
-	};
-
-	writeNode(root);
-
-	for (const [index, descriptor] of descriptors.entries()) {
-		const at = descriptor.dataOffset;
-		const claimed =
-			((stream[at] ?? 0) |
-				((stream[at + 1] ?? 0) << 8) |
-				((stream[at + 2] ?? 0) << 16) |
-				((stream[at + 3] ?? 0) << 24)) >>>
-			0;
-		if (claimed !== index) {
-			throw new Error(
-				`This save's node tree cannot be rebuilt: "${descriptor.name}" would be written out of order.`,
-			);
-		}
-	}
-
-	return { descriptors, stream };
 };
+
+const wordAt = (bytes: Bytes, at: number): number =>
+	new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(
+		at,
+		true,
+	);
 
 export const encodeContainer = async (
 	decoded: DecodedContainer,
 ): Promise<Bytes> => {
-	const { version, root } = decoded;
-
-	const header: number[] = [];
-	pushU32(header, tag("CSAV"));
-	pushU32(header, version.v1);
-	pushU32(header, version.v2);
-	for (const byte of writeLpfxd(version.suk)) header.push(byte);
-	pushU32(header, version.uk0);
-	pushU32(header, version.uk1);
-	if (version.v1 >= 83) pushU32(header, version.v3);
-
-	const chunkTableAt = header.length;
-	const unpadded = flatten(root, 0);
-	const reserved = Math.max(
-		version.tableEntriesCount ?? 256,
-		Math.ceil(unpadded.stream.length / CHUNK_SIZE) + 4,
-	);
-	const padSize = chunkTableAt + 8 + reserved * 12;
-	const { descriptors, stream } = flatten(root, padSize);
-	const nodeData = new Uint8Array(stream.length);
-	nodeData.set(stream);
-
-	const chunkBodyAt = padSize;
-	const chunks: ChunkDescriptor[] = [];
-	const chunkBytes: number[] = [];
-	let cursorAt = chunkBodyAt;
-	const payload = nodeData.subarray(padSize);
-	let written = 0;
-
-	while (written < payload.length) {
-		const source = payload.subarray(written, written + CHUNK_SIZE);
-		const offset = cursorAt;
-		let size: number;
-		if (version.ps4w) {
-			for (const byte of source) chunkBytes.push(byte);
-			size = source.length;
-		} else {
-			const compressed = lz4CompressBlock(source);
-			pushU32(chunkBytes, TAG_CHUNK);
-			pushU32(chunkBytes, source.length);
-			for (const byte of compressed) chunkBytes.push(byte);
-			size = compressed.length + 8;
+	const {
+		bytes,
+		chunks,
+		chunkTableAt,
+		nodeData: original,
+		padSize,
+		root,
+	} = decoded;
+	const nodeData = new Uint8Array(original);
+	for (const node of walkNodes(root)) {
+		if (node.index < 0 || node.data.length === 0) continue;
+		const at = node.offset + 4;
+		if (at + node.data.length > nodeData.length) {
+			throw new Error(
+				`Node "${node.name}" no longer fits this save's payload.`,
+			);
 		}
-		cursorAt += size;
-		chunks.push({ offset, size, dataSize: source.length });
-		written += source.length;
+		nodeData.set(node.data, at);
+	}
+
+	const header = bytes.subarray(0, chunkTableAt);
+	const tableTag = wordAt(bytes, chunkTableAt);
+	const body: number[] = [];
+	const rows: number[] = [];
+	let cursor = padSize;
+	let payloadAt = padSize;
+
+	for (const chunk of chunks) {
+		const payload = nodeData.subarray(payloadAt, payloadAt + chunk.dataSize);
+		payloadAt += chunk.dataSize;
+		const offset = cursor;
+		if (decoded.version.ps4w) {
+			for (const byte of payload) body.push(byte);
+			cursor += payload.length;
+			pushU32(rows, offset);
+			pushU32(rows, payload.length);
+			pushU32(rows, payload.length);
+		} else {
+			const compressed = lz4CompressBlock(payload);
+			pushU32(body, wordAt(bytes, chunk.offset));
+			pushU32(body, payload.length);
+			for (const byte of compressed) body.push(byte);
+			const size = compressed.length + 8;
+			cursor += size;
+			pushU32(rows, offset);
+			pushU32(rows, size);
+			pushU32(rows, payload.length);
+		}
 		await yieldToBrowser();
 	}
 
-	const nodeTableAt = cursorAt;
-	const footer: number[] = [];
-	pushU32(footer, TAG_NODES);
-	for (const byte of writePacked(BigInt(descriptors.length))) footer.push(byte);
-	for (const descriptor of descriptors) {
-		for (const byte of writeLpfxd(descriptor.name)) footer.push(byte);
-		pushU32(footer, descriptor.nextIndex);
-		pushU32(footer, descriptor.childIndex);
-		pushU32(footer, descriptor.dataOffset);
-		pushU32(footer, descriptor.dataSize);
-	}
-	pushU32(footer, nodeTableAt);
-	pushU32(footer, TAG_DONE);
-
 	const table: number[] = [];
-	pushU32(table, TAG_CHUNK_TABLE);
+	pushU32(table, tableTag);
 	pushU32(table, chunks.length);
-	for (const chunk of chunks) {
-		pushU32(table, chunk.offset);
-		pushU32(table, chunk.size);
-		pushU32(table, chunk.dataSize);
+	table.push(...rows);
+	if (chunkTableAt + table.length > padSize) {
+		throw new Error(
+			"This save's chunk table no longer fits the space reserved for it.",
+		);
 	}
 
-	const out = new Uint8Array(nodeTableAt + footer.length);
+	const nodeTableAt = wordAt(bytes, bytes.length - 8);
+	const doneTag = wordAt(bytes, bytes.length - 4);
+	const footer = bytes.subarray(nodeTableAt, bytes.length - 8);
+	const footerAt = padSize + body.length;
+	const out = new Uint8Array(footerAt + footer.length + 8);
 	out.set(header, 0);
 	out.set(table, chunkTableAt);
-	out.set(chunkBytes, chunkBodyAt);
-	out.set(footer, nodeTableAt);
+	out.set(body, padSize);
+	out.set(footer, footerAt);
+	const view = new DataView(out.buffer);
+	view.setUint32(out.length - 8, footerAt, true);
+	view.setUint32(out.length - 4, doneTag, true);
 	return out;
 };
 

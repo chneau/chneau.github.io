@@ -89,6 +89,7 @@ export { verifyRoundTrip } from "./save/roundtrip";
 export type {
 	FormatNote,
 	QuickAction,
+	SaveCheat,
 	SaveCodec,
 	SaveEdit,
 	SaveTable,

@@ -39,6 +39,16 @@ export type SaveTableColumn = {
 	readonly width?: string;
 };
 
+export type SaveCheat = {
+	readonly id: string;
+	readonly label: string;
+	readonly description: string;
+	readonly group: string;
+	readonly path: SavePath;
+	readonly min?: number;
+	readonly max?: number;
+};
+
 export type SaveTable = {
 	readonly id: string;
 	readonly label: string;
@@ -60,5 +70,6 @@ export type SaveCodec = {
 
 	summarise: (doc: JsonValue) => readonly SummaryRow[];
 	readonly actions: readonly QuickAction[];
+	readonly cheats?: readonly SaveCheat[];
 	readonly tables?: readonly SaveTable[];
 };

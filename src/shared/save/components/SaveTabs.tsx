@@ -1,9 +1,10 @@
 import { Alert, Box, Divider, Stack, Tabs, Text, Title } from "@mantine/core";
 import { CheckCircle2 } from "lucide-react";
 import type { JsonValue } from "../json";
-import type { FormatNote, SaveEdit, SaveTable } from "../types";
+import type { FormatNote, SaveCheat, SaveEdit, SaveTable } from "../types";
 import { HexViewer } from "./HexViewer";
 import { JsonInspector } from "./JsonInspector";
+import { SaveCheats } from "./SaveCheats";
 import { SaveTable as SaveTableView } from "./SaveTable";
 
 export const SaveTabs = ({
@@ -16,6 +17,7 @@ export const SaveTabs = ({
 	onSearchChange,
 	bytes,
 	notes,
+	cheats,
 	tables,
 }: {
 	tab: string | null;
@@ -27,6 +29,7 @@ export const SaveTabs = ({
 	onSearchChange: (value: string) => void;
 	bytes: Uint8Array;
 	notes: readonly FormatNote[];
+	cheats?: readonly SaveCheat[];
 	tables?: readonly SaveTable[];
 }) => (
 	<Tabs
@@ -42,6 +45,9 @@ export const SaveTabs = ({
 	>
 		<Tabs.List mb="sm">
 			<Tabs.Tab value="inspect">Inspector</Tabs.Tab>
+			{cheats !== undefined && cheats.length > 0 ? (
+				<Tabs.Tab value="cheats">Cheats</Tabs.Tab>
+			) : null}
 			{tables?.map((table) => (
 				<Tabs.Tab key={table.id} value={`table:${table.id}`}>
 					{table.label}
@@ -60,6 +66,17 @@ export const SaveTabs = ({
 				onSearchChange={onSearchChange}
 			/>
 		</Tabs.Panel>
+
+		{cheats !== undefined && cheats.length > 0 ? (
+			<Tabs.Panel value="cheats" style={{ flex: 1, minHeight: 0 }}>
+				<SaveCheats
+					cheats={cheats}
+					doc={doc}
+					staged={staged}
+					onStage={onStage}
+				/>
+			</Tabs.Panel>
+		) : null}
 
 		{tables?.map((table) => (
 			<Tabs.Panel
