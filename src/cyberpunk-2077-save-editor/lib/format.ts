@@ -49,6 +49,8 @@ import {
 	carryCapacityBonus,
 	setCapacityBonus,
 	setCarryCapacity,
+	setStatBonus,
+	statBonus,
 } from "./stats";
 import { readSystemsContainer } from "./systems";
 
@@ -75,6 +77,23 @@ const CAPACITY_BONUS = 100_000;
 const COMPONENT_STACK = 9_999;
 const CARRY_CAPACITY = 9_999;
 
+type BonusStat = {
+	readonly name: string;
+	readonly label: string;
+	readonly unit: string;
+	readonly max: number;
+};
+
+const BONUS_STATS: readonly BonusStat[] = [
+	{ name: "Health", label: "Bonus max health", unit: "HP", max: 100_000 },
+	{ name: "Armor", label: "Bonus armor", unit: "armor", max: 100_000 },
+	{ name: "Stamina", label: "Bonus max stamina", unit: "stamina", max: 100_000 },
+	{ name: "Memory", label: "Cyberdeck RAM bonus", unit: "RAM", max: 500 },
+	{ name: "CritChance", label: "Bonus crit chance", unit: "%", max: 100 },
+	{ name: "CritDamage", label: "Bonus crit damage", unit: "%", max: 1_000 },
+	{ name: "MaxSpeed", label: "Bonus movement speed", unit: "m/s", max: 50 },
+];
+
 type CharacterSection = {
 	readonly lifePath: string;
 	readonly developmentPoints: ReadonlyMap<string, DevelopmentPoints>;
@@ -83,6 +102,7 @@ type CharacterSection = {
 	readonly money: number | null;
 	readonly cyberwareCapacityBonus: number | null;
 	readonly inventoryCapacityBonus: number | null;
+	readonly bonusStats: ReadonlyMap<string, number>;
 	readonly components: ReadonlyMap<string, number>;
 };
 
@@ -171,6 +191,7 @@ const readDocument = (doc: JsonValue): DecodedParts => {
 	const attributes = new Map<string, number>();
 	const skills = new Map<string, { level: number; exp: number }>();
 	const components = new Map<string, number>();
+	const bonusStats = new Map<string, number>();
 	for (const [key, value] of Object.entries(character)) {
 		if (key === "developmentPoints" && isJsonObject(value)) {
 			for (const [name, entry] of Object.entries(value)) {
@@ -187,6 +208,10 @@ const readDocument = (doc: JsonValue): DecodedParts => {
 		} else if (key === "components" && isJsonObject(value)) {
 			for (const [name, entry] of Object.entries(value)) {
 				if (typeof entry === "number") components.set(name, entry);
+			}
+		} else if (key === "bonusStats" && isJsonObject(value)) {
+			for (const [name, entry] of Object.entries(value)) {
+				if (typeof entry === "number") bonusStats.set(name, entry);
 			}
 		}
 	}
@@ -225,6 +250,7 @@ const readDocument = (doc: JsonValue): DecodedParts => {
 				typeof character.inventoryCapacityBonus === "number"
 					? character.inventoryCapacityBonus
 					: null,
+			bonusStats,
 			components,
 		},
 	};
@@ -252,6 +278,8 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 	const development = developmentOf(container);
 	const nodes = walkNodes(container.root);
 
+	const statsBytes =
+		findNode(container.root, STATS_NODE)?.data ?? new Uint8Array(0);
 	const character: { [key: string]: JsonValue } = {
 		lifePath: development?.lifePath ?? "",
 		developmentPoints: {},
@@ -259,13 +287,10 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 		skills: {},
 		components: Object.fromEntries(readComponents(container.root)),
 		money: readMoney(container.root),
-		cyberwareCapacityBonus: capacityBonusOf(
-			capacityModifiers(
-				findNode(container.root, STATS_NODE)?.data ?? new Uint8Array(0),
-			),
-		),
-		inventoryCapacityBonus: carryCapacityBonus(
-			findNode(container.root, STATS_NODE)?.data ?? new Uint8Array(0),
+		cyberwareCapacityBonus: capacityBonusOf(capacityModifiers(statsBytes)),
+		inventoryCapacityBonus: carryCapacityBonus(statsBytes),
+		bonusStats: Object.fromEntries(
+			BONUS_STATS.map((stat) => [stat.name, statBonus(statsBytes, stat.name) ?? 0]),
 		),
 	};
 	if (development !== undefined) {
@@ -344,6 +369,9 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		}
 		if (inventoryCapacityBonus !== null) {
 			setCarryCapacity(stats.data, inventoryCapacityBonus);
+		}
+		for (const [name, value] of document.character.bonusStats) {
+			setStatBonus(stats.data, name, value);
 		}
 	}
 
@@ -437,6 +465,12 @@ const summariseCharacter = (document: DecodedParts): readonly SummaryRow[] => {
 			label: "Cyberware capacity bonus",
 			value: `+${character.cyberwareCapacityBonus.toLocaleString("en-GB")}`,
 		});
+	}
+	const bonuses = BONUS_STATS.filter(
+		(stat) => (character.bonusStats.get(stat.name) ?? 0) !== 0,
+	).map((stat) => `${stat.label.replace("Bonus ", "")} +${character.bonusStats.get(stat.name)}`);
+	if (bonuses.length > 0) {
+		rows.push({ label: "Bonus stats", value: bonuses.join(", ") });
 	}
 	if (character.inventoryCapacityBonus !== null) {
 		rows.push({
@@ -744,6 +778,17 @@ const CHEATS: readonly SaveCheat[] = [
 		path: [KEY_CHARACTER, "cyberwareCapacityBonus"],
 		min: 0,
 	},
+	...BONUS_STATS.map(
+		(stat): SaveCheat => ({
+			id: `bonus-${stat.name}`,
+			label: stat.label,
+			description: `An additive bonus on top of the ${stat.unit} the game computes from gear, attributes and perks. A save with no spare stat modifier cannot take one.`,
+			group: "Bonus stats",
+			path: [KEY_CHARACTER, "bonusStats", stat.name],
+			min: 0,
+			max: stat.max,
+		}),
+	),
 	{
 		id: "inventory-capacity",
 		label: "Inventory capacity bonus",

@@ -313,30 +313,53 @@ const modifiersOf = (
 export const capacityModifiers = (bytes: Bytes): readonly CapacityModifier[] =>
 	modifiersOf(bytes, CAPACITY_STAT);
 
-export const setCarryCapacity = (bytes: Bytes, capacity: number): void => {
-	if (!Number.isFinite(capacity) || capacity < 0) {
+export const statBonus = (bytes: Bytes, statName: string): number | null => {
+	const modifiers = modifiersOf(bytes, statName);
+	return modifiers.length === 0
+		? null
+		: modifiers.reduce((total, modifier) => total + modifier.value, 0);
+};
+
+export const setStatBonus = (
+	bytes: Bytes,
+	statName: string,
+	value: number,
+): void => {
+	if (!Number.isFinite(value) || value < 0) {
 		throw new Error(
-			`Inventory capacity is an additive float, so ${capacity} cannot be written to this save.`,
+			`${statName} is an additive float, so ${value} cannot be written to this save.`,
 		);
 	}
-	const existing = modifiersOf(bytes, CARRY_STAT);
-	const current = existing[0];
-	if (current !== undefined && current.value === capacity) return;
-	const target = current ?? modifiersOf(bytes, CAPACITY_STAT)[1];
-	if (target === undefined) {
+	const existing = modifiersOf(bytes, statName);
+	if (existing.length > 1) {
 		throw new Error(
-			"This save has too few stat modifiers to carry an inventory capacity bonus.",
+			`This save spreads ${statName} over ${existing.length} modifiers, so it is left alone.`,
 		);
 	}
 	const view = readerOf(bytes);
-	if (existing.length === 0) {
-		view.setBigUint64(target.statAt, fnv1a64(CARRY_STAT), true);
+	const [only] = existing;
+	if (only !== undefined) {
+		if (only.value !== value) view.setFloat32(only.valueAt, value, true);
+		return;
 	}
-	view.setFloat32(target.valueAt, capacity, true);
+	if (value === 0) return;
+	const spare = modifiersOf(bytes, CAPACITY_STAT).find(
+		(modifier) => modifier.value === 0,
+	);
+	if (spare === undefined) {
+		throw new Error(
+			`This save has no spare stat modifier to carry a ${statName} bonus.`,
+		);
+	}
+	view.setBigUint64(spare.statAt, fnv1a64(statName), true);
+	view.setFloat32(spare.valueAt, value, true);
 };
 
+export const setCarryCapacity = (bytes: Bytes, capacity: number): void =>
+	setStatBonus(bytes, CARRY_STAT, capacity);
+
 export const carryCapacityBonus = (bytes: Bytes): number | null =>
-	capacityBonusOf(modifiersOf(bytes, CARRY_STAT));
+	statBonus(bytes, CARRY_STAT);
 
 export const capacityBonusOf = (
 	modifiers: readonly CapacityModifier[],
