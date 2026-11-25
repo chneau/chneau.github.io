@@ -89,6 +89,7 @@ const BONUS_STATS: readonly BonusStat[] = [
 	{ name: "Armor", label: "Bonus armor", unit: "armor", max: 100_000 },
 	{ name: "Stamina", label: "Bonus max stamina", unit: "stamina", max: 100_000 },
 	{ name: "Memory", label: "Cyberdeck RAM bonus", unit: "RAM", max: 500 },
+	{ name: "MemoryRegenRateMult", label: "RAM regen multiplier", unit: "×", max: 1_000 },
 	{ name: "CritChance", label: "Bonus crit chance", unit: "%", max: 100 },
 	{ name: "CritDamage", label: "Bonus crit damage", unit: "%", max: 1_000 },
 	{ name: "MaxSpeed", label: "Bonus movement speed", unit: "m/s", max: 50 },
