@@ -358,7 +358,7 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 		[KEY_STATS]: STAT_TYPES.map((name, index) => ({
 			name,
 			value: statValuesOf[index] ?? 0,
-		})),
+		})).filter((row) => !CHEAT_STATS.has(row.name)),
 	};
 };
 
@@ -786,6 +786,12 @@ const componentCheats: readonly SaveCheat[] = COMPONENT_STACKS.map((stack) => ({
 	min: 0,
 	max: 2_147_483_647,
 }));
+
+const CHEAT_STATS: ReadonlySet<string> = new Set([
+	...BONUS_STATS.map((stat) => stat.name),
+	"CarryCapacity",
+	"Humanity",
+]);
 
 const CHEATS: readonly SaveCheat[] = [
 	{

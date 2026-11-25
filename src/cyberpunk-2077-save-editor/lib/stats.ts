@@ -183,6 +183,8 @@ const classesAt = (
 const fieldIn = (fields: readonly Field[], name: string): Field | undefined =>
 	fields.find((field) => field.name === name);
 
+const exact = (value: number): number => Number(value.toPrecision(7));
+
 export type StatModifier = {
 	readonly stat: bigint;
 	readonly modifier: number;
@@ -343,7 +345,7 @@ export const statValues = (
 		const list = byStat.get(fnv1a64(name));
 		const [only] = list ?? [];
 		return list !== undefined && list.length === 1 && only !== undefined
-			? only.value
+			? exact(only.value)
 			: 0;
 	});
 };
@@ -391,7 +393,7 @@ export const statBonus = (bytes: Bytes, statName: string): number | null => {
 	const modifiers = modifiersOf(bytes, statName);
 	return modifiers.length === 0
 		? null
-		: modifiers.reduce((total, modifier) => total + modifier.value, 0);
+		: exact(modifiers.reduce((total, modifier) => total + modifier.value, 0));
 };
 
 export const setStatBonus = (
