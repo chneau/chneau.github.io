@@ -183,17 +183,20 @@ const classesAt = (
 const fieldIn = (fields: readonly Field[], name: string): Field | undefined =>
 	fields.find((field) => field.name === name);
 
+export type StatModifier = {
+	readonly stat: bigint;
+	readonly modifier: number;
+	readonly statAt: number;
+	readonly valueAt: number;
+	readonly value: number;
+};
+
 const readEntries = (
 	bytes: Bytes,
 	start: number,
 	end: number,
-	statHash: bigint,
-): readonly {
-	readonly statAt: number;
-	readonly valueAt: number;
-	readonly value: number;
-}[] => {
-	const entries: { statAt: number; valueAt: number; value: number }[] = [];
+): readonly StatModifier[] => {
+	const entries: StatModifier[] = [];
 	const view = readerOf(bytes);
 	let at = start;
 	while (at < end) {
@@ -221,10 +224,13 @@ const readEntries = (
 		at += 12;
 		if (className === CAPACITY_CLASS) {
 			if (at + VALUE_WIDTH > end) return entries;
-			const value = view.getFloat32(at, true);
-			if (stat === statHash && modifier === 0) {
-				entries.push({ statAt: at - 12, valueAt: at, value });
-			}
+			entries.push({
+				stat,
+				modifier,
+				statAt: at - 12,
+				valueAt: at,
+				value: view.getFloat32(at, true),
+			});
 			at += VALUE_WIDTH;
 		} else if (className === "gameCombinedStatModifier") {
 			at += 20;
@@ -244,11 +250,9 @@ export type CapacityModifier = {
 	readonly value: number;
 };
 
-const modifiersOf = (
+export const playerStatModifiers = (
 	bytes: Bytes,
-	statName: string,
-): readonly CapacityModifier[] => {
-	const statHash = fnv1a64(statName);
+): readonly StatModifier[] => {
 	const packageInfo = readPackage(bytes.subarray(4));
 	if (packageInfo === undefined) return [];
 	const chunk = packageInfo.chunks.find((entry) => entry.name === STATS_CHUNK);
@@ -283,7 +287,7 @@ const modifiersOf = (
 	);
 
 	const count = u32At(packageInfo.bytes, indices.at);
-	const found: CapacityModifier[] = [];
+	const found: StatModifier[] = [];
 	for (let index = 0; index < count; index += 1) {
 		const sliceIndex = u16At(packageInfo.bytes, indices.at + 4 + index * 2);
 		const slice = slices[sliceIndex];
@@ -298,9 +302,11 @@ const modifiersOf = (
 				: u32At(packageInfo.bytes, combinedField.at);
 		const end = offset + (combined & 0x3fffffff);
 		if (offset > buffer.length || end > buffer.length) continue;
-		const entries = readEntries(buffer, offset, end, statHash);
+		const entries = readEntries(buffer, offset, end);
 		for (const entry of entries) {
 			found.push({
+				stat: entry.stat,
+				modifier: entry.modifier,
 				statAt: 4 + bufferStart + entry.statAt,
 				valueAt: 4 + bufferStart + entry.valueAt,
 				value: entry.value,
@@ -310,8 +316,76 @@ const modifiersOf = (
 	return found;
 };
 
-export const capacityModifiers = (bytes: Bytes): readonly CapacityModifier[] =>
+const modifiersOf = (
+	bytes: Bytes,
+	statName: string,
+): readonly StatModifier[] => {
+	const statHash = fnv1a64(statName);
+	return playerStatModifiers(bytes).filter(
+		(entry) => entry.stat === statHash && entry.modifier === 0,
+	);
+};
+
+export const capacityModifiers = (bytes: Bytes): readonly StatModifier[] =>
 	modifiersOf(bytes, CAPACITY_STAT);
+
+export const statValues = (
+	bytes: Bytes,
+	names: readonly string[],
+): readonly number[] => {
+	const byStat = new Map<bigint, StatModifier[]>();
+	for (const entry of playerStatModifiers(bytes)) {
+		const list = byStat.get(entry.stat);
+		if (list === undefined) byStat.set(entry.stat, [entry]);
+		else list.push(entry);
+	}
+	return names.map((name) => {
+		const list = byStat.get(fnv1a64(name));
+		const [only] = list ?? [];
+		return list !== undefined && list.length === 1 && only !== undefined
+			? only.value
+			: 0;
+	});
+};
+
+export const writeStatValues = (
+	bytes: Bytes,
+	values: readonly { readonly name: string; readonly value: number }[],
+): void => {
+	const entries = playerStatModifiers(bytes);
+	const byStat = new Map<bigint, StatModifier[]>();
+	for (const entry of entries) {
+		const list = byStat.get(entry.stat);
+		if (list === undefined) byStat.set(entry.stat, [entry]);
+		else list.push(entry);
+	}
+	const spares = entries.filter(
+		(entry) => entry.stat === fnv1a64(CAPACITY_STAT) && entry.value === 0,
+	);
+	const view = readerOf(bytes);
+	let spareAt = 0;
+	for (const { name, value } of values) {
+		if (!Number.isFinite(value)) continue;
+		const list = byStat.get(fnv1a64(name)) ?? [];
+		const [only] = list;
+		if (only !== undefined) {
+			if (list.length === 1 && only.value !== value) {
+				view.setFloat32(only.valueAt, value, true);
+			}
+			continue;
+		}
+		if (value === 0) continue;
+		const spare = spares[spareAt];
+		if (spare === undefined) {
+			throw new Error(
+				`This save has no spare stat modifier left to carry a ${name} bonus.`,
+			);
+		}
+		spareAt += 1;
+		view.setBigUint64(spare.statAt, fnv1a64(name), true);
+		view.setFloat32(spare.valueAt, value, true);
+	}
+};
 
 export const statBonus = (bytes: Bytes, statName: string): number | null => {
 	const modifiers = modifiersOf(bytes, statName);
@@ -362,7 +436,7 @@ export const carryCapacityBonus = (bytes: Bytes): number | null =>
 	statBonus(bytes, CARRY_STAT);
 
 export const capacityBonusOf = (
-	modifiers: readonly CapacityModifier[],
+	modifiers: readonly StatModifier[],
 ): number | null =>
 	modifiers.length === 0
 		? null

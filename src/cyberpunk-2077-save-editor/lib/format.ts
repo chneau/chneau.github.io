@@ -51,7 +51,10 @@ import {
 	setCarryCapacity,
 	setStatBonus,
 	statBonus,
+	statValues,
+	writeStatValues,
 } from "./stats";
+import { STAT_TYPES } from "./stat-types";
 import { readSystemsContainer } from "./systems";
 
 const DEFAULT_PATH =
@@ -59,6 +62,7 @@ const DEFAULT_PATH =
 
 const KEY_VERSION = "version";
 const KEY_TREE = "tree";
+const KEY_STATS = "stats";
 const KEY_CHARACTER = "character";
 
 const KEY_CONTAINER = "__container";
@@ -112,6 +116,7 @@ type CharacterSection = {
 
 type DecodedParts = {
 	readonly version: SaveVersion;
+	readonly stats: readonly { readonly name: string; readonly value: number }[];
 	readonly nodeCount: number;
 	readonly topLevel: readonly string[];
 	readonly bytes: number;
@@ -220,7 +225,21 @@ const readDocument = (doc: JsonValue): DecodedParts => {
 		}
 	}
 
+	const stats: { name: string; value: number }[] = [];
+	const statsSource = isJsonObject(doc) ? doc[KEY_STATS] : undefined;
+	if (Array.isArray(statsSource)) {
+		for (const row of statsSource) {
+			if (!isJsonObject(row)) continue;
+			const rowName = row.name;
+			const rowValue = row.value;
+			if (typeof rowName === "string" && typeof rowValue === "number") {
+				stats.push({ name: rowName, value: rowValue });
+			}
+		}
+	}
+
 	return {
+		stats,
 		version: {
 			v1: number(version.v1),
 			v2: number(version.v2),
@@ -284,6 +303,7 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 
 	const statsBytes =
 		findNode(container.root, STATS_NODE)?.data ?? new Uint8Array(0);
+	const statValuesOf = statValues(statsBytes, STAT_TYPES);
 	const character: { [key: string]: JsonValue } = {
 		lifePath: development?.lifePath ?? "",
 		developmentPoints: {},
@@ -335,6 +355,10 @@ const decode = async (bytes: Bytes): Promise<JsonValue> => {
 		[KEY_VERSION]: version,
 		[KEY_TREE]: tree,
 		[KEY_CHARACTER]: character,
+		[KEY_STATS]: STAT_TYPES.map((name, index) => ({
+			name,
+			value: statValuesOf[index] ?? 0,
+		})),
 	};
 };
 
@@ -377,6 +401,7 @@ const encode = async (doc: JsonValue): Promise<Bytes> => {
 		for (const [name, value] of document.character.bonusStats) {
 			setStatBonus(stats.data, name, value);
 		}
+		writeStatValues(stats.data, document.stats);
 	}
 
 	return encodeContainer({ ...remembered, root });
@@ -853,4 +878,16 @@ export const cyberpunk2077: SaveCodec = {
 	},
 	actions: ACTIONS,
 	cheats: CHEATS,
+	tables: [
+		{
+			id: "stats",
+			label: "Stats",
+			path: [KEY_STATS],
+			emptyMessage: "This save exposes no stat modifiers.",
+			columns: [
+				{ label: "Stat", path: ["name"], readOnly: true, width: "320px" },
+				{ label: "Value", path: ["value"] },
+			],
+		},
+	],
 };
