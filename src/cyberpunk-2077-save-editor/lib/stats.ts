@@ -325,7 +325,7 @@ export const setStatBonus = (
 	statName: string,
 	value: number,
 ): void => {
-	if (!Number.isFinite(value) || value < 0) {
+	if (!Number.isFinite(value)) {
 		throw new Error(
 			`${statName} is an additive float, so ${value} cannot be written to this save.`,
 		);
